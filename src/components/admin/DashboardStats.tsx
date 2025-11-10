@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Image, MessageCircle } from 'lucide-react';
-import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 export function DashboardStats() {
   const [stats, setStats] = useState({
@@ -14,23 +13,16 @@ export function DashboardStats() {
 
   const fetchStats = async () => {
     try {
-      const [galleryRes, testimoniesRes] = await Promise.all([
-        fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d8da5020/gallery`, {
-          headers: { Authorization: `Bearer ${publicAnonKey}` },
-        }),
-        fetch(`https://${projectId}.supabase.co/functions/v1/make-server-d8da5020/testimonies`, {
-          headers: { Authorization: `Bearer ${publicAnonKey}` },
-        }),
-      ]);
+      // TODO: Replace with Vercel Postgres queries
+      // const [galleryRes, testimoniesRes] = await Promise.all([
+      //   fetch('/api/gallery/count'),
+      //   fetch('/api/testimonies/count'),
+      // ]);
 
-      const [gallery, testimonies] = await Promise.all([
-        galleryRes.json(),
-        testimoniesRes.json(),
-      ]);
-
+      // Placeholder stats - replace with actual API calls
       setStats({
-        gallery: gallery.gallery?.length || 0,
-        testimonies: testimonies.testimonies?.length || 0,
+        gallery: 0,
+        testimonies: 0,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);

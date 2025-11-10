@@ -39,7 +39,6 @@
     "node_modules",
     "src/main.tsx",
     "src/App.tsx",
-    "vite.config.ts",
-    "src/supabase/**"
+    "vite.config.ts"
   ]
 }

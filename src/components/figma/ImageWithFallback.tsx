@@ -43,15 +43,15 @@ export function ImageWithFallback({
     setIsLoading(false);
   };
 
-  // Generate responsive image sizes for Supabase Storage URLs
+  // Generate responsive image sizes for Vercel Blob Storage URLs
   const getResponsiveSizes = (imageUrl: string) => {
-    // Check if it's a Supabase Storage URL
-    if (!imageUrl.includes('supabase.co/storage')) {
+    // Check if it's a Vercel Blob Storage URL
+    if (!imageUrl.includes('vercel-storage.com')) {
       return null;
     }
 
-    // Supabase Storage supports image transformations via URL parameters
-    // Format: ?width=XXX&height=XXX&resize=contain&quality=XX
+    // Vercel Blob Storage supports image transformations via URL parameters
+    // Format: ?width=XXX&height=XXX&quality=XX
     const baseUrl = imageUrl.split('?')[0];
     
     return {

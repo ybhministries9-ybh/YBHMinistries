@@ -13,11 +13,6 @@ const nextConfig = {
       },
     ],
   },
-  // Supabase configuration
-  env: {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  },
   // For handling trailing slashes
   trailingSlash: false,
   // Optimize for production
