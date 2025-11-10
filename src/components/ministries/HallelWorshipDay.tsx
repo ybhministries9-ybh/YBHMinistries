@@ -1,0 +1,238 @@
+import React from "react";
+import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { useTranslation } from 'react-i18next';
+
+export function HallelWorshipDay() {
+  const { t } = useTranslation('ministries');
+  
+  return (
+    <div className="font-sans text-white bg-black">
+      {/* Hero Section */}
+      <section className="relative h-[80vh] flex items-start justify-center overflow-hidden pt-4 md:pt-16">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1712844470225-94cbb5bd7dc8?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-40">
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 z-20 text-center">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-6xl font-bold mb-3 md:mb-4 text-white">{t('hallelWorshipDayPage.title')}</h1>
+            <p className="text-xl md:text-2xl lg:text-3xl mb-6 md:mb-8 text-white">{t('hallelWorshipDayPage.tagline')}</p>
+            <div className="mt-6 md:mt-8 max-w-3xl mx-auto space-y-4">
+              <p className="text-base md:text-lg leading-relaxed text-center text-white">
+                {t('hallelWorshipDayPage.about.paragraph1').split(t('hallelWorshipDayPage.about.highlight1'))[0]}
+                <span className="font-semibold underline decoration-[#FDB813] decoration-4 underline-offset-4">
+                  {t('hallelWorshipDayPage.about.highlight1')}
+                </span>
+                {t('hallelWorshipDayPage.about.paragraph1').split(t('hallelWorshipDayPage.about.highlight1'))[1].split(t('hallelWorshipDayPage.about.highlight2'))[0]}
+                <span className="font-semibold underline decoration-[#FDB813] decoration-4 underline-offset-4">
+                  {t('hallelWorshipDayPage.about.highlight2')}
+                </span>
+                {t('hallelWorshipDayPage.about.paragraph1').split(t('hallelWorshipDayPage.about.highlight2'))[1]}
+              </p>
+              <p className="text-base md:text-lg leading-relaxed text-center text-white">
+                {t('hallelWorshipDayPage.about.paragraph2').split(t('hallelWorshipDayPage.about.highlight3'))[0]}
+                <span className="font-semibold underline decoration-[#FDB813] decoration-4 underline-offset-4">
+                  {t('hallelWorshipDayPage.about.highlight3')}
+                </span>
+                {t('hallelWorshipDayPage.about.paragraph2').split(t('hallelWorshipDayPage.about.highlight3'))[1]}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Vision Section */}
+      <section className="bg-[#2E2E2E] py-16 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row-reverse items-center gap-8">
+            <div className="md:w-1/3 flex justify-center">
+              <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-black flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 md:w-24 md:h-24 text-[#FDB813]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              </div>
+            </div>
+            <div className="md:w-2/3">
+              <h2 className="text-3xl mb-2">
+                {t('hallelWorshipDayPage.vision.title')}
+              </h2>
+              <div className="w-24 h-1 rounded-full mb-6" style={{ backgroundColor: '#FDB813' }}></div>
+              <p className="mb-4">
+                {t('hallelWorshipDayPage.vision.paragraph1').split(t('hallelWorshipDayPage.vision.highlight1'))[0]}
+                <span className="font-semibold underline decoration-[#FDB813] decoration-4 underline-offset-4">
+                  {t('hallelWorshipDayPage.vision.highlight1')}
+                </span>
+                {t('hallelWorshipDayPage.vision.paragraph1').split(t('hallelWorshipDayPage.vision.highlight1'))[1]}
+              </p>
+              <p className="mb-4">
+                {t('hallelWorshipDayPage.vision.paragraph2')}
+              </p>
+              <blockquote className="border-l-4 border-[#FDB813] pl-4 italic my-6">
+                {t('hallelWorshipDayPage.vision.verse')}
+              </blockquote>
+              <p>
+                {t('hallelWorshipDayPage.vision.paragraph3')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Unceasing Praise Section */}
+      <section className="bg-black py-16 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="md:w-1/3 flex justify-center">
+              <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-[#2E2E2E] flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 md:w-24 md:h-24 text-[#FDB813]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="md:w-2/3">
+              <h2 className="text-3xl mb-2">
+                {t('hallelWorshipDayPage.unceasingPraise.title')}
+              </h2>
+              <div className="w-24 h-1 rounded-full mb-6" style={{ backgroundColor: '#FDB813' }}></div>
+              <p className="mb-4">
+                {t('hallelWorshipDayPage.unceasingPraise.paragraph1').split(t('hallelWorshipDayPage.unceasingPraise.highlight1'))[0]}
+                <span className="font-semibold underline decoration-[#FDB813] decoration-4 underline-offset-4">
+                  {t('hallelWorshipDayPage.unceasingPraise.highlight1')}
+                </span>
+                {t('hallelWorshipDayPage.unceasingPraise.paragraph1').split(t('hallelWorshipDayPage.unceasingPraise.highlight1'))[1]}
+              </p>
+              <p className="mb-4">
+                {t('hallelWorshipDayPage.unceasingPraise.paragraph2')}
+              </p>
+              <p>
+                {t('hallelWorshipDayPage.unceasingPraise.paragraph3')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Movement Section */}
+      <section className="bg-[#2E2E2E] py-16 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row-reverse items-center gap-8">
+            <div className="md:w-1/3 flex justify-center">
+              <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-black flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 md:w-24 md:h-24 text-[#FDB813]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="md:w-2/3">
+              <h2 className="text-3xl mb-2">
+                {t('hallelWorshipDayPage.movement.title')}
+              </h2>
+              <div className="w-24 h-1 rounded-full mb-6" style={{ backgroundColor: '#FDB813' }}></div>
+              <p className="mb-4">
+                {t('hallelWorshipDayPage.movement.paragraph1').split(t('hallelWorshipDayPage.movement.highlight1'))[0]}
+                <span className="font-semibold underline decoration-[#FDB813] decoration-4 underline-offset-4">
+                  {t('hallelWorshipDayPage.movement.highlight1')}
+                </span>
+                {t('hallelWorshipDayPage.movement.paragraph1').split(t('hallelWorshipDayPage.movement.highlight1'))[1]}
+              </p>
+              <p>
+                {t('hallelWorshipDayPage.movement.paragraph2')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Join the Movement Section */}
+      <section className="bg-black py-16 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-3xl mb-2">
+            {t('hallelWorshipDayPage.joinMovement.title')}
+          </h2>
+          <div className="w-24 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: '#FDB813' }}></div>
+          <p className="mb-8 max-w-3xl mx-auto">
+            {t('hallelWorshipDayPage.joinMovement.intro')}
+          </p>
+          <a 
+            href="https://www.facebook.com/p/Augustine-Dandingi-Official-100063698651483/" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center bg-[#FDB813] hover:bg-opacity-80 text-black font-semibold py-3 px-8 rounded-md transition duration-300 transform hover:scale-105 cursor-pointer"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
+            </svg>
+            {t('hallelWorshipDayPage.joinMovement.facebookLink')}
+          </a>
+          <p className="mt-8 max-w-3xl mx-auto">
+            {t('hallelWorshipDayPage.joinMovement.paragraph1')}
+          </p>
+          <p className="mt-4 max-w-3xl mx-auto">
+            {t('hallelWorshipDayPage.joinMovement.paragraph2').split(t('hallelWorshipDayPage.joinMovement.highlight1'))[0]}
+            <span className="font-semibold underline decoration-[#FDB813] decoration-4 underline-offset-4">
+              {t('hallelWorshipDayPage.joinMovement.highlight1')}
+            </span>
+            {t('hallelWorshipDayPage.joinMovement.paragraph2').split(t('hallelWorshipDayPage.joinMovement.highlight1'))[1]}
+          </p>
+        </div>
+      </section>
+
+      {/* Call to 24x7 Worship Section */}
+      <section className="bg-[#2E2E2E] py-16 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="md:w-1/3 flex justify-center">
+              <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-black flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 md:w-24 md:h-24 text-[#FDB813]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+            </div>
+            <div className="md:w-2/3">
+              <h2 className="text-3xl mb-2">
+                {t('hallelWorshipDayPage.callTo247.title')}
+              </h2>
+              <div className="w-24 h-1 rounded-full mb-6" style={{ backgroundColor: '#FDB813' }}></div>
+              <p className="mb-4">
+                {t('hallelWorshipDayPage.callTo247.paragraph1')}
+              </p>
+              <p className="mb-4">
+                {t('hallelWorshipDayPage.callTo247.paragraph2')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final Call Section */}
+      <section className="bg-black py-16 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-3xl mb-2">
+            {t('hallelWorshipDayPage.finalCall.title')}
+          </h2>
+          <div className="w-24 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: '#FDB813' }}></div>
+          <p className="mb-8 max-w-3xl mx-auto">
+            {t('hallelWorshipDayPage.finalCall.paragraph1')}
+          </p>
+          <p className="mb-8 max-w-3xl mx-auto">
+            {t('hallelWorshipDayPage.finalCall.paragraph2').split(t('hallelWorshipDayPage.finalCall.highlight1'))[0]}
+            <span className="font-semibold underline decoration-[#FDB813] decoration-4 underline-offset-4">
+              {t('hallelWorshipDayPage.finalCall.highlight1')}
+            </span>
+            {t('hallelWorshipDayPage.finalCall.paragraph2').split(t('hallelWorshipDayPage.finalCall.highlight1'))[1]}
+          </p>
+          <blockquote className="border-l-4 border-[#FDB813] pl-1 italic mb-8 max-w-3xl mx-auto">
+            {t('hallelWorshipDayPage.finalCall.quote1')}
+          </blockquote>
+          <blockquote className="text-xl italic max-w-3xl mx-auto">
+            {t('hallelWorshipDayPage.finalCall.verse')}
+          </blockquote>
+          <button className="mt-10 bg-[#FDB813] hover:bg-opacity-80 text-black font-semibold py-3 px-8 rounded-md transition duration-300 transform hover:scale-105 cursor-pointer">
+            {t('hallelWorshipDayPage.finalCall.button')}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}

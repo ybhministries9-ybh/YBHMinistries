@@ -1,0 +1,207 @@
+export default {
+  title: "Contact Us",
+  subtitle: "Get in touch with us",
+  getInTouch: "We'd love to hear from you",
+  
+  hero: {
+    title: "Contact",
+    subtitle: "Get in touch with Yeshua Beth Hallel Ministries"
+  },
+  
+  tabs: {
+    guinnessAttempt: "Guinness World Records Attempt-2",
+    studentForm: "HMS Student Form",
+    conferenceRequest: "Offline Conference in Your City?",
+    lsmStudent: "London School of Music Student?",
+    sponsor: "Become a Sponsor for Event?",
+    trustee: "Become a Trustee?"
+  },
+  
+  guinnessAttempt: {
+    title: "Guinness World Records Attempt-2",
+    comingSoon: "Content coming soon..."
+  },
+  
+  studentForm: {
+    title: "Hallel Music School Student Application Form",
+    sections: {
+      personalInfo: "1. Personal Information",
+      courseInfo: "2. Course Information",
+      courseType: "3. Course Type / Certification Options",
+      musicBackground: "4. Music Background (if any)",
+      goalsInterests: "5. Goals & Interests",
+      volunteer: "6. Volunteer Opportunity",
+      emergencyContact: "7. Emergency Contact"
+    },
+    fields: {
+      fullName: "Full Name",
+      dateOfBirth: "Date of Birth",
+      gender: "Gender",
+      address: "Address",
+      cityStateZip: "City / State / ZIP",
+      phoneNumber: "Phone Number",
+      emailId: "Email ID",
+      parentGuardianName: "Parent / Guardian Name (if under 18)",
+      parentGuardianContact: "Parent / Guardian Contact",
+      programApplyingFor: "Program Applying For",
+      instrumentSpecialization: "Instrument / Specialization",
+      preferredClassType: "Preferred Class Type",
+      preferredSchedule: "Preferred Schedule",
+      courseTypePrompt: "Please select the type of course you want to enroll in:",
+      yearsOfExperience: "Years of Experience",
+      previousTraining: "Previous Training / School",
+      musicExamCertifications: "Music Exam Certifications (if any)",
+      performanceExperience: "Performance Experience",
+      goalsPrompt: "What do you hope to achieve by joining our music program?",
+      goalsPlaceholder: "Share your musical goals and aspirations...",
+      volunteerPrompt: "Would you like to be a volunteer for school events, concerts, or workshops?",
+      volunteerDetailsPrompt: "If yes, please specify your area of interest (e.g., stage setup, helping younger students, event coordination):",
+      emergencyName: "Name",
+      emergencyRelationship: "Relationship",
+      emergencyContact: "Contact Number"
+    },
+    options: {
+      beginner: "Beginner",
+      intermediate: "Intermediate",
+      advanced: "Advanced",
+      piano: "Piano",
+      guitar: "Guitar",
+      violin: "Violin",
+      drums: "Drums",
+      vocal: "Vocal",
+      other: "Other",
+      individual: "Individual",
+      group: "Group",
+      online: "Online",
+      inPerson: "In-Person",
+      weekdays: "Weekdays",
+      weekends: "Weekends",
+      morning: "Morning",
+      evening: "Evening",
+      freeBasicMusic: "I want to learn Free Basic Music",
+      hmsWithCertificate: "I want to learn Professional Music with HMS Certificate (Paid)",
+      lcmWithCertificate: "I want to learn Professional Music with LCM Certificate (Paid)",
+      schoolEvents: "School events",
+      competitions: "Competitions",
+      choir: "Choir",
+      volunteerOnlineTeacher: "Volunteer as online music teacher",
+      volunteerOfflineConferences: "Volunteer as offline hallel Conferences",
+      volunteerSummerKids: "Volunteer for Summer Kids training sessions",
+      volunteerEvents: "Volunteer for HMS / YBH Events",
+      yes: "Yes",
+      no: "No",
+      male: "Male",
+      female: "Female",
+      preferNotToSay: "Prefer not to say"
+    },
+    buttons: {
+      submit: "Submit Application",
+      submitting: "Submitting...",
+      reset: "Reset Form"
+    },
+    messages: {
+      success: "Application submitted successfully! We will contact you soon.",
+      error: "There was an error submitting your application. Please try again."
+    },
+    validation: {
+      // Personal Information
+      fullNameRequired: "Full name is required",
+      fullNameMin: "Full name must be at least 2 characters",
+      fullNameMax: "Full name cannot exceed 100 characters",
+      fullNamePattern: "Full name can only contain letters, spaces, dots, hyphens, and apostrophes",
+      dateOfBirthRequired: "Date of birth is required",
+      ageMinimum: "Student must be at least 5 years old",
+      genderRequired: "Gender is required",
+      addressRequired: "Address is required",
+      addressMin: "Address must be at least 5 characters",
+      addressMax: "Address cannot exceed 200 characters",
+      cityStateZipRequired: "City / State / ZIP is required",
+      cityStateZipMax: "City / State / ZIP cannot exceed 100 characters",
+      phoneRequired: "Phone number is required",
+      phonePattern: "Please enter a valid phone number (10-15 digits)",
+      emailRequired: "Email is required",
+      emailMax: "Email cannot exceed 100 characters",
+      emailPattern: "Please enter a valid email address",
+      nameMax: "Name cannot exceed 100 characters",
+      
+      // Course Information
+      programRequired: "Please select at least one program level",
+      instrumentRequired: "Please select at least one instrument",
+      instrumentOtherMax: "Instrument specification cannot exceed 50 characters",
+      classTypeRequired: "Please select at least one class type",
+      scheduleRequired: "Please select at least one schedule preference",
+      
+      // Course Type
+      courseTypeRequired: "Please select at least one course type",
+      
+      // Music Background
+      yearsMin: "Years of experience cannot be negative",
+      yearsMax: "Years of experience cannot exceed 100",
+      textMax200: "This field cannot exceed 200 characters",
+      performanceOtherMax: "Performance details cannot exceed 100 characters",
+      
+      // Goals
+      goalsMax: "Goals cannot exceed 1000 characters",
+      
+      // Emergency Contact
+      emergencyNameRequired: "Emergency contact name is required",
+      emergencyNameMin: "Emergency contact name must be at least 2 characters",
+      emergencyRelationshipRequired: "Relationship is required",
+      relationshipMax: "Relationship cannot exceed 50 characters",
+      emergencyContactRequired: "Emergency contact number is required"
+    }
+  },
+  
+  conferenceRequest: {
+    title: "Offline Conference in Your City?",
+    comingSoon: "Request form coming soon..."
+  },
+  
+  lsmStudent: {
+    title: "London School of Music Student?",
+    comingSoon: "Form coming soon..."
+  },
+  
+  sponsor: {
+    title: "Become a Sponsor for Event?",
+    comingSoon: "Sponsorship information coming soon..."
+  },
+  
+  trustee: {
+    title: "Become a Trustee?",
+    comingSoon: "Information coming soon..."
+  },
+  
+  formFields: {
+    fullName: "Full Name",
+    email: "Email Address",
+    phone: "Phone Number",
+    message: "Message",
+    city: "City",
+    state: "State",
+    country: "Country",
+    organization: "Organization",
+    subject: "Subject",
+    submit: "Submit",
+    sending: "Sending...",
+    success: "Thank you! We'll get back to you soon.",
+    error: "There was an error sending your message. Please try again."
+  },
+  
+  contactInfo: {
+    title: "Contact Information",
+    address: "Address",
+    phone: "Phone",
+    email: "Email",
+    followUs: "Follow Us",
+    hours: "Office Hours",
+    weekdays: "Monday - Friday: 9:00 AM - 6:00 PM",
+    saturday: "Saturday: 10:00 AM - 4:00 PM",
+    sunday: "Sunday: Closed"
+  },
+  
+  map: {
+    title: "Find Us",
+    directions: "Get Directions"
+  }
+};
