@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { Toaster } from 'sonner';
 import '../src/index.css';
 import './globals.css';
+import '../src/i18n/config';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,7 +26,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <Toaster position="bottom-center" />
+      </body>
     </html>
   );
 }
