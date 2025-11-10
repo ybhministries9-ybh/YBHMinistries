@@ -8,9 +8,12 @@ import { AboutManager } from './AboutManager';
 import { MinistriesManager } from './MinistriesManager';
 import { NewsManager } from './NewsManager';
 import { StoriesManager } from './StoriesManager';
+import { SetupHelper } from './SetupHelper';
+import { HeroImageManager } from './HeroImageManager';
 import { DonateManager } from './DonateManager';
 import { MenuManager } from './MenuManager';
-import logoImage from 'figma:asset/cd2fc9bd6bd07bb38fb0580a09181a9d7c9157c1.png';
+
+const logoImage = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg';
 
 interface AdminDashboardProps {
   token: string;

@@ -23,7 +23,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
       // Default credentials: admin@ybhministries.org / admin123
       console.log('Login attempt (no backend):', { email });
       
-      const data = { success: false, message: 'Backend not configured' };
+      const data: any = { success: false, message: 'Backend not configured' };
 
       if (data.success) {
         localStorage.setItem('admin_token', data.access_token);

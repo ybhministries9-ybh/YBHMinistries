@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect, memo, lazy, Suspense } from "react";
 import { motion } from "motion/react";
 import { ChevronDown, ChevronUp, User, MapPin, Play, X, Quote, Maximize, Minimize, Calendar } from "lucide-react";
-import { useForm } from "react-hook-form@7.55.0";
+import { useForm } from "react-hook-form";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';

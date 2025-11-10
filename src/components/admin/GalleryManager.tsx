@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, Edit, Trash2, Image as ImageIcon, Video, Calendar, ChevronDown, ChevronUp, CheckSquare, Square, Upload, Link as LinkIcon, X, Images } from 'lucide-react';
 import { Button } from '../ui/button';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { ImageUpload } from './ImageUpload';
 import { MultipleImageUpload } from './MultipleImageUpload';
 

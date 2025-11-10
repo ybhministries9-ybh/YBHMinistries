@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { ImageUpload } from './ImageUpload';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface Event {
   id: string;

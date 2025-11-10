@@ -1,0 +1,50 @@
+[00:00:01.030] Server  LOG      ✓ Ready in 667ms
+[00:00:31.252] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="en" suppressHydrationWarning={true}>
+                          <body
+                            className="inter_5972bc34-module__OU16Qa__className"
+-                           data-new-gr-c-s-check-loaded="14.1261.0"
+-                           data-gr-ext-installed=""
+                          >
+                  ...
+
+[00:00:39.640] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:01:22.752] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:05:52.733] Server  LOG      ✓ Compiled in 92ms
+[00:07:07.421] Server  LOG      ✓ Compiled in 566ms
+[00:12:09.843] Server  LOG      ✓ Compiled in 143ms
+[00:12:31.300] Server  LOG      ✓ Compiled in 72ms
+[00:14:15.315] Server  LOG      ✓ Compiled in 48ms
+[00:14:27.300] Server  LOG      ✓ Compiled in 88ms
+[00:14:40.014] Server  LOG      ✓ Compiled in 76ms
+[00:17:59.950] Server  LOG      ✓ Compiled in 707ms
+[00:20:10.306] Server  LOG      ✓ Compiled in 40ms
+[00:20:14.387] Server  LOG      ✓ Compiled in 31ms

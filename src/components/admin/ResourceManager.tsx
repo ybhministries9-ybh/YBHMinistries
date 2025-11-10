@@ -7,7 +7,7 @@ import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { ImageUpload } from './ImageUpload';
 import { MultipleImageUpload } from './MultipleImageUpload';
 import { FileUpload } from './FileUpload';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface MusicBook {
   id: string;

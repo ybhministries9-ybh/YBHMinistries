@@ -1,0 +1,194 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/about",
+      "regex": "^/about(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/about(?:/)?$"
+    },
+    {
+      "page": "/accessibility",
+      "regex": "^/accessibility(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/accessibility(?:/)?$"
+    },
+    {
+      "page": "/admin",
+      "regex": "^/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/awards",
+      "regex": "^/awards(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/awards(?:/)?$"
+    },
+    {
+      "page": "/contact",
+      "regex": "^/contact(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/contact(?:/)?$"
+    },
+    {
+      "page": "/directors",
+      "regex": "^/directors(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/directors(?:/)?$"
+    },
+    {
+      "page": "/donate",
+      "regex": "^/donate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/donate(?:/)?$"
+    },
+    {
+      "page": "/gallery",
+      "regex": "^/gallery(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/gallery(?:/)?$"
+    },
+    {
+      "page": "/ministries",
+      "regex": "^/ministries(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ministries(?:/)?$"
+    },
+    {
+      "page": "/ministries/hallel-bible-college",
+      "regex": "^/ministries/hallel\\-bible\\-college(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ministries/hallel\\-bible\\-college(?:/)?$"
+    },
+    {
+      "page": "/ministries/hallel-bible-school",
+      "regex": "^/ministries/hallel\\-bible\\-school(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ministries/hallel\\-bible\\-school(?:/)?$"
+    },
+    {
+      "page": "/ministries/hallel-cci",
+      "regex": "^/ministries/hallel\\-cci(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ministries/hallel\\-cci(?:/)?$"
+    },
+    {
+      "page": "/ministries/hallel-church",
+      "regex": "^/ministries/hallel\\-church(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ministries/hallel\\-church(?:/)?$"
+    },
+    {
+      "page": "/ministries/hallel-conferences",
+      "regex": "^/ministries/hallel\\-conferences(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ministries/hallel\\-conferences(?:/)?$"
+    },
+    {
+      "page": "/ministries/hallel-music-school",
+      "regex": "^/ministries/hallel\\-music\\-school(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ministries/hallel\\-music\\-school(?:/)?$"
+    },
+    {
+      "page": "/ministries/hallel-music-school-summer-training",
+      "regex": "^/ministries/hallel\\-music\\-school\\-summer\\-training(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ministries/hallel\\-music\\-school\\-summer\\-training(?:/)?$"
+    },
+    {
+      "page": "/ministries/hallel-worship-day",
+      "regex": "^/ministries/hallel\\-worship\\-day(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ministries/hallel\\-worship\\-day(?:/)?$"
+    },
+    {
+      "page": "/news",
+      "regex": "^/news(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/news(?:/)?$"
+    },
+    {
+      "page": "/privacy-policy",
+      "regex": "^/privacy\\-policy(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/privacy\\-policy(?:/)?$"
+    },
+    {
+      "page": "/resources",
+      "regex": "^/resources(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/resources(?:/)?$"
+    },
+    {
+      "page": "/stories",
+      "regex": "^/stories(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/stories(?:/)?$"
+    },
+    {
+      "page": "/terms-of-service",
+      "regex": "^/terms\\-of\\-service(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/terms\\-of\\-service(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form@7.55.0';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface FormData {
   // Personal Information
@@ -46,7 +46,7 @@ interface FormData {
   emergencyContact: string;
 }
 
-export function HMSStudentForm() {
+export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
   const { t } = useTranslation('contact');
   const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     mode: 'onBlur',

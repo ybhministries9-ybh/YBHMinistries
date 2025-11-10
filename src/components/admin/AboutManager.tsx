@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { API_ENDPOINTS, apiCall } from '../../utils/api-config';
 
 interface AboutHeroImage {
@@ -44,7 +44,7 @@ export function AboutManager() {
         imageUrl: 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/About/hero/3.jpg',
         altText: 'About Us Hero Image',
       });
-    } else if (data && data.length > 0) {
+    } else if (data && Array.isArray(data) && data.length > 0) {
       // In a real implementation, you'd filter for About page images
       // For now, we'll use the first image or fallback
       const aboutImage = data.find((img: any) => img.page === 'about') || null;
@@ -183,9 +183,9 @@ export function AboutManager() {
         return;
       }
 
-      if (data) {
+      if (data && typeof data === 'object' && 'id' in data) {
         setHeroImage({
-          id: data.id,
+          id: (data as any).id,
           imageUrl: newHeroImage.imageUrl,
           altText: newHeroImage.altText,
         });

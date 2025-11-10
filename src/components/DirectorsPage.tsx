@@ -4,7 +4,8 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
 import { useTranslation } from 'react-i18next';
-import separatorImage from 'figma:asset/a942e486a32208d184aa670155e21d8c7059400a.png';
+
+const separatorImage = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/separator.png';
 
 // Hero image URL
 const HERO_IMAGE_URL = "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Founder/Augustine/1.JPG";

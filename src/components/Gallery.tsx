@@ -601,7 +601,7 @@ export function Gallery() {
                       key={`${activeTab}-${index}`}
                       image={image}
                       index={index}
-                      title={currentTab?.title || ""}
+                      title={(currentTab && 'title' in currentTab ? currentTab.title : '') as string}
                       onClick={() => openLightbox(index)}
                       eager={index < 4}
                     />
@@ -749,7 +749,7 @@ export function Gallery() {
           >
             <img
               src={sectionImages[currentImageIndex]?.url}
-              alt={`${currentTab?.title} ${currentImageIndex + 1}`}
+              alt={`${(currentTab && 'title' in currentTab ? currentTab.title : 'Image')} ${currentImageIndex + 1}`}
               className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
               loading="eager"
               decoding="async"

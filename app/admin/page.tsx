@@ -14,13 +14,15 @@ export default function AdminPage() {
     setIsLoggedIn(adminLoggedIn);
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = (token: string) => {
     localStorage.setItem('adminLoggedIn', 'true');
+    localStorage.setItem('adminToken', token);
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('adminLoggedIn');
+    localStorage.removeItem('adminToken');
     setIsLoggedIn(false);
     router.push('/');
   };
@@ -29,5 +31,6 @@ export default function AdminPage() {
     return <AdminLogin onLogin={handleLogin} />;
   }
 
-  return <AdminDashboard onLogout={handleLogout} />;
+  const token = localStorage.getItem('adminToken') || '';
+  return <AdminDashboard token={token} onLogout={handleLogout} />;
 }

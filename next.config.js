@@ -2,11 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: [
-      'images.unsplash.com',
-      'n3elvywvxxnbjwip.public.blob.vercel-storage.com',
-      // Add other image domains as needed
-    ],
     remotePatterns: [
       {
         protocol: 'https',
@@ -26,7 +21,6 @@ const nextConfig = {
   // For handling trailing slashes
   trailingSlash: false,
   // Optimize for production
-  swcMinify: true,
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },

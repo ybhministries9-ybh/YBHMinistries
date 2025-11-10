@@ -13,6 +13,9 @@ export function SetupHelper() {
     setLoading(true);
     setResult(null);
 
+    const projectId = process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] || '';
+    const publicAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
     try {
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-d8da5020/signup`,

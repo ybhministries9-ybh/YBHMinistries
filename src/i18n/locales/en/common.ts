@@ -32,11 +32,34 @@ export default {
     }
   },
   "footer": {
+    "about": {
+      "title": "About YBH Ministries",
+      "description": "A community of believers dedicated to worshiping God, growing in faith, and serving our community with love and compassion."
+    },
+    "quickLinks": {
+      "title": "Quick Links",
+      "about": "About",
+      "ministries": "Ministries",
+      "gallery": "Gallery",
+      "news": "News",
+      "resources": "Resources"
+    },
+    "contact": {
+      "title": "Contact Us",
+      "address": "123 Faith Street, Hopeville, ST 12345",
+      "phone": "(123) 456-7890",
+      "email": "info@ybhministries.org"
+    },
+    "student": {
+      "title": "HMS Student Form",
+      "description": "Apply for Hallel Music School",
+      "button": "Apply Now"
+    },
+    "language": {
+      "title": "Language"
+    },
+    "copyright": "All rights reserved.",
     "siteTitle": "Yeshua Beth Hallel Ministries",
-    "description": "A community of believers dedicated to worshiping God, growing in faith, and serving our community with love and compassion.",
-    "quickLinks": "Quick Links",
-    "connect": "Connect With Us",
-    "followUs": "Follow Us",
     "newsletter": "Newsletter",
     "newsletterText": "Stay updated with our latest news and events",
     "emailPlaceholder": "Enter your email",
@@ -45,12 +68,8 @@ export default {
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
     "accessibility": "Accessibility",
-    "contact": {
-      "phone": "(123) 456-7890",
-      "email": "info@ybhministries.org",
-      "address": "123 Faith Street, Hopeville, ST 12345"
-    },
-    "copyright": "All rights reserved.",
+    "connect": "Connect With Us",
+    "followUs": "Follow Us",
     "madeWith": "Made with",
     "and": "and",
     "devotion": "devotion"

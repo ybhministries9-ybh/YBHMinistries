@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import '../src/index.css';
 import './globals.css';
-import '../src/i18n/config';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,6 +18,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: {
@@ -26,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         {children}
         <Toaster position="bottom-center" />
       </body>

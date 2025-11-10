@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Toaster } from 'sonner@2.0.3';
+import { Toaster } from 'sonner';
 import './i18n/config'; // Initialize i18n
 import { Header } from './components/Header';
 import { Home } from './components/Home';

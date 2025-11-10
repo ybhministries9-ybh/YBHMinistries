@@ -32,11 +32,34 @@ export default {
     }
   },
   footer: {
+    about: {
+      title: "YBH మినిస్ట్రీస్ గురించి",
+      description: "దేవుణ్ణి ఆరాధించడానికి, విశ్వాసంలో ఎదగడానికి మరియు ప్రేమ మరియు కరుణతో మా సమాజానికి సేవ చేయడానికి అంకితమైన విశ్వాసుల సమాజం."
+    },
+    quickLinks: {
+      title: "త్వరిత లింక్‌లు",
+      about: "మా గురించి",
+      ministries: "సేవలు",
+      gallery: "గ్యాలరీ",
+      news: "వార్తలు",
+      resources: "వనరులు"
+    },
+    contact: {
+      title: "సంప్రదించండి",
+      address: "123 Faith Street, Hopeville, ST 12345",
+      phone: "(123) 456-7890",
+      email: "info@ybhministries.org"
+    },
+    student: {
+      title: "HMS విద్యార్థి ఫారం",
+      description: "హల్లేల్ మ్యూజిక్ స్కూల్ కోసం దరఖాస్తు చేయండి",
+      button: "ఇప్పుడు దరఖాస్తు చేయండి"
+    },
+    language: {
+      title: "భాష"
+    },
+    copyright: "అన్ని హక్కులు రక్షించబడ్డాయి.",
     siteTitle: "యేషూవా బెత్ హల్లేల్ మినిస్ట్రీస్",
-    description: "దేవుణ్ణి ఆరాధించడానికి, విశ్వాసంలో ఎదగడానికి మరియు ప్రేమ మరియు కరుణతో మా సమాజానికి సేవ చేయడానికి అంకితమైన విశ్వాసుల సమాజం.",
-    quickLinks: "త్వరిత లింక్‌లు",
-    connect: "మాతో కనెక్ట్ అవ్వండి",
-    followUs: "మమ్మల్ని అనుసరించండి",
     newsletter: "వార్తాలేఖ",
     newsletterText: "మా తాజా వార్తలు మరియు కార్యక్రమాలతో నవీకరించబడండి",
     emailPlaceholder: "మీ ఇమెయిల్ నమోదు చేయండి",
@@ -45,12 +68,8 @@ export default {
     privacyPolicy: "గోప్యతా విధానం",
     termsOfService: "సేవా నిబంధనలు",
     accessibility: "ప్రాప్యత",
-    contact: {
-      phone: "(123) 456-7890",
-      email: "info@ybhministries.org",
-      address: "123 Faith Street, Hopeville, ST 12345"
-    },
-    copyright: "అన్ని హక్కులు రక్షించబడ్డాయి.",
+    connect: "మాతో కనెక్ట్ అవ్వండి",
+    followUs: "మమ్మల్ని అనుసరించండి",
     madeWith: "తో తయారు చేయబడింది",
     and: "మరియు",
     devotion: "భక్తి"

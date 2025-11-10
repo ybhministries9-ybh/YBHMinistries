@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { sampleUsers } from '../../utils/sampleAdminData';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
 interface User {

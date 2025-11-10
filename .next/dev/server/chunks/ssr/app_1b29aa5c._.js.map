@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Sateesh/Projects/YBH%20Ministries/Website/YBHMinistries/app/ClientLayout.tsx"],"sourcesContent":["'use client';\r\n\r\nimport React from 'react';\r\nimport '@/i18n/config';\r\nimport { HeaderNext } from '@/components/HeaderNext';\r\nimport { FooterNext } from '@/components/FooterNext';\r\nimport { ScrollToTop } from '@/components/ScrollToTop';\r\n\r\nexport function ClientLayout({ children }: { children: React.ReactNode }) {\r\n  return (\r\n    <>\r\n      <HeaderNext />\r\n      <main>{children}</main>\r\n      <FooterNext />\r\n      <ScrollToTop />\r\n    </>\r\n  );\r\n}\r\n"],"names":[],"mappings":";;;;;AAGA;AACA;AACA;AACA;AANA;;;;;;AAQO,SAAS,aAAa,EAAE,QAAQ,EAAiC;IACtE,qBACE;;0BACE,8OAAC,8IAAU;;;;;0BACX,8OAAC;0BAAM;;;;;;0BACP,8OAAC,8IAAU;;;;;0BACX,8OAAC,gJAAW;;;;;;;AAGlB","debugId":null}},
+    {"offset": {"line": 51, "column": 0}, "map": {"version":3,"sources":["file:///C:/Sateesh/Projects/YBH%20Ministries/Website/YBHMinistries/app/directors/page.tsx"],"sourcesContent":["'use client';\r\n\r\nimport { DirectorsPage } from '@/components/DirectorsPage';\r\nimport { ClientLayout } from '../ClientLayout';\r\n\r\nexport default function Directors() {\r\n  return (\r\n    <ClientLayout>\r\n      <DirectorsPage />\r\n    </ClientLayout>\r\n  );\r\n}\r\n"],"names":[],"mappings":";;;;;AAEA;AACA;AAHA;;;;AAKe,SAAS;IACtB,qBACE,8OAAC,oIAAY;kBACX,cAAA,8OAAC,oJAAa;;;;;;;;;;AAGpB","debugId":null}}]
+}
