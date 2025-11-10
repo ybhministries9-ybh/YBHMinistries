@@ -1,7 +1,9 @@
+'use client';
+
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Play } from "lucide-react";
 import { accentGold } from "../utils/theme";
-import { navigate } from "../utils/navigate";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 import { EventScrollBanner } from './EventScrollBanner';
@@ -145,6 +147,7 @@ function ImageCarousel({ images, interval = 3000 }) {
 
 export function Home() {
   const { t } = useTranslation('home');
+  const router = useRouter();
   const upcomingEvents = getUpcomingEvents();
   
   const heroImages = [
@@ -214,7 +217,7 @@ export function Home() {
               <h2 className="text-3xl md:text-4xl mb-4">{t('about.title')}</h2>
               <div className="w-24 h-1 rounded-full mb-8" style={{ backgroundColor: accentGold }}></div>
               <button 
-                onClick={() => navigate('/about')}
+                onClick={() => router.push('/about')}
                 className="mt-6 px-6 py-3 bg-[#FDB813] text-black font-semibold rounded-md hover:bg-opacity-80 transition-all cursor-pointer"
               >
                 {t('about.learnMore')}
@@ -268,7 +271,7 @@ export function Home() {
           {/* Learn More Button */}
           <div className="flex justify-center mt-12">
             <button 
-              onClick={() => navigate('/awards')}
+              onClick={() => router.push('/awards')}
               className="px-6 py-3 bg-[#FDB813] text-black font-semibold rounded-md hover:bg-opacity-80 transition-all cursor-pointer"
             >
               {t('achievements.learnMore')}
