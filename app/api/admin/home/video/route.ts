@@ -15,10 +15,18 @@ export async function GET(request: NextRequest) {
       success: true,
       data: video,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching home video:', error);
+    const errorMessage = error?.message || 'Failed to fetch video';
+    const isDatabaseError = errorMessage.includes('relation') || errorMessage.includes('does not exist');
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch video' },
+      { 
+        success: false, 
+        error: isDatabaseError 
+          ? 'Database tables not initialized. Please run database/schema/home_content.sql in your database.' 
+          : errorMessage 
+      },
       { status: 500 }
     );
   }

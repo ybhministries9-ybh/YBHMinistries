@@ -18,10 +18,18 @@ export async function GET(request: NextRequest) {
       data: images,
       count: images.length,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching hero images:', error);
+    const errorMessage = error?.message || 'Failed to fetch hero images';
+    const isDatabaseError = errorMessage.includes('relation') || errorMessage.includes('does not exist');
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch hero images' },
+      { 
+        success: false, 
+        error: isDatabaseError 
+          ? 'Database tables not initialized. Please run database/schema/home_content.sql in your database.' 
+          : errorMessage 
+      },
       { status: 500 }
     );
   }
