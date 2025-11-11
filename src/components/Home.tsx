@@ -34,6 +34,39 @@ function VideoSection() {
   const videoRef = useRef(null);
   const sectionRef = useRef(null);
   const [isVideoVisible, setIsVideoVisible] = useState(false);
+  const [videoData, setVideoData] = useState<{
+    videoUrl: string;
+    thumbnailUrl: string;
+  } | null>(null);
+  const [hasVideo, setHasVideo] = useState(true);
+
+  // Fetch video from API
+  useEffect(() => {
+    const fetchVideo = async () => {
+      try {
+        const response = await fetch('/api/home/video');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setVideoData({
+            videoUrl: result.data.video_url,
+            thumbnailUrl: result.data.thumbnail_image_url
+          });
+          setHasVideo(true);
+        } else {
+          // No video in database
+          setVideoData(null);
+          setHasVideo(false);
+        }
+      } catch (error) {
+        console.error('Error fetching video:', error);
+        setVideoData(null);
+        setHasVideo(false);
+      }
+    };
+
+    fetchVideo();
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -69,16 +102,58 @@ function VideoSection() {
           <div className="w-24 h-1 mx-auto rounded-full mb-8" style={{ backgroundColor: accentGold }}></div>
         </div>
         <div className="relative aspect-video bg-[#2E2E2E] rounded-lg overflow-hidden">
-          {isVideoVisible ? (
+          {!hasVideo ? (
+            // No video available placeholder
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#2E2E2E] to-[#1a1a1a]">
+              <div className="flex flex-col items-center text-center px-8">
+                <div className="relative mb-6">
+                  <svg 
+                    className="w-24 h-24 text-[#FDB813] opacity-80" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={1.5} 
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" 
+                    />
+                  </svg>
+                  <div className="absolute inset-0 animate-ping">
+                    <svg 
+                      className="w-24 h-24 text-[#FDB813] opacity-20" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={1.5} 
+                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" 
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-xl md:text-2xl font-semibold text-white mb-2">
+                  {t('video.noVideoTitle') || 'No Video Available'}
+                </h3>
+                <p className="text-gray-400 text-sm md:text-base">
+                  {t('video.noVideoMessage') || 'A ministry video will be available here soon. Stay tuned!'}
+                </p>
+              </div>
+            </div>
+          ) : isVideoVisible && videoData ? (
             <video
               ref={videoRef}
               className="w-full h-full object-cover"
               controls
               preload="none"
-              poster="https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/00.jpg"
+              poster={videoData.thumbnailUrl}
               playsInline
             >
-              <source src="https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/Augustine.mp4" type="video/mp4" />
+              <source src={videoData.videoUrl} type="video/mp4" />
               {t('video.noSupport')}
             </video>
           ) : (
@@ -149,32 +224,37 @@ export function Home() {
   const { t } = useTranslation('home');
   const router = useRouter();
   const upcomingEvents = getUpcomingEvents();
+  const [heroImages, setHeroImages] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const heroImages = [
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/00.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/01.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/1.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/10%281%29.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/10.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/10a.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/11.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/11a.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/12.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/13.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/14.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/15.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/16.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/17.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/18.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/2.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/3.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/4.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/5.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/6.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/7.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/8.jpg",
-    "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/9.jpg"
-  ];
+  // Default image when no images are in database
+  const defaultHeroImage = "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/home/hero/default.jpg";
+
+  // Fetch hero images from API
+  useEffect(() => {
+    const fetchHeroImages = async () => {
+      try {
+        const response = await fetch('/api/home/hero-images');
+        const result = await response.json();
+        
+        if (result.success && result.data && result.data.length > 0) {
+          const imageUrls = result.data.map((img: any) => img.image_url);
+          setHeroImages(imageUrls);
+        } else {
+          // Use default image if no images in database
+          setHeroImages([defaultHeroImage]);
+        }
+      } catch (error) {
+        console.error('Error fetching hero images:', error);
+        // Use default image on error
+        setHeroImages([defaultHeroImage]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchHeroImages();
+  }, []);
 
   const awardImages = [
     {
@@ -203,7 +283,17 @@ export function Home() {
     <div className="w-full min-h-screen bg-black text-white">
       {/* Hero Section - Image Slideshow */}
       <section className="relative h-screen overflow-hidden pt-16 md:pt-30">
-        <ImageCarousel images={heroImages} interval={3000} />
+        {isLoading ? (
+          <div className="w-full h-full flex items-center justify-center bg-black">
+            <div className="flex space-x-3">
+              <div className="w-4 h-4 rounded-full bg-[#FDB813] animate-bounce" style={{ animationDelay: '0s' }}></div>
+              <div className="w-4 h-4 rounded-full bg-[#FDB813] animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-4 h-4 rounded-full bg-[#FDB813] animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+          </div>
+        ) : (
+          <ImageCarousel images={heroImages} interval={3000} />
+        )}
         
         {/* Event Scroll Banner - Only show when there are upcoming events */}
         {upcomingEvents.length > 0 && <EventScrollBanner />}

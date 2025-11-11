@@ -3,7 +3,7 @@ import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book,
 import { GalleryManager } from './GalleryManager';
 import { ResourceManager } from './ResourceManager';
 import { UserManager } from './UserManager';
-import { HomeManager } from './HomeManager';
+import { HomeContentManager } from './HomeContentManager';
 import { AboutManager } from './AboutManager';
 import { MinistriesManager } from './MinistriesManager';
 import { NewsManager } from './NewsManager';
@@ -123,7 +123,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
           {/* Main Content */}
           <div className="lg:col-span-4">
             <div className="bg-[#2E2E2E] rounded-lg shadow-md">
-              {activeSection === 'home' && <HomeManager />}
+              {activeSection === 'home' && <HomeContentManager />}
               {activeSection === 'about' && <AboutManager />}
               {activeSection === 'ministries' && <MinistriesManager />}
               {activeSection === 'gallery' && <GalleryManager token={token} />}

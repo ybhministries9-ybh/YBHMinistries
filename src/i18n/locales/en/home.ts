@@ -10,7 +10,9 @@ export default {
   video: {
     title: "Our Ministry in Action",
     loadingText: "Loading video...",
-    noSupport: "Your browser does not support the video tag."
+    noSupport: "Your browser does not support the video tag.",
+    noVideoTitle: "No Video Available",
+    noVideoMessage: "A ministry video will be available here soon. Stay tuned!"
   },
   achievements: {
     title: "Our Achievements",
