@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   Heart,
@@ -12,6 +12,9 @@ import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 
+// Default fallback image URL
+const FALLBACK_HERO_IMAGE = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/defaults/about-default.jpg';
+
 // Tab configuration
 const TAB_CONFIG = [
   { key: "vision", labelKey: "tabs.vision" },
@@ -21,6 +24,26 @@ const TAB_CONFIG = [
 export function AboutPage() {
   const { t } = useTranslation('about');
   const [activeTab, setActiveTab] = useState<string>("vision");
+  const [heroImageUrl, setHeroImageUrl] = useState<string>(FALLBACK_HERO_IMAGE);
+
+  // Fetch hero image on component mount
+  useEffect(() => {
+    const fetchHeroImage = async () => {
+      try {
+        const response = await fetch('/api/about/hero-image');
+        const result = await response.json();
+        
+        if (result.success && result.data?.image_url) {
+          setHeroImageUrl(result.data.image_url);
+        }
+      } catch (error) {
+        console.error('Error fetching about hero image:', error);
+        // Keep using fallback image on error
+      }
+    };
+
+    fetchHeroImage();
+  }, []);
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
@@ -59,10 +82,17 @@ export function AboutPage() {
       {/* Hero Image */}
       <div className="relative w-full h-screen md:h-auto overflow-hidden md:overflow-visible md:pt-20">
         <img
-          src="https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/About/hero/3.jpg"
+          src={heroImageUrl}
           alt={t('hero.title')}
           className="absolute inset-0 md:relative w-full h-full md:h-auto object-cover md:object-contain"
           style={{ display: "block", objectPosition: "center center" }}
+          onError={(e) => {
+            // Fallback to default image if the hero image fails to load
+            const target = e.target as HTMLImageElement;
+            if (target.src !== FALLBACK_HERO_IMAGE) {
+              target.src = FALLBACK_HERO_IMAGE;
+            }
+          }}
         />
       </div>
 

@@ -27,6 +27,16 @@ export interface HomeVideo {
   updated_by: string | null;
 }
 
+export interface AboutHeroImage {
+  id: number;
+  image_url: string;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
 /**
  * Test database connection
  */
@@ -258,6 +268,81 @@ export async function deleteHomeVideo(id: number): Promise<void> {
     await sql`DELETE FROM home_video WHERE id = ${id}`;
   } catch (error) {
     console.error('Error deleting home video:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get active about hero image
+ */
+export async function getActiveAboutHeroImage(): Promise<AboutHeroImage | null> {
+  try {
+    const { rows } = await sql<AboutHeroImage>`
+      SELECT * FROM about_hero_image 
+      WHERE is_active = true 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `;
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error fetching about hero image:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create or update about hero image (ensures only one record exists)
+ */
+export async function upsertAboutHeroImage(
+  imageUrl: string,
+  createdBy?: string
+): Promise<AboutHeroImage> {
+  try {
+    // Check if a record already exists
+    const { rows: existingRows } = await sql<AboutHeroImage>`
+      SELECT * FROM about_hero_image LIMIT 1
+    `;
+
+    if (existingRows.length > 0) {
+      // Update existing record
+      const { rows } = await sql<AboutHeroImage>`
+        UPDATE about_hero_image 
+        SET 
+          image_url = ${imageUrl},
+          updated_at = CURRENT_TIMESTAMP,
+          updated_by = ${createdBy || null},
+          is_active = true
+        WHERE id = ${existingRows[0].id}
+        RETURNING *
+      `;
+      return rows[0];
+    } else {
+      // Insert new record
+      const { rows } = await sql<AboutHeroImage>`
+        INSERT INTO about_hero_image (
+          image_url, created_by
+        ) VALUES (
+          ${imageUrl}, 
+          ${createdBy || null}
+        )
+        RETURNING *
+      `;
+      return rows[0];
+    }
+  } catch (error) {
+    console.error('Error upserting about hero image:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete about hero image
+ */
+export async function deleteAboutHeroImage(id: number): Promise<void> {
+  try {
+    await sql`DELETE FROM about_hero_image WHERE id = ${id}`;
+  } catch (error) {
+    console.error('Error deleting about hero image:', error);
     throw error;
   }
 }
