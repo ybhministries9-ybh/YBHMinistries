@@ -269,15 +269,23 @@ export function AboutHeroImageManager() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="hero-image-file" className="text-gray-300">Select Image File</Label>
-                  <Input
-                    id="hero-image-file"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    disabled={isLoading}
-                    className="bg-black border-[#3a3a3a] text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#FDB813] file:text-black hover:file:bg-[#e5a610] file:cursor-pointer cursor-pointer"
-                    style={{ cursor: 'pointer' }}
-                  />
+                  <div className="flex items-stretch bg-black border border-[#3a3a3a] rounded-md overflow-hidden">
+                    <label htmlFor="hero-image-file" className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold">
+                      Choose File
+                    </label>
+                    <span className="text-white px-2 flex items-center">:</span>
+                    <span className="text-white px-3 flex-1 flex items-center truncate">
+                      {imageFile ? imageFile.name : 'No file chosen'}
+                    </span>
+                    <Input
+                      id="hero-image-file"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      disabled={isLoading}
+                      className="hidden"
+                    />
+                  </div>
                   <p className="text-sm text-gray-500">
                     Recommended size: {RECOMMENDED_SIZES}. Supports {SUPPORTED_FORMATS}.
                   </p>

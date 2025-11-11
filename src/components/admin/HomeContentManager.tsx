@@ -561,6 +561,12 @@ export function HomeContentManager() {
 
   return (
     <div className="space-y-8 p-6 bg-black min-h-screen">
+      {/* Page Title */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-white">Home Page Manager</h1>
+        <p className="text-gray-400 text-sm mt-1">Manage hero images and video for the home page</p>
+      </div>
+
       {/* Hero Images Section */}
       <div className="bg-[#2E2E2E] rounded-lg p-6 border border-[#3a3a3a]">
         <div className="flex items-center gap-2 mb-6">
@@ -576,23 +582,29 @@ export function HomeContentManager() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="imageFiles" className="text-white mb-2 block">Image Files (Multiple)</Label>
-              <Input
-                id="imageFiles"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => setImageFiles(Array.from(e.target.files || []))}
-                className="bg-[#2E2E2E] border-[#3a3a3a] text-white cursor-pointer file:cursor-pointer file:bg-[#3a3a3a] file:text-white file:border-0 file:mr-4 file:py-2 file:px-4 hover:file:bg-[#4a4a4a]"
-              />
-              {imageFiles.length > 0 && (
-                <p className="text-sm text-gray-400 mt-2">{imageFiles.length} file(s) selected</p>
-              )}
+              <div className="flex items-stretch bg-[#2E2E2E] border border-[#3a3a3a] rounded-md overflow-hidden">
+                <label htmlFor="imageFiles" className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold">
+                  Choose Files
+                </label>
+                <span className="text-white px-2 flex items-center">:</span>
+                <span className="text-white px-3 flex-1 flex items-center truncate">
+                  {imageFiles.length > 0 ? `${imageFiles.length} file(s) selected` : 'No file chosen'}
+                </span>
+                <Input
+                  id="imageFiles"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setImageFiles(Array.from(e.target.files || []))}
+                  className="hidden"
+                />
+              </div>
             </div>
           </div>
 
           <button
             onClick={handleUploadImages}
-            disabled={isUploadingImages}
+            disabled={isUploadingImages || imageFiles.length === 0}
             className="mt-4 px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center gap-2"
             style={{ backgroundColor: accentGold }}
           >
@@ -676,25 +688,23 @@ export function HomeContentManager() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Video Player */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium text-white">Video</h4>
-                  {homeVideo.video_url && (
+                <h4 className="text-sm font-medium text-white mb-3">Video</h4>
+                {homeVideo.video_url ? (
+                  <div className="relative group">
+                    <video
+                      src={homeVideo.video_url}
+                      poster={homeVideo.thumbnail_image_url || undefined}
+                      controls
+                      className="w-full rounded-lg border border-[#3a3a3a]"
+                    />
                     <button
                       onClick={handleDeleteVideo}
-                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors cursor-pointer"
+                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-red-600"
                       title="Delete video"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
-                  )}
-                </div>
-                {homeVideo.video_url ? (
-                  <video
-                    src={homeVideo.video_url}
-                    poster={homeVideo.thumbnail_image_url || undefined}
-                    controls
-                    className="w-full rounded-lg border border-[#3a3a3a]"
-                  />
+                  </div>
                 ) : (
                   <div className="w-full aspect-video flex flex-col items-center justify-center bg-[#2E2E2E] rounded-lg border border-[#3a3a3a]">
                     <VideoIcon className="h-12 w-12 text-gray-600 mb-2" />
@@ -705,24 +715,22 @@ export function HomeContentManager() {
               
               {/* Thumbnail Preview */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium text-white">Thumbnail Image</h4>
-                  {homeVideo.thumbnail_image_url && (
+                <h4 className="text-sm font-medium text-white mb-3">Thumbnail Image</h4>
+                {homeVideo.thumbnail_image_url ? (
+                  <div className="relative group">
+                    <img
+                      src={homeVideo.thumbnail_image_url}
+                      alt="Video thumbnail"
+                      className="w-full rounded-lg border border-[#3a3a3a] object-cover aspect-video"
+                    />
                     <button
                       onClick={handleDeleteThumbnail}
-                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors cursor-pointer"
+                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-red-600"
                       title="Delete thumbnail"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
-                  )}
-                </div>
-                {homeVideo.thumbnail_image_url ? (
-                  <img
-                    src={homeVideo.thumbnail_image_url}
-                    alt="Video thumbnail"
-                    className="w-full rounded-lg border border-[#3a3a3a] object-cover aspect-video"
-                  />
+                  </div>
                 ) : (
                   <div className="w-full aspect-video flex items-center justify-center bg-[#2E2E2E] rounded-lg border border-[#3a3a3a]">
                     <p className="text-gray-500 text-sm">No thumbnail available</p>
@@ -777,13 +785,22 @@ export function HomeContentManager() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="videoFile" className="text-white mb-2 block text-sm">Video File</Label>
-                  <Input
-                    id="videoFile"
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                    className="bg-[#2E2E2E] border-[#3a3a3a] text-white cursor-pointer file:cursor-pointer file:bg-[#3a3a3a] file:text-white file:border-0 file:mr-4 file:py-2 file:px-4 hover:file:bg-[#4a4a4a]"
-                  />
+                  <div className="flex items-stretch bg-[#2E2E2E] border border-[#3a3a3a] rounded-md overflow-hidden">
+                    <label htmlFor="videoFile" className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold">
+                      Choose File
+                    </label>
+                    <span className="text-white px-2 flex items-center">:</span>
+                    <span className="text-white px-3 flex-1 flex items-center truncate">
+                      {videoFile ? videoFile.name : 'No file chosen'}
+                    </span>
+                    <Input
+                      id="videoFile"
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                  </div>
                 </div>
               </div>
             ) : (
@@ -803,7 +820,7 @@ export function HomeContentManager() {
 
             <button
               onClick={handleUploadVideo}
-              disabled={isUploadingVideo}
+              disabled={isUploadingVideo || (videoUploadType === 'file' && !videoFile) || (videoUploadType === 'url' && !videoUrl.trim())}
               className="mt-4 w-full px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center justify-center gap-2"
               style={{ backgroundColor: accentGold }}
             >
@@ -854,13 +871,22 @@ export function HomeContentManager() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="thumbnailFileOnly" className="text-white mb-2 block text-sm">Thumbnail Image</Label>
-                  <Input
-                    id="thumbnailFileOnly"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
-                    className="bg-[#2E2E2E] border-[#3a3a3a] text-white cursor-pointer file:cursor-pointer file:bg-[#3a3a3a] file:text-white file:border-0 file:mr-4 file:py-2 file:px-4 hover:file:bg-[#4a4a4a]"
-                  />
+                  <div className="flex items-stretch bg-[#2E2E2E] border border-[#3a3a3a] rounded-md overflow-hidden">
+                    <label htmlFor="thumbnailFileOnly" className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold">
+                      Choose File
+                    </label>
+                    <span className="text-white px-2 flex items-center">:</span>
+                    <span className="text-white px-3 flex-1 flex items-center truncate">
+                      {thumbnailFile ? thumbnailFile.name : 'No file chosen'}
+                    </span>
+                    <Input
+                      id="thumbnailFileOnly"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                  </div>
                 </div>
               </div>
             ) : (
@@ -880,7 +906,7 @@ export function HomeContentManager() {
 
             <button
               onClick={handleUploadThumbnail}
-              disabled={isUploadingThumbnail}
+              disabled={isUploadingThumbnail || (thumbnailUploadType === 'file' && !thumbnailFile) || (thumbnailUploadType === 'url' && !videoThumbnailUrl.trim())}
               className="mt-4 w-full px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center justify-center gap-2"
               style={{ backgroundColor: accentGold }}
             >

@@ -12,6 +12,7 @@ import { SetupHelper } from './SetupHelper';
 import { HeroImageManager } from './HeroImageManager';
 import { DonateManager } from './DonateManager';
 import { MenuManager } from './MenuManager';
+import { AdminScrollToTop } from './AdminScrollToTop';
 
 const logoImage = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg';
 
@@ -137,6 +138,9 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
           </div>
         </div>
       </div>
+      
+      {/* Scroll to Top Button */}
+      <AdminScrollToTop />
     </div>
   );
 }
