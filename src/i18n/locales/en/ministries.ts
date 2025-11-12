@@ -1,6 +1,7 @@
 export default {
   title: "Our Ministries",
   subtitle: "Discover the various ways we serve and impact communities through worship",
+  noMinistries: "No Ministries Available Currently",
   
   tabs: {
     hms: "Hallel Music School",
