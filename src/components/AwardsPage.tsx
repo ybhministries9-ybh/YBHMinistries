@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { navigate } from "../utils/navigate";
 import { useTranslation } from 'react-i18next';

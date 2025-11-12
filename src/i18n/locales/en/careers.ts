@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Join Our Team - Careers & Opportunities | YBH Ministries",
+    description: "Be part of a movement transforming lives through worship. Explore career opportunities, staff positions, volunteer roles, and join the Hallel worship community at YBH Ministries."
+  },
   title: "Join Our Team",
   subtitle: "Be part of a movement transforming lives through worship",
   

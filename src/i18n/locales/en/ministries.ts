@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Our Ministries | YBH Ministries",
+    description: "Explore YBH Ministries programs including Hallel Bible College, Hallel Music School, Hallel Church, worship conferences, and summer training programs."
+  },
   title: "Our Ministries",
   subtitle: "Discover the various ways we serve and impact communities through worship",
   noMinistries: "No Ministries Available Currently",

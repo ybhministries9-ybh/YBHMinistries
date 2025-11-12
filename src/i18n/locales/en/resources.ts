@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Resources & Materials | YBH Ministries",
+    description: "Access worship resources, teaching materials, and educational content from Yeshua Beth Hallel Ministries."
+  },
   title: "Resources",
   subtitle: "Explore our library of worship music, teachings, and study materials",
   tabs: {

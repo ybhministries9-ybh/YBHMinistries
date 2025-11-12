@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, ChevronRight, Music, Book, Users, Heart, Youtube } from "lucide-react";
 import { useTranslation } from "react-i18next";

@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Our Directors | YBH Ministries",
+    description: "Meet the leadership team of Yeshua Beth Hallel Ministries. Learn about our directors and their vision for the ministry."
+  },
   title: "Our Directors",
   subtitle: "Meet the visionary leaders guiding Yeshua Beth Hallel Ministries",
   

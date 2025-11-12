@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Yeshua Beth Hallel Ministries - Empowering Worship & Faith",
+    description: "Transforming lives through worship, faith, and ministry. Offering Bible college, music school, church services, and conferences in Telugu and English."
+  },
   hero: { slideAlt: "Slide {{number}}" },
   about: {
     title: "About Yeshua Beth Hallel Ministries",

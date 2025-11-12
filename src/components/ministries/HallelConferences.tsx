@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Music, Heart, MessageCircle, Users, Globe, Star, Calendar, Mic2, BookOpen, RefreshCcw } from "lucide-react";
 import { ImageWithFallback } from '../figma/ImageWithFallback';

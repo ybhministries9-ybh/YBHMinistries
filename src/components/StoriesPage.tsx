@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useMemo, useCallback, useRef, useEffect, memo, lazy, Suspense } from "react";
 import { motion } from "motion/react";
 import { ChevronDown, ChevronUp, User, MapPin, Play, X, Quote, Maximize, Minimize, Calendar } from "lucide-react";

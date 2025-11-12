@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "News & Updates | YBH Ministries",
+    description: "Stay updated with the latest news, announcements, and events from Yeshua Beth Hallel Ministries. Read about our recent activities and upcoming programs."
+  },
   title: "News & Updates",
   subtitle: "Stay informed about our latest events, announcements, and ministry updates",
   latestNews: "Latest News",

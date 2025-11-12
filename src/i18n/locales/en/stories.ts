@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Testimonies & Stories | YBH Ministries",
+    description: "Read inspiring testimonies and stories of transformation from the YBH Ministries community. Discover how faith has changed lives."
+  },
   title: "Stories of Transformation",
   subtitle: "Hear how God is transforming lives through worship",
   intro: "These are real stories from real people whose lives have been touched and transformed by the power of worship and the grace of God.",

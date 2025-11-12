@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect } from "react";
 import { ShoppingCart, Play, Download, FileText, ExternalLink, Plus, Minus, X, Youtube, Calendar, Clock } from "lucide-react";
 import { ImageWithFallback } from './figma/ImageWithFallback';

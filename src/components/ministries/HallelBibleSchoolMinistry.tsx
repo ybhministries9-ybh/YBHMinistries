@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';

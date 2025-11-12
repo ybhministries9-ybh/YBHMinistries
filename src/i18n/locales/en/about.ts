@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "About Us | YBH Ministries",
+    description: "Learn about Yeshua Beth Hallel Ministries, our mission, vision, and commitment to empowering worship and transforming lives through faith-based education and ministry."
+  },
   hero: {
     title: "About Us - Yeshua Beth Hallel Ministries"
   },

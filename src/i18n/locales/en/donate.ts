@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Donate & Support | YBH Ministries",
+    description: "Support Yeshua Beth Hallel Ministries mission. Your donations help us continue empowering worship, education, and ministry programs."
+  },
   title: "Support Our Ministry",
   subtitle: "Partner with us in transforming lives through worship",
   

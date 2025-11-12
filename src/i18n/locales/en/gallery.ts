@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Photo Gallery | YBH Ministries",
+    description: "Browse photos from YBH Ministries events, worship services, conferences, and ministry activities. See our community in action."
+  },
   title: "Gallery",
   subtitle: "Moments of worship, training, and community captured through images and videos",
   tabs: {

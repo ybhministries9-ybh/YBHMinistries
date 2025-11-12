@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { Calendar, FileText, ChevronRight, Plus, Users, Music, Globe, BookOpen, X, Clock, MapPin, Calendar as CalendarIcon, User, Clock as ClockIcon, ArrowRight, ArrowLeft, MessageSquare, Star, Medal, Mic, UserCheck, BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";

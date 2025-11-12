@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import { CreditCard, Building2, QrCode, Heart, Music, Users, Church } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';

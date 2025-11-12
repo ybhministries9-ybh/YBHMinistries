@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useMemo, useCallback } from "react";
 import { motion } from "motion/react";
 import { primaryBackground, accentGold } from "../utils/theme";

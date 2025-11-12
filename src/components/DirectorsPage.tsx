@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect, useMemo, memo, lazy, Suspense } from 'react';
 import { Music, Globe, Mail, Youtube, Instagram, ExternalLink, ChevronRight, Award, Mic, BookOpen, Heart, Users, Calendar, MapPin } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';

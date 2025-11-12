@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Contact Us | YBH Ministries",
+    description: "Get in touch with Yeshua Beth Hallel Ministries. Contact us for inquiries about our Bible college, music school, church services, or ministry programs."
+  },
   title: "Contact Us",
   subtitle: "Get in touch with us",
   getInTouch: "We'd love to hear from you",

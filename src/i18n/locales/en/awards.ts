@@ -1,4 +1,8 @@
 export default {
+  meta: {
+    title: "Awards & Recognitions | YBH Ministries",
+    description: "Celebrating excellence and recognizing outstanding achievements in ministry. View awards, honors, and recognitions received by YBH Ministries and Hallel worship community."
+  },
   "title": "Awards",
   "subtitle": "Celebrating excellence and recognizing outstanding achievements in ministry",
   "comingSoon": "Content coming soon...",
