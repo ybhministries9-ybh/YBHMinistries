@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { revalidatePath } from 'next/cache';
 
 // GET - Fetch all ministries (admin)
 export async function GET() {
@@ -70,6 +71,12 @@ export async function PUT(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Invalidate the cache for the public ministries API
+    revalidatePath('/api/ministries');
+    
+    // Also revalidate the ministries page
+    revalidatePath('/ministries');
 
     return NextResponse.json({ ministry: rows[0] }, { status: 200 });
   } catch (error) {
