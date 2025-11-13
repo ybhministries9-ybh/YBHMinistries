@@ -301,23 +301,65 @@ export function GalleryManager() {
     setIsUploading(true);
 
     try {
-      let response;
-
       if (uploadType === 'file') {
-        setUploadProgress({ isOpen: true, current: 0, total: mediaFiles.length });
-        const formData = new FormData();
-        mediaFiles.forEach((file) => {
-          formData.append('files', file);
-        });
-        formData.append('category', uploadCategory);
-        formData.append('title', 'Untitled');
-        formData.append('date', formatDateToDisplay(new Date().toISOString().split('T')[0]));
+        // Upload images in chunks to avoid 413 Content Too Large error
+        const CHUNK_SIZE = 5; // Upload 5 files at a time
+        const totalFiles = mediaFiles.length;
+        setUploadProgress({ isOpen: true, current: 0, total: totalFiles });
+        
+        let uploadedCount = 0;
+        let allSuccess = true;
+        let errorMessage = '';
 
-        response = await fetch('/api/admin/gallery', {
-          method: 'POST',
-          body: formData
-        });
+        for (let i = 0; i < totalFiles; i += CHUNK_SIZE) {
+          const chunk = mediaFiles.slice(i, i + CHUNK_SIZE);
+          const formData = new FormData();
+          
+          chunk.forEach((file) => {
+            formData.append('files', file);
+          });
+          formData.append('category', uploadCategory);
+          formData.append('title', 'Untitled');
+          formData.append('date', formatDateToDisplay(new Date().toISOString().split('T')[0]));
+
+          try {
+            const response = await fetch('/api/admin/gallery', {
+              method: 'POST',
+              body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              uploadedCount += chunk.length;
+              setUploadProgress({ isOpen: true, current: uploadedCount, total: totalFiles });
+            } else {
+              allSuccess = false;
+              errorMessage = result.error || 'Failed to upload some files';
+              break;
+            }
+          } catch (err) {
+            allSuccess = false;
+            errorMessage = 'Network error during upload';
+            console.error('Chunk upload error:', err);
+            break;
+          }
+        }
+
+        if (allSuccess) {
+          toast.success(`Successfully uploaded ${uploadedCount} image(s)`);
+          setMediaFiles([]);
+          const fileInput = document.getElementById('mediaFiles') as HTMLInputElement;
+          if (fileInput) fileInput.value = '';
+          await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+        } else {
+          toast.error(errorMessage || `Uploaded ${uploadedCount} of ${totalFiles} files before error`);
+          if (uploadedCount > 0) {
+            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+          }
+        }
       } else {
+        // Upload videos
         const validEntries = videoEntries.filter(entry => entry.url.trim());
         setUploadProgress({ isOpen: true, current: 0, total: validEntries.length });
 
@@ -330,26 +372,23 @@ export function GalleryManager() {
           date: formatDateToDisplay(entry.date)
         }));
 
-        response = await fetch('/api/admin/gallery', {
+        const response = await fetch('/api/admin/gallery', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             items: items
           })
         });
-      }
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (result.success) {
-        toast.success(result.message || `Uploaded ${result.data?.length || 0} item(s) successfully`);
-        setMediaFiles([]);
-        setVideoEntries([{ url: '', title: '', date: '' }]);
-        const fileInput = document.getElementById('mediaFiles') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
-        await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
-      } else {
-        toast.error(result.error || 'Failed to upload');
+        if (result.success) {
+          toast.success(result.message || `Uploaded ${result.data?.length || 0} video(s) successfully`);
+          setVideoEntries([{ url: '', title: '', date: '' }]);
+          await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+        } else {
+          toast.error(result.error || 'Failed to upload videos');
+        }
       }
     } catch (error) {
       console.error('Error uploading:', error);
