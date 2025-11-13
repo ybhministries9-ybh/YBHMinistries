@@ -127,7 +127,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
               {activeSection === 'home' && <HomeContentManager />}
               {activeSection === 'about' && <AboutManager />}
               {activeSection === 'ministries' && <MinistriesManager />}
-              {activeSection === 'gallery' && <GalleryManager token={token} />}
+              {activeSection === 'gallery' && <GalleryManager />}
               {activeSection === 'news' && <NewsManager />}
               {activeSection === 'resources' && <ResourceManager />}
               {activeSection === 'stories' && <StoriesManager />}

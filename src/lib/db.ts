@@ -346,3 +346,169 @@ export async function deleteAboutHeroImage(id: number): Promise<void> {
     throw error;
   }
 }
+
+// ==================== GALLERY FUNCTIONS ====================
+
+export interface GalleryItem {
+  id: number;
+  category: string;
+  media_type: 'image' | 'video';
+  url: string;
+  title: string;
+  date: string;
+  created_at: string;
+  created_by: string;
+  updated_at: string;
+}
+
+/**
+ * Get all gallery items
+ */
+export async function getAllGalleryItems(): Promise<GalleryItem[]> {
+  try {
+    const { rows } = await sql<GalleryItem>`
+      SELECT * FROM gallery_items 
+      ORDER BY created_at DESC
+    `;
+    return rows;
+  } catch (error) {
+    console.error('Error fetching all gallery items:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get gallery items by category
+ */
+export async function getGalleryItemsByCategory(category: string): Promise<GalleryItem[]> {
+  try {
+    const { rows } = await sql<GalleryItem>`
+      SELECT * FROM gallery_items 
+      WHERE category = ${category}
+      ORDER BY created_at DESC
+    `;
+    return rows;
+  } catch (error) {
+    console.error('Error fetching gallery items by category:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add multiple gallery items
+ */
+export async function addGalleryItems(
+  items: Array<{
+    category: string;
+    media_type: 'image' | 'video';
+    url: string;
+    title?: string;
+    date?: string;
+    created_by?: string;
+  }>,
+  defaultCreatedBy?: string
+): Promise<GalleryItem[]> {
+  try {
+    const insertedItems: GalleryItem[] = [];
+    
+    for (const item of items) {
+      const { rows } = await sql<GalleryItem>`
+        INSERT INTO gallery_items (
+          category, media_type, url, title, date, created_by
+        ) VALUES (
+          ${item.category},
+          ${item.media_type},
+          ${item.url},
+          ${item.title || 'Untitled'},
+          ${item.date || new Date().toISOString().split('T')[0]},
+          ${item.created_by || defaultCreatedBy || 'admin'}
+        )
+        RETURNING *
+      `;
+      insertedItems.push(rows[0]);
+    }
+    
+    return insertedItems;
+  } catch (error) {
+    console.error('Error adding gallery items:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a gallery item
+ */
+export async function updateGalleryItem(
+  id: number,
+  updates: {
+    category?: string;
+    media_type?: 'image' | 'video';
+    url?: string;
+    title?: string;
+    date?: string;
+  }
+): Promise<GalleryItem> {
+  try {
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (updates.category !== undefined) {
+      setClauses.push(`category = $${paramIndex++}`);
+      values.push(updates.category);
+    }
+    if (updates.media_type !== undefined) {
+      setClauses.push(`media_type = $${paramIndex++}`);
+      values.push(updates.media_type);
+    }
+    if (updates.url !== undefined) {
+      setClauses.push(`url = $${paramIndex++}`);
+      values.push(updates.url);
+    }
+    if (updates.title !== undefined) {
+      setClauses.push(`title = $${paramIndex++}`);
+      values.push(updates.title);
+    }
+    if (updates.date !== undefined) {
+      setClauses.push(`date = $${paramIndex++}`);
+      values.push(updates.date);
+    }
+
+    setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
+    const query = `
+      UPDATE gallery_items 
+      SET ${setClauses.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const { rows } = await sql.query<GalleryItem>(query, values);
+    return rows[0];
+  } catch (error) {
+    console.error('Error updating gallery item:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete gallery items by IDs
+ */
+export async function deleteGalleryItems(ids: number[]): Promise<number> {
+  try {
+    if (ids.length === 0) {
+      return 0;
+    }
+
+    // Create placeholders for the IN clause
+    const placeholders = ids.map((_, index) => `$${index + 1}`).join(', ');
+    const query = `DELETE FROM gallery_items WHERE id IN (${placeholders})`;
+    
+    const result = await sql.query(query, ids);
+    return result.rowCount || 0;
+  } catch (error) {
+    console.error('Error deleting gallery items:', error);
+    throw error;
+  }
+}

@@ -1,981 +1,909 @@
-import { useState } from 'react';
-import { Plus, Edit, Trash2, Image as ImageIcon, Video, Calendar, ChevronDown, ChevronUp, CheckSquare, Square, Upload, Link as LinkIcon, X, Images } from 'lucide-react';
-import { Button } from '../ui/button';
-import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Upload, Plus, Trash2, Video as VideoIcon, Image as ImageIcon, Calendar, Loader2 } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import { toast } from 'sonner';
-import { ImageUpload } from './ImageUpload';
-import { MultipleImageUpload } from './MultipleImageUpload';
+import { accentGold } from '../../utils/theme';
+import { ConfirmDialog } from './ConfirmDialog';
 
-interface GalleryImage {
-  id: string;
-  url: string;
+interface GalleryItem {
+  id: number;
   category: string;
-}
-
-interface GalleryVideo {
-  id: string;
-  youtubeUrl: string;
+  media_type: 'image' | 'video';
+  url: string;
   title: string;
   date: string;
-  category: string;
+  created_at: string;
+  created_by: string;
+  updated_at: string;
 }
 
-interface GalleryManagerProps {
-  token: string;
+const CATEGORIES = [
+  'asian-records',
+  'international-star-records',
+  'ingenious-record',
+  'anniversary',
+  'guinness-events',
+  'kids-training',
+  'lcm-events',
+  'hallel-conferences'
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  'asian-records': 'Asian Records',
+  'international-star-records': 'International Star Records',
+  'ingenious-record': 'Ingenious Record',
+  'anniversary': 'Anniversary',
+  'guinness-events': 'Guinness Events',
+  'kids-training': 'Kids Training',
+  'lcm-events': 'LCM Events',
+  'hallel-conferences': 'Hallel Conferences'
+};
+
+function formatDateToDisplay(isoDate: string): string {
+  if (!isoDate) return '';
+  try {
+    const date = new Date(isoDate);
+    const day = String(date.getDate()).padStart(2, '0');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch (error) {
+    return '';
+  }
 }
 
-const GALLERY_CATEGORIES = [
-  { key: 'guinness-events', label: 'Guinness World Records Events' },
-  { key: 'asian-records', label: 'Asian Book of Records' },
-  { key: 'ingenious-record', label: 'Ingenious Charm World Record' },
-  { key: 'international-star-records', label: 'International Star Book of Records' },
-  { key: 'hallel-conferences', label: 'Hallel Conferences' },
-  { key: 'lsm-events', label: 'LSM Events' },
-  { key: 'anniversary', label: 'Anniversary (HMS)' }
-] as const;
+interface MediaCardProps {
+  item: GalleryItem;
+  onDelete: (id: number) => void;
+  isSelected: boolean;
+  onToggleSelect: (id: number) => void;
+}
 
-export function GalleryManager({ token }: GalleryManagerProps) {
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [editingImageId, setEditingImageId] = useState<string | null>(null);
-  const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    images: true,
-    videos: true
-  });
-  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
-  const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
-  const [deleteDialog, setDeleteDialog] = useState<{
-    open: boolean;
-    type: 'image' | 'video' | 'bulk';
-    ids: string[];
-    count: number;
-  }>({ open: false, type: 'image', ids: [], count: 0 });
+function getYouTubeThumbnail(url: string): string | null {
+  if (!url) return null;
+  
+  let videoId = "";
+  
+  // Handle different YouTube URL formats
+  if (url.includes("youtube.com/watch?v=")) {
+    videoId = url.split("v=")[1]?.split("&")[0];
+  } else if (url.includes("youtu.be/")) {
+    videoId = url.split("youtu.be/")[1]?.split("?")[0];
+  } else if (url.includes("youtube.com/shorts/")) {
+    videoId = url.split("shorts/")[1]?.split("?")[0];
+  } else if (url.includes("youtube.com/live/")) {
+    videoId = url.split("live/")[1]?.split("?")[0];
+  } else if (url.includes("youtube.com/embed/")) {
+    videoId = url.split("embed/")[1]?.split("?")[0];
+  } else if (url.includes("youtube.com/v/")) {
+    videoId = url.split("v/")[1]?.split("?")[0];
+  }
+  
+  if (videoId && videoId.length === 11) {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  }
+  
+  return null;
+}
 
-  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
-  const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [imageUrls, setImageUrls] = useState<string[]>(['']);
-  const [videoUrls, setVideoUrls] = useState<Array<{ url: string; title: string; date: string }>>([{ url: '', title: '', date: '' }]);
-
-  // Sample images data
-  const [images, setImages] = useState<GalleryImage[]>([
-    { id: '1', url: 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Guinness/1.jpg', category: 'guinness-events' },
-    { id: '2', url: 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Guinness/9.jpg', category: 'guinness-events' },
-    { id: '3', url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1200', category: 'asian-records' },
-    { id: '4', url: 'https://images.unsplash.com/photo-1464375117522-1311d6a5b81f?w=1200', category: 'ingenious-record' },
-    { id: '5', url: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=1200', category: 'hallel-conferences' },
-    { id: '6', url: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200', category: 'guinness-events' },
-  ]);
-
-  // Sample videos data
-  const [videos, setVideos] = useState<GalleryVideo[]>([
-    { 
-      id: 'v1', 
-      youtubeUrl: 'https://www.youtube.com/watch?v=onjJxyACJ0s', 
-      title: 'Guinness World Records REAL BENEFITS ?', 
-      date: '18-Jul-2025',
-      category: 'guinness-events'
-    },
-    { 
-      id: 'v2', 
-      youtubeUrl: 'https://www.youtube.com/watch?v=q-oB60TT9_Y', 
-      title: 'HMS Asia Book Records', 
-      date: '10-Apr-2024',
-      category: 'asian-records'
-    },
-    { 
-      id: 'v3', 
-      youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 
-      title: 'Hallel Conference Highlights', 
-      date: '15-Mar-2024',
-      category: 'hallel-conferences'
-    },
-  ]);
-
-
-
-  const handleAddImage = () => {
-    const newImage: GalleryImage = {
-      id: `img-${Date.now()}`,
-      url: '',
-      category: filterCategory === 'all' ? 'guinness-events' : filterCategory
-    };
-    setImages([newImage, ...images]);
-    setEditingImageId(newImage.id);
-    setUploadMode('file');
-    setImageUrls(['']); // Reset URL fields
-  };
-
-  const handleAddVideo = () => {
-    const newVideo: GalleryVideo = {
-      id: `vid-${Date.now()}`,
-      youtubeUrl: '',
-      title: '',
-      date: '',
-      category: filterCategory === 'all' ? 'guinness-events' : filterCategory
-    };
-    setVideos([newVideo, ...videos]);
-    setEditingVideoId(newVideo.id);
-    setVideoUrls([{ url: '', title: '', date: '' }]); // Reset URL fields
-  };
-
-  const handleBulkUploadComplete = (newImages: { url: string; category: string }[]) => {
-    const imagesToAdd: GalleryImage[] = newImages.map((img, index) => ({
-      id: `img-bulk-${Date.now()}-${index}`,
-      url: img.url,
-      category: img.category
-    }));
-    
-    setImages([...imagesToAdd, ...images]);
-    setShowBulkUpload(false);
-    toast.success(`${newImages.length} image${newImages.length > 1 ? 's' : ''} uploaded successfully!`);
-  };
-
-  const handleDeleteImage = (id: string) => {
-    setDeleteDialog({ open: true, type: 'image', ids: [id], count: 1 });
-  };
-
-  const handleDeleteVideo = (id: string) => {
-    setDeleteDialog({ open: true, type: 'video', ids: [id], count: 1 });
-  };
-
-  const handleBulkDeleteImages = () => {
-    if (selectedImages.size === 0) return;
-    setDeleteDialog({ 
-      open: true, 
-      type: 'bulk', 
-      ids: Array.from(selectedImages), 
-      count: selectedImages.size 
-    });
-  };
-
-  const handleBulkDeleteVideos = () => {
-    if (selectedVideos.size === 0) return;
-    setDeleteDialog({ 
-      open: true, 
-      type: 'bulk', 
-      ids: Array.from(selectedVideos), 
-      count: selectedVideos.size 
-    });
-  };
-
-  const confirmDelete = () => {
-    if (deleteDialog.type === 'image') {
-      setImages(images.filter(img => !deleteDialog.ids.includes(img.id)));
-      toast.success('Image deleted successfully');
-    } else if (deleteDialog.type === 'video') {
-      setVideos(videos.filter(vid => !deleteDialog.ids.includes(vid.id)));
-      toast.success('Video deleted successfully');
-    } else if (deleteDialog.type === 'bulk') {
-      // Determine if bulk delete is for images or videos based on which set has items
-      if (deleteDialog.ids.some(id => selectedImages.has(id))) {
-        setImages(images.filter(img => !deleteDialog.ids.includes(img.id)));
-        setSelectedImages(new Set());
-        toast.success(`${deleteDialog.count} image${deleteDialog.count > 1 ? 's' : ''} deleted successfully`);
+function MediaCard({ item, onDelete, isSelected, onToggleSelect }: MediaCardProps) {
+  const renderMedia = () => {
+    if (item.media_type === 'image') {
+      return <img src={item.url} alt={item.title} className="w-full h-full object-cover" />;
+    } else {
+      // For videos, try to show YouTube thumbnail
+      const thumbnail = getYouTubeThumbnail(item.url);
+      if (thumbnail) {
+        return (
+          <div className="relative w-full h-full">
+            <img src={thumbnail} alt={item.title} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FF0000"/>
+              </svg>
+            </div>
+          </div>
+        );
       } else {
-        setVideos(videos.filter(vid => !deleteDialog.ids.includes(vid.id)));
-        setSelectedVideos(new Set());
-        toast.success(`${deleteDialog.count} video${deleteDialog.count > 1 ? 's' : ''} deleted successfully`);
+        return <video src={item.url} className="w-full h-full object-cover" controls={false} />;
       }
     }
-    setDeleteDialog({ open: false, type: 'image', ids: [], count: 0 });
-  };
-
-  const handleUpdateImage = (id: string, field: keyof GalleryImage, value: any) => {
-    setImages(images.map(img => img.id === id ? { ...img, [field]: value } : img));
-  };
-
-  const handleUpdateVideo = (id: string, field: keyof GalleryVideo, value: any) => {
-    setVideos(videos.map(vid => vid.id === id ? { ...vid, [field]: value } : vid));
-  };
-
-  // Multiple URL helpers for images
-  const addImageUrlField = () => {
-    setImageUrls([...imageUrls, '']);
-  };
-
-  const removeImageUrlField = (index: number) => {
-    if (imageUrls.length > 1) {
-      setImageUrls(imageUrls.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateImageUrlField = (index: number, value: string) => {
-    const newUrls = [...imageUrls];
-    newUrls[index] = value;
-    setImageUrls(newUrls);
-  };
-
-  const saveMultipleImageUrls = (imageId: string, category: string) => {
-    const validUrls = imageUrls.filter(url => url.trim() !== '');
-    
-    if (validUrls.length === 0) {
-      toast.error('At least one image URL is required');
-      return;
-    }
-
-    // Remove the placeholder image
-    setImages(images.filter(img => img.id !== imageId));
-
-    // Add all valid URLs as new images
-    const newImages: GalleryImage[] = validUrls.map((url, index) => ({
-      id: `img-${Date.now()}-${index}`,
-      url: url,
-      category: category
-    }));
-
-    setImages([...newImages, ...images.filter(img => img.id !== imageId)]);
-    setEditingImageId(null);
-    setImageUrls(['']);
-    toast.success(`${validUrls.length} image${validUrls.length > 1 ? 's' : ''} added successfully!`);
-  };
-
-  // Multiple URL helpers for videos
-  const addVideoUrlField = () => {
-    setVideoUrls([...videoUrls, { url: '', title: '', date: '' }]);
-  };
-
-  const removeVideoUrlField = (index: number) => {
-    if (videoUrls.length > 1) {
-      setVideoUrls(videoUrls.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateVideoUrlField = (index: number, field: 'url' | 'title' | 'date', value: string) => {
-    const newUrls = [...videoUrls];
-    newUrls[index][field] = value;
-    setVideoUrls(newUrls);
-  };
-
-  const saveMultipleVideoUrls = (videoId: string, category: string) => {
-    const validVideos = videoUrls.filter(v => v.url.trim() !== '');
-    
-    if (validVideos.length === 0) {
-      toast.error('At least one video URL is required');
-      return;
-    }
-
-    // Remove the placeholder video
-    setVideos(videos.filter(vid => vid.id !== videoId));
-
-    // Add all valid URLs as new videos
-    const newVideos: GalleryVideo[] = validVideos.map((video, index) => ({
-      id: `vid-${Date.now()}-${index}`,
-      youtubeUrl: video.url,
-      title: video.title || `Video ${index + 1}`,
-      date: video.date || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      category: category
-    }));
-
-    setVideos([...newVideos, ...videos.filter(vid => vid.id !== videoId)]);
-    setEditingVideoId(null);
-    setVideoUrls([{ url: '', title: '', date: '' }]);
-    toast.success(`${validVideos.length} video${validVideos.length > 1 ? 's' : ''} added successfully!`);
-  };
-
-  const toggleSection = (section: string) => {
-    setExpandedSections({ ...expandedSections, [section]: !expandedSections[section] });
-  };
-
-  const toggleImageSelection = (id: string) => {
-    const newSelection = new Set(selectedImages);
-    if (newSelection.has(id)) {
-      newSelection.delete(id);
-    } else {
-      newSelection.add(id);
-    }
-    setSelectedImages(newSelection);
-  };
-
-  const toggleVideoSelection = (id: string) => {
-    const newSelection = new Set(selectedVideos);
-    if (newSelection.has(id)) {
-      newSelection.delete(id);
-    } else {
-      newSelection.add(id);
-    }
-    setSelectedVideos(newSelection);
-  };
-
-  const selectAllImages = () => {
-    setSelectedImages(new Set(filteredImages.map(img => img.id)));
-  };
-
-  const deselectAllImages = () => {
-    setSelectedImages(new Set());
-  };
-
-  const selectAllVideos = () => {
-    setSelectedVideos(new Set(filteredVideos.map(vid => vid.id)));
-  };
-
-  const deselectAllVideos = () => {
-    setSelectedVideos(new Set());
-  };
-
-  const filteredImages = filterCategory === 'all' 
-    ? images 
-    : images.filter(img => img.category === filterCategory);
-
-  const filteredVideos = filterCategory === 'all' 
-    ? videos 
-    : videos.filter(vid => vid.category === filterCategory);
-
-  const getCategoryLabel = (key: string) => {
-    return GALLERY_CATEGORIES.find(cat => cat.key === key)?.label || key;
-  };
-
-  const getYoutubeThumbnail = (url: string) => {
-    const videoId = url.split('v=')[1]?.split('&')[0] || url.split('youtu.be/')[1]?.split('?')[0] || '';
-    return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl text-white mb-2">Gallery Management</h2>
-        <p className="text-gray-300">Manage gallery images and videos across all event categories</p>
-      </div>
+    <div
+      className={`bg-[#2E2E2E] rounded-lg overflow-hidden hover:bg-[#3a3a3a] transition-all border-2 ${
+        isSelected ? 'border-[#FDB813] shadow-lg shadow-[#FDB813]/20' : 'border-[#3a3a3a]'
+      }`}
+    >
+      <div className="relative aspect-square bg-black">
+        {renderMedia()}
 
-      {/* Category Filter */}
-      <div className="mb-6 bg-[#2E2E2E] p-4 rounded-lg border border-gray-700">
-        <label className="block text-white mb-2">Filter by Category</label>
-        <select
-          value={filterCategory}
-          onChange={(e) => {
-            setFilterCategory(e.target.value);
-            setSelectedImages(new Set());
-            setSelectedVideos(new Set());
-          }}
-          className="w-full px-3 py-2 bg-[#1a1a1a] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent"
+        {/* Checkbox */}
+        <div className="absolute top-2 left-2 z-10">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect(item.id)}
+            className="w-5 h-5 rounded cursor-pointer accent-[#FDB813] shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+
+        {/* Delete Button */}
+        <button
+          onClick={() => onDelete(item.id)}
+          className="absolute top-2 right-2 z-10 p-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors cursor-pointer shadow-lg"
         >
-          <option value="all">All Categories</option>
-          {GALLERY_CATEGORIES.map((cat) => (
-            <option key={cat.key} value={cat.key}>{cat.label}</option>
-          ))}
-        </select>
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
 
-      {/* Images Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4 bg-[#2E2E2E] p-4 rounded-lg border border-gray-700">
-          <div className="flex items-center gap-2">
-            <ImageIcon size={20} className="text-[#FDB813]" />
-            <h3 className="text-xl text-white">Gallery Images</h3>
-            <span className="text-sm text-gray-400">({filteredImages.length})</span>
-            {selectedImages.size > 0 && (
-              <span className="text-sm text-[#FDB813] ml-2">
-                {selectedImages.size} selected
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {selectedImages.size > 0 && (
-              <>
-                <Button
-                  onClick={deselectAllImages}
-                  size="sm"
-                  className="bg-[#1a1a1a] hover:bg-[#2E2E2E] text-white border border-gray-600"
-                >
-                  Deselect All
-                </Button>
-                <Button
-                  onClick={handleBulkDeleteImages}
-                  size="sm"
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  <Trash2 size={14} className="mr-1" />
-                  Delete ({selectedImages.size})
-                </Button>
-              </>
-            )}
-            {selectedImages.size === 0 && filteredImages.length > 0 && (
-              <Button
-                onClick={selectAllImages}
-                size="sm"
-                className="bg-[#1a1a1a] hover:bg-[#2E2E2E] text-white border border-gray-600"
-              >
-                Select All
-              </Button>
-            )}
-            <Button
-              onClick={() => setShowBulkUpload(true)}
-              size="sm"
-              className="bg-[#FDB813] hover:bg-[#e5a610] text-black"
-            >
-              <Images size={16} className="mr-2" />
-              Upload Multiple
-            </Button>
-            <Button
-              onClick={handleAddImage}
-              size="sm"
-              className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
-            >
-              <Plus size={16} className="mr-2" />
-              Add Single
-            </Button>
-            <button
-              onClick={() => toggleSection('images')}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-            >
-              {expandedSections.images ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            </button>
-          </div>
+      {/* Video Info - Title and Date */}
+      {item.media_type === 'video' && (
+        <div className="p-3 bg-black/30">
+          <p className="text-sm font-medium text-white truncate mb-1">{item.title}</p>
+          {item.date && (
+            <div className="flex items-center gap-1 text-gray-400 text-xs">
+              <Calendar className="h-3 w-3" />
+              <span>{item.date}</span>
+            </div>
+          )}
         </div>
-
-        {expandedSections.images && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-            {filteredImages.length === 0 ? (
-              <div className="col-span-full text-center py-12 bg-[#2E2E2E] rounded-lg border border-gray-700">
-                <ImageIcon size={48} className="mx-auto text-gray-600 mb-3" />
-                <p className="text-gray-400">No images in this category yet.</p>
-              </div>
-            ) : (
-              filteredImages.map((image) => (
-                <div
-                  key={image.id}
-                  className={`relative bg-[#2E2E2E] rounded-lg border overflow-hidden group transition-all ${
-                    selectedImages.has(image.id)
-                      ? 'border-[#FDB813] ring-2 ring-[#FDB813]/50'
-                      : 'border-gray-700 hover:border-gray-600'
-                  } ${editingImageId === image.id ? 'col-span-full' : ''}`}
-                >
-                  {editingImageId === image.id ? (
-                    // Edit Mode - Full Width
-                    <div className="p-4 space-y-4">
-                      {/* Upload Mode Toggle */}
-                      <div className="flex gap-2 bg-[#1a1a1a] p-1 rounded-lg">
-                        <button
-                          onClick={() => setUploadMode('file')}
-                          className={`flex-1 py-2 px-4 rounded-md text-sm transition-colors ${
-                            uploadMode === 'file'
-                              ? 'bg-[#FDB813] text-black'
-                              : 'bg-transparent text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <Upload size={16} className="inline mr-2" />
-                          Upload File
-                        </button>
-                        <button
-                          onClick={() => setUploadMode('url')}
-                          className={`flex-1 py-2 px-4 rounded-md text-sm transition-colors ${
-                            uploadMode === 'url'
-                              ? 'bg-[#FDB813] text-black'
-                              : 'bg-transparent text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <LinkIcon size={16} className="inline mr-2" />
-                          Paste URL
-                        </button>
-                      </div>
-
-                      {/* File Upload or URL Input */}
-                      {uploadMode === 'file' ? (
-                        <div>
-                          <label className="block text-sm text-white mb-2">Upload Image</label>
-                          <ImageUpload
-                            bucket="gallery"
-                            onUploadComplete={(url) => handleUpdateImage(image.id, 'url', url)}
-                            currentImage={image.url}
-                            imageType="gallery"
-                            maxSizeMB={5}
-                          />
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="block text-sm text-white">Image URL(s)</label>
-                            <Button
-                              type="button"
-                              onClick={addImageUrlField}
-                              size="sm"
-                              className="h-6 px-2 bg-[#FDB813] hover:bg-[#e5a711] text-black text-xs"
-                            >
-                              <Plus size={12} className="mr-1" />
-                              Add URL
-                            </Button>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            {imageUrls.map((url, index) => (
-                              <div key={index} className="space-y-2">
-                                <div className="relative">
-                                  <input
-                                    type="text"
-                                    value={url}
-                                    onChange={(e) => updateImageUrlField(index, e.target.value)}
-                                    className="w-full px-3 py-2 pr-20 bg-[#1a1a1a] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent text-sm"
-                                    placeholder={`Image URL ${imageUrls.length > 1 ? index + 1 : ''}`}
-                                  />
-                                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                                    {url && (
-                                      <button
-                                        type="button"
-                                        onClick={() => updateImageUrlField(index, '')}
-                                        className="p-1 text-gray-400 hover:text-white transition-colors"
-                                        title="Clear"
-                                      >
-                                        <X size={14} />
-                                      </button>
-                                    )}
-                                    {imageUrls.length > 1 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => removeImageUrlField(index)}
-                                        className="p-1 text-red-400 hover:text-red-300 transition-colors"
-                                        title="Remove field"
-                                      >
-                                        <Trash2 size={14} />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                {url && (
-                                  <div className="aspect-video bg-[#1a1a1a] rounded overflow-hidden">
-                                    <img
-                                      src={url}
-                                      alt={`Preview ${index + 1}`}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23333" width="400" height="300"/%3E%3Ctext fill="%23666" font-family="sans-serif" font-size="20" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EInvalid Image URL%3C/text%3E%3C/svg%3E';
-                                      }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Category Selection */}
-                      <div>
-                        <label className="block text-sm text-white mb-2">Category</label>
-                        <select
-                          value={image.category}
-                          onChange={(e) => handleUpdateImage(image.id, 'category', e.target.value)}
-                          className="w-full px-3 py-2 bg-[#1a1a1a] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent text-sm"
-                        >
-                          {GALLERY_CATEGORIES.map((cat) => (
-                            <option key={cat.key} value={cat.key}>{cat.label}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          onClick={() => {
-                            if (uploadMode === 'url') {
-                              saveMultipleImageUrls(image.id, image.category);
-                            } else {
-                              setEditingImageId(null);
-                            }
-                          }}
-                          className="flex-1 bg-[#FDB813] hover:bg-[#e5a610] text-black"
-                        >
-                          {uploadMode === 'url' && imageUrls.filter(u => u.trim() !== '').length > 1 ? 'Add Images' : 'Done'}
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setEditingImageId(null);
-                            setImageUrls(['']);
-                            // Remove the new empty image if it was just added and has no URL
-                            if (!image.url) {
-                              setImages(images.filter(img => img.id !== image.id));
-                            }
-                          }}
-                          className="px-4 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600"
-                        >
-                          <X size={16} className="mr-2" />
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    // Compact View Mode
-                    <>
-                      {/* Selection Checkbox */}
-                      <div className="absolute top-2 left-2 z-10">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleImageSelection(image.id);
-                          }}
-                          className={`p-1 rounded transition-all ${
-                            selectedImages.has(image.id)
-                              ? 'bg-[#FDB813] text-black'
-                              : 'bg-black/60 text-white opacity-0 group-hover:opacity-100'
-                          }`}
-                        >
-                          {selectedImages.has(image.id) ? (
-                            <CheckSquare size={20} />
-                          ) : (
-                            <Square size={20} />
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Image Thumbnail */}
-                      <div className="aspect-square bg-[#1a1a1a] overflow-hidden cursor-pointer" onClick={() => setEditingImageId(image.id)}>
-                        {image.url ? (
-                          <img
-                            src={image.url}
-                            alt="Gallery"
-                            className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <ImageIcon size={24} className="text-gray-600" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info Overlay */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-[#FDB813] font-medium truncate flex-1">
-                            {getCategoryLabel(image.category)}
-                          </span>
-                          <div className="flex gap-1 ml-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingImageId(image.id);
-                              }}
-                              className="p-1 bg-[#2E2E2E] text-white hover:bg-[#FDB813] hover:text-black rounded transition-colors"
-                            >
-                              <Edit size={12} />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteImage(image.id);
-                              }}
-                              className="p-1 bg-[#2E2E2E] text-white hover:bg-red-600 rounded transition-colors"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Videos Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4 bg-[#2E2E2E] p-4 rounded-lg border border-gray-700">
-          <div className="flex items-center gap-2">
-            <Video size={20} className="text-[#FDB813]" />
-            <h3 className="text-xl text-white">Gallery Videos</h3>
-            <span className="text-sm text-gray-400">({filteredVideos.length})</span>
-            {selectedVideos.size > 0 && (
-              <span className="text-sm text-[#FDB813] ml-2">
-                {selectedVideos.size} selected
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {selectedVideos.size > 0 && (
-              <>
-                <Button
-                  onClick={deselectAllVideos}
-                  size="sm"
-                  className="bg-[#1a1a1a] hover:bg-[#2E2E2E] text-white border border-gray-600"
-                >
-                  Deselect All
-                </Button>
-                <Button
-                  onClick={handleBulkDeleteVideos}
-                  size="sm"
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  <Trash2 size={14} className="mr-1" />
-                  Delete ({selectedVideos.size})
-                </Button>
-              </>
-            )}
-            {selectedVideos.size === 0 && filteredVideos.length > 0 && (
-              <Button
-                onClick={selectAllVideos}
-                size="sm"
-                className="bg-[#1a1a1a] hover:bg-[#2E2E2E] text-white border border-gray-600"
-              >
-                Select All
-              </Button>
-            )}
-            <Button
-              onClick={handleAddVideo}
-              size="sm"
-              className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
-            >
-              <Plus size={16} className="mr-2" />
-              Add Video
-            </Button>
-            <button
-              onClick={() => toggleSection('videos')}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-            >
-              {expandedSections.videos ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            </button>
-          </div>
-        </div>
-
-        {expandedSections.videos && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {filteredVideos.length === 0 ? (
-              <div className="col-span-full text-center py-12 bg-[#2E2E2E] rounded-lg border border-gray-700">
-                <Video size={48} className="mx-auto text-gray-600 mb-3" />
-                <p className="text-gray-400">No videos in this category yet.</p>
-              </div>
-            ) : (
-              filteredVideos.map((video) => (
-                <div
-                  key={video.id}
-                  className={`relative bg-[#2E2E2E] rounded-lg border overflow-hidden group transition-all ${
-                    selectedVideos.has(video.id)
-                      ? 'border-[#FDB813] ring-2 ring-[#FDB813]/50'
-                      : 'border-gray-700 hover:border-gray-600'
-                  } ${editingVideoId === video.id ? 'col-span-full' : ''}`}
-                >
-                  {editingVideoId === video.id ? (
-                    // Edit Mode - Full Width
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm text-white">Add Video URL(s)</label>
-                        <Button
-                          type="button"
-                          onClick={addVideoUrlField}
-                          size="sm"
-                          className="h-6 px-2 bg-[#FDB813] hover:bg-[#e5a711] text-black text-xs"
-                        >
-                          <Plus size={12} className="mr-1" />
-                          Add Video
-                        </Button>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        {videoUrls.map((videoData, index) => (
-                          <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-700">
-                            <div className="md:col-span-2 flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <label className="block text-xs text-white mb-1">YouTube URL</label>
-                                <input
-                                  type="text"
-                                  value={videoData.url}
-                                  onChange={(e) => updateVideoUrlField(index, 'url', e.target.value)}
-                                  className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent text-sm"
-                                  placeholder="https://www.youtube.com/watch?v=..."
-                                />
-                              </div>
-                              {videoUrls.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeVideoUrlField(index)}
-                                  className="mt-5 p-2 text-red-400 hover:text-red-300 transition-colors"
-                                  title="Remove video"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
-                            </div>
-                            <div>
-                              <label className="block text-xs text-white mb-1">Title</label>
-                              <input
-                                type="text"
-                                value={videoData.title}
-                                onChange={(e) => updateVideoUrlField(index, 'title', e.target.value)}
-                                className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent text-sm"
-                                placeholder="Video title"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-white mb-1">Date (DD-MMM-YYYY)</label>
-                              <div className="relative">
-                                <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input
-                                  type="text"
-                                  value={videoData.date}
-                                  onChange={(e) => updateVideoUrlField(index, 'date', e.target.value)}
-                                  className="w-full pl-10 pr-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent text-sm"
-                                  placeholder="18-Jul-2025"
-                                />
-                              </div>
-                            </div>
-                            {videoData.url && (
-                              <div className="md:col-span-2">
-                                <div className="aspect-video bg-black rounded overflow-hidden">
-                                  <img
-                                    src={getYoutubeThumbnail(videoData.url)}
-                                    alt={videoData.title || `Video ${index + 1}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="block text-sm text-white mb-1">Category</label>
-                          <select
-                            value={video.category}
-                            onChange={(e) => handleUpdateVideo(video.id, 'category', e.target.value)}
-                            className="w-full px-3 py-2 bg-[#1a1a1a] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent text-sm"
-                          >
-                            {GALLERY_CATEGORIES.map((cat) => (
-                              <option key={cat.key} value={cat.key}>{cat.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="md:col-span-2 flex gap-2">
-                          <Button
-                            onClick={() => {
-                              saveMultipleVideoUrls(video.id, video.category);
-                            }}
-                            className="flex-1 bg-[#FDB813] hover:bg-[#e5a610] text-black"
-                          >
-                            {videoUrls.filter(v => v.url.trim() !== '').length > 1 ? 'Add Videos' : 'Done'}
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              setEditingVideoId(null);
-                              setVideoUrls([{ url: '', title: '', date: '' }]);
-                              // Remove the new empty video if it was just added and has no URL
-                              if (!video.youtubeUrl) {
-                                setVideos(videos.filter(vid => vid.id !== video.id));
-                              }
-                            }}
-                            className="px-4 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600"
-                          >
-                            <X size={16} className="mr-2" />
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                      {video.youtubeUrl && (
-                        <div className="aspect-video bg-[#1a1a1a] rounded overflow-hidden">
-                          <img
-                            src={getYoutubeThumbnail(video.youtubeUrl)}
-                            alt={video.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    // Compact View Mode
-                    <>
-                      {/* Selection Checkbox */}
-                      <div className="absolute top-2 left-2 z-10">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleVideoSelection(video.id);
-                          }}
-                          className={`p-1 rounded transition-all ${
-                            selectedVideos.has(video.id)
-                              ? 'bg-[#FDB813] text-black'
-                              : 'bg-black/60 text-white opacity-0 group-hover:opacity-100'
-                          }`}
-                        >
-                          {selectedVideos.has(video.id) ? (
-                            <CheckSquare size={20} />
-                          ) : (
-                            <Square size={20} />
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Video Thumbnail */}
-                      <div className="aspect-video bg-[#1a1a1a] overflow-hidden cursor-pointer relative" onClick={() => setEditingVideoId(video.id)}>
-                        {video.youtubeUrl ? (
-                          <>
-                            <img
-                              src={getYoutubeThumbnail(video.youtubeUrl)}
-                              alt={video.title}
-                              className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-12 h-12 bg-black/70 rounded-full flex items-center justify-center">
-                                <Video size={24} className="text-white ml-1" />
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Video size={24} className="text-gray-600" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info Overlay */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-xs text-white font-medium truncate mb-1">{video.title || 'Untitled'}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-[#FDB813] font-medium truncate flex-1">
-                            {getCategoryLabel(video.category)}
-                          </span>
-                          <div className="flex gap-1 ml-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingVideoId(video.id);
-                              }}
-                              className="p-1 bg-[#2E2E2E] text-white hover:bg-[#FDB813] hover:text-black rounded transition-colors"
-                            >
-                              <Edit size={12} />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteVideo(video.id);
-                              }}
-                              className="p-1 bg-[#2E2E2E] text-white hover:bg-red-600 rounded transition-colors"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Delete Confirmation Dialog */}
-      <DeleteConfirmDialog
-        open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
-        onConfirm={confirmDelete}
-        title={deleteDialog.count > 1 ? 'Confirm Bulk Deletion' : 'Confirm Deletion'}
-        description={
-          deleteDialog.count > 1
-            ? `Are you sure you want to delete ${deleteDialog.count} ${deleteDialog.ids.some(id => selectedImages.has(id)) ? 'images' : 'videos'}? This action cannot be undone.`
-            : `Are you sure you want to delete this ${deleteDialog.type}? This action cannot be undone.`
-        }
-      />
-
-      {/* Bulk Upload Modal */}
-      {showBulkUpload && (
-        <MultipleImageUpload
-          onUploadComplete={handleBulkUploadComplete}
-          onClose={() => setShowBulkUpload(false)}
-          category={filterCategory === 'all' ? 'guinness-events' : filterCategory}
-        />
       )}
+    </div>
+  );
+}
+
+export function GalleryManager() {
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<GalleryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('asian-records');
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  
+  // Memoize filtered items by type for performance
+  const imageItems = useMemo(() => filteredItems.filter(item => item.media_type === 'image'), [filteredItems]);
+  const videoItems = useMemo(() => filteredItems.filter(item => item.media_type === 'video'), [filteredItems]);
+
+  // Upload states
+  const [uploadType, setUploadType] = useState<'file' | 'url'>('file');
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [uploadCategory, setUploadCategory] = useState('asian-records');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ isOpen: false, current: 0, total: 0 });
+  
+  // Video entries with individual titles and dates
+  const [videoEntries, setVideoEntries] = useState<Array<{ url: string; title: string; date: string }>>([
+    { url: '', title: '', date: '' }
+  ]);
+
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  
+  // Memoize selection states
+  const selectedImageIds = useMemo(() => 
+    imageItems.filter(item => selectedIds.has(item.id)).map(item => item.id),
+    [imageItems, selectedIds]
+  );
+  const selectedVideoIds = useMemo(() => 
+    videoItems.filter(item => selectedIds.has(item.id)).map(item => item.id),
+    [videoItems, selectedIds]
+  );
+  const allImagesSelected = useMemo(() => 
+    imageItems.length > 0 && imageItems.every(item => selectedIds.has(item.id)),
+    [imageItems, selectedIds]
+  );
+  const allVideosSelected = useMemo(() => 
+    videoItems.length > 0 && videoItems.every(item => selectedIds.has(item.id)),
+    [videoItems, selectedIds]
+  );
+
+  // Dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'danger' | 'warning';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning'
+  });
+
+  const fetchCategoryCounts = async () => {
+    try {
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        CATEGORIES.map(async (category) => {
+          const response = await fetch(`/api/admin/gallery?category=${category}`);
+          const result = await response.json();
+          if (result.success) {
+            counts[category] = result.data?.length || 0;
+          }
+        })
+      );
+      setCategoryCounts(counts);
+    } catch (error) {
+      console.error('Error fetching category counts:', error);
+    }
+  };
+
+  const fetchGalleryItems = async (category?: string) => {
+    try {
+      const cat = category || activeCategory;
+      const response = await fetch(`/api/admin/gallery?category=${cat}`);
+      const result = await response.json();
+      if (result.success) {
+        setGalleryItems(result.data || []);
+        setFilteredItems(result.data || []);
+      } else {
+        toast.error('Failed to fetch gallery items');
+      }
+    } catch (error) {
+      console.error('Error fetching gallery items:', error);
+      toast.error('Error fetching gallery items');
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+      setIsLoading(false);
+    };
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    const loadCategoryData = async () => {
+      setIsLoading(true);
+      await fetchGalleryItems(activeCategory);
+      setIsLoading(false);
+      setSelectedIds(new Set());
+    };
+    loadCategoryData();
+  }, [activeCategory]);
+
+  const handleUpload = async () => {
+    if (uploadType === 'file' && mediaFiles.length === 0) {
+      toast.error('Please select at least one image file');
+      return;
+    }
+    
+    if (uploadType === 'url') {
+      // Validate video entries
+      const validEntries = videoEntries.filter(entry => entry.url.trim());
+      
+      if (validEntries.length === 0) {
+        toast.error('Please enter at least one YouTube URL');
+        return;
+      }
+
+      // Check if all valid entries have title and date
+      for (let i = 0; i < validEntries.length; i++) {
+        if (!validEntries[i].title.trim()) {
+          toast.error(`Please enter a title for video ${i + 1}`);
+          return;
+        }
+        if (!validEntries[i].date) {
+          toast.error(`Please select a date for video ${i + 1}`);
+          return;
+        }
+      }
+    }
+
+    setIsUploading(true);
+
+    try {
+      let response;
+
+      if (uploadType === 'file') {
+        setUploadProgress({ isOpen: true, current: 0, total: mediaFiles.length });
+        const formData = new FormData();
+        mediaFiles.forEach((file) => {
+          formData.append('files', file);
+        });
+        formData.append('category', uploadCategory);
+        formData.append('title', 'Untitled');
+        formData.append('date', formatDateToDisplay(new Date().toISOString().split('T')[0]));
+
+        response = await fetch('/api/admin/gallery', {
+          method: 'POST',
+          body: formData
+        });
+      } else {
+        const validEntries = videoEntries.filter(entry => entry.url.trim());
+        setUploadProgress({ isOpen: true, current: 0, total: validEntries.length });
+
+        // Create items from video entries
+        const items = validEntries.map((entry) => ({
+          category: uploadCategory,
+          media_type: 'video',
+          url: entry.url.trim(),
+          title: entry.title.trim(),
+          date: formatDateToDisplay(entry.date)
+        }));
+
+        response = await fetch('/api/admin/gallery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: items
+          })
+        });
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(result.message || `Uploaded ${result.data?.length || 0} item(s) successfully`);
+        setMediaFiles([]);
+        setVideoEntries([{ url: '', title: '', date: '' }]);
+        const fileInput = document.getElementById('mediaFiles') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+        await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+      } else {
+        toast.error(result.error || 'Failed to upload');
+      }
+    } catch (error) {
+      console.error('Error uploading:', error);
+      toast.error('Error uploading media');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress({ isOpen: false, current: 0, total: 0 });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Item',
+      message: 'Are you sure you want to delete this item? This action cannot be undone.',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          const response = await fetch(`/api/admin/gallery?id=${id}`, {
+            method: 'DELETE'
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            toast.success('Item deleted successfully');
+            setSelectedIds(new Set());
+            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+          } else {
+            toast.error(result.error || 'Failed to delete item');
+          }
+        } catch (error) {
+          console.error('Error deleting item:', error);
+          toast.error('Error deleting item');
+        }
+      }
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) {
+      toast.error('No items selected');
+      return;
+    }
+
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Multiple Items',
+      message: `Are you sure you want to delete ${selectedIds.size} item(s)? This action cannot be undone.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          const ids = Array.from(selectedIds).join(',');
+          const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
+            method: 'DELETE'
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            toast.success(result.message || 'Items deleted successfully');
+            setSelectedIds(new Set());
+            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+          } else {
+            toast.error(result.error || 'Failed to delete items');
+          }
+        } catch (error) {
+          console.error('Error deleting items:', error);
+          toast.error('Error deleting items');
+        }
+      }
+    });
+  };
+
+  const handleToggleSelect = (id: number) => {
+    const newSelection = new Set(selectedIds);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedIds(newSelection);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredItems.map((item) => item.id)));
+    }
+  };
+
+  const handleSelectAllImages = useCallback(() => {
+    const imageIds = imageItems.map(item => item.id);
+    const newSelection = new Set(selectedIds);
+    
+    if (allImagesSelected) {
+      imageIds.forEach(id => newSelection.delete(id));
+    } else {
+      imageIds.forEach(id => newSelection.add(id));
+    }
+    setSelectedIds(newSelection);
+  }, [imageItems, selectedIds, allImagesSelected]);
+
+  const handleSelectAllVideos = useCallback(() => {
+    const videoIds = videoItems.map(item => item.id);
+    const newSelection = new Set(selectedIds);
+    
+    if (allVideosSelected) {
+      videoIds.forEach(id => newSelection.delete(id));
+    } else {
+      videoIds.forEach(id => newSelection.add(id));
+    }
+    setSelectedIds(newSelection);
+  }, [videoItems, selectedIds, allVideosSelected]);
+
+  const handleBulkDeleteImages = useCallback(() => {
+    if (selectedImageIds.length === 0) {
+      toast.error('No images selected');
+      return;
+    }
+
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Selected Images',
+      message: `Are you sure you want to delete ${selectedImageIds.length} image(s)? This action cannot be undone.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          const ids = selectedImageIds.join(',');
+          const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
+            method: 'DELETE'
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            toast.success(result.message || 'Images deleted successfully');
+            const newSelection = new Set(selectedIds);
+            selectedImageIds.forEach(id => newSelection.delete(id));
+            setSelectedIds(newSelection);
+            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+          } else {
+            toast.error(result.error || 'Failed to delete images');
+          }
+        } catch (error) {
+          console.error('Error deleting images:', error);
+          toast.error('Error deleting images');
+        }
+      }
+    });
+  }, [selectedImageIds, confirmDialog]);
+
+  const handleBulkDeleteVideos = useCallback(() => {
+    if (selectedVideoIds.length === 0) {
+      toast.error('No videos selected');
+      return;
+    }
+
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Selected Videos',
+      message: `Are you sure you want to delete ${selectedVideoIds.length} video(s)? This action cannot be undone.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          const ids = selectedVideoIds.join(',');
+          const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
+            method: 'DELETE'
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            toast.success(result.message || 'Videos deleted successfully');
+            const newSelection = new Set(selectedIds);
+            selectedVideoIds.forEach(id => newSelection.delete(id));
+            setSelectedIds(newSelection);
+            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+          } else {
+            toast.error(result.error || 'Failed to delete videos');
+          }
+        } catch (error) {
+          console.error('Error deleting videos:', error);
+          toast.error('Error deleting videos');
+        }
+      }
+    });
+  }, [selectedVideoIds, confirmDialog]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: accentGold }}></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 p-6 bg-black min-h-screen">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-white">Gallery Manager</h1>
+        <p className="text-gray-400 text-sm mt-1">Manage images and videos for the gallery page</p>
+      </div>
+
+      {/* Upload Section */}
+      <div className="bg-[#2E2E2E] rounded-lg p-6 border border-[#3a3a3a]">
+        <div className="flex items-center gap-2 mb-6">
+          <Upload className="h-6 w-6" style={{ color: accentGold }} />
+          <h2 className="text-2xl font-bold text-white">Upload Media</h2>
+        </div>
+
+        <div className="bg-black rounded-lg p-6 border border-[#3a3a3a]">
+          {/* Upload Type Tabs */}
+          <div className="flex border-b border-[#3a3a3a] mb-6">
+            <button
+              onClick={() => setUploadType('file')}
+              className={`px-4 py-2 flex items-center gap-2 transition-all cursor-pointer border-b-2 text-sm ${
+                uploadType === 'file'
+                  ? 'border-[#FDB813] text-[#FDB813] font-medium'
+                  : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              <Upload className="h-4 w-4" />
+              Upload Image File(s)
+            </button>
+            <button
+              onClick={() => setUploadType('url')}
+              className={`px-4 py-2 flex items-center gap-2 transition-all cursor-pointer border-b-2 text-sm ${
+                uploadType === 'url'
+                  ? 'border-[#FDB813] text-[#FDB813] font-medium'
+                  : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              <Plus className="h-4 w-4" />
+              Add Youtube URLs
+            </button>
+          </div>
+
+          {/* Upload Form */}
+          <div className="space-y-4">
+            {/* Category */}
+            <div>
+              <Label htmlFor="uploadCategory" className="text-white mb-2 block">
+                Category *
+              </Label>
+              <select
+                id="uploadCategory"
+                value={uploadCategory}
+                onChange={(e) => setUploadCategory(e.target.value)}
+                className="w-full bg-[#2E2E2E] text-white border border-[#3a3a3a] rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FDB813]"
+              >
+                {CATEGORIES.filter((c) => c !== 'all').map((cat) => (
+                  <option key={cat} value={cat}>
+                    {CATEGORY_LABELS[cat]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* File or URL Input */}
+            {uploadType === 'file' ? (
+              <div>
+                <Label htmlFor="mediaFiles" className="text-white mb-2 block">
+                  Media Files (Images) *
+                </Label>
+                <div className="flex items-stretch bg-[#2E2E2E] border border-[#3a3a3a] rounded-md overflow-hidden">
+                  <label
+                    htmlFor="mediaFiles"
+                    className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold"
+                  >
+                    Choose Files
+                  </label>
+                  <span className="text-white px-2 flex items-center">:</span>
+                  <span className="text-white px-3 flex-1 flex items-center truncate">
+                    {mediaFiles.length > 0 ? `${mediaFiles.length} file(s) selected` : 'No files chosen'}
+                  </span>
+                  <Input
+                    id="mediaFiles"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setMediaFiles(Array.from(e.target.files || []))}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Label className="text-white mb-2 block">YouTube Videos *</Label>
+                {videoEntries.map((entry, index) => (
+                  <div key={index} className="p-4 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg space-y-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-[#FDB813]">Video {index + 1}</span>
+                      {videoEntries.length > 1 && (
+                        <button
+                          onClick={() => setVideoEntries(videoEntries.filter((_, i) => i !== index))}
+                          className="text-red-500 hover:text-red-400 text-sm"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-white text-sm mb-1 block">YouTube URL *</Label>
+                      <Input
+                        type="text"
+                        value={entry.url}
+                        onChange={(e) => {
+                          const newEntries = [...videoEntries];
+                          newEntries[index].url = e.target.value;
+                          setVideoEntries(newEntries);
+                        }}
+                        placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                        className="bg-[#2E2E2E] text-white border-[#3a3a3a] focus:ring-[#FDB813] font-mono text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-white text-sm mb-1 block">Title *</Label>
+                      <Input
+                        type="text"
+                        value={entry.title}
+                        onChange={(e) => {
+                          const newEntries = [...videoEntries];
+                          newEntries[index].title = e.target.value;
+                          setVideoEntries(newEntries);
+                        }}
+                        placeholder="Enter video title"
+                        className="bg-[#2E2E2E] text-white border-[#3a3a3a] focus:ring-[#FDB813]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-white text-sm mb-1 block">Date *</Label>
+                      <Input
+                        type="date"
+                        value={entry.date}
+                        onChange={(e) => {
+                          const newEntries = [...videoEntries];
+                          newEntries[index].date = e.target.value;
+                          setVideoEntries(newEntries);
+                        }}
+                        className="bg-[#2E2E2E] text-white border-[#3a3a3a] focus:ring-[#FDB813]"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setVideoEntries([...videoEntries, { url: '', title: '', date: '' }])}
+                  className="px-4 py-2 bg-[#2E2E2E] text-white border border-[#3a3a3a] hover:bg-[#3a3a3a] rounded transition-all cursor-pointer flex items-center gap-2 text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Another Video
+                </button>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            <button
+              onClick={handleUpload}
+              disabled={isUploading}
+              className="px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center gap-2"
+              style={{ backgroundColor: accentGold }}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Upload Media
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Gallery Items Section */}
+      <div className="bg-[#2E2E2E] rounded-lg p-6 border border-[#3a3a3a]">
+        <div className="flex items-center gap-2 mb-6">
+          <ImageIcon className="h-6 w-6" style={{ color: accentGold }} />
+          <h2 className="text-2xl font-bold text-white">{CATEGORY_LABELS[activeCategory]}</h2>
+          <span className="text-sm text-gray-400 ml-2">
+            ({filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'})
+          </span>
+        </div>
+
+        {/* Category Filter List */}
+        <div className="mb-6">
+          <Label className="text-white mb-3 block text-sm font-medium">Select Category</Label>
+          <select
+            value={activeCategory}
+            onChange={(e) => setActiveCategory(e.target.value)}
+            className="w-full max-w-md bg-[#1a1a1a] text-white border-2 border-[#4a4a4a] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-[#FDB813] cursor-pointer text-base font-medium hover:border-[#FDB813] transition-all"
+          >
+            {CATEGORIES.map((category) => (
+              <option key={category} value={category} className="bg-[#1a1a1a] text-white py-2">
+                {CATEGORY_LABELS[category]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Gallery Grid */}
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-12 bg-black rounded-lg border border-[#3a3a3a]">
+            <ImageIcon className="h-16 w-16 mx-auto mb-4 text-gray-600" />
+            <p className="text-gray-400 text-lg">No items found in this category</p>
+            <p className="text-gray-500 text-sm mt-2">Upload some media to get started!</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* Images Section */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5 text-[#FDB813]" />
+                  <h3 className="text-xl font-bold text-white">
+                    Images ({imageItems.length})
+                  </h3>
+                </div>
+                {imageItems.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleSelectAllImages}
+                      className="px-4 py-2 bg-[#FDB813] text-black border-2 border-[#FDB813] hover:bg-[#e5a510] font-semibold rounded transition-all cursor-pointer text-sm"
+                    >
+                      {allImagesSelected ? 'Deselect All' : 'Select All'}
+                    </button>
+                    {selectedImageIds.length > 0 && (
+                      <button
+                        onClick={handleBulkDeleteImages}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2 text-sm"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete Selected ({selectedImageIds.length})
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              {imageItems.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {imageItems.map((item) => (
+                    <MediaCard
+                      key={item.id}
+                      item={item}
+                      onDelete={handleDelete}
+                      isSelected={selectedIds.has(item.id)}
+                      onToggleSelect={handleToggleSelect}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-black rounded-lg border border-[#3a3a3a]">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-3 text-gray-600" />
+                  <p className="text-gray-400">No existing images</p>
+                </div>
+              )}
+            </div>
+
+            {/* Separator */}
+            <div className="border-t-2 border-[#FDB813] my-8"></div>
+
+            {/* Videos Section */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <VideoIcon className="h-5 w-5 text-[#FDB813]" />
+                  <h3 className="text-xl font-bold text-white">
+                    Videos ({videoItems.length})
+                  </h3>
+                </div>
+                {videoItems.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleSelectAllVideos}
+                      className="px-4 py-2 bg-[#FDB813] text-black border-2 border-[#FDB813] hover:bg-[#e5a510] font-semibold rounded transition-all cursor-pointer text-sm"
+                    >
+                      {allVideosSelected ? 'Deselect All' : 'Select All'}
+                    </button>
+                    {selectedVideoIds.length > 0 && (
+                      <button
+                        onClick={handleBulkDeleteVideos}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2 text-sm"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete Selected ({selectedVideoIds.length})
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              {videoItems.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {videoItems.map((item) => (
+                    <MediaCard
+                      key={item.id}
+                      item={item}
+                      onDelete={handleDelete}
+                      isSelected={selectedIds.has(item.id)}
+                      onToggleSelect={handleToggleSelect}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-black rounded-lg border border-[#3a3a3a]">
+                  <VideoIcon className="h-12 w-12 mx-auto mb-3 text-gray-600" />
+                  <p className="text-gray-400">No existing videos</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Upload Progress Modal */}
+      {uploadProgress.isOpen && (
+        <div className="fixed inset-0 bg-[#2a2a2a]/95 flex items-center justify-center z-50">
+          <div className="bg-[#3a3a3a] rounded-lg p-8 max-w-md w-full mx-4 border-2 border-[#FDB813]">
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-12 w-12 animate-spin mb-4" style={{ color: accentGold }} />
+              <h3 className="text-xl font-bold text-white mb-2">Uploading Media</h3>
+              <p className="text-gray-400 text-sm mb-6">Please wait while we upload your files...</p>
+              <div className="w-full bg-[#2E2E2E] rounded-full h-2 mb-4">
+                <div
+                  className="h-2 rounded-full transition-all duration-300"
+                  style={{
+                    backgroundColor: accentGold,
+                    width:
+                      uploadProgress.total > 0 ? `${(uploadProgress.current / uploadProgress.total) * 100}%` : '0%'
+                  }}
+                />
+              </div>
+              <p className="text-sm text-gray-300">
+                {uploadProgress.current} of {uploadProgress.total} completed
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
     </div>
   );
 }
