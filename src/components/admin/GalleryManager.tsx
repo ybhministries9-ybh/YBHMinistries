@@ -910,8 +910,8 @@ export function GalleryManager() {
 
       {/* Upload Progress Modal */}
       {uploadProgress.isOpen && (
-        <div className="fixed inset-0 bg-[#2a2a2a]/95 flex items-center justify-center z-50">
-          <div className="bg-[#3a3a3a] rounded-lg p-8 max-w-md w-full mx-4 border-2 border-[#FDB813]">
+        <div className="fixed inset-0 bg-[#1a1a1a] flex items-center justify-center z-50">
+          <div className="bg-[#2E2E2E] rounded-lg p-8 max-w-md w-full mx-4 border-2 border-[#FDB813] shadow-2xl">
             <div className="flex flex-col items-center">
               <Loader2 className="h-12 w-12 animate-spin mb-4" style={{ color: accentGold }} />
               <h3 className="text-xl font-bold text-white mb-2">Uploading Media</h3>
