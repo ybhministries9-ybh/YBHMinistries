@@ -239,7 +239,7 @@ export function NewsPage() {
         const response = await fetch('/api/reports');
         const result = await response.json();
         
-        if (result.success && result.data) {
+        if (result.success && result.data && Object.keys(result.data).length > 0) {
           setEnrollmentData(result.data);
           // Set initial year to the most recent year available
           const years = Object.keys(result.data).map(Number).sort((a, b) => b - a);
@@ -252,13 +252,13 @@ export function NewsPage() {
             }
           }
         } else {
-          // Fallback to hardcoded data if API fails
-          setEnrollmentData(ENROLLMENT_DATA);
+          // No data in database - set to empty object
+          setEnrollmentData({});
         }
       } catch (error) {
         console.error('Error fetching reports:', error);
-        // Fallback to hardcoded data
-        setEnrollmentData(ENROLLMENT_DATA);
+        // API failed - set to empty object (do not use fallback)
+        setEnrollmentData({});
       } finally {
         setIsLoadingReports(false);
       }
