@@ -63,7 +63,17 @@ export default {
     yourInstrument: "Your own instrument (if applicable)",
     businessCards: "Business cards for networking",
     needHelp: "Need help? Contact us",
-    haveQuestions: "Have questions? Contact us"
+    haveQuestions: "Have questions? Contact us",
+    types: {
+      conference: "Conference",
+      class: "Class",
+      record: "Record Attempt"
+    },
+    locations: {
+      online: "Online",
+      hyderabad: "Hyderabad",
+      other: "{{location}}"
+    }
   },
   
   awards: {

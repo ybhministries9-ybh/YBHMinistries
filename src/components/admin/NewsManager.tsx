@@ -1,33 +1,11 @@
-import { useState } from 'react';
-import { Plus, Trash2, Edit2, Calendar, BarChart3, Clock, MapPin, Users, X, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Trash2, Edit2, Calendar, BarChart3, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
-import { ImageUpload } from './ImageUpload';
 import { toast } from 'sonner';
-
-interface Event {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  description: string;
-  extendedDescription: string;
-  capacity: number | string;
-  imageUrl: string;
-  speakers: string[];
-  whatToBring: string[];
-  registration: {
-    enabled: boolean;
-    nationalFee?: number;
-    internationalFee?: number;
-    registrationFee?: number;
-    description?: string;
-  };
-  published: boolean;
-}
+import { EventsManager } from './EventsManager';
 
 interface EnrollmentMonth {
   month: string;
@@ -53,7 +31,7 @@ export function NewsManager() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl text-white mb-2">News Management</h2>
+        <h2 className="text-3xl font-bold text-white mb-2">News Management</h2>
         <p className="text-gray-400">Manage events, reports, and news content for the website</p>
       </div>
 
@@ -94,563 +72,47 @@ export function NewsManager() {
   );
 }
 
-// Events Manager Sub-Component
-function EventsManager() {
-  const [events, setEvents] = useState<Event[]>([
-    {
-      id: '1',
-      title: 'Annual Hallel Conference 2025',
-      date: '2025-12-15',
-      time: '10:00 AM',
-      location: 'Hyderabad, India',
-      description: 'Join us for our biggest worship gathering of the year',
-      extendedDescription: 'Experience powerful worship, inspiring messages, and connect with believers from around the world. This conference will feature renowned speakers, worship leaders, and special sessions.',
-      capacity: 500,
-      imageUrl: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800',
-      speakers: ['Ps. Augustine Dandingi', 'Dr. Sarah Johnson'],
-      whatToBring: ['Notepad and pen', 'Water bottle', 'Bible'],
-      registration: {
-        enabled: true,
-        nationalFee: 2500,
-        internationalFee: 5000,
-        registrationFee: 500,
-        description: 'Register early to secure your spot for this event.'
-      },
-      published: true
-    }
-  ]);
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
-
-  const handleAdd = () => {
-    const newEvent: Event = {
-      id: Date.now().toString(),
-      title: '',
-      date: new Date().toISOString().split('T')[0],
-      time: '10:00 AM',
-      location: '',
-      description: '',
-      extendedDescription: '',
-      capacity: 100,
-      imageUrl: '',
-      speakers: [],
-      whatToBring: [],
-      registration: {
-        enabled: false
-      },
-      published: false
-    };
-    setEvents([newEvent, ...events]);
-    setEditingId(newEvent.id);
-    setExpandedEvent(newEvent.id);
-  };
-
-  const handleUpdate = (id: string, updates: Partial<Event>) => {
-    setEvents(events.map(e => e.id === id ? { ...e, ...updates } : e));
-  };
-
-  const handleDelete = (id: string) => {
-    setEventToDelete(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (eventToDelete) {
-      setEvents(events.filter(e => e.id !== eventToDelete));
-      toast.success('Event deleted successfully');
-      setEventToDelete(null);
-    }
-    setDeleteDialogOpen(false);
-  };
-
-  const handleSave = (id: string) => {
-    setEditingId(null);
-    toast.success('Event saved successfully');
-  };
-
-  const addSpeaker = (eventId: string) => {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
-      handleUpdate(eventId, { speakers: [...event.speakers, ''] });
-    }
-  };
-
-  const updateSpeaker = (eventId: string, index: number, value: string) => {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
-      const newSpeakers = [...event.speakers];
-      newSpeakers[index] = value;
-      handleUpdate(eventId, { speakers: newSpeakers });
-    }
-  };
-
-  const removeSpeaker = (eventId: string, index: number) => {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
-      handleUpdate(eventId, { speakers: event.speakers.filter((_, i) => i !== index) });
-    }
-  };
-
-  const addWhatToBring = (eventId: string) => {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
-      handleUpdate(eventId, { whatToBring: [...event.whatToBring, ''] });
-    }
-  };
-
-  const updateWhatToBring = (eventId: string, index: number, value: string) => {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
-      const newItems = [...event.whatToBring];
-      newItems[index] = value;
-      handleUpdate(eventId, { whatToBring: newItems });
-    }
-  };
-
-  const removeWhatToBring = (eventId: string, index: number) => {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
-      handleUpdate(eventId, { whatToBring: event.whatToBring.filter((_, i) => i !== index) });
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Add Button */}
-      <div className="flex justify-between items-center">
-        <div className="text-gray-400">
-          Total: <span className="text-[#FDB813] font-bold">{events.length}</span> event(s)
-        </div>
-        <Button
-          onClick={handleAdd}
-          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
-        >
-          <Plus size={16} className="mr-2" />
-          Add Event
-        </Button>
-      </div>
-
-      {/* Events List */}
-      {events.length === 0 ? (
-        <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
-          <Calendar size={48} className="mx-auto mb-4 text-gray-600" />
-          <p className="text-gray-400">No events yet. Click "Add Event" to create one.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {events.map((event) => {
-            const isEditing = editingId === event.id;
-            const isExpanded = expandedEvent === event.id;
-
-            return (
-              <div key={event.id} className="bg-black rounded-lg border border-gray-700">
-                {/* Header */}
-                <div className="p-4 flex items-start justify-between">
-                  <div className="flex-1">
-                    {isEditing ? (
-                      <Input
-                        value={event.title}
-                        onChange={(e) => handleUpdate(event.id, { title: e.target.value })}
-                        placeholder="Event Title"
-                        className="bg-black border-gray-600 text-white text-lg mb-2"
-                      />
-                    ) : (
-                      <h3 className="text-white text-lg mb-1">{event.title || 'Untitled Event'}</h3>
-                    )}
-                    <div className="flex flex-wrap gap-3 text-sm text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={14} />
-                        {event.date}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock size={14} />
-                        {event.time}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin size={14} />
-                        {event.location || 'No location'}
-                      </span>
-                      <span className={event.published ? 'text-green-500' : 'text-yellow-500'}>
-                        {event.published ? '● Published' : '● Draft'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
-                      size="sm"
-                      className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600"
-                    >
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </Button>
-                    {isEditing ? (
-                      <>
-                        <Button
-                          onClick={() => handleSave(event.id)}
-                          size="sm"
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black"
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setEditingId(null);
-                            if (!event.title) {
-                              setEvents(events.filter(e => e.id !== event.id));
-                            }
-                          }}
-                          size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600"
-                        >
-                          <X size={14} className="mr-1" />
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={() => setEditingId(event.id)}
-                          size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-[#FDB813] border border-[#FDB813]"
-                        >
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(event.id)}
-                          size="sm"
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-red-500 border border-red-500"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Expanded Content */}
-                {isExpanded && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-gray-700 pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-sm text-white mb-1 block">Date</label>
-                        <Input
-                          type="date"
-                          value={event.date}
-                          onChange={(e) => handleUpdate(event.id, { date: e.target.value })}
-                          className="bg-black border-gray-600 text-white"
-                          disabled={!isEditing}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm text-white mb-1 block">Time</label>
-                        <Input
-                          value={event.time}
-                          onChange={(e) => handleUpdate(event.id, { time: e.target.value })}
-                          placeholder="10:00 AM"
-                          className="bg-black border-gray-600 text-white"
-                          disabled={!isEditing}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm text-white mb-1 block">Location</label>
-                        <Input
-                          value={event.location}
-                          onChange={(e) => handleUpdate(event.id, { location: e.target.value })}
-                          placeholder="City, Country"
-                          className="bg-black border-gray-600 text-white"
-                          disabled={!isEditing}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-white mb-1 block">Capacity</label>
-                      <Input
-                        value={event.capacity}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          // Try to parse as number, otherwise keep as string
-                          const numValue = parseInt(value);
-                          handleUpdate(event.id, { capacity: isNaN(numValue) ? value : numValue });
-                        }}
-                        placeholder="e.g., 100 or 'Unlimited'"
-                        className="bg-black border-gray-600 text-white"
-                        disabled={!isEditing}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-white mb-1 block">Short Description</label>
-                      <Textarea
-                        value={event.description}
-                        onChange={(e) => handleUpdate(event.id, { description: e.target.value })}
-                        placeholder="Brief description for event card"
-                        className="bg-black border-gray-600 text-white"
-                        rows={2}
-                        disabled={!isEditing}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-white mb-1 block">Extended Description</label>
-                      <Textarea
-                        value={event.extendedDescription}
-                        onChange={(e) => handleUpdate(event.id, { extendedDescription: e.target.value })}
-                        placeholder="Full description for event details page"
-                        className="bg-black border-gray-600 text-white"
-                        rows={4}
-                        disabled={!isEditing}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-white mb-2 block">Event Image</label>
-                      {isEditing ? (
-                        <div className="space-y-3">
-                          <ImageUpload
-                            bucket="event-images"
-                            onUploadComplete={(url) => handleUpdate(event.id, { imageUrl: url })}
-                            currentImage={event.imageUrl}
-                            imageType="gallery"
-                          />
-                          <div className="text-xs text-gray-500 text-center">OR</div>
-                          <Input
-                            value={event.imageUrl}
-                            onChange={(e) => handleUpdate(event.id, { imageUrl: e.target.value })}
-                            placeholder="Enter image URL manually"
-                            className="bg-black border-gray-600 text-white"
-                          />
-                        </div>
-                      ) : (
-                        event.imageUrl && (
-                          <img
-                            src={event.imageUrl}
-                            alt="Event preview"
-                            className="w-full h-48 object-cover rounded border border-gray-600"
-                          />
-                        )
-                      )}
-                    </div>
-
-                    {/* Speakers Section */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm text-white block">Speakers / Instructors</label>
-                        {isEditing && (
-                          <Button
-                            onClick={() => addSpeaker(event.id)}
-                            size="sm"
-                            className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-[#FDB813] border border-[#FDB813]"
-                          >
-                            <Plus size={14} className="mr-1" />
-                            Add Speaker
-                          </Button>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        {event.speakers.map((speaker, index) => (
-                          <div key={index} className="flex gap-2">
-                            <Input
-                              value={speaker}
-                              onChange={(e) => updateSpeaker(event.id, index, e.target.value)}
-                              placeholder="Speaker name"
-                              className="bg-black border-gray-600 text-white flex-1"
-                              disabled={!isEditing}
-                            />
-                            {isEditing && (
-                              <Button
-                                onClick={() => removeSpeaker(event.id, index)}
-                                size="sm"
-                                className="bg-[#2E2E2E] hover:bg-red-900 text-red-500 border border-red-500"
-                              >
-                                <X size={14} />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* What to Bring Section */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm text-white block">What to Bring</label>
-                        {isEditing && (
-                          <Button
-                            onClick={() => addWhatToBring(event.id)}
-                            size="sm"
-                            className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-[#FDB813] border border-[#FDB813]"
-                          >
-                            <Plus size={14} className="mr-1" />
-                            Add Item
-                          </Button>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        {event.whatToBring.map((item, index) => (
-                          <div key={index} className="flex gap-2">
-                            <Input
-                              value={item}
-                              onChange={(e) => updateWhatToBring(event.id, index, e.target.value)}
-                              placeholder="Item to bring"
-                              className="bg-black border-gray-600 text-white flex-1"
-                              disabled={!isEditing}
-                            />
-                            {isEditing && (
-                              <Button
-                                onClick={() => removeWhatToBring(event.id, index)}
-                                size="sm"
-                                className="bg-[#2E2E2E] hover:bg-red-900 text-red-500 border border-red-500"
-                              >
-                                <X size={14} />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Registration Section */}
-                    <div className="border-t border-gray-700 pt-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <input
-                          type="checkbox"
-                          checked={event.registration.enabled}
-                          onChange={(e) => handleUpdate(event.id, {
-                            registration: { ...event.registration, enabled: e.target.checked }
-                          })}
-                          className="w-4 h-4"
-                          disabled={!isEditing}
-                        />
-                        <label className="text-white">Enable Registration</label>
-                      </div>
-
-                      {event.registration.enabled && (
-                        <div className="space-y-3 pl-6">
-                          <div>
-                            <label className="text-sm text-white mb-1 block">Registration Description</label>
-                            <Textarea
-                              value={event.registration.description || ''}
-                              onChange={(e) => handleUpdate(event.id, {
-                                registration: { ...event.registration, description: e.target.value }
-                              })}
-                              placeholder="Register early to secure your spot..."
-                              className="bg-black border-gray-600 text-white"
-                              rows={2}
-                              disabled={!isEditing}
-                            />
-                          </div>
-                          <div className="grid grid-cols-3 gap-3">
-                            <div>
-                              <label className="text-sm text-white mb-1 block">National Fee (₹)</label>
-                              <Input
-                                type="number"
-                                value={event.registration.nationalFee || ''}
-                                onChange={(e) => handleUpdate(event.id, {
-                                  registration: { ...event.registration, nationalFee: parseFloat(e.target.value) }
-                                })}
-                                placeholder="2500"
-                                className="bg-black border-gray-600 text-white"
-                                disabled={!isEditing}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm text-white mb-1 block">International Fee (₹)</label>
-                              <Input
-                                type="number"
-                                value={event.registration.internationalFee || ''}
-                                onChange={(e) => handleUpdate(event.id, {
-                                  registration: { ...event.registration, internationalFee: parseFloat(e.target.value) }
-                                })}
-                                placeholder="5000"
-                                className="bg-black border-gray-600 text-white"
-                                disabled={!isEditing}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm text-white mb-1 block">Registration Fee (₹)</label>
-                              <Input
-                                type="number"
-                                value={event.registration.registrationFee || ''}
-                                onChange={(e) => handleUpdate(event.id, {
-                                  registration: { ...event.registration, registrationFee: parseFloat(e.target.value) }
-                                })}
-                                placeholder="500"
-                                className="bg-black border-gray-600 text-white"
-                                disabled={!isEditing}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Published Toggle */}
-                    <div className="flex items-center gap-2 border-t border-gray-700 pt-4">
-                      <input
-                        type="checkbox"
-                        checked={event.published}
-                        onChange={(e) => handleUpdate(event.id, { published: e.target.checked })}
-                        className="w-4 h-4"
-                        disabled={!isEditing}
-                      />
-                      <label className="text-white">Published (visible on website)</label>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <DeleteConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        onConfirm={confirmDelete}
-        title="Delete Event"
-        description="Are you sure you want to delete this event? This action cannot be undone."
-      />
-    </div>
-  );
-}
-
 // Reports Manager Sub-Component
 function ReportsManager() {
-  const [reports, setReports] = useState<YearlyReport[]>([
-    {
-      id: '1',
-      year: 2023,
-      classType: 'keyboard',
-      published: true,
-      data: [
-        { month: 'January', indian: 32, nonIndian: 8, total: 40 },
-        { month: 'February', indian: 34, nonIndian: 9, total: 43 },
-        { month: 'March', indian: 36, nonIndian: 9, total: 45 },
-        { month: 'April', indian: 38, nonIndian: 10, total: 48 },
-        { month: 'May', indian: 40, nonIndian: 12, total: 52 },
-        { month: 'June', indian: 40, nonIndian: 12, total: 52 },
-        { month: 'July', indian: 38, nonIndian: 12, total: 50 },
-        { month: 'August', indian: 36, nonIndian: 10, total: 46 },
-        { month: 'September', indian: 38, nonIndian: 10, total: 48 },
-        { month: 'October', indian: 39, nonIndian: 11, total: 50 },
-        { month: 'November', indian: 41, nonIndian: 12, total: 53 },
-        { month: 'December', indian: 43, nonIndian: 12, total: 55 }
-      ]
-    }
-  ]);
-
+  const [reports, setReports] = useState<YearlyReport[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<string | null>(null);
 
+  // Fetch reports from API
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/reports', {
+        cache: 'no-store'
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        setReports(result.data);
+      } else {
+        toast.error('Failed to fetch reports');
+      }
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      toast.error('Error loading reports');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load reports on component mount
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
   const handleAdd = () => {
+    // Create a temporary new report in local state for editing
+    const tempId = `temp-${Date.now()}`;
     const newReport: YearlyReport = {
-      id: Date.now().toString(),
+      id: tempId,
       year: new Date().getFullYear(),
       classType: 'keyboard',
       published: false,
@@ -659,12 +121,14 @@ function ReportsManager() {
         'July', 'August', 'September', 'October', 'November', 'December'
       ].map(month => ({ month, indian: 0, nonIndian: 0, total: 0 }))
     };
+    
     setReports([newReport, ...reports]);
-    setEditingId(newReport.id);
-    setExpandedReport(newReport.id);
+    setEditingId(tempId);
+    setExpandedReport(tempId);
   };
 
   const handleUpdate = (id: string, updates: Partial<YearlyReport>) => {
+    // Update local state immediately for responsive UI
     setReports(reports.map(r => r.id === id ? { ...r, ...updates } : r));
   };
 
@@ -688,18 +152,90 @@ function ReportsManager() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (reportToDelete) {
-      setReports(reports.filter(r => r.id !== reportToDelete));
-      toast.success('Report deleted successfully');
-      setReportToDelete(null);
+      try {
+        const response = await fetch(`/api/admin/reports?id=${reportToDelete}`, {
+          method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setReports(reports.filter(r => r.id !== reportToDelete));
+          toast.success('Report deleted successfully');
+        } else {
+          toast.error(result.error || 'Failed to delete report');
+        }
+      } catch (error) {
+        console.error('Error deleting report:', error);
+        toast.error('Error deleting report');
+      } finally {
+        setReportToDelete(null);
+      }
     }
     setDeleteDialogOpen(false);
   };
 
-  const handleSave = (id: string) => {
-    setEditingId(null);
-    toast.success('Report saved successfully');
+  const handleSave = async (id: string) => {
+    try {
+      const report = reports.find(r => r.id === id);
+      if (!report) return;
+
+      // Check if this is a new report (temporary ID)
+      const isNewReport = id.startsWith('temp-');
+
+      if (isNewReport) {
+        // Create new report
+        const response = await fetch('/api/admin/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            year: report.year,
+            classType: report.classType,
+            data: report.data,
+            published: report.published
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // Remove temp report and refresh from database
+          await fetchReports();
+          setEditingId(null);
+          setExpandedReport(null);
+          toast.success('Report created successfully');
+        } else {
+          toast.error(result.error || 'Failed to create report');
+        }
+      } else {
+        // Update existing report
+        const response = await fetch('/api/admin/reports', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: report.id,
+            year: report.year,
+            classType: report.classType,
+            data: report.data,
+            published: report.published
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setEditingId(null);
+          toast.success('Report saved successfully');
+        } else {
+          toast.error(result.error || 'Failed to save report');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving report:', error);
+      toast.error('Error saving report');
+    }
   };
 
   const getClassTypeName = (type: string) => {
@@ -710,6 +246,14 @@ function ReportsManager() {
     };
     return names[type] || type;
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-400">Loading reports...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -754,7 +298,7 @@ function ReportsManager() {
                     </h3>
                     <div className="flex flex-wrap gap-3 text-sm text-gray-400">
                       <span>Total: {totalYearly.total} students</span>
-                      <span>Indian: {totalYearly.indian}</span>
+                      <span>National: {totalYearly.indian}</span>
                       <span>International: {totalYearly.nonIndian}</span>
                       <span className={report.published ? 'text-green-500' : 'text-yellow-500'}>
                         {report.published ? '● Published' : '● Draft'}
@@ -780,6 +324,14 @@ function ReportsManager() {
                         </Button>
                         <Button
                           onClick={() => {
+                            // If it's a temp report, remove it from the list
+                            if (report.id.startsWith('temp-')) {
+                              setReports(reports.filter(r => r.id !== report.id));
+                              setExpandedReport(null);
+                            } else {
+                              // For existing reports, refresh from database to restore original values
+                              fetchReports();
+                            }
                             setEditingId(null);
                           }}
                           size="sm"
@@ -818,8 +370,15 @@ function ReportsManager() {
                         <label className="text-sm text-white mb-1 block">Year</label>
                         <Input
                           type="number"
+                          min="1900"
+                          max="2100"
                           value={report.year}
-                          onChange={(e) => handleUpdate(report.id, { year: parseInt(e.target.value) })}
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? '' : parseInt(e.target.value);
+                            if (value === '' || (typeof value === 'number' && value >= 1900)) {
+                              handleUpdate(report.id, { year: value === '' ? new Date().getFullYear() : value });
+                            }
+                          }}
                           placeholder="2024"
                           className="bg-black border-gray-600 text-white"
                           disabled={!isEditing}
@@ -848,7 +407,7 @@ function ReportsManager() {
                           <thead className="bg-[#2E2E2E]">
                             <tr>
                               <th className="text-left text-white p-2 border border-gray-700">Month</th>
-                              <th className="text-center text-white p-2 border border-gray-700">Indian</th>
+                              <th className="text-center text-white p-2 border border-gray-700">National</th>
                               <th className="text-center text-white p-2 border border-gray-700">International</th>
                               <th className="text-center text-white p-2 border border-gray-700">Total</th>
                             </tr>
@@ -859,20 +418,32 @@ function ReportsManager() {
                                 <td className="text-gray-300 p-2 border border-gray-700">{month.month}</td>
                                 <td className="p-2 border border-gray-700">
                                   <Input
-                                    type="number"
-                                    value={month.indian}
-                                    onChange={(e) => handleUpdateMonth(report.id, index, 'indian', parseInt(e.target.value) || 0)}
-                                    className="bg-black border-gray-600 text-white text-center"
+                                    type="text"
+                                    value={month.indian === 0 ? '' : month.indian}
+                                    onChange={(e) => {
+                                      const value = e.target.value.trim();
+                                      if (value === '' || (/^\d+$/.test(value) && parseInt(value) >= 0 && parseInt(value) <= 10000)) {
+                                        handleUpdateMonth(report.id, index, 'indian', value === '' ? 0 : parseInt(value));
+                                      }
+                                    }}
+                                    className="bg-black border-gray-600 text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     disabled={!isEditing}
+                                    placeholder="0"
                                   />
                                 </td>
                                 <td className="p-2 border border-gray-700">
                                   <Input
-                                    type="number"
-                                    value={month.nonIndian}
-                                    onChange={(e) => handleUpdateMonth(report.id, index, 'nonIndian', parseInt(e.target.value) || 0)}
-                                    className="bg-black border-gray-600 text-white text-center"
+                                    type="text"
+                                    value={month.nonIndian === 0 ? '' : month.nonIndian}
+                                    onChange={(e) => {
+                                      const value = e.target.value.trim();
+                                      if (value === '' || (/^\d+$/.test(value) && parseInt(value) >= 0 && parseInt(value) <= 10000)) {
+                                        handleUpdateMonth(report.id, index, 'nonIndian', value === '' ? 0 : parseInt(value));
+                                      }
+                                    }}
+                                    className="bg-black border-gray-600 text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     disabled={!isEditing}
+                                    placeholder="0"
                                   />
                                 </td>
                                 <td className="text-center text-[#FDB813] p-2 border border-gray-700 font-bold">

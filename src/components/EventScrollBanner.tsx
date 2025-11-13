@@ -1,10 +1,19 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { navigate } from '../utils/navigate';
-import { getUpcomingEvents, formatEventDate } from '../utils/eventsData';
+import { getUpcomingEvents, formatEventDate, Event } from '../utils/eventsData';
 
 export function EventScrollBanner() {
   const { t, i18n } = useTranslation('home');
-  const upcomingEvents = getUpcomingEvents(5);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      const events = await getUpcomingEvents(5);
+      setUpcomingEvents(events);
+    };
+    loadEvents();
+  }, []);
 
   // If no upcoming events, don't render the banner
   if (upcomingEvents.length === 0) {

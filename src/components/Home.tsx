@@ -7,7 +7,7 @@ import { accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 import { EventScrollBanner } from './EventScrollBanner';
-import { getUpcomingEvents } from '../utils/eventsData';
+import { getUpcomingEvents, Event } from '../utils/eventsData';
 
 // ImageWithFallback component for handling image loading errors
 function ImageWithFallback(props) {
@@ -223,14 +223,14 @@ function ImageCarousel({ images, interval = 3000 }) {
 export function Home() {
   const { t } = useTranslation('home');
   const router = useRouter();
-  const upcomingEvents = getUpcomingEvents();
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [heroImages, setHeroImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Default image when no images are in database
   const defaultHeroImage = "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/home/hero/default.jpg";
 
-  // Fetch hero images from API
+  // Fetch hero images and events from API
   useEffect(() => {
     const fetchHeroImages = async () => {
       try {
@@ -253,7 +253,13 @@ export function Home() {
       }
     };
 
+    const fetchEvents = async () => {
+      const events = await getUpcomingEvents();
+      setUpcomingEvents(events);
+    };
+
     fetchHeroImages();
+    fetchEvents();
   }, []);
 
   const awardImages = [

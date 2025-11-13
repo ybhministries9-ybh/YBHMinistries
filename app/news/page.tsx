@@ -3,11 +3,18 @@ import { NewsPage } from '@/components/newsroom/NewsPage';
 import { ClientLayout } from '../ClientLayout';
 
 export const metadata: Metadata = {
-  title: 'News & Updates',
-  description: 'Stay updated with the latest news, announcements, and events from Yeshua Beth Hallel Ministries. Read about our recent activities and upcoming programs.',
+  title: 'News & Updates - YBH Ministries',
+  description: 'Stay updated with the latest news, events, and enrollment reports from Yeshua Beth Hallel Ministries. Explore upcoming conferences, music classes, and ministry activities.',
+  keywords: ['YBH news', 'ministry events', 'music school enrollment', 'Hallel conferences', 'church updates', 'Hyderabad ministry'],
   openGraph: {
-    title: 'YBH Ministries News & Updates',
-    description: 'Latest news, announcements, and updates from our ministry.',
+    title: 'News & Updates - YBH Ministries',
+    description: 'Latest news, events, and enrollment reports from Yeshua Beth Hallel Ministries.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'News & Updates - YBH Ministries',
+    description: 'Latest news, events, and enrollment reports from Yeshua Beth Hallel Ministries.',
   },
 };
 

@@ -63,7 +63,17 @@ export default {
     yourInstrument: "మీ స్వంత వాయిద్యం (వర్తించినట్లయితే)",
     businessCards: "నెట్‌వర్కింగ్ కోసం వ్యాపార కార్డులు",
     needHelp: "సహాయం కావాలా? మమ్మల్ని సంప్రదించండి",
-    haveQuestions: "ప్రశ్నలు ఉన్నాయా? మమ్మల్ని సంప్రదించండి"
+    haveQuestions: "ప్రశ్నలు ఉన్నాయా? మమ్మల్ని సంప్రదించండి",
+    types: {
+      conference: "సమావేశం",
+      class: "తరగతి",
+      record: "రికార్డ్ ప్రయత్నం"
+    },
+    locations: {
+      online: "ఆన్‌లైన్",
+      hyderabad: "హైదరాబాద్",
+      other: "{{location}}"
+    }
   },
   
   awards: {

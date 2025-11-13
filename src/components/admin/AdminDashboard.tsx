@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu } from 'lucide-react';
+import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar } from 'lucide-react';
 import { GalleryManager } from './GalleryManager';
 import { ResourceManager } from './ResourceManager';
 import { UserManager } from './UserManager';

@@ -3,8 +3,14 @@
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { Calendar, FileText, ChevronRight, Plus, Users, Music, Globe, BookOpen, X, Clock, MapPin, Calendar as CalendarIcon, User, Clock as ClockIcon, ArrowRight, ArrowLeft, MessageSquare, Star, Medal, Mic, UserCheck, BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { EVENTS } from "../../utils/eventsData";
+import { getEvents, type Event } from "../../utils/eventsData";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, LabelList } from 'recharts';
+
+// Helper function to parse date string correctly (avoiding timezone issues)
+const parseLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
 
 // Enhanced enrollment data with Indian/Non-Indian breakdown by month
 const ENROLLMENT_DATA = {
@@ -100,9 +106,35 @@ const ENROLLMENT_DATA = {
 
 
 // Memoized Event Card Component with Integrated Date
+// Translation helper for event data
+const translateEvent = (event: any, t: any, currentLanguage: string) => {
+  if (currentLanguage === 'en') return event;
+  
+  // For Telugu, keep original English data but can be extended
+  // Note: Event content from DB is in English, type and location can be translated
+  return {
+    ...event,
+    // Keep title, description, extendedDescription as-is (from DB)
+    // Translate type if needed
+    typeLabel: event.type === 'conference' 
+      ? t('news:events.types.conference')
+      : event.type === 'class'
+      ? t('news:events.types.class')
+      : event.type === 'record'
+      ? t('news:events.types.record')
+      : event.type,
+    // Translate common locations
+    locationLabel: event.location.toLowerCase() === 'online'
+      ? t('news:events.locations.online')
+      : event.location.toLowerCase() === 'hyderabad'
+      ? t('news:events.locations.hyderabad')
+      : event.location
+  };
+};
+
 const EventCard = memo(({ event, onViewDetails, t }: { event: any; onViewDetails: (event: any) => void; t: any }) => {
   // Parse event date to get month and day
-  const eventDate = new Date(event.date);
+  const eventDate = parseLocalDate(event.date);
   const month = eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
   const day = eventDate.getDate();
 
@@ -136,7 +168,7 @@ const EventCard = memo(({ event, onViewDetails, t }: { event: any; onViewDetails
             </div>
             <div className="flex items-center">
               <MapPin size={14} className="mr-1.5 flex-shrink-0" />
-              <span>{event.location}</span>
+              <span>{event.locationLabel || event.location}</span>
             </div>
           </div>
           
@@ -167,19 +199,87 @@ EventCard.displayName = "EventCard";
 
 // Main Component
 export function NewsPage() {
-  const { t } = useTranslation(['news', 'common']);
+  const { t, i18n } = useTranslation(['news', 'common']);
   const [activeTab, setActiveTab] = useState("events");
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [viewMode, setViewMode] = useState('list');
   const [selectedReportYear, setSelectedReportYear] = useState(2023);
   const [selectedClassType, setSelectedClassType] = useState('keyboard');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [enrollmentData, setEnrollmentData] = useState<any>(ENROLLMENT_DATA);
+  const [isLoadingReports, setIsLoadingReports] = useState(true);
   
   const EVENTS_PER_PAGE = 10;
   const timelineRef = useRef(null);
+
+  // Fetch events from the database
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setIsLoadingEvents(true);
+        const fetchedEvents = await getEvents();
+        setEvents(fetchedEvents);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        setEvents([]);
+      } finally {
+        setIsLoadingEvents(false);
+      }
+    };
+    fetchEvents();
+  }, []);
+
+  // Fetch reports from the database
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setIsLoadingReports(true);
+        const response = await fetch('/api/reports');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setEnrollmentData(result.data);
+          // Set initial year to the most recent year available
+          const years = Object.keys(result.data).map(Number).sort((a, b) => b - a);
+          if (years.length > 0) {
+            setSelectedReportYear(years[0]);
+            // Set initial class type to the first available for that year
+            const classTypes = Object.keys(result.data[years[0]]);
+            if (classTypes.length > 0) {
+              setSelectedClassType(classTypes[0]);
+            }
+          }
+        } else {
+          // Fallback to hardcoded data if API fails
+          setEnrollmentData(ENROLLMENT_DATA);
+        }
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+        // Fallback to hardcoded data
+        setEnrollmentData(ENROLLMENT_DATA);
+      } finally {
+        setIsLoadingReports(false);
+      }
+    };
+    fetchReports();
+  }, []);
+
+  // Update class type when year changes to ensure it exists for that year
+  useEffect(() => {
+    if (enrollmentData[selectedReportYear]) {
+      const availableClassTypes = Object.keys(enrollmentData[selectedReportYear]);
+      if (availableClassTypes.length > 0 && !availableClassTypes.includes(selectedClassType)) {
+        setSelectedClassType(availableClassTypes[0]);
+      }
+    }
+  }, [selectedReportYear, enrollmentData, selectedClassType]);
   
   // Handle URL query parameter to open upcoming events tab
   useEffect(() => {
+    if (isLoadingEvents || events.length === 0) return;
+    
     const urlParams = new URLSearchParams(window.location.search);
     const section = urlParams.get('section');
     const eventId = urlParams.get('eventId');
@@ -190,7 +290,7 @@ export function NewsPage() {
       
       // If eventId is provided, show that event's details
       if (eventId) {
-        const event = EVENTS.find(e => e.id === parseInt(eventId));
+        const event = events.find(e => e.id === parseInt(eventId));
         if (event) {
           setTimeout(() => {
             handleViewDetails(event);
@@ -204,33 +304,36 @@ export function NewsPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [events, isLoadingEvents]);
   
 
 
   // Memoize calculation functions
   const calculateYearlyTotals = useCallback((year: number, classType: string) => {
-    const data = ENROLLMENT_DATA[year][classType];
+    if (!enrollmentData[year] || !enrollmentData[year][classType]) return { indian: 0, nonIndian: 0, total: 0 };
+    const data = enrollmentData[year][classType];
     return data.reduce((acc, month) => ({
       indian: acc.indian + month.indian,
       nonIndian: acc.nonIndian + month.nonIndian,
       total: acc.total + month.total
     }), { indian: 0, nonIndian: 0, total: 0 });
-  }, []);
+  }, [enrollmentData]);
 
   const getMaxEnrollment = useCallback((year: number, classType: string) => {
-    const data = ENROLLMENT_DATA[year][classType];
+    if (!enrollmentData[year] || !enrollmentData[year][classType]) return 0;
+    const data = enrollmentData[year][classType];
     return Math.max(...data.map(month => month.total));
-  }, []);
+  }, [enrollmentData]);
 
   const getPeakAndMinMonth = useCallback((year: number, classType: string) => {
-    const data = ENROLLMENT_DATA[year][classType];
+    if (!enrollmentData[year] || !enrollmentData[year][classType]) return { peakMonth: null, minMonth: null };
+    const data = enrollmentData[year][classType];
     const peakMonth = data.reduce((max, month) => 
       month.total > max.total ? month : max, data[0]);
     const minMonth = data.reduce((min, month) => 
       month.total < min.total ? month : min, data[0]);
     return { peakMonth, minMonth };
-  }, []);
+  }, [enrollmentData]);
 
   // Pagination handlers
   const goToNextPage = useCallback(() => {
@@ -258,11 +361,12 @@ export function NewsPage() {
     alert("Navigating to contact page");
   }, []);
 
-  // Memoize all events sorted by date
+  // Memoize all events sorted by date with translation applied
   const allEvents = useMemo(() => 
-    EVENTS
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    []
+    events
+      .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime())
+      .map(event => translateEvent(event, t, i18n.language)),
+    [events, t, i18n.language]
   );
 
   // Calculate paginated events
@@ -281,12 +385,12 @@ export function NewsPage() {
 
   // Memoize date formatting functions
   const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString);
+    const date = parseLocalDate(dateString);
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }, []);
 
   const formatDay = useCallback((dateString: string) => {
-    const date = new Date(dateString);
+    const date = parseLocalDate(dateString);
     return date.getDate();
   }, []);
 
@@ -363,7 +467,7 @@ export function NewsPage() {
                   <div className="flex flex-wrap gap-x-8 gap-y-3 text-gray-200">
                     <div className="flex items-center">
                       <CalendarIcon size={18} className="text-[#FDB813] mr-2" />
-                      <span className="text-lg">{new Date(selectedEvent.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      <span className="text-lg">{parseLocalDate(selectedEvent.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                     </div>
                     
                     <div className="flex items-center">
@@ -373,7 +477,7 @@ export function NewsPage() {
                     
                     <div className="flex items-center">
                       <MapPin size={18} className="text-[#FDB813] mr-2" />
-                      <span className="text-lg">{selectedEvent.location}</span>
+                      <span className="text-lg">{selectedEvent.locationLabel || selectedEvent.location}</span>
                     </div>
                   </div>
                 </div>
@@ -497,8 +601,15 @@ export function NewsPage() {
                   <div className="w-24 h-1 mx-auto rounded-full bg-[#FDB813]"></div>
                 </div>
 
+                {/* Loading State */}
+                {isLoadingEvents ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-400">{t('common:loading')}</p>
+                  </div>
+                ) : null}
+
                 {/* Events List */}
-                {paginatedEvents.length > 0 ? (
+                {!isLoadingEvents && paginatedEvents.length > 0 ? (
                   <>
                     <div 
                       ref={timelineRef}
@@ -566,6 +677,17 @@ export function NewsPage() {
               <h2 className="text-3xl md:text-4xl text-white mb-4">{t('news:reports.title')}</h2>
               <div className="w-24 h-1 mx-auto rounded-full bg-[#FDB813]"></div>
             </div>
+
+            {isLoadingReports ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400">Loading reports...</p>
+              </div>
+            ) : Object.keys(enrollmentData).length === 0 ? (
+              <div className="text-center py-12 bg-[#2E2E2E] rounded-lg">
+                <p className="text-gray-400">No reports available</p>
+              </div>
+            ) : (
+              <>
             
             {/* Year & Class Type Selector */}
             <div className="flex flex-col sm:flex-row gap-4">
@@ -576,8 +698,9 @@ export function NewsPage() {
                   onChange={(e) => setSelectedReportYear(Number(e.target.value))}
                   className="w-full bg-[#2E2E2E] border border-gray-700 rounded-md px-4 py-2 text-white cursor-pointer"
                 >
-                  <option value={2023}>2023</option>
-                  <option value={2022}>2022</option>
+                  {Object.keys(enrollmentData).sort((a, b) => Number(b) - Number(a)).map(year => (
+                    <option key={year} value={Number(year)}>{year}</option>
+                  ))}
                 </select>
               </div>
               
@@ -588,9 +711,13 @@ export function NewsPage() {
                   onChange={(e) => setSelectedClassType(e.target.value)}
                   className="w-full bg-[#2E2E2E] border border-gray-700 rounded-md px-4 py-2 text-white cursor-pointer"
                 >
-                  <option value="keyboard">{t('news:reports.classTypes.keyboard')}</option>
-                  <option value="guitar">{t('news:reports.classTypes.guitar')}</option>
-                  <option value="lcm">{t('news:reports.classTypes.lcm')}</option>
+                  {enrollmentData[selectedReportYear] && Object.keys(enrollmentData[selectedReportYear]).map(classType => (
+                    <option key={classType} value={classType}>
+                      {classType === 'keyboard' ? t('news:reports.classTypes.keyboard') :
+                       classType === 'guitar' ? t('news:reports.classTypes.guitar') :
+                       classType === 'lcm' ? t('news:reports.classTypes.lcm') : classType}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -600,10 +727,11 @@ export function NewsPage() {
               <h3 className="text-xl font-semibold mb-4">{t('news:reports.monthlyDistribution')}</h3>
               
               {/* Chart Container */}
+              {enrollmentData[selectedReportYear]?.[selectedClassType] && enrollmentData[selectedReportYear][selectedClassType].length > 0 ? (
               <div className="w-full overflow-x-auto">
                 <ResponsiveContainer width="100%" height={400} minWidth={300}>
                   <BarChart
-                    data={ENROLLMENT_DATA[selectedReportYear][selectedClassType]}
+                    data={enrollmentData[selectedReportYear][selectedClassType]}
                     margin={{ top: 20, right: 10, left: 0, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
@@ -641,7 +769,7 @@ export function NewsPage() {
                       stackId="a" 
                       fill="#FDB813" 
                       radius={[0, 0, 4, 4]}
-                      name="indian"
+                      name="National"
                       activeBar={false}
                     >
                       <LabelList 
@@ -677,9 +805,15 @@ export function NewsPage() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              ) : (
+                <div className="text-center py-12 text-gray-400">
+                  No data available for this selection
+                </div>
+              )}
             </div>
             
             {/* Annual Overview */}
+            {enrollmentData[selectedReportYear]?.[selectedClassType] && enrollmentData[selectedReportYear][selectedClassType].length > 0 && (
             <div className="bg-black p-6 rounded-md mb-6">
               <h4 className="font-medium text-lg mb-4 flex items-center">
                 <BarChart3 size={20} className="text-[#FDB813] mr-2" />
@@ -717,33 +851,44 @@ export function NewsPage() {
                     <div className="space-y-4">
                       <div>
                         <h5 className="text-lg font-medium mb-2">{t('news:reports.peakPerformance')}</h5>
-                        <div className="bg-[#1a1a1a] p-4 rounded-md mb-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-gray-300">{t('news:reports.highestMonth')}</span>
-                            <span className="text-lg font-semibold text-green-400">{peakMonth.month}</span>
+                        {peakMonth && minMonth ? (
+                          <>
+                            <div className="bg-[#1a1a1a] p-4 rounded-md mb-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-gray-300">{t('news:reports.highestMonth')}</span>
+                                <span className="text-lg font-semibold text-green-400">{peakMonth.month}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-300">{t('news:reports.enrollment')}</span>
+                                <span className="text-lg font-semibold">{peakMonth.total} {t('news:reports.students')}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-[#1a1a1a] p-4 rounded-md">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-gray-300">{t('news:reports.lowestMonth')}</span>
+                                <span className="text-lg font-semibold text-orange-400">{minMonth.month}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-300">{t('news:reports.enrollment')}</span>
+                                <span className="text-lg font-semibold">{minMonth.total} {t('news:reports.students')}</span>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="bg-[#1a1a1a] p-4 rounded-md text-gray-400 text-center">
+                            No data available
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-300">{t('news:reports.enrollment')}</span>
-                            <span className="text-lg font-semibold">{peakMonth.total} {t('news:reports.students')}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="bg-[#1a1a1a] p-4 rounded-md">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-gray-300">{t('news:reports.lowestMonth')}</span>
-                            <span className="text-lg font-semibold text-orange-400">{minMonth.month}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-300">{t('news:reports.enrollment')}</span>
-                            <span className="text-lg font-semibold">{minMonth.total} {t('news:reports.students')}</span>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 );
               })()}
             </div>
+            )}
+            </>
+            )}
           </div>
         )}
 
