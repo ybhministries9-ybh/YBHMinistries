@@ -12,99 +12,6 @@ const parseLocalDate = (dateString: string): Date => {
   return new Date(year, month - 1, day);
 };
 
-// Enhanced enrollment data with Indian/Non-Indian breakdown by month
-const ENROLLMENT_DATA = {
-  2023: {
-    keyboard: [
-      { month: "January", indian: 32, nonIndian: 8, total: 40 },
-      { month: "February", indian: 34, nonIndian: 9, total: 43 },
-      { month: "March", indian: 36, nonIndian: 9, total: 45 },
-      { month: "April", indian: 38, nonIndian: 10, total: 48 },
-      { month: "May", indian: 40, nonIndian: 12, total: 52 },
-      { month: "June", indian: 40, nonIndian: 12, total: 52 },
-      { month: "July", indian: 38, nonIndian: 12, total: 50 },
-      { month: "August", indian: 36, nonIndian: 10, total: 46 },
-      { month: "September", indian: 38, nonIndian: 10, total: 48 },
-      { month: "October", indian: 39, nonIndian: 11, total: 50 },
-      { month: "November", indian: 41, nonIndian: 12, total: 53 },
-      { month: "December", indian: 43, nonIndian: 12, total: 55 }
-    ],
-    guitar: [
-      { month: "January", indian: 28, nonIndian: 6, total: 34 },
-      { month: "February", indian: 30, nonIndian: 7, total: 37 },
-      { month: "March", indian: 31, nonIndian: 7, total: 38 },
-      { month: "April", indian: 32, nonIndian: 8, total: 40 },
-      { month: "May", indian: 34, nonIndian: 8, total: 42 },
-      { month: "June", indian: 34, nonIndian: 8, total: 42 },
-      { month: "July", indian: 36, nonIndian: 10, total: 46 },
-      { month: "August", indian: 38, nonIndian: 11, total: 49 },
-      { month: "September", indian: 39, nonIndian: 11, total: 50 },
-      { month: "October", indian: 40, nonIndian: 12, total: 52 },
-      { month: "November", indian: 41, nonIndian: 12, total: 53 },
-      { month: "December", indian: 43, nonIndian: 13, total: 56 }
-    ],
-    lcm: [
-      { month: "January", indian: 20, nonIndian: 5, total: 25 },
-      { month: "February", indian: 22, nonIndian: 6, total: 28 },
-      { month: "March", indian: 24, nonIndian: 6, total: 30 },
-      { month: "April", indian: 26, nonIndian: 7, total: 33 },
-      { month: "May", indian: 28, nonIndian: 7, total: 35 },
-      { month: "June", indian: 30, nonIndian: 8, total: 38 },
-      { month: "July", indian: 32, nonIndian: 8, total: 40 },
-      { month: "August", indian: 34, nonIndian: 9, total: 43 },
-      { month: "September", indian: 36, nonIndian: 9, total: 45 },
-      { month: "October", indian: 38, nonIndian: 10, total: 48 },
-      { month: "November", indian: 40, nonIndian: 10, total: 50 },
-      { month: "December", indian: 42, nonIndian: 11, total: 53 }
-    ]
-  },
-  2022: {
-    keyboard: [
-      { month: "January", indian: 25, nonIndian: 5, total: 30 },
-      { month: "February", indian: 27, nonIndian: 6, total: 33 },
-      { month: "March", indian: 29, nonIndian: 6, total: 35 },
-      { month: "April", indian: 30, nonIndian: 7, total: 37 },
-      { month: "May", indian: 32, nonIndian: 8, total: 40 },
-      { month: "June", indian: 34, nonIndian: 8, total: 42 },
-      { month: "July", indian: 36, nonIndian: 9, total: 45 },
-      { month: "August", indian: 34, nonIndian: 8, total: 42 },
-      { month: "September", indian: 32, nonIndian: 8, total: 40 },
-      { month: "October", indian: 34, nonIndian: 9, total: 43 },
-      { month: "November", indian: 36, nonIndian: 9, total: 45 },
-      { month: "December", indian: 38, nonIndian: 10, total: 48 }
-    ],
-    guitar: [
-      { month: "January", indian: 20, nonIndian: 5, total: 25 },
-      { month: "February", indian: 22, nonIndian: 6, total: 28 },
-      { month: "March", indian: 24, nonIndian: 6, total: 30 },
-      { month: "April", indian: 26, nonIndian: 7, total: 33 },
-      { month: "May", indian: 28, nonIndian: 7, total: 35 },
-      { month: "June", indian: 30, nonIndian: 8, total: 38 },
-      { month: "July", indian: 32, nonIndian: 8, total: 40 },
-      { month: "August", indian: 30, nonIndian: 7, total: 37 },
-      { month: "September", indian: 28, nonIndian: 7, total: 35 },
-      { month: "October", indian: 30, nonIndian: 8, total: 38 },
-      { month: "November", indian: 32, nonIndian: 8, total: 40 },
-      { month: "December", indian: 34, nonIndian: 8, total: 42 }
-    ],
-    lcm: [
-      { month: "January", indian: 15, nonIndian: 3, total: 18 },
-      { month: "February", indian: 17, nonIndian: 4, total: 21 },
-      { month: "March", indian: 19, nonIndian: 4, total: 23 },
-      { month: "April", indian: 21, nonIndian: 5, total: 26 },
-      { month: "May", indian: 23, nonIndian: 6, total: 29 },
-      { month: "June", indian: 25, nonIndian: 6, total: 31 },
-      { month: "July", indian: 27, nonIndian: 7, total: 34 },
-      { month: "August", indian: 29, nonIndian: 7, total: 36 },
-      { month: "September", indian: 28, nonIndian: 7, total: 35 },
-      { month: "October", indian: 26, nonIndian: 6, total: 32 },
-      { month: "November", indian: 28, nonIndian: 7, total: 35 },
-      { month: "December", indian: 30, nonIndian: 8, total: 38 }
-    ]
-  }
-};
-
-
 // Memoized Event Card Component with Integrated Date
 // Translation helper for event data
 const translateEvent = (event: any, t: any, currentLanguage: string) => {
@@ -208,7 +115,7 @@ export function NewsPage() {
   const [selectedClassType, setSelectedClassType] = useState('keyboard');
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [enrollmentData, setEnrollmentData] = useState<any>(ENROLLMENT_DATA);
+  const [enrollmentData, setEnrollmentData] = useState<any>({});
   const [isLoadingReports, setIsLoadingReports] = useState(true);
   
   const EVENTS_PER_PAGE = 10;
@@ -231,33 +138,52 @@ export function NewsPage() {
     fetchEvents();
   }, []);
 
-  // Fetch reports from the database
+  // Fetch reports from the database with memoized month normalization
   useEffect(() => {
+    const allMonths = ['January', 'February', 'March', 'April', 'May', 'June', 
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    
     const fetchReports = async () => {
       try {
         setIsLoadingReports(true);
-        const response = await fetch('/api/reports');
+        const response = await fetch('/api/reports', { 
+          next: { revalidate: 60 } // Cache on client side for 60 seconds
+        });
         const result = await response.json();
         
         if (result.success && result.data && Object.keys(result.data).length > 0) {
-          setEnrollmentData(result.data);
+          // Ensure all months are present in the data
+          const normalizedData: Record<string, Record<string, any[]>> = {};
+          
+          Object.keys(result.data).forEach(year => {
+            normalizedData[year] = {};
+            Object.keys(result.data[year]).forEach(classType => {
+              const existingData = result.data[year][classType];
+              const monthMap = new Map(existingData.map((item: any) => [item.month, item]));
+              
+              // Ensure all 12 months exist with default values
+              normalizedData[year][classType] = allMonths.map(month => 
+                monthMap.get(month) || { month, indian: 0, nonIndian: 0, total: 0 }
+              );
+            });
+          });
+          
+          setEnrollmentData(normalizedData);
+          
           // Set initial year to the most recent year available
-          const years = Object.keys(result.data).map(Number).sort((a, b) => b - a);
+          const years = Object.keys(normalizedData).map(Number).sort((a, b) => b - a);
           if (years.length > 0) {
             setSelectedReportYear(years[0]);
-            // Set initial class type to the first available for that year
-            const classTypes = Object.keys(result.data[years[0]]);
+            const classTypes = Object.keys(normalizedData[years[0]]);
             if (classTypes.length > 0) {
               setSelectedClassType(classTypes[0]);
             }
           }
         } else {
-          // No data in database - set to empty object
           setEnrollmentData({});
         }
       } catch (error) {
         console.error('Error fetching reports:', error);
-        // API failed - set to empty object (do not use fallback)
         setEnrollmentData({});
       } finally {
         setIsLoadingReports(false);
@@ -672,7 +598,7 @@ export function NewsPage() {
 
         {/* Yearly Reports Tab */}
         {activeTab === 'reports' && (
-          <div className="space-y-6">
+          <div className="space-y-6 overflow-hidden">
             <div className="text-center mb-8">
               <h2 className="text-3xl md:text-4xl text-white mb-4">{t('news:reports.title')}</h2>
               <div className="w-24 h-1 mx-auto rounded-full bg-[#FDB813]"></div>
@@ -690,27 +616,32 @@ export function NewsPage() {
               <>
             
             {/* Year & Class Type Selector */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-2">{t('news:reports.selectYear')}</label>
-                <select 
-                  value={selectedReportYear}
-                  onChange={(e) => setSelectedReportYear(Number(e.target.value))}
-                  className="w-full bg-[#2E2E2E] border border-gray-700 rounded-md px-4 py-2 text-white cursor-pointer"
-                >
-                  {Object.keys(enrollmentData).sort((a, b) => Number(b) - Number(a)).map(year => (
-                    <option key={year} value={Number(year)}>{year}</option>
-                  ))}
-                </select>
+            <div className="flex flex-col sm:flex-row gap-4 px-4 sm:px-0 max-w-full">
+              <div className="flex-1 min-w-0 max-w-full">
+                <label className="block text-sm font-medium mb-2 truncate">{t('news:reports.selectYear')}</label>
+                <div className="relative max-w-full">
+                  <select 
+                    value={selectedReportYear}
+                    onChange={(e) => setSelectedReportYear(Number(e.target.value))}
+                    className="w-full bg-[#2E2E2E] border border-gray-700 rounded-md px-3 py-2.5 text-white cursor-pointer text-sm appearance-none pr-8"
+                    style={{ maxWidth: '100%' }}
+                  >
+                    {Object.keys(enrollmentData).sort((a, b) => Number(b) - Number(a)).map(year => (
+                      <option key={year} value={Number(year)}>{year}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-2">{t('news:reports.selectClassType')}</label>
-                <select 
-                  value={selectedClassType}
-                  onChange={(e) => setSelectedClassType(e.target.value)}
-                  className="w-full bg-[#2E2E2E] border border-gray-700 rounded-md px-4 py-2 text-white cursor-pointer"
-                >
+              <div className="flex-1 min-w-0 max-w-full">
+                <label className="block text-sm font-medium mb-2 truncate">{t('news:reports.selectClassType')}</label>
+                <div className="relative max-w-full">
+                  <select 
+                    value={selectedClassType}
+                    onChange={(e) => setSelectedClassType(e.target.value)}
+                    className="w-full bg-[#2E2E2E] border border-gray-700 rounded-md px-3 py-2.5 text-white cursor-pointer text-sm appearance-none pr-8"
+                    style={{ maxWidth: '100%' }}
+                  >
                   {enrollmentData[selectedReportYear] && Object.keys(enrollmentData[selectedReportYear]).map(classType => (
                     <option key={classType} value={classType}>
                       {classType === 'keyboard' ? t('news:reports.classTypes.keyboard') :
@@ -718,32 +649,29 @@ export function NewsPage() {
                        classType === 'lcm' ? t('news:reports.classTypes.lcm') : classType}
                     </option>
                   ))}
-                </select>
+                  </select>
+                </div>
               </div>
             </div>
 
             {/* Monthly Enrollment Chart */}
-            <div className="bg-[#2E2E2E] p-4 md:p-6 rounded-md">
+            <div className="bg-[#2E2E2E] p-4 md:p-6 rounded-md px-4 sm:px-0">
               <h3 className="text-xl font-semibold mb-4">{t('news:reports.monthlyDistribution')}</h3>
               
               {/* Chart Container */}
               {enrollmentData[selectedReportYear]?.[selectedClassType] && enrollmentData[selectedReportYear][selectedClassType].length > 0 ? (
               <div className="w-full overflow-x-auto">
-                <ResponsiveContainer width="100%" height={400} minWidth={300}>
+                <ResponsiveContainer width="100%" height={400} minWidth={1000}>
                   <BarChart
                     data={enrollmentData[selectedReportYear][selectedClassType]}
-                    margin={{ top: 20, right: 10, left: 0, bottom: 5 }}
+                    margin={{ top: 20, right: 40, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                     <XAxis 
                       dataKey="month" 
                       stroke="#9CA3AF"
                       tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                      tickFormatter={(value) => {
-                        // Show abbreviated month names on mobile
-                        const isMobile = window.innerWidth < 768;
-                        return isMobile ? value.substring(0, 3) : value;
-                      }}
+                      tickFormatter={(value) => value.substring(0, 3)}
                     />
                     <YAxis 
                       stroke="#9CA3AF"
@@ -766,10 +694,9 @@ export function NewsPage() {
                     />
                     <Bar 
                       dataKey="indian" 
-                      stackId="a" 
                       fill="#FDB813" 
-                      radius={[0, 0, 4, 4]}
-                      name="National"
+                      radius={[4, 4, 4, 4]}
+                      name="indian"
                       activeBar={false}
                     >
                       <LabelList 
@@ -785,9 +712,8 @@ export function NewsPage() {
                     </Bar>
                     <Bar 
                       dataKey="nonIndian" 
-                      stackId="a" 
                       fill="#FF6B6B" 
-                      radius={[4, 4, 0, 0]}
+                      radius={[4, 4, 4, 4]}
                       name="nonIndian"
                       activeBar={false}
                     >

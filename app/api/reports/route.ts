@@ -2,18 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Disable ISR caching - always fetch fresh data
+export const revalidate = 60; // Cache for 60 seconds to balance freshness and performance
 
 // GET: Fetch published reports for public website
 export async function GET(request: NextRequest) {
   try {
-    // Fetch all published reports
+    // Fetch all published reports with optimized query
     const result = await sql`
       SELECT id, year, class_type, monthly_data, created_at
       FROM reports
       WHERE published = true
       ORDER BY year DESC, class_type ASC
     `;
+
+    // Early return if no data
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { success: true, data: {}, count: 0 },
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+          },
+        }
+      );
+    }
 
     // Transform data to match the format expected by the frontend
     const reportsByYear: Record<string, Record<string, any[]>> = {};
@@ -27,7 +39,21 @@ export async function GET(request: NextRequest) {
         reportsByYear[year] = {};
       }
 
-      reportsByYear[year][classType] = monthlyData;
+      // Normalize data to ensure all required fields exist
+      const normalizedData = monthlyData.map((monthData: any) => {
+        const indian = monthData.indian ?? 0;
+        const nonIndian = monthData.nonIndian ?? 0;
+        const total = monthData.total ?? (indian + nonIndian);
+        
+        return {
+          month: monthData.month,
+          indian,
+          nonIndian,
+          total
+        };
+      });
+
+      reportsByYear[year][classType] = normalizedData;
     });
 
     return NextResponse.json(
@@ -38,9 +64,7 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
         },
       }
     );
