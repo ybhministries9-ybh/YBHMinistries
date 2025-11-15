@@ -1,309 +1,306 @@
 "use client";
 
-import { useState } from 'react';
-import { CreditCard, Building2, QrCode, Heart, Music, Users, Church } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
+import { useState, useEffect } from 'react';
+import { QrCode, Music, Users, Church, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { primaryBackground, accentGold, textWhite } from '../utils/theme';
+// Tabs removed — using a two-column layout instead
+import { accentGold } from '../utils/theme';
 import { useTranslation } from 'react-i18next';
 
 export function DonatePage() {
   const { t } = useTranslation('donate');
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [customAmount, setCustomAmount] = useState('');
 
-  // Card form state
-  const [cardDetails, setCardDetails] = useState({
-    name: '',
-    cardNumber: '',
-    expiry: '',
-    cvv: '',
-  });
+  const [upiList, setUpiList] = useState<any[]>([]);
+  const [bankList, setBankList] = useState<any[]>([]);
 
-  const suggestedAmounts = [500, 1000, 5000, 10000, 15000, 20000];
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/donations?type=all');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success) {
+            setUpiList(json.data.upi || []);
+            setBankList(json.data.bank || []);
+            return;
+          }
+        }
 
-  const handleCardSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle card payment submission
-    alert('Card payment processing will be implemented with payment gateway integration.');
-  };
+        // fallback to admin endpoints
+        const [uRes, bRes] = await Promise.all([
+          fetch('/api/admin/donations?type=upi'),
+          fetch('/api/admin/donations?type=bank')
+        ]);
+        const ujson = uRes.ok ? await uRes.json().catch(() => ({ success: false })) : { success: false };
+        const bjson = bRes.ok ? await bRes.json().catch(() => ({ success: false })) : { success: false };
+        if (ujson && ujson.success) {
+          setUpiList(ujson.data || []);
+        }
+        if (bjson && bjson.success) setBankList(bjson.data || []);
+      } catch (err) {
+        console.error('Failed to fetch donations', err);
+      }
+    };
 
-  const activeAmount = customAmount ? parseFloat(customAmount) : selectedAmount;
+    load();
+  }, []);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: primaryBackground }}>
-      {/* Hero Section */}
-      <section className="relative h-screen w-full overflow-hidden">
-        <ImageWithFallback
-          src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaHVyY2glMjBkb25hdGlvbiUyMGdpdmluZ3xlbnwxfHx8fDE3NjEwMTY4NDB8MA&ixlib=rb-4.1.0&q=80&w=1080"
-          alt="Support Our Ministry"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black bg-opacity-60"></div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="container mx-auto px-4 text-center relative z-10">
-            <div className="max-w-3xl mx-auto">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl mb-8" style={{ color: textWhite }}>
-                {t('hero.title')}
-              </h1>
-              <Heart className="w-16 h-16 mx-auto mb-8 text-red-400" fill="currentColor" />
-              <h2 className="text-2xl md:text-3xl lg:text-4xl mb-6" style={{ color: textWhite }}>
-                {t('hero.subtitle')}
-              </h2>
-              <p className="text-base md:text-lg" style={{ color: '#cccccc' }}>
-                {t('hero.description')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <section className="py-16 -mt-20 relative z-10">
+    <div className="min-h-screen" style={{ backgroundColor: '#000', color: '#fff' }}>
+      <section className="pt-24 md:pt-32 pb-16 relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            {/* Amount Selection */}
-            <Card className="mb-8" style={{ backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0' }}>
-              <CardHeader>
-                <CardTitle style={{ color: '#1a1a1a' }}>{t('amountSelection.title')}</CardTitle>
-                <CardDescription style={{ color: '#666' }}>
-                  {t('amountSelection.description')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                  {suggestedAmounts.map((amount) => (
-                    <button
-                      key={amount}
-                      onClick={() => {
-                        setSelectedAmount(amount);
-                        setCustomAmount('');
-                      }}
-                      className="py-3 px-4 rounded-lg border-2 transition-all cursor-pointer"
-                      style={{
-                        backgroundColor: selectedAmount === amount && !customAmount ? '#1a1a1a' : 'white',
-                        color: selectedAmount === amount && !customAmount ? accentGold : '#1a1a1a',
-                        borderColor: selectedAmount === amount && !customAmount ? accentGold : '#d0d0d0',
-                      }}
-                    >
-                      ₹{amount.toLocaleString('en-IN')}
-                    </button>
-                  ))}
-                </div>
+
+            <div className="w-full">
+              <div className="mb-8 text-center pt-6 md:pt-10">
+                <h1 className="text-3xl font-bold" style={{ color: '#fff' }}>Donate to YBH Ministries</h1>
+                <p className="mt-2 text-sm" style={{ color: '#ccc' }}>Your contribution supports music education, community outreach, and ministry growth.</p>
+              </div>
+
+              <div className="grid gap-8 md:grid-cols-2">
+                {/* Left column: Bank details */}
                 <div>
-                  <Label htmlFor="custom-amount" style={{ color: '#1a1a1a' }}>{t('amountSelection.customLabel')}</Label>
-                  <div className="relative mt-2">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
-                    <Input
-                      id="custom-amount"
-                      type="number"
-                      placeholder={t('amountSelection.placeholder')}
-                      value={customAmount}
-                      onChange={(e) => {
-                        setCustomAmount(e.target.value);
-                        setSelectedAmount(null);
-                      }}
-                      className="pl-8"
-                      min="1"
-                      style={{ backgroundColor: '#f0f0f0' }}
-                    />
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold" style={{ color: '#fff' }}>{t('paymentMethods.bank.title')}</h3>
+                    <p className="text-sm" style={{ color: '#ccc' }}>{t('paymentMethods.bank.description')}</p>
                   </div>
+                  <Card className="w-full" style={{ backgroundColor: '#0f0f0f', border: '1px solid #222', boxSizing: 'border-box', width: '100%' }}>
+                    <CardContent className="pt-6">
+                      {bankList.length === 0 ? (
+                        <p style={{ color: '#ccc' }}>No Bank Details available</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {bankList.map((b) => (
+                            <div key={b.id} className="rounded-xl p-6 w-full" style={{ backgroundColor: '#373737', boxSizing: 'border-box' }}>
+                                <div className="mb-2">
+                                <div className="text-xl font-semibold" style={{ color: accentGold }}>{b.account_name}</div>
+                              </div>
+
+                              <div className="text-sm mb-2" style={{ color: '#e6e6e6' }}>
+                                {b.account_name ? (
+                                  <div className="mb-3">
+                                    <div className="text-xs text-gray-300 mb-1">Account Holder</div>
+                                    <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
+                                      <div className="text-sm text-white truncate">{b.account_name}</div>
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await navigator.clipboard.writeText(String(b.account_name));
+                                            toast.success('Account holder copied');
+                                          } catch (e) {
+                                            console.error('copy failed', e);
+                                            toast.error('Copy failed');
+                                          }
+                                        }}
+                                        aria-label="Copy account holder"
+                                        className="ml-3 p-1 rounded bg-transparent"
+                                        title="Copy account holder"
+                                      >
+                                        <Copy size={16} style={{ color: accentGold }} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {b.bank_name ? (
+                                  <div className="mb-3">
+                                    <div className="text-xs text-gray-300 mb-1">Bank</div>
+                                    <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
+                                      <div className="text-sm text-white truncate">{b.bank_name}{b.branch_name ? ` — ${b.branch_name}` : ''}</div>
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await navigator.clipboard.writeText(String(b.bank_name) + (b.branch_name ? ` — ${b.branch_name}` : ''));
+                                            toast.success('Bank copied');
+                                          } catch (e) {
+                                            console.error('copy failed', e);
+                                            toast.error('Copy failed');
+                                          }
+                                        }}
+                                        aria-label="Copy bank"
+                                        className="ml-3 p-1 rounded bg-transparent"
+                                        title="Copy bank"
+                                      >
+                                        <Copy size={16} style={{ color: accentGold }} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {b.account_number ? (
+                                  <div className="mb-3">
+                                    <div className="text-xs text-gray-300 mb-1">Account Number</div>
+                                    <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
+                                      <div className="text-sm text-white truncate">{b.account_number}</div>
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await navigator.clipboard.writeText(String(b.account_number));
+                                            toast.success('Account number copied');
+                                          } catch (e) {
+                                            console.error('copy failed', e);
+                                            toast.error('Copy failed');
+                                          }
+                                        }}
+                                        aria-label="Copy account number"
+                                        className="ml-3 p-1 rounded bg-transparent"
+                                        title="Copy account number"
+                                      >
+                                        <Copy size={16} style={{ color: accentGold }} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {b.ifsc_code ? (
+                                  <div className="mb-3">
+                                    <div className="text-xs text-gray-300 mb-1">IFSC Code</div>
+                                    <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
+                                      <div className="text-sm text-white truncate">{b.ifsc_code}</div>
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await navigator.clipboard.writeText(String(b.ifsc_code));
+                                            toast.success('IFSC copied');
+                                          } catch (e) {
+                                            console.error('copy failed', e);
+                                            toast.error('Copy failed');
+                                          }
+                                        }}
+                                        aria-label="Copy IFSC"
+                                        className="ml-3 p-1 rounded bg-transparent"
+                                        title="Copy IFSC"
+                                      >
+                                        <Copy size={16} style={{ color: accentGold }} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                  {b.swift_code ? (
+                                    <div className="mb-3">
+                                      <div className="text-xs text-gray-300 mb-1">SWIFT Code</div>
+                                      <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
+                                        <div className="text-sm text-white truncate">{b.swift_code}</div>
+                                        <button
+                                          onClick={async () => {
+                                            try {
+                                              await navigator.clipboard.writeText(String(b.swift_code));
+                                              toast.success('SWIFT copied');
+                                            } catch (e) {
+                                              console.error('copy failed', e);
+                                              toast.error('Copy failed');
+                                            }
+                                          }}
+                                          aria-label="Copy SWIFT"
+                                          className="ml-3 p-1 rounded bg-transparent"
+                                          title="Copy SWIFT"
+                                        >
+                                          <Copy size={16} style={{ color: accentGold }} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : null}
+                              </div>
+
+                              <div className="mt-2 text-sm text-gray-400">Please include your name and contact information in the transaction reference</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Payment Methods */}
-            <Tabs defaultValue="card" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-8" style={{ backgroundColor: '#e8e8e8' }}>
-                <TabsTrigger value="card" className="cursor-pointer">
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  {t('paymentMethods.card.tab')}
-                </TabsTrigger>
-                <TabsTrigger value="bank" className="cursor-pointer">
-                  <Building2 className="w-4 h-4 mr-2" />
-                  {t('paymentMethods.bank.tab')}
-                </TabsTrigger>
-                <TabsTrigger value="qr" className="cursor-pointer">
-                  <QrCode className="w-4 h-4 mr-2" />
-                  {t('paymentMethods.qr.tab')}
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Card Payment */}
-              <TabsContent value="card">
-                <Card style={{ backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0' }}>
-                  <CardHeader>
-                    <CardTitle style={{ color: '#1a1a1a' }}>{t('paymentMethods.card.title')}</CardTitle>
-                    <CardDescription style={{ color: '#666' }}>
-                      {t('paymentMethods.card.description')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleCardSubmit} className="space-y-6">
-                      <div>
-                        <Label htmlFor="card-name" className="mb-2 block" style={{ color: '#1a1a1a' }}>
-                          {t('paymentMethods.card.cardholderName')}
-                        </Label>
-                        <Input
-                          id="card-name"
-                          placeholder="John Doe"
-                          value={cardDetails.name}
-                          onChange={(e) =>
-                            setCardDetails({ ...cardDetails, name: e.target.value })
-                          }
-                          required
-                          style={{ backgroundColor: '#f0f0f0' }}
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="card-number" className="mb-2 block" style={{ color: '#1a1a1a' }}>
-                          {t('paymentMethods.card.cardNumber')}
-                        </Label>
-                        <Input
-                          id="card-number"
-                          placeholder="1234 5678 9012 3456"
-                          value={cardDetails.cardNumber}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\s/g, '');
-                            const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
-                            setCardDetails({ ...cardDetails, cardNumber: formatted });
-                          }}
-                          maxLength={19}
-                          required
-                          style={{ backgroundColor: '#f0f0f0' }}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="expiry" className="mb-2 block" style={{ color: '#1a1a1a' }}>
-                            Expiry Date
-                          </Label>
-                          <Input
-                            id="expiry"
-                            placeholder="MM/YY"
-                            value={cardDetails.expiry}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/\D/g, '');
-                              const formatted =
-                                value.length >= 2
-                                  ? `${value.slice(0, 2)}/${value.slice(2, 4)}`
-                                  : value;
-                              setCardDetails({ ...cardDetails, expiry: formatted });
-                            }}
-                            maxLength={5}
-                            required
-                            style={{ backgroundColor: '#f0f0f0' }}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="cvv" className="mb-2 block" style={{ color: '#1a1a1a' }}>
-                            CVV
-                          </Label>
-                          <Input
-                            id="cvv"
-                            placeholder="123"
-                            type="password"
-                            value={cardDetails.cvv}
-                            onChange={(e) =>
-                              setCardDetails({
-                                ...cardDetails,
-                                cvv: e.target.value.replace(/\D/g, ''),
-                              })
-                            }
-                            maxLength={4}
-                            required
-                            style={{ backgroundColor: '#f0f0f0' }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="pt-4">
-                        <Button
-                          type="submit"
-                          className="w-full cursor-pointer"
-                          style={{
-                            backgroundColor: !activeAmount ? '#999' : '#666',
-                            color: textWhite,
-                          }}
-                          disabled={!activeAmount}
-                        >
-                          {activeAmount
-                            ? `Donate ₹${activeAmount.toLocaleString('en-IN')}`
-                            : 'Select an amount to continue'}
-                        </Button>
-                      </div>
-
-                      <p className="text-sm text-center" style={{ color: '#666' }}>
-                        <span className="inline-block mr-2">🔒</span>
-                        Your payment information is secure and encrypted
-                      </p>
-                    </form>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Bank Transfer */}
-              <TabsContent value="bank">
-                <Card style={{ backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0' }}>
-                  <CardHeader>
-                    <CardTitle style={{ color: '#1a1a1a' }}>{t('paymentMethods.bank.title')}</CardTitle>
-                    <CardDescription style={{ color: '#666' }}>
-                      {t('paymentMethods.bank.description')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p style={{ color: '#666' }}>Bank transfer details will be displayed here.</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* QR Code */}
-              <TabsContent value="qr">
-                <Card style={{ backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0' }}>
-                  <CardHeader>
-                    <CardTitle style={{ color: '#1a1a1a' }}>{t('paymentMethods.qr.title')}</CardTitle>
-                    <CardDescription style={{ color: '#666' }}>
-                      {t('paymentMethods.qr.description')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex justify-center py-8">
-                    <div className="bg-white p-6 rounded-xl shadow-lg border-2 border-gray-200">
-                      <ImageWithFallback
-                        src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=ybhministries@bank&pn=YBH%20Ministries&cu=INR"
-                        alt="Donation QR Code"
-                        className="w-64 h-64"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-
-            {/* Tax Deductible Notice */}
-            <div className="mt-8">
-              <Card style={{ backgroundColor: '#f0f4f8', border: '1px solid #e0e0e0' }}>
-                <CardContent className="pt-6 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <Heart className="w-5 h-5 text-red-500" fill="currentColor" />
-                    <h3 style={{ color: '#1a1a1a' }}>{t('taxInfo.title')}</h3>
+                {/* Right column: QR codes */}
+                <div>
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold" style={{ color: '#fff' }}>QR Codes</h3>
+                    <p className="text-sm" style={{ color: '#ccc' }}>Scan a UPI QR code below to donate using your UPI app.</p>
                   </div>
-                  <p style={{ color: '#555', maxWidth: '700px', margin: '0 auto' }}>
-                    {t('taxInfo.description')}
-                  </p>
-                  <p className="text-sm mt-3" style={{ color: '#777' }}>{t('taxInfo.taxId')}: XX-XXXXXXX</p>
-                </CardContent>
-              </Card>
+
+                  <Card className="w-full" style={{ backgroundColor: '#0f0f0f', border: '1px solid #222', boxSizing: 'border-box', width: '100%' }}>
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold" style={{ color: '#fff' }}>{t('paymentMethods.qr.title')}</CardTitle>
+                      <CardDescription style={{ color: '#ccc' }}>{t('paymentMethods.qr.description')}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center gap-6 py-8 pb-12" style={{ overflow: 'hidden' }}>
+                      {upiList.length === 0 ? (
+                        <div className="p-6 rounded-xl" style={{ backgroundColor: '#373737', color: '#ccc', textAlign: 'center' }}>
+                          <div className="text-lg font-medium mb-2">No QR Code available</div>
+                          <div className="text-sm">We don't have any public UPI QR codes available right now. Please check the Bank details for transfer information or try again later.</div>
+                        </div>
+                      ) : (
+                        <div className="w-full px-6 pb-6 flex flex-col items-center">
+                          {upiList.map((u, idx) => {
+                            const qrSrc = u.qr_image_url || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=${encodeURIComponent(
+                              u.upi_id
+                            )}&pn=${encodeURIComponent('YBH Ministries')}&cu=INR`;
+
+                            return (
+                              <div key={u.id} className="w-full flex flex-col items-center my-6">
+                                <div className="flex justify-center w-full">
+                                  <div
+                                    className="rounded-xl p-6 flex flex-col items-center"
+                                    style={{ backgroundColor: '#373737', boxSizing: 'border-box', width: '100%', maxWidth: 320 }}
+                                  >
+                                    <div className="w-full">
+                                      <div className="text-xl font-semibold text-center" style={{ color: '#fff' }}>Scan to Pay</div>
+                                    </div>
+
+                                    <div className="w-full flex items-center justify-center mt-4">
+                                      <div className="bg-white rounded-md" style={{ width: '100%', maxWidth: 260, aspectRatio: '1 / 1', padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <img
+                                          src={qrSrc}
+                                          alt={u.label || 'UPI QR'}
+                                          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {u.upi_id ? (
+                                      <div className="mt-4 w-full">
+                                        <div className="text-xs text-gray-300 mb-1 text-center">UPI ID</div>
+                                        <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
+                                          <div className="text-sm text-white truncate">{u.upi_id}</div>
+                                          <button
+                                            onClick={async () => {
+                                              try {
+                                                await navigator.clipboard.writeText(String(u.upi_id));
+                                                toast.success('UPI ID copied');
+                                              } catch (e) {
+                                                console.error('copy failed', e);
+                                                toast.error('Copy failed');
+                                              }
+                                            }}
+                                            aria-label="Copy UPI ID"
+                                            className="ml-3 p-1 rounded bg-transparent"
+                                            title="Copy UPI ID"
+                                          >
+                                            <Copy size={18} style={{ color: accentGold }} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </div>
+
+            {/* Tax Deductible Notice removed */}
 
             {/* Impact Section */}
             <div className="mt-12 grid md:grid-cols-3 gap-6 pb-12">
-              <Card className="text-center" style={{ backgroundColor: 'white', border: '1px solid #e0e0e0' }}>
+              <Card className="text-center" style={{ backgroundColor: '#2e2e2e', border: '1px solid #444' }}>
                 <CardContent className="pt-8">
                   <div
                     className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -311,14 +308,14 @@ export function DonatePage() {
                   >
                     <Music className="w-8 h-8" style={{ color: accentGold }} />
                   </div>
-                  <h3 className="mb-2" style={{ color: '#1a1a1a' }}>{t('impact.musicEducation.title')}</h3>
-                  <p className="text-sm" style={{ color: '#666' }}>
+                  <h3 className="mb-2" style={{ color: '#fff' }}>{t('impact.musicEducation.title')}</h3>
+                  <p className="text-sm" style={{ color: '#ccc' }}>
                     {t('impact.musicEducation.description')}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="text-center" style={{ backgroundColor: 'white', border: '1px solid #e0e0e0' }}>
+              <Card className="text-center" style={{ backgroundColor: '#2e2e2e', border: '1px solid #444' }}>
                 <CardContent className="pt-8">
                   <div
                     className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -326,14 +323,14 @@ export function DonatePage() {
                   >
                     <Users className="w-8 h-8" style={{ color: accentGold }} />
                   </div>
-                  <h3 className="mb-2" style={{ color: '#1a1a1a' }}>{t('impact.communityOutreach.title')}</h3>
-                  <p className="text-sm" style={{ color: '#666' }}>
+                  <h3 className="mb-2" style={{ color: '#fff' }}>{t('impact.communityOutreach.title')}</h3>
+                  <p className="text-sm" style={{ color: '#ccc' }}>
                     {t('impact.communityOutreach.description')}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="text-center" style={{ backgroundColor: 'white', border: '1px solid #e0e0e0' }}>
+              <Card className="text-center" style={{ backgroundColor: '#2e2e2e', border: '1px solid #444' }}>
                 <CardContent className="pt-8">
                   <div
                     className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -341,13 +338,16 @@ export function DonatePage() {
                   >
                     <Church className="w-8 h-8" style={{ color: accentGold }} />
                   </div>
-                  <h3 className="mb-2" style={{ color: '#1a1a1a' }}>{t('impact.ministryGrowth.title')}</h3>
-                  <p className="text-sm" style={{ color: '#666' }}>
+                  <h3 className="mb-2" style={{ color: '#fff' }}>{t('impact.ministryGrowth.title')}</h3>
+                  <p className="text-sm" style={{ color: '#ccc' }}>
                     {t('impact.ministryGrowth.description')}
                   </p>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Debug panel removed */}
+
           </div>
         </div>
       </section>
