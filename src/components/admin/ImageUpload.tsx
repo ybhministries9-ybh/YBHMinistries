@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 
@@ -113,6 +113,10 @@ interface ImageUploadProps {
   maxSizeMB?: number;
   acceptedFormats?: string[];
   imageType?: 'ministry' | 'gallery' | 'award' | 'testimony' | 'founder' | 'hero';
+  showPreviewNotice?: boolean; // if false, hide the 'Preview Mode' statement (admin pages)
+  optional?: boolean; // marks the upload as optional in the UI
+  squarePreview?: boolean; // render preview as a square (useful for QR codes)
+  allowRemove?: boolean; // allow deleting the image via the X button (default true)
 }
 
 export function ImageUpload({ 
@@ -121,7 +125,11 @@ export function ImageUpload({
   currentImage,
   maxSizeMB = 5,
   acceptedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
-  imageType = 'gallery'
+  imageType = 'gallery',
+  showPreviewNotice = true,
+  optional = false,
+  squarePreview = false,
+  allowRemove = true,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [compressing, setCompressing] = useState(false);
@@ -208,6 +216,11 @@ export function ImageUpload({
     onUploadComplete('');
   };
 
+  // Keep preview state in sync if parent updates currentImage (e.g., after QR generation)
+  useEffect(() => {
+    setPreview(currentImage || null);
+  }, [currentImage]);
+
   return (
     <div className="space-y-4">
       {preview ? (
@@ -216,9 +229,14 @@ export function ImageUpload({
             <img 
               src={preview} 
               alt="Preview" 
-              className="w-full h-48 object-cover rounded-lg border border-gray-700"
+              className={
+                squarePreview
+                  ? 'w-56 h-56 object-contain rounded-md border border-gray-700 bg-white p-2'
+                  : 'w-full h-48 object-cover rounded-lg border border-gray-700'
+              }
             />
-            <Button
+            {allowRemove && (
+              <Button
               onClick={removeImage}
               variant="destructive"
               size="sm"
@@ -227,6 +245,7 @@ export function ImageUpload({
             >
               <X size={16} />
             </Button>
+            )}
           </div>
           
           {/* Compression Info */}
@@ -274,7 +293,7 @@ export function ImageUpload({
             ) : (
               <>
                 <Upload className="text-gray-600 mb-3" size={40} />
-                <p className="text-sm text-gray-300 mb-1">Click to upload image</p>
+                <p className="text-sm text-gray-300 mb-1">Click to upload image{optional ? ' (optional)' : ''}</p>
                 <p className="text-xs text-gray-500">
                   PNG, JPG, GIF, WebP up to {maxSizeMB}MB
                 </p>
@@ -303,7 +322,7 @@ export function ImageUpload({
         </div>
       )}
       
-      {!preview && !uploading && !compressing && (
+      {!preview && !uploading && !compressing && (showPreviewNotice !== false) && (
         <div className="bg-[#2E2E2E] border border-[#FDB813] rounded-lg p-3">
           <p className="text-xs text-gray-300">
             <strong className="text-[#FDB813]">Preview Mode:</strong> Images are optimized and previewed locally. 
