@@ -1181,7 +1181,7 @@ export function StoriesPage() {
               {currentEvent.testimonials && currentEvent.testimonials.length > 0 && (
                 <div className="mb-12">
                   <h3 className="text-2xl md:text-3xl text-white mb-6 text-center">{t('testimoniesHeading')}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 md:px-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0">
                     {currentEvent.testimonials.map((testimonial) => (
                       <TestimonialCard key={testimonial.id} testimonial={testimonial} />
                     ))}
