@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { ShoppingCart, Play, Download, FileText, ExternalLink, Plus, Minus, X, Youtube, Calendar, Clock } from "lucide-react";
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
+import { extractYouTubeId, fetchYouTubeMeta, parseISO8601Duration } from '../lib/youtube';
 
 // Utility function to extract YouTube thumbnail from video URL
 function getYouTubeThumbnail(url: string): string {
@@ -29,11 +30,12 @@ export function ResourcesPage() {
   
   // Check for hash parameter to set initial tab
   const getInitialTab = () => {
+    if (typeof window === 'undefined') return 'books';
     const hash = window.location.hash.replace('#', '');
     if (hash === 'worship' || hash === 'sermons' || hash === 'bibleStudies') {
       return hash;
     }
-    return "books";
+    return 'books';
   };
 
   const [activeTab, setActiveTab] = useState(getInitialTab());
@@ -94,339 +96,213 @@ export function ResourcesPage() {
     }
   }, [cartAnimation]);
 
-  // Mock data for resources
-  const resources = {
-    books: [
-      {
-        id: 1,
-        title: "Hallel Music School - Music Formula",
-        author: "Ps. Augustine Dandingi",
-        price: 550,
-        pages: 48,
-        language: "English",
-        coverImage: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/English/English.jpg?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        additionalImages: [
-          "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/English/1n.JPG?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-          "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/English/2n.JPG?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        ],
-        description: "This comprehensive worship collection includes traditional and contemporary songs with complete musical chords and lyrics in English. Perfect for worship leaders, musicians, and congregations.",
-        fullDescription: "This comprehensive worship collection includes traditional and contemporary songs with complete musical chords and lyrics in English. Perfect for worship leaders, musicians, and congregations.",
-        publishDate: "2025"
-      },
-      {
-        id: 2,
-        title: "Hallel Music School - Music Formula",
-        author: "Ps. Augustine Dandingi",
-        price: 1105,
-        pages: 48,
-        language: "English & Telugu",
-        coverImage: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/English/English.jpg?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        additionalImages: [
-          "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/Telugu/Telugu.jpg?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-          "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/English/1n.JPG?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-          "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/English/2n.JPG?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-          "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/Telugu/1.JPG?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-          "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/Telugu/2.JPG?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        ],
-        description: "This comprehensive worship collection includes traditional and contemporary songs with complete musical chords and lyrics in English. Perfect for worship leaders, musicians, and congregations.",
-        fullDescription: "This comprehensive worship collection includes traditional and contemporary songs with complete musical chords and lyrics in English. Perfect for worship leaders, musicians, and congregations.",
-        publishDate: "2025"
-      },
-      {
-        id: 3,
-        title: "హల్లేల్ ఆరాధన పాటలు - సంపుటము 1",
-        author: "Ps. Augustine Dandingi",
-        price: 550,
-        pages: 48,
-        language: "Telugu",
-        coverImage: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/Telugu/Telugu.jpg?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        additionalImages: [
-          "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/Telugu/1.JPG?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-          "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Books/Telugu/2.JPG?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        ],
-        description: "This comprehensive worship collection includes traditional and contemporary songs with complete musical chords and lyrics in English. Perfect for worship leaders, musicians, and congregations.",
-        fullDescription: "This comprehensive worship collection includes traditional and contemporary songs with complete musical chords and lyrics in English. Perfect for worship leaders, musicians, and congregations.",
-        publishDate: "2025"
+  // Inject bounce animation CSS on client only
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
       }
-    ],
-    worship: [
-      {
-        id: 1,
-        title: "Shuddha Hrudayam(శుద్ధా హృదయం)",
-        artist: "Ps. Augustine Dandingi",
-        duration: "7:20",
-        date: "2020-08-08",
-        youtubeUrl: "https://youtu.be/ViZtowhZGY4?si=lfOYE0XUBYBTGElK",
-        description: "నేను రాసిన అనేక_పాటల్లో ఇది ఒక అద్భుతమైన పాట."
-      },
-      {
-        id: 2,
-        title: "BAHU BALAVANTHUDA ADONAI",
-        artist: "Paul Wilbur",
-        duration: "6:41",
-        date: "2021-01-09",
-        youtubeUrl: "https://www.youtube.com/watch?v=Tm7_U6PZz48&list=PLAMsL02VKnnLIbilT-D51AN4gyAeQ4d0s",
-        description: "ఈ పాట Jerusalem Arise (2000) ఆల్బం లోనిది. Paul Wilbur అనే అంతర్జాతీయ ఆరాధన నాయకులు రాసి స్వరపరిచారు."
-      },
-      {
-        id: 8,
-        title: "KADOSH | HEBREW CHRISTIAN SONG",
-        artist: "Ps. Augustine Dandingi",
-        duration: "5:06",
-        date: "2020-08-18",
-        youtubeUrl: "https://youtu.be/rjYVo78EQ5M?si=OOWAjVTfNrRk5Efe",
-        description: "Song Written By Paul Wilbur from Jerusalem arise Album"
-      },
-      {
-        id: 7,
-        title: "నీకు వెలుగు వచ్చియున్నది",
-        artist: "Ps. Augustine Dandingi",
-        duration: "5:31",
-        date: "2021-02-02",
-        youtubeUrl: "https://youtu.be/eimSvVIB4mo?si=BdoG-bBB0Q9VK4vC",
-        description: "ఈ పాట తరువాత నా జీవితాన్ని దేవుడు మరొక ఎత్తుకు తీసుకుని వెళ్ళాడు. ఈ పాటలో ఉన్న మాటలు నెరవేర్పు అప్పుడు ప్రారంభమై ఇప్పటికీ నా జీవితంలో కొనసాగుతూ ఉన్నాయి."
-      },
-      {
-        id: 3,
-        title: "యెహోవాను ఆశ్రయించినా",
-        artist: "Ps. AUGUSTINE DANDINGI",
-        duration: "5:11",
-        date: "2020-10-31",
-        youtubeUrl: "https://youtu.be/jPDVVwjCGFU?si=5YaKdqdVypTIFDrs",
-        description: "యెహోవానూ ఆశ్రయించినా\nలేమి నీకు లేనే లేదు"
-      },
-      {
-        id: 9,
-        title: "దేవా యెహోవా నా ప్రియుడగు తండ్రి",
-        artist: "Ps. Augustine Dandingi",
-        duration: "5:41",
-        date: "2020-10-01",
-        youtubeUrl: "https://youtu.be/qYVmx0TaxT8?si=KSfU_mBPr66dtld2",
-        description: "ఈ పాట ఒక శుద్ధమైన ఆరాధన పాట (PURE WORSHIP SONG)."
-      },
-      {
-        id: 5,
-        title: "Okasari Chudalani[ఒకసారి చూడాలని]",
-        artist: "Ps. AUGUSTINE DANDINGI",
-        duration: "7:48",
-        date: "2020-09-02",
-        youtubeUrl: "https://youtu.be/sVU3OulG58I?si=L9eyiR5WJsBUYtrL",
-        description: "ఒకసారి చూడాలనీ, ఒకసారి చూడాలనీ"
-      },
-      {
-        id: 4,
-        title: "Dhavalavarnuda Ratnavarnuda",
-        artist: "Ps. AUGUSTINE DANDINGI",
-        duration: "6:44",
-        date: "2023-08-30",
-        youtubeUrl: "https://youtu.be/2VmoU3WIvHM?si=SHVWS-2WhUzt0YEJ",
-        description: "ప్రకటన గ్రంధమును ముందుపెట్టుకుని అందులో వాక్యముతో యేసయ్యను వర్ణిస్తూ రచించిన ఒక PURE WORSHIP SONG."
-      },
-      {
-        id: 6,
-        title: "Yesu Naamam | యేసు నామం",
-        artist: "Nancy Ophir Augustina",
-        duration: "7:32",
-        date: "2022-01-24",
-        youtubeUrl: "https://www.youtube.com/watch?v=9JuLp8WlbIk",
-        description: "Written By: Ps. Augustine Dandingi\nSung By: Master Nancy Ophir Augustina Dandingi"
-      },     
-      {
-        id: 10,
-        title: "Shofar blowing Augustine Dandingi",
-        artist: "Ps. Augustine Dandingi",
-        duration: "2:09",
-        date: "2017-05-25",
-        youtubeUrl: "https://youtu.be/iWk-dUQT_nU?si=ReJt9OvWs8uX24aU",
-        description: "Shofar blowing Augustine Dandingi"
+      .animate-bounce { animation: bounce 0.6s ease; }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      if (document.head.contains(style)) document.head.removeChild(style);
+    };
+  }, []);
+
+  // Fetch resources from database
+  const [resources, setResources] = useState({
+    books: [],
+    worship: [],
+    sermons: [],
+    bibleStudies: []
+  });
+  const [loading, setLoading] = useState({
+    books: true,
+    worship: true,
+    sermons: true,
+    bibleStudies: true
+  });
+
+  // Fetch books
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const response = await fetch('/api/resources?type=books');
+        if (!response.ok) throw new Error('Failed to fetch books');
+        const data = await response.json();
+        
+        // Transform API response to match component interface
+        const transformedBooks = (data.data || []).map((book: any) => ({
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          price: book.price,
+          pages: book.pages,
+          language: book.language,
+          coverImage: book.cover_image,
+          additionalImages: book.additional_images || [],
+          description: book.description,
+          fullDescription: book.full_description || book.description || '',
+          publishDate: book.publish_date
+        }));
+        
+        setResources(prev => ({ ...prev, books: transformedBooks }));
+      } catch (error) {
+        console.error('Error fetching books:', error);
+      } finally {
+        setLoading(prev => ({ ...prev, books: false }));
       }
-    ],
-    sermons: [
-      {
-        id: 1,
-        title: "కుటుంబ ఆరాధనలోని శక్తి",
-        speaker: "Ps. Augustine Dandingi",
-        duration: "1:00",
-        date: "2025-10-18",
-        thumbnailUrl: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        youtubeUrl: "https://youtube.com/shorts/ArUfnNDkflQ?si=dFoultTsZeC3-GMl",
-        description: "కుటుంబ ఆరాధనలోని శక్తి"
-      },
-      {
-        id: 2,
-        title: "మీ పిల్లల్లో ఉన్న టాలెంట్ ఇలా గుర్తించండి. Part 1",
-        speaker: "Ps. Augustine Dandingi",
-        duration: "1:00",
-        date: "2025-10-15",
-        thumbnailUrl: "https://images.unsplash.com/photo-1507692049790-de58290a4334?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        youtubeUrl: "https://www.youtube.com/shorts/xH63IzaXyd0",
-        description: "మీ పిల్లల్లో ఉన్న టాలెంట్ ఇలా గుర్తించండి. Part 1"
-      },
-      {
-        id: 3,
-        title: "Worship is War Ship",
-        speaker: "Ps. Augustine Dandingi",
-        duration: "1:00",
-        date: "2025-09-09",
-        thumbnailUrl: "https://images.unsplash.com/photo-1504439468489-c8920d796a29?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        youtubeUrl: "https://www.youtube.com/shorts/RNdULE8qJw8",
-        description: "Worship is War Ship"
-      },
-      {
-        id: 4,
-        title: "దెబ్బలు తిన్న నీవు గొప్ప స్థితిలో ఉంటావు",
-        speaker: "Ps. Augustine Dandingi",
-        duration: "1:00",
-        date: "2025-09-01",
-        thumbnailUrl: "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        youtubeUrl: "https://www.youtube.com/shorts/lLBPWYkhxgI",
-        description: "దెబ్బలు తిన్న నీవు గొప్ప స్థితిలో ఉంటావు"
-      },
-      {
-        id: 5,
-        title: "Origin of worship",
-        speaker: "Ps. Augustine Dandingi",
-        duration: "1:00",
-        date: "2025-08-30",
-        thumbnailUrl: "https://images.unsplash.com/photo-1516450360452-9312f5463805?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        youtubeUrl: "https://www.youtube.com/shorts/LpaFU3VfILU",
-        description: "Origin of worship"
+    };
+    fetchBooks();
+  }, []);
+
+  // Fetch worship videos
+  useEffect(() => {
+    const fetchWorship = async () => {
+      try {
+        const response = await fetch('/api/resources?type=worship');
+        if (!response.ok) throw new Error('Failed to fetch worship videos');
+        const data = await response.json();
+        
+        const transformedWorship = (data.data || []).map((video: any) => ({
+          id: video.id,
+          title: video.title,
+          artist: video.artist,
+          duration: pickDate(video.duration, video.length, video.duration_seconds, video.duration_str),
+          date: pickDate(video.release_date, video.published_at, video.created_at, video.date, video.uploaded_at),
+          youtubeUrl: video.youtube_url,
+          description: video.description
+        }));
+
+        // Augment items with YouTube metadata (publishedAt, duration) and prefer YouTube values when available
+        const augmentedWorship = await Promise.all(transformedWorship.map(async (video) => {
+          try {
+            const vid = extractYouTubeId(video.youtubeUrl);
+            if (!vid) return video;
+            const meta = await fetchYouTubeMeta(vid);
+            if (!meta) return video;
+            // Normalize publishedAt to YYYY-MM-DD so parseLocalDate treats it as local date-only
+            let date = video.date;
+            if (meta.publishedAt) {
+              const parsed = parseLocalDate(meta.publishedAt);
+              if (parsed) date = parsed.toISOString().split('T')[0];
+              else date = String(meta.publishedAt).split('T')[0];
+            }
+            const duration = meta.duration ? parseISO8601Duration(meta.duration) : video.duration;
+            const title = meta.title || video.title || '';
+            return { ...video, date, duration, title };
+          } catch (err) {
+            return video;
+          }
+        }));
+
+        setResources(prev => ({ ...prev, worship: augmentedWorship }));
+      } catch (error) {
+        console.error('Error fetching worship videos:', error);
+      } finally {
+        setLoading(prev => ({ ...prev, worship: false }));
       }
-    ],
-    bibleStudies: [
-      {
-        id: 1,
-        title: "The Book of Romans",
-        author: "Dr. James White",
-        pages: 45,
-        date: "2023-01-20",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "An in-depth study of Paul's letter to the Romans."
-      },
-      {
-        id: 2,
-        title: "The Sermon on the Mount",
-        author: "Dr. Sarah Johnson",
-        pages: 32,
-        date: "2023-02-15",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1476041800959-2f6bb412c8ce?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Exploring Jesus' teachings in Matthew 5-7."
-      },
-      {
-        id: 3,
-        title: "The Psalms of David",
-        author: "Dr. Michael Brown",
-        pages: 38,
-        date: "2023-03-10",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1490730141103-6cac27aaab94?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Finding comfort and wisdom in the Psalms."
-      },
-      {
-        id: 4,
-        title: "The Gospel of John",
-        author: "Dr. Emily Wilson",
-        pages: 42,
-        date: "2023-04-05",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1501612780327-45045538702b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Understanding the unique perspective of John's Gospel."
-      },
-      {
-        id: 5,
-        title: "The Book of Revelation",
-        author: "Dr. David Lee",
-        pages: 56,
-        date: "2023-05-20",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Decoding the symbolism and message of Revelation."
-      },
-      {
-        id: 6,
-        title: "The Parables of Jesus",
-        author: "Dr. Rachel Green",
-        pages: 35,
-        date: "2023-06-15",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1504439468489-c8920d796a29?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Understanding the stories Jesus used to teach."
-      },
-      {
-        id: 7,
-        title: "The Book of Proverbs",
-        author: "Dr. Thomas Clark",
-        pages: 40,
-        date: "2023-07-10",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1507692049790-de58290a4334?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Wisdom for daily living from the book of Proverbs."
-      },
-      {
-        id: 8,
-        title: "The Epistle to the Hebrews",
-        author: "Dr. Jennifer Adams",
-        pages: 48,
-        date: "2023-08-05",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1490730141103-6cac27aaab94?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Exploring the superiority of Christ in Hebrews."
-      },
-      {
-        id: 9,
-        title: "The Book of Acts",
-        author: "Dr. Robert Wilson",
-        pages: 52,
-        date: "2023-09-20",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1501612780327-45045538702b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "The early church and the spread of Christianity."
-      },
-      {
-        id: 10,
-        title: "The Book of Daniel",
-        author: "Dr. Lisa Martinez",
-        pages: 44,
-        date: "2023-10-15",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Prophecy and faithfulness in the book of Daniel."
-      },
-      {
-        id: 11,
-        title: "The Beatitudes",
-        author: "Dr. Kevin Johnson",
-        pages: 30,
-        date: "2023-11-10",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1504439468489-c8920d796a29?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Jesus' teachings on true happiness and blessing."
-      },
-      {
-        id: 12,
-        title: "The Fruit of the Spirit",
-        author: "Dr. Michelle Taylor",
-        pages: 36,
-        date: "2023-12-05",
-        fileType: "PDF",
-        fileUrl: "#",
-        thumbnailUrl: "https://images.unsplash.com/photo-1507692049790-de58290a4334?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        description: "Developing godly character through the Holy Spirit."
+    };
+    fetchWorship();
+  }, []);
+
+  // Fetch sermons
+  useEffect(() => {
+    const fetchSermons = async () => {
+      try {
+        const response = await fetch('/api/resources?type=sermons');
+        if (!response.ok) throw new Error('Failed to fetch sermons');
+        const data = await response.json();
+        
+        const transformedSermons = (data.data || []).map((sermon: any) => ({
+          id: sermon.id,
+          title: sermon.title,
+          duration: pickDate(sermon.duration, sermon.length, sermon.duration_seconds, sermon.duration_str),
+          date: pickDate(sermon.sermon_date, sermon.date, sermon.published_at, sermon.created_at),
+          thumbnailUrl: sermon.thumbnail_url,
+          youtubeUrl: sermon.youtube_url,
+          description: sermon.description
+        }));
+
+        const augmentedSermons = await Promise.all(transformedSermons.map(async (sermon) => {
+          try {
+            const vid = extractYouTubeId(sermon.youtubeUrl);
+            if (!vid) return sermon;
+            const meta = await fetchYouTubeMeta(vid);
+            if (!meta) return sermon;
+
+            // Prefer YouTube metadata for both date, duration and title when available
+            let newDate = sermon.date;
+            let newDuration = sermon.duration;
+
+            if (meta.publishedAt) {
+              const parsed = parseLocalDate(meta.publishedAt);
+              if (parsed) newDate = parsed.toISOString().split('T')[0];
+              else newDate = String(meta.publishedAt).split('T')[0];
+            }
+
+            if (meta.duration) {
+              newDuration = parseISO8601Duration(meta.duration);
+            }
+
+            const newTitle = meta.title || sermon.title || '';
+
+            return { ...sermon, date: newDate, duration: newDuration, title: newTitle };
+          } catch (err) {
+            return sermon;
+          }
+        }));
+
+        setResources(prev => ({ ...prev, sermons: augmentedSermons }));
+      } catch (error) {
+        console.error('Error fetching sermons:', error);
+      } finally {
+        setLoading(prev => ({ ...prev, sermons: false }));
       }
-    ]
+    };
+    fetchSermons();
+  }, []);
+
+  // Fetch Bible studies
+  useEffect(() => {
+    const fetchBibleStudies = async () => {
+      try {
+        const response = await fetch('/api/resources?type=bibleStudies');
+        if (!response.ok) throw new Error('Failed to fetch Bible studies');
+        const data = await response.json();
+        
+        const transformedStudies = (data.data || []).map((study: any) => ({
+          id: study.id,
+          title: study.title,
+          author: study.author,
+          pages: study.pages,
+          date: pickDate(study.study_date, study.publish_date, study.published_at, study.created_at, study.date),
+          fileType: study.file_type,
+          fileUrl: study.file_url,
+          thumbnailUrl: study.thumbnail_url,
+          description: study.description
+        }));
+        
+        setResources(prev => ({ ...prev, bibleStudies: transformedStudies }));
+      } catch (error) {
+        console.error('Error fetching Bible studies:', error);
+      } finally {
+        setLoading(prev => ({ ...prev, bibleStudies: false }));
+      }
+    };
+    fetchBibleStudies();
+  }, []);
+
+  // Only use resources from the database/API
+  const displayResources = {
+    books: resources.books,
+    worship: resources.worship,
+    sermons: resources.sermons,
+    bibleStudies: resources.bibleStudies
   };
 
   const addToCart = (book) => {
@@ -489,18 +365,103 @@ export function ResourcesPage() {
     return [book.coverImage, ...(book.additionalImages || [])];
   };
 
-  // Format date to be more readable
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: '2-digit' });
+  // Format date to be more readable (returns empty string for invalid/missing values)
+  const formatDate = (dateInput) => {
+    if (!dateInput && dateInput !== 0) return '';
+    const dt = parseLocalDate(dateInput);
+    if (!dt) return '';
+    try {
+      return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
+    } catch (err) {
+      return '';
+    }
   };
 
   // Format duration to add minutes
   const formatDuration = (duration) => {
-    const parts = duration.split(':');
-    const minutes = parseInt(parts[0]);
-    const seconds = parts[1];
-    return `${minutes}:${seconds} min`;
+    if (!duration && duration !== 0) return '';
+    try {
+      const s = String(duration).trim();
+      if (!s) return '';
+      // If the string already contains 'min' (case-insensitive), normalize to a single trailing ' min'
+      if (/min/i.test(s)) {
+        const withoutMin = s.replace(/\s*min\s*$/i, '').trim();
+        return `${withoutMin} min`;
+      }
+
+      if (s.indexOf(':') >= 0) {
+        const parts = s.split(':');
+        const minutes = parts[0];
+        const seconds = parts[1] || '00';
+        return `${minutes}:${seconds} min`;
+      }
+
+      // If duration given as total seconds or minutes
+      if (/^\d+$/.test(s)) {
+        const num = Number(s);
+        // treat numbers > 59 as seconds
+        if (num > 59) {
+          const mins = Math.floor(num / 60);
+          const secs = num % 60;
+          return `${mins}:${String(secs).padStart(2, '0')} min`;
+        }
+        return `${num}:00 min`;
+      }
+
+      return s + ' min';
+    } catch (err) {
+      return '';
+    }
+  };
+
+  // Pick first available date-like field from a list of possible properties
+  const pickDate = (...vals) => {
+    for (const v of vals) {
+      if (v === 0) return v;
+      if (v) return v;
+    }
+    return null;
+  };
+
+  // Parse local date safely (accepts YYYY-MM-DD, ISO, timestamps)
+  const parseLocalDate = (dateInput) => {
+    if (!dateInput && dateInput !== 0) return null;
+    try {
+      // If already a Date
+      if (dateInput instanceof Date) return dateInput;
+      const s = String(dateInput).trim();
+
+      // If YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS
+      const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) {
+        const y = Number(isoMatch[1]);
+        const m = Number(isoMatch[2]);
+        const d = Number(isoMatch[3]);
+        return new Date(y, m - 1, d);
+      }
+
+      // If numeric timestamp
+      if (/^\d+$/.test(s)) return new Date(Number(s));
+
+      // Fallback to Date constructor
+      const dt = new Date(s);
+      if (!isNaN(dt.getTime())) return dt;
+    } catch (err) {
+      // ignore
+    }
+    return null;
+  };
+
+  const formatCardMonth = (dateInput) => {
+    const dt = parseLocalDate(dateInput);
+    if (!dt) return '';
+    return dt.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  };
+
+  const formatCardDay = (dateInput) => {
+    const dt = parseLocalDate(dateInput);
+    if (!dt) return '';
+    return String(dt.getDate());
   };
 
   return (
@@ -509,18 +470,18 @@ export function ResourcesPage() {
       <div className="container mx-auto px-4 pt-24 md:pt-32 lg:pt-38 pb-16">
         {/* Tabs */}
         <div className="mb-12">
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-3">
             {["books", "worship", "sermons", "bibleStudies"].map((tab) => {
               const isActive = activeTab === tab;
               return (
                 <button
                   key={tab}
-                  className={`px-6 py-3 rounded-md font-medium transition-all duration-300 ${
+                  className={`px-8 py-2.5 rounded-full font-semibold transition-colors focus:outline-none ${
                     isActive
-                      ? "bg-[#FDB813] shadow-md ring-2 ring-offset-2 ring-[#FDB813]"
-                      : "bg-[#2E2E2E] text-white hover:bg-[#FDB813] focus:ring-2 focus:ring-offset-2 focus:ring-[#FDB813]"
+                      ? "bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]"
+                : "bg-[#2E2E2E] text-white hover:bg-[#FDB813] hover:text-black focus:ring-2 focus:ring-offset-2 focus:ring-[#FDB813]"
                   }`}
-                  style={isActive ? { color: '#000000', cursor: 'pointer' } : { cursor: 'pointer' }}
+                  style={{ cursor: 'pointer' }}
                   onClick={() => setActiveTab(tab)}
                 >
                   {t(`tabs.${tab}`)}
@@ -552,7 +513,16 @@ export function ResourcesPage() {
         {/* Books Tab Content */}
         {activeTab === "books" && !selectedBook && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {resources.books.map((book) => (
+            {loading.books ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-white text-lg">Loading books...</p>
+              </div>
+            ) : displayResources.books.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-white text-lg">No books available yet.</p>
+              </div>
+            ) : (
+              displayResources.books.map((book) => (
               <div key={book.id} className="bg-[#2E2E2E] rounded-lg overflow-hidden shadow-lg hover:scale-102 hover:shadow-2xl transition-all duration-300 ease-in-out flex flex-col">
                 <div className="h-64 overflow-hidden relative">
                   <ImageWithFallback
@@ -572,7 +542,7 @@ export function ResourcesPage() {
                   {/* Price and Buttons - fixed at bottom */}
                   <div className="mt-auto">
                     <div className="text-[#FDB813] font-bold text-xl mb-3">₹{book.price}</div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 justify-center">
                       <button
                         className="flex-1 py-2 px-4 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 flex items-center justify-center whitespace-nowrap font-bold"
                         onClick={() => setSelectedBook(book)}
@@ -591,7 +561,7 @@ export function ResourcesPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            )))}
           </div>
         )}
 
@@ -807,8 +777,18 @@ export function ResourcesPage() {
         {/* Worship Tab Content */}
         {activeTab === "worship" && (
           <div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {getVisibleItems(resources.worship, "worship").map((item) => (
+            {loading.worship ? (
+              <div className="text-center py-12">
+                <p className="text-white text-lg">Loading worship videos...</p>
+              </div>
+            ) : displayResources.worship.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-white text-lg">No worship videos available yet.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {getVisibleItems(displayResources.worship, "worship").map((item) => (
                 <a 
                   key={item.id}
                   href={item.youtubeUrl} 
@@ -831,7 +811,7 @@ export function ResourcesPage() {
                       <h3 className="text-white text-lg font-bold line-clamp-2 leading-snug mb-2">
                         {item.title}
                       </h3>
-                      <p className="text-white text-xs">{item.artist}</p>
+                      {/* artist removed: now using YouTube metadata */}
                     </div>
                     <div className="px-4 pb-4 pt-2 mt-auto">
                       <div className="flex items-center justify-between text-xs text-white gap-2">
@@ -840,7 +820,7 @@ export function ResourcesPage() {
                           <span>{formatDuration(item.duration)}</span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar size={14} className="mr-1.5 flex-shrink-0" />
+                          <Calendar size={14} color="#FFFFFF" className="mr-1.5 flex-shrink-0" />
                           <span>{formatDate(item.date)}</span>
                         </div>
                       </div>
@@ -848,18 +828,20 @@ export function ResourcesPage() {
                   </div>
                 </a>
               ))}
-            </div>
-            
-            {resources.worship.length > getVisibleItems(resources.worship, "worship").length && (
-              <div className="mt-8 text-center">
-                <button 
-                  className="px-6 py-3 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 font-bold"
-                  onClick={() => loadMore("worship")}
-                  style={{ cursor: 'pointer', color: '#000000' }}
-                >
-                  {t('buttons.loadMore')}
-                </button>
-              </div>
+                </div>
+                
+                {displayResources.worship.length > getVisibleItems(displayResources.worship, "worship").length && (
+                  <div className="mt-8 text-center">
+                    <button 
+                      className="px-6 py-3 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 font-bold"
+                      onClick={() => loadMore("worship")}
+                      style={{ cursor: 'pointer', color: '#000000' }}
+                    >
+                      {t('buttons.loadMore')}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -867,8 +849,18 @@ export function ResourcesPage() {
         {/* Sermons Tab Content */}
         {activeTab === "sermons" && (
           <div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {getVisibleItems(resources.sermons, "sermons").map((sermon) => (
+            {loading.sermons ? (
+              <div className="text-center py-12">
+                <p className="text-white text-lg">Loading sermons...</p>
+              </div>
+            ) : displayResources.sermons.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-white text-lg">No sermons available yet.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {getVisibleItems(displayResources.sermons, "sermons").map((sermon) => (
                 <a 
                   key={sermon.id}
                   href={sermon.youtubeUrl} 
@@ -898,8 +890,8 @@ export function ResourcesPage() {
                           <Clock size={14} className="mr-1.5 flex-shrink-0" />
                           <span>{formatDuration(sermon.duration)}</span>
                         </div>
-                        <div className="flex items-center">
-                          <Calendar size={14} className="mr-1.5 flex-shrink-0" />
+                        <div className="flex items-center text-xs text-white">
+                          <Calendar size={14} color="#FFFFFF" className="mr-1.5 flex-shrink-0" />
                           <span>{formatDate(sermon.date)}</span>
                         </div>
                       </div>
@@ -907,18 +899,20 @@ export function ResourcesPage() {
                   </div>
                 </a>
               ))}
-            </div>
-            
-            {resources.sermons.length > getVisibleItems(resources.sermons, "sermons").length && (
-              <div className="mt-8 text-center">
-                <button 
-                  className="px-6 py-3 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 font-bold"
-                  onClick={() => loadMore("sermons")}
-                  style={{ cursor: 'pointer', color: '#000000' }}
-                >
-                  {t('buttons.loadMore')}
-                </button>
-              </div>
+                </div>
+                
+                {displayResources.sermons.length > getVisibleItems(displayResources.sermons, "sermons").length && (
+                  <div className="mt-8 text-center">
+                    <button 
+                      className="px-6 py-3 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 font-bold"
+                      onClick={() => loadMore("sermons")}
+                      style={{ cursor: 'pointer', color: '#000000' }}
+                    >
+                      {t('buttons.loadMore')}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -926,8 +920,18 @@ export function ResourcesPage() {
         {/* Bible Studies Tab Content */}
         {activeTab === "bibleStudies" && (
           <div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {getVisibleItems(resources.bibleStudies, "bibleStudies").map((study) => (
+            {loading.bibleStudies ? (
+              <div className="text-center py-12">
+                <p className="text-white text-lg">Loading Bible studies...</p>
+              </div>
+            ) : displayResources.bibleStudies.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-white text-lg">No Bible studies available yet.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {getVisibleItems(displayResources.bibleStudies, "bibleStudies").map((study) => (
                 <div key={study.id} className="bg-[#2E2E2E] rounded-lg overflow-hidden shadow-lg hover:scale-102 hover:shadow-2xl transition-all duration-300 ease-in-out flex flex-col h-full border-2 border-transparent hover:border-[#FDB813]">
                   <div className="h-48 overflow-hidden relative">
                     <ImageWithFallback
@@ -951,13 +955,13 @@ export function ResourcesPage() {
                         <FileText size={14} className="mr-1.5 flex-shrink-0" />
                         <span>{study.pages} pages</span>
                       </div>
-                      <div className="flex items-center">
-                        <Calendar size={14} className="mr-1.5 flex-shrink-0" />
+                        <div className="flex items-center">
+                        <Calendar size={14} color="#FFFFFF" className="mr-1.5 flex-shrink-0" />
                         <span>{formatDate(study.date)}</span>
                       </div>
                     </div>
                     
-                    <div className="flex space-x-5">
+                    <div className="flex space-x-5 justify-center">
                       <a 
                         href={study.fileUrl} 
                         target="_blank" 
@@ -981,18 +985,20 @@ export function ResourcesPage() {
                   </div>
                 </div>
               ))}
-            </div>
-            
-            {resources.bibleStudies.length > getVisibleItems(resources.bibleStudies, "bibleStudies").length && (
-              <div className="mt-8 text-center">
-                <button 
-                  className="px-6 py-3 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 font-bold"
-                  onClick={() => loadMore("bibleStudies")}
-                  style={{ cursor: 'pointer', color: '#000000' }}
-                >
-                  {t('buttons.loadMore')}
-                </button>
-              </div>
+                </div>
+                
+                {displayResources.bibleStudies.length > getVisibleItems(displayResources.bibleStudies, "bibleStudies").length && (
+                  <div className="mt-8 text-center">
+                    <button 
+                      className="px-6 py-3 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 font-bold"
+                      onClick={() => loadMore("bibleStudies")}
+                      style={{ cursor: 'pointer', color: '#000000' }}
+                    >
+                      {t('buttons.loadMore')}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1001,19 +1007,4 @@ export function ResourcesPage() {
   );
 }
 
-// Add CSS for bounce animation
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes bounce {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-  .animate-bounce {
-    animation: bounce 0.6s ease;
-  }
-`;
-document.head.appendChild(style);
+// Bounce animation CSS is injected on the client inside the component via useEffect

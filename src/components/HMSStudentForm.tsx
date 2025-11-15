@@ -133,8 +133,6 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
       data.performanceExperience = performances;
       data.volunteerAreas = volunteerAreas;
 
-      console.log('Form submitted:', data);
-      
       // TODO: Replace with actual API call to Supabase
       await new Promise(resolve => setTimeout(resolve, 1000));
       

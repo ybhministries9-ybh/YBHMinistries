@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, X, Loader2, CheckCircle2, AlertCircle, Image as ImageIcon, Link as LinkIcon, Plus, Trash2 } from 'lucide-react';
+import { Upload, X, Loader2, CheckCircle2, AlertCircle, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 
 // Utility functions for image handling
@@ -121,8 +121,7 @@ export function MultipleImageUpload({
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
-  const [imageUrls, setImageUrls] = useState<string[]>(['']);
+  // Only support file upload mode
 
   const processFiles = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
@@ -132,7 +131,7 @@ export function MultipleImageUpload({
     const newImages: UploadedImage[] = fileArray.map((file, index) => ({
       id: `${Date.now()}-${index}`,
       file,
-      preview: URL.createObjectURL(file),
+      preview: '',
       status: 'pending' as const,
     }));
 
@@ -145,77 +144,86 @@ export function MultipleImageUpload({
         // Validate file
         const validation = validateImageFile(image.file);
         if (!validation.valid) {
-          setUploadedImages(prev => prev.map(img => 
-            img.id === image.id 
+          setUploadedImages(prev => prev.map(img =>
+            img.id === image.id
               ? { ...img, status: 'error' as const, error: validation.error }
               : img
           ));
           continue;
         }
-
         // Check file size
         if (image.file.size > maxSizeBytes) {
-          setUploadedImages(prev => prev.map(img => 
-            img.id === image.id 
+          setUploadedImages(prev => prev.map(img =>
+            img.id === image.id
               ? { ...img, status: 'error' as const, error: `File size must be less than ${maxSizeMB}MB` }
               : img
           ));
           continue;
         }
-
         // Check if compression is needed
         const shouldCompress = needsCompression(image.file);
-        
+        let fileToUpload = image.file;
+        let previewUrl = '';
         if (shouldCompress) {
-          setUploadedImages(prev => prev.map(img => 
-            img.id === image.id 
+          setUploadedImages(prev => prev.map(img =>
+            img.id === image.id
               ? { ...img, status: 'compressing' as const }
               : img
           ));
-
           try {
             const settings = { quality: 0.85, maxWidth: 1600, maxHeight: 1200 };
             const compressed = await compressImage(image.file, settings);
-            
-            setUploadedImages(prev => prev.map(img => 
-              img.id === image.id 
-                ? { 
-                    ...img, 
+            fileToUpload = compressed.file;
+            previewUrl = compressed.dataUrl;
+          } catch (compressionError) {
+            fileToUpload = image.file;
+          }
+        }
+        // Upload to Vercel Blob via /api/upload
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
+        formData.append('folder', category);
+        try {
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const result = await response.json();
+          if (response.ok && result.url) {
+            setUploadedImages(prev => prev.map(img =>
+              img.id === image.id
+                ? {
+                    ...img,
                     status: 'complete' as const,
-                    preview: compressed.dataUrl,
-                    originalSize: compressed.originalSize,
-                    compressedSize: compressed.compressedSize,
-                    compressionRatio: compressed.compressionRatio
+                    preview: result.url,
+                    originalSize: fileToUpload.size,
+                    compressedSize: fileToUpload.size,
+                    compressionRatio: shouldCompress ? Math.round((1 - fileToUpload.size / image.file.size) * 100) : 0
                   }
                 : img
             ));
-          } catch (compressionError) {
-            console.error('Compression failed:', compressionError);
-            // Use original file if compression fails
-            setUploadedImages(prev => prev.map(img => 
-              img.id === image.id 
-                ? { ...img, status: 'complete' as const }
+          } else {
+            setUploadedImages(prev => prev.map(img =>
+              img.id === image.id
+                ? { ...img, status: 'error' as const, error: result.error || 'Failed to upload image' }
                 : img
             ));
           }
-        } else {
-          // No compression needed
-          setUploadedImages(prev => prev.map(img => 
-            img.id === image.id 
-              ? { ...img, status: 'complete' as const }
+        } catch (err) {
+          setUploadedImages(prev => prev.map(img =>
+            img.id === image.id
+              ? { ...img, status: 'error' as const, error: 'Failed to upload image' }
               : img
           ));
         }
       } catch (error) {
-        console.error('Error processing file:', error);
-        setUploadedImages(prev => prev.map(img => 
-          img.id === image.id 
+        setUploadedImages(prev => prev.map(img =>
+          img.id === image.id
             ? { ...img, status: 'error' as const, error: 'Failed to process image' }
             : img
         ));
       }
     }
-
     setIsProcessing(false);
   };
 
@@ -249,42 +257,17 @@ export function MultipleImageUpload({
   };
 
   // URL management functions
-  const addUrlField = () => {
-    setImageUrls([...imageUrls, '']);
-  };
-
-  const removeUrlField = (index: number) => {
-    if (imageUrls.length > 1) {
-      setImageUrls(imageUrls.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateUrlField = (index: number, value: string) => {
-    const newUrls = [...imageUrls];
-    newUrls[index] = value;
-    setImageUrls(newUrls);
-  };
+  // Removed URL management functions
 
   const handleComplete = () => {
-    if (uploadMode === 'url') {
-      // Handle URL mode
-      const validUrls = imageUrls.filter(url => url.trim() !== '');
-      const urlImages = validUrls.map(url => ({
-        url: url,
+    // Only handle file upload mode
+    const validImages = uploadedImages
+      .filter(img => img.status === 'complete')
+      .map(img => ({
+        url: img.preview,
         category
       }));
-      onUploadComplete(urlImages);
-    } else {
-      // Handle file upload mode
-      const validImages = uploadedImages
-        .filter(img => img.status === 'complete')
-        .map(img => ({
-          url: img.preview,
-          category
-        }));
-      
-      onUploadComplete(validImages);
-    }
+    onUploadComplete(validImages);
   };
 
   const completedCount = uploadedImages.filter(img => img.status === 'complete').length;
@@ -299,12 +282,9 @@ export function MultipleImageUpload({
           <div>
             <h3 className="text-xl text-white">Upload Multiple Images</h3>
             <p className="text-sm text-gray-400 mt-1">
-              {uploadMode === 'file' 
-                ? uploadedImages.length === 0 
-                  ? 'Select or drag & drop multiple images'
-                  : `${completedCount} completed, ${errorCount} errors, ${processingCount} processing`
-                : `${imageUrls.filter(u => u.trim() !== '').length} URL(s) added`
-              }
+              {uploadedImages.length === 0 
+                ? 'Select or drag & drop multiple images'
+                : `${completedCount} completed, ${errorCount} errors, ${processingCount} processing`}
             </p>
           </div>
           <button
@@ -315,104 +295,9 @@ export function MultipleImageUpload({
           </button>
         </div>
 
-        {/* Mode Toggle */}
-        <div className="px-4 pt-4">
-          <div className="flex gap-2 bg-[#2E2E2E] p-1 rounded-lg">
-            <button
-              onClick={() => setUploadMode('file')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm transition-colors ${
-                uploadMode === 'file'
-                  ? 'bg-[#FDB813] text-black'
-                  : 'bg-transparent text-gray-400 hover:text-white'
-              }`}
-            >
-              <Upload size={16} className="inline mr-2" />
-              Upload Files
-            </button>
-            <button
-              onClick={() => setUploadMode('url')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm transition-colors ${
-                uploadMode === 'url'
-                  ? 'bg-[#FDB813] text-black'
-                  : 'bg-transparent text-gray-400 hover:text-white'
-              }`}
-            >
-              <LinkIcon size={16} className="inline mr-2" />
-              Paste URLs
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
+        {/* Only file upload mode supported */}
         <div className="flex-1 overflow-y-auto p-4">
-          {uploadMode === 'url' ? (
-            /* URL Input Mode */
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-white">Image URLs</label>
-                <Button
-                  type="button"
-                  onClick={addUrlField}
-                  size="sm"
-                  className="h-8 px-3 bg-[#FDB813] hover:bg-[#e5a711] text-black text-xs"
-                >
-                  <Plus size={14} className="mr-1" />
-                  Add URL
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                {imageUrls.map((url, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={url}
-                        onChange={(e) => updateUrlField(index, e.target.value)}
-                        className="w-full px-3 py-2 pr-20 bg-[#2E2E2E] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent text-sm"
-                        placeholder={`Image URL ${imageUrls.length > 1 ? index + 1 : ''}`}
-                      />
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                        {url && (
-                          <button
-                            type="button"
-                            onClick={() => updateUrlField(index, '')}
-                            className="p-1 text-gray-400 hover:text-white transition-colors"
-                            title="Clear"
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                        {imageUrls.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeUrlField(index)}
-                            className="p-1 text-red-400 hover:text-red-300 transition-colors"
-                            title="Remove field"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {url && (
-                      <div className="aspect-video bg-[#2E2E2E] rounded overflow-hidden border border-gray-700">
-                        <img
-                          src={url}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23333" width="400" height="300"/%3E%3Ctext fill="%23666" font-family="sans-serif" font-size="20" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EInvalid Image URL%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : uploadedImages.length === 0 ? (
+          {uploadedImages.length === 0 ? (
             <label
               className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
                 isDragging
@@ -537,17 +422,11 @@ export function MultipleImageUpload({
         {/* Footer */}
         <div className="flex items-center justify-between gap-4 p-4 border-t border-gray-700">
           <div className="text-sm text-gray-400">
-            {uploadMode === 'url' ? (
-              imageUrls.filter(u => u.trim() !== '').length > 0 && (
-                <span>{imageUrls.filter(u => u.trim() !== '').length} URL(s) added</span>
-              )
-            ) : (
-              uploadedImages.length > 0 && (
-                <>
-                  {completedCount} of {uploadedImages.length} images ready
-                  {errorCount > 0 && <span className="text-red-400 ml-2">({errorCount} failed)</span>}
-                </>
-              )
+            {uploadedImages.length > 0 && (
+              <>
+                {completedCount} of {uploadedImages.length} images ready
+                {errorCount > 0 && <span className="text-red-400 ml-2">({errorCount} failed)</span>}
+              </>
             )}
           </div>
           <div className="flex gap-2">
@@ -559,24 +438,11 @@ export function MultipleImageUpload({
             </Button>
             <Button
               onClick={handleComplete}
-              disabled={
-                uploadMode === 'url' 
-                  ? imageUrls.filter(u => u.trim() !== '').length === 0
-                  : completedCount === 0 || isProcessing
-              }
+              disabled={completedCount === 0 || isProcessing}
               className="bg-[#FDB813] hover:bg-[#e5a610] text-black"
             >
-              {uploadMode === 'url' ? (
-                <>
-                  <LinkIcon size={16} className="mr-2" />
-                  Add {imageUrls.filter(u => u.trim() !== '').length} Image{imageUrls.filter(u => u.trim() !== '').length !== 1 ? 's' : ''}
-                </>
-              ) : (
-                <>
-                  <Upload size={16} className="mr-2" />
-                  Add {completedCount} Image{completedCount !== 1 ? 's' : ''}
-                </>
-              )}
+              <Upload size={16} className="mr-2" />
+              Add {completedCount} Image{completedCount !== 1 ? 's' : ''}
             </Button>
           </div>
         </div>

@@ -26,6 +26,7 @@ interface FileUploadProps {
   acceptedFormats?: string[];
   acceptedExtensions?: string[];
   label?: string;
+  uploadPath?: string;
 }
 
 export function FileUpload({ 
@@ -36,6 +37,7 @@ export function FileUpload({
   acceptedFormats = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
   acceptedExtensions = ['.pdf', '.doc', '.docx'],
   label = 'Click to upload file'
+  , uploadPath = 'resources/files'
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [fileInfo, setFileInfo] = useState<{ name: string; size: number; url: string } | null>(
@@ -69,28 +71,36 @@ export function FileUpload({
 
       setUploading(true);
 
-      // Convert file to data URL for storage (no backend)
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        
-        setFileInfo({
-          name: file.name,
-          size: file.size,
-          url: dataUrl
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('pathPrefix', uploadPath);
+
+        const resp = await fetch('/api/admin/upload/file', {
+          method: 'POST',
+          body: fd
         });
-        
-        onUploadComplete(dataUrl, file.name);
-        setError('Note: File preview only. No backend storage configured.');
+
+        if (!resp.ok) {
+          const txt = await resp.text();
+          throw new Error(txt || 'Upload failed');
+        }
+
+        const json = await resp.json();
+        if (!json?.success || !json?.url) {
+          throw new Error(json?.error || 'Upload failed');
+        }
+
+        const blobUrl = json.url as string;
+        setFileInfo({ name: file.name, size: file.size, url: blobUrl });
+        onUploadComplete(blobUrl, file.name);
+        setError(null);
+      } catch (err: any) {
+        console.error('Upload error:', err);
+        setError('Failed to upload file.');
+      } finally {
         setUploading(false);
-      };
-      
-      reader.onerror = () => {
-        setError('Failed to read file');
-        setUploading(false);
-      };
-      
-      reader.readAsDataURL(file);
+      }
 
     } catch (error) {
       console.error('Error processing file:', error);

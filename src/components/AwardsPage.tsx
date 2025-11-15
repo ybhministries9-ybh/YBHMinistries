@@ -118,21 +118,21 @@ export function AwardsPage() {
       <button
         className="px-4 py-2 bg-[#FDB813] text-black font-bold rounded-md hover:bg-opacity-80 transition-all duration-300"
         style={{ cursor: 'pointer' }}
-        onClick={() => console.log('View pictures:', id)}
+        onClick={() => handleViewPictures(id)}
       >
         View Pictures
       </button>
       <button
         className="px-4 py-2 bg-[#FDB813] text-black font-bold rounded-md hover:bg-opacity-80 transition-all duration-300"
         style={{ cursor: 'pointer' }}
-        onClick={() => console.log('View videos:', id)}
+        onClick={() => handleViewVideos(id)}
       >
         View Videos
       </button>
       <button
         className="px-4 py-2 bg-[#FDB813] text-black font-bold rounded-md hover:bg-opacity-80 transition-all duration-300"
         style={{ cursor: 'pointer' }}
-        onClick={() => console.log('View stories:', id)}
+        onClick={() => handleViewStories(id)}
       >
         View Stories
       </button>

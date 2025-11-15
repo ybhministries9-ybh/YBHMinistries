@@ -243,11 +243,11 @@ export function EventsManager() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <h3 className="text-white font-semibold text-lg">{event.title}</h3>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        event.published ? 'bg-green-900 text-green-300' : 'bg-gray-700 text-gray-300'
-                      }`}>
-                        {event.published ? 'Published' : 'Draft'}
-                      </span>
+                      {event.published ? (
+                        <span className="px-2 py-1 rounded text-xs bg-green-900 text-green-300">Published</span>
+                      ) : (
+                        <span className="px-3 py-1 rounded text-xs bg-[#FDB813] text-black">Draft</span>
+                      )}
                       <span className="px-2 py-1 rounded text-xs bg-[#2E2E2E] text-gray-300">
                         {event.type}
                       </span>
