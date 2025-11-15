@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Edit2, Book, Video, Music, FileText, ShoppingCart, Youtube, Calendar, Clock, Image as ImageIcon, Upload, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, Plus, Trash2, Edit, Book, Video, Music, FileText, ShoppingCart, Youtube, Calendar, Clock, Image as ImageIcon, Upload, X, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
+import { fetchYouTubeTitle } from '../../lib/youtube';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -8,6 +9,60 @@ import { ImageUpload } from './ImageUpload';
 import { MultipleImageUpload } from './MultipleImageUpload';
 import { FileUpload } from './FileUpload';
 import { toast } from 'sonner';
+
+// Validation limits (shared between managers)
+const TITLE_MAX = 150;
+const AUTHOR_MAX = 100;
+const DESCRIPTION_MAX = 2000;
+const LANGUAGE_MAX = 50;
+const PAGES_MIN = 0;
+const PAGES_MAX = 1000;
+const PRICE_MIN = 0;
+const PRICE_MAX = 10000;
+
+// Helper to format dates in admin lists (returns empty string for invalid values)
+const formatAdminDate = (dateInput: any) => {
+  if (!dateInput && dateInput !== 0) return '';
+  let date: Date;
+  if (dateInput instanceof Date) date = dateInput;
+  else if (typeof dateInput === 'number') date = new Date(dateInput);
+  else date = new Date(String(dateInput));
+  if (isNaN(date.getTime())) return '';
+  try {
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
+  } catch (err) {
+    return '';
+  }
+};
+
+// Normalize a date value to an HTML date input value (YYYY-MM-DD) or empty string
+const toDateInputValue = (dateInput: any) => {
+  if (!dateInput && dateInput !== 0) return '';
+  try {
+    // If already a Date
+    if (dateInput instanceof Date) return dateInput.toISOString().split('T')[0];
+    const s = String(dateInput).trim();
+    if (!s) return '';
+    // If contains YYYY-MM-DD, use that
+    const match = s.match(/(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+    // Try Date parse
+    const dt = new Date(s);
+    if (!isNaN(dt.getTime())) return dt.toISOString().split('T')[0];
+  } catch (err) {
+    // ignore
+  }
+  return '';
+};
+
+// Pick first non-empty value from args
+const pickFirst = (...vals: any[]) => {
+  for (const v of vals) {
+    if (v === 0) return v;
+    if (v) return v;
+  }
+  return null;
+};
 
 interface MusicBook {
   id: string;
@@ -19,29 +74,22 @@ interface MusicBook {
   coverImage: string;
   additionalImages: string[];
   description: string;
-  fullDescription: string;
   publishDate: string;
+  published?: boolean;
 }
 
 interface WorshipVideo {
   id: string;
-  title: string;
-  artist: string;
-  duration: string;
-  date: string;
   youtubeUrl: string;
-  description: string;
+  published?: boolean;
+  youtubeTitle?: string;
 }
 
 interface Sermon {
   id: string;
-  title: string;
-  speaker: string;
-  duration: string;
-  date: string;
-  thumbnailUrl: string;
   youtubeUrl: string;
-  description: string;
+  published?: boolean;
+  youtubeTitle?: string;
 }
 
 interface BibleStudy {
@@ -54,6 +102,7 @@ interface BibleStudy {
   fileUrl: string;
   thumbnailUrl: string;
   description: string;
+  published?: boolean;
 }
 
 type ResourceType = 'books' | 'worship' | 'sermons' | 'bible-studies';
@@ -61,12 +110,39 @@ type ResourceType = 'books' | 'worship' | 'sermons' | 'bible-studies';
 export function ResourceManager() {
   const [activeTab, setActiveTab] = useState<ResourceType>('books');
 
+  // Validation limits
+  // Validation limits (moved to module scope)
+
+  // Form errors: map resourceId -> { fieldName: message }
+  const [formErrors, setFormErrors] = useState<Record<string, Record<string, string>>>({});
+
+  const setFieldErrors = (id: string, errors: Record<string, string>) => {
+    setFormErrors(prev => ({ ...prev, [id]: { ...(prev[id] || {}), ...errors } }));
+  };
+
+  const clearFieldErrors = (id: string, fields?: string[]) => {
+    if (!id) return;
+    // field error clearing handled by parent ResourceManager
+    setFormErrors(prev => {
+      const copy = { ...prev };
+      if (!copy[id]) return prev;
+      if (!fields || fields.length === 0) {
+        delete copy[id];
+      } else {
+        for (const f of fields) delete copy[id][f];
+        if (Object.keys(copy[id]).length === 0) delete copy[id];
+      }
+      return copy;
+    });
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl text-white mb-2">Resources Management</h2>
+        <h2 className="text-3xl font-bold text-white mb-2">Resources Management</h2>
         <p className="text-gray-400">Manage all resource content for the website</p>
+        <p className="text-xs text-gray-400 mt-1">Fields marked <span className="text-red-400">*</span> are required.</p>
       </div>
 
       {/* Tab Navigation */}
@@ -100,51 +176,74 @@ export function ResourceManager() {
 
       {/* Tab Content */}
       <div className="mt-6">
-        {activeTab === 'books' && <MusicBooksManager />}
-        {activeTab === 'worship' && <WorshipVideosManager />}
-        {activeTab === 'sermons' && <SermonsManager />}
-        {activeTab === 'bible-studies' && <BibleStudiesManager />}
+        {activeTab === 'books' && <MusicBooksManager formErrors={formErrors} setFieldErrors={setFieldErrors} clearFieldErrors={clearFieldErrors} />}
+        {activeTab === 'worship' && <WorshipVideosManager formErrors={formErrors} setFieldErrors={setFieldErrors} clearFieldErrors={clearFieldErrors} />}
+        {activeTab === 'sermons' && <SermonsManager formErrors={formErrors} setFieldErrors={setFieldErrors} clearFieldErrors={clearFieldErrors} />}
+        {activeTab === 'bible-studies' && <BibleStudiesManager formErrors={formErrors} setFieldErrors={setFieldErrors} clearFieldErrors={clearFieldErrors} />}
       </div>
     </div>
   );
 }
 
 // Music Books Manager Sub-Component
-function MusicBooksManager() {
-  const [books, setBooks] = useState<MusicBook[]>([
-    {
-      id: '1',
-      title: 'Hallel Music School - Music Formula',
-      author: 'Ps. Augustine Dandingi',
-      price: 550,
-      pages: 48,
-      language: 'English',
-      coverImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-      additionalImages: [],
-      description: 'Comprehensive music theory and practical guide',
-      fullDescription: 'This comprehensive worship collection includes traditional and contemporary songs with complete musical chords and lyrics.',
-      publishDate: '2025'
-    }
-  ]);
+function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
+  const [books, setBooks] = useState<MusicBook[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<string | null>(null);
   const [expandedBook, setExpandedBook] = useState<string | null>(null);
   const [showAdditionalImagesUpload, setShowAdditionalImagesUpload] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch books from database
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  const fetchBooks = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/resources?type=books');
+      if (!response.ok) throw new Error('Failed to fetch books');
+      const data = await response.json();
+      
+      // Transform API response to match component interface
+      const transformedBooks = (data.data || []).map((book: any) => ({
+        id: book.id.toString(),
+        title: book.title || '',
+        author: book.author || '',
+        price: book.price || 0,
+        pages: book.pages || 0,
+        language: book.language || 'English',
+        coverImage: book.cover_image || '',
+        additionalImages: book.additional_images || [],
+        description: book.description || '',
+        publishDate: book.publish_date || '',
+        published: book.published === true || book.published === 't' || false
+      }));
+      
+      setBooks(transformedBooks);
+    } catch (error) {
+      console.error('Error fetching books:', error);
+      toast.error('Failed to load books');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAdd = () => {
     const newBook: MusicBook = {
-      id: Date.now().toString(),
+      id: 'new-' + Date.now().toString(),
       title: '',
       author: '',
-      price: 0,
-      pages: 0,
+      price: undefined,
+      pages: undefined,
       language: 'English',
       coverImage: '',
       additionalImages: [],
       description: '',
-      fullDescription: '',
-      publishDate: new Date().getFullYear().toString()
+      publishDate: '',
+      published: false
     };
     setBooks([newBook, ...books]);
     setEditingId(newBook.id);
@@ -153,6 +252,77 @@ function MusicBooksManager() {
 
   const handleUpdate = (id: string, updates: Partial<MusicBook>) => {
     setBooks(books.map(b => b.id === id ? { ...b, ...updates } : b));
+    // field error clearing handled by parent ResourceManager
+  };
+
+  const togglePublished = async (id: string) => {
+    const book = books.find(b => b.id === id);
+    if (!book) return;
+
+    const newPublished = !book.published;
+
+    // Optimistic UI update
+    handleUpdate(id, { published: newPublished });
+
+    // If it's a new unsaved book, just update locally
+    if (id.startsWith('new-')) {
+      toast.success(newPublished ? 'Marked as published' : 'Marked as draft');
+      return;
+    }
+
+    try {
+      const currentUser = 'admin';
+      const body: any = {
+        type: 'books',
+        id,
+        title: book.title,
+        author: book.author,
+        price: Number(book.price),
+        pages: Number(book.pages),
+        language: book.language,
+        cover_image: book.coverImage,
+        additional_images: book.additionalImages,
+        description: book.description,
+        publish_date: book.publishDate,
+        published: newPublished,
+        updated_by: currentUser
+      };
+
+      const response = await fetch(`/api/admin/resources?type=books&id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to update published state');
+      }
+
+      const result = await response.json();
+
+      const updated = {
+        id: result.data.id.toString(),
+        title: result.data.title || '',
+        author: result.data.author || '',
+        price: result.data.price || 0,
+        pages: result.data.pages || 0,
+        language: result.data.language || 'English',
+        coverImage: result.data.cover_image || '',
+        additionalImages: result.data.additional_images || [],
+        description: result.data.description || '',
+        publishDate: result.data.publish_date || '',
+        published: result.data.published === true || result.data.published === 't' || false
+      } as MusicBook;
+
+      setBooks(books.map(b => b.id === id ? updated : b));
+      toast.success(newPublished ? 'Book published' : 'Book unpublished');
+    } catch (error) {
+      console.error('Error toggling published:', error);
+      // Revert optimistic update
+      handleUpdate(id, { published: !newPublished });
+      toast.error('Failed to update published state');
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -160,18 +330,137 @@ function MusicBooksManager() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (bookToDelete) {
-      setBooks(books.filter(b => b.id !== bookToDelete));
-      toast.success('Book deleted successfully');
+      try {
+        // If it's a new unsaved book, uploaded blobs exist but DB row doesn't.
+        // Call admin blob-delete API to remove uploaded files (cover + additional images).
+        if (bookToDelete.startsWith('new-')) {
+          const book = books.find(b => b.id === bookToDelete);
+          const urls: string[] = [];
+          if (book) {
+            if (book.coverImage) urls.push(book.coverImage);
+            if (Array.isArray(book.additionalImages) && book.additionalImages.length) {
+              urls.push(...book.additionalImages.filter(Boolean));
+            }
+          }
+
+          if (urls.length) {
+            try {
+              await fetch('/api/admin/blob', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ urls })
+              });
+            } catch (blobErr) {
+              console.error('Failed to clean up uploaded blobs for cancelled book:', blobErr);
+            }
+          }
+        } else {
+          // Only delete from DB if it's not a new unsaved book
+          const response = await fetch(`/api/admin/resources?type=books&id=${bookToDelete}`, {
+            method: 'DELETE'
+          });
+          if (!response.ok) throw new Error('Failed to delete book');
+        }
+
+        setBooks(books.filter(b => b.id !== bookToDelete));
+        toast.success('Book deleted successfully');
+      } catch (error) {
+        console.error('Error deleting book:', error);
+        toast.error('Failed to delete book');
+      }
       setBookToDelete(null);
     }
     setDeleteDialogOpen(false);
   };
 
-  const handleSave = (id: string) => {
-    setEditingId(null);
-    toast.success('Book saved successfully');
+  const handleSave = async (id: string) => {
+    const book = books.find(b => b.id === id);
+    if (!book) return;
+
+    // Validate required fields and build per-field errors
+    const fieldErrors: Record<string, string> = {};
+    if (!book.title || book.title.trim().length === 0) fieldErrors.title = 'Title is required';
+    else if (book.title.length > TITLE_MAX) fieldErrors.title = `Title must be at most ${TITLE_MAX} characters`;
+
+    if (!book.author || book.author.trim().length === 0) fieldErrors.author = 'Author is required';
+    else if (book.author.length > AUTHOR_MAX) fieldErrors.author = `Author must be at most ${AUTHOR_MAX} characters`;
+
+    if (!book.language || book.language.trim().length === 0) fieldErrors.language = 'Language is required';
+    else if (book.language.length > LANGUAGE_MAX) fieldErrors.language = `Language must be at most ${LANGUAGE_MAX} characters`;
+
+    if (!book.coverImage) fieldErrors.coverImage = 'Cover image is required';
+
+    if (!book.publishDate || book.publishDate.trim().length === 0) fieldErrors.publishDate = 'Publish date is required';
+
+    const priceNum = Number(book.price);
+    if (isNaN(priceNum)) fieldErrors.price = 'Price is required';
+    else if (priceNum < PRICE_MIN || priceNum > PRICE_MAX) fieldErrors.price = `Price must be between ${PRICE_MIN} and ${PRICE_MAX}`;
+
+    const pagesNum = Number(book.pages);
+    if (isNaN(pagesNum)) fieldErrors.pages = 'Pages is required';
+    else if (pagesNum < PAGES_MIN || pagesNum > PAGES_MAX) fieldErrors.pages = `Pages must be between ${PAGES_MIN} and ${PAGES_MAX}`;
+
+    if (book.description && book.description.length > DESCRIPTION_MAX) fieldErrors.description = `Description must be at most ${DESCRIPTION_MAX} characters`;
+
+    if (Object.keys(fieldErrors).length > 0) {
+      setFieldErrors(id, fieldErrors);
+      return;
+    }
+
+    try {
+      const isNew = id.startsWith('new-');
+      const method = isNew ? 'POST' : 'PUT';
+      const currentUser = 'admin'; // TODO: Replace with actual user from auth context
+      // Always include type in body
+      const body: any = {
+        type: 'books',
+        title: book.title,
+        author: book.author,
+        price: Number(book.price),
+        pages: Number(book.pages),
+        language: book.language,
+        cover_image: book.coverImage,
+        additional_images: book.additionalImages,
+        description: book.description,
+        publish_date: book.publishDate,
+        published: book.published === true ? true : false,
+      };
+      if (isNew) {
+        body.created_by = currentUser;
+      } else {
+        body.id = id;
+        body.updated_by = currentUser;
+      }
+
+      const url = isNew ? `/api/admin/resources?type=books` : `/api/admin/resources?type=books&id=${id}`;
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to save book');
+      }
+
+      const result = await response.json();
+
+      // Update local state with the saved book (includes DB id)
+      if (isNew) {
+        setBooks(books.map(b => b.id === id ? { ...b, id: result.data.id.toString() } : b));
+      }
+
+      // Clear any field errors and finish
+      clearFieldErrors(id);
+      setEditingId(null);
+      toast.success('Book saved successfully');
+    } catch (error) {
+      console.error('Error saving book:', error);
+      toast.error('Failed to save book: ' + (error?.message || 'Unknown error'));
+    }
   };
 
   return (
@@ -189,9 +478,7 @@ function MusicBooksManager() {
           Add Music Book
         </Button>
       </div>
-
-      {/* Books List */}
-      {books.length === 0 ? (
+      {loading ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
           <Book size={48} className="mx-auto mb-4 text-gray-600" />
           <p className="text-gray-400">No music books yet. Click "Add Music Book" to create one.</p>
@@ -208,12 +495,22 @@ function MusicBooksManager() {
                 <div className="p-4 flex items-start justify-between">
                   <div className="flex-1">
                     {isEditing ? (
-                      <Input
-                        value={book.title}
-                        onChange={(e) => handleUpdate(book.id, { title: e.target.value })}
-                        placeholder="Book Title"
-                        className="bg-black border-gray-600 text-white text-lg mb-2"
-                      />
+                      <div>
+                        <Input
+                          id={`field-${book.id}-title`}
+                          value={book.title}
+                          onChange={(e) => handleUpdate(book.id, { title: e.target.value })}
+                          placeholder="Book Title"
+                          className="bg-black border-gray-600 text-white text-lg mb-2"
+                          maxLength={TITLE_MAX}
+                          aria-invalid={!!formErrors[book.id]?.title}
+                          aria-describedby={formErrors[book.id]?.title ? `error-${book.id}-title` : undefined}
+                        />
+                        <div className="text-xs text-gray-400">{book.title?.length || 0}/{TITLE_MAX} characters</div>
+                        {isEditing && formErrors[book.id]?.title && (
+                          <div id={`error-${book.id}-title`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].title}</div>
+                        )}
+                      </div>
                     ) : (
                       <h3 className="text-white text-lg mb-1">{book.title || 'Untitled Book'}</h3>
                     )}
@@ -224,6 +521,12 @@ function MusicBooksManager() {
                       <span className="px-2 py-0.5 bg-[#FDB813] bg-opacity-20 text-black rounded">
                         {book.language}
                       </span>
+                      {/* Published / Draft status badge (header only) */}
+                      {book.published ? (
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">Published</span>
+                      ) : (
+                        <span className="ml-2 inline-block text-xs font-semibold px-3 py-1 rounded bg-[#FDB813] text-black">Draft</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -261,16 +564,25 @@ function MusicBooksManager() {
                     ) : (
                       <>
                         <Button
+                          onClick={() => togglePublished(book.id)}
+                          size="sm"
+                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600"
+                          title={book.published ? 'Unpublish' : 'Publish'}
+                        >
+                          {book.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                        </Button>
+                        <Button
                           onClick={() => setEditingId(book.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-[#FDB813] border border-[#FDB813]"
+                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2"
                         >
-                          <Edit2 size={14} />
+                          <Edit size={14} />
+                          <span>Edit</span>
                         </Button>
                         <Button
                           onClick={() => handleDelete(book.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-red-500 border border-red-500"
+                          className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2"
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -284,112 +596,164 @@ function MusicBooksManager() {
                   <div className="px-4 pb-4 space-y-4 border-t border-gray-700 pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-white mb-1 block">Author</label>
-                        <Input
-                          value={book.author}
-                          onChange={(e) => handleUpdate(book.id, { author: e.target.value })}
-                          placeholder="Author Name"
-                          className="bg-black border-gray-600 text-white"
-                          disabled={!isEditing}
-                        />
+                          <label className="text-sm text-white mb-1 block">Author <span className="text-red-400">*</span></label>
+                          <Input
+                            id={`field-${book.id}-author`}
+                            value={book.author}
+                            onChange={(e) => handleUpdate(book.id, { author: e.target.value })}
+                            placeholder="Author Name"
+                            className="bg-black border-gray-600 text-white"
+                            disabled={!isEditing}
+                            maxLength={AUTHOR_MAX}
+                            aria-invalid={!!formErrors[book.id]?.author}
+                            aria-describedby={formErrors[book.id]?.author ? `error-${book.id}-author` : undefined}
+                          />
+                          {isEditing && <div className="text-xs text-gray-400">{book.author?.length || 0}/{AUTHOR_MAX} characters</div>}
+                          {isEditing && formErrors[book.id]?.author && (
+                            <div id={`error-${book.id}-author`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].author}</div>
+                          )}
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Language</label>
+                        <label className="text-sm text-white mb-1 block">Language <span className="text-red-400">*</span></label>
                         <Input
+                          id={`field-${book.id}-language`}
                           value={book.language}
                           onChange={(e) => handleUpdate(book.id, { language: e.target.value })}
                           placeholder="Language"
                           className="bg-black border-gray-600 text-white"
                           disabled={!isEditing}
+                          maxLength={LANGUAGE_MAX}
+                          aria-invalid={!!formErrors[book.id]?.language}
+                          aria-describedby={formErrors[book.id]?.language ? `error-${book.id}-language` : undefined}
                         />
+                        {isEditing && <div className="text-xs text-gray-400">Max {LANGUAGE_MAX} characters</div>}
+                        {isEditing && formErrors[book.id]?.language && (
+                          <div id={`error-${book.id}-language`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].language}</div>
+                        )}
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Price (₹)</label>
+                        <label className="text-sm text-white mb-1 block">Price (₹) <span className="text-red-400">*</span></label>
                         <Input
+                          id={`field-${book.id}-price`}
                           type="number"
-                          value={book.price}
-                          onChange={(e) => handleUpdate(book.id, { price: parseFloat(e.target.value) })}
-                          placeholder="Price"
+                          value={book.price === undefined ? '' : book.price}
+                          onChange={(e) => handleUpdate(book.id, { price: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                          placeholder="Price (₹)"
                           className="bg-black border-gray-600 text-white"
                           disabled={!isEditing}
+                          min={PRICE_MIN}
+                          max={PRICE_MAX}
+                          step={0.01}
+                          aria-invalid={!!formErrors[book.id]?.price}
+                          aria-describedby={formErrors[book.id]?.price ? `error-${book.id}-price` : undefined}
                         />
+                        {isEditing && <div className="text-xs text-gray-400">Min ₹{PRICE_MIN} — Max ₹{PRICE_MAX}</div>}
+                        {isEditing && formErrors[book.id]?.price && (
+                          <div id={`error-${book.id}-price`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].price}</div>
+                        )}
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Pages</label>
+                        <label className="text-sm text-white mb-1 block">Pages <span className="text-red-400">*</span></label>
                         <Input
+                          id={`field-${book.id}-pages`}
                           type="number"
-                          value={book.pages}
-                          onChange={(e) => handleUpdate(book.id, { pages: parseInt(e.target.value) })}
+                          value={book.pages === undefined ? '' : book.pages}
+                          onChange={(e) => handleUpdate(book.id, { pages: e.target.value === '' ? undefined : parseInt(e.target.value) })}
                           placeholder="Number of Pages"
                           className="bg-black border-gray-600 text-white"
                           disabled={!isEditing}
+                          min={PAGES_MIN}
+                          max={PAGES_MAX}
+                          aria-invalid={!!formErrors[book.id]?.pages}
+                          aria-describedby={formErrors[book.id]?.pages ? `error-${book.id}-pages` : undefined}
                         />
+                        {isEditing && <div className="text-xs text-gray-400">Min {PAGES_MIN} — Max {PAGES_MAX} pages</div>}
+                        {isEditing && formErrors[book.id]?.pages && (
+                          <div id={`error-${book.id}-pages`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].pages}</div>
+                        )}
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Publish Date</label>
+                        <label className="text-sm text-white mb-1 block">Publish Date <span className="text-red-400">*</span></label>
                         <Input
+                          id={`field-${book.id}-publishDate`}
+                          type="date"
                           value={book.publishDate}
                           onChange={(e) => handleUpdate(book.id, { publishDate: e.target.value })}
-                          placeholder="Year"
+                          placeholder="Publish Date"
                           className="bg-black border-gray-600 text-white"
                           disabled={!isEditing}
+                          aria-invalid={!!formErrors[book.id]?.publishDate}
+                          aria-describedby={formErrors[book.id]?.publishDate ? `error-${book.id}-publishDate` : undefined}
                         />
+                        {isEditing && formErrors[book.id]?.publishDate && (
+                          <div id={`error-${book.id}-publishDate`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].publishDate}</div>
+                        )}
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Short Description</label>
+                      <label className="text-sm text-white mb-1 block">Description <span className="text-gray-400 text-xs">(optional)</span></label>
                       <Textarea
                         value={book.description}
                         onChange={(e) => handleUpdate(book.id, { description: e.target.value })}
-                        placeholder="Brief description for card view"
-                        className="bg-black border-gray-600 text-white"
-                        rows={2}
-                        disabled={!isEditing}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-white mb-1 block">Full Description</label>
-                      <Textarea
-                        value={book.fullDescription}
-                        onChange={(e) => handleUpdate(book.id, { fullDescription: e.target.value })}
-                        placeholder="Detailed description for detail view"
+                        placeholder="Book description"
                         className="bg-black border-gray-600 text-white"
                         rows={3}
                         disabled={!isEditing}
+                        maxLength={DESCRIPTION_MAX}
                       />
+                      {isEditing && <div className="text-xs text-gray-400">{book.description?.length || 0}/{DESCRIPTION_MAX} characters</div>}
+                      {isEditing && formErrors[book.id]?.description && (
+                        <div id={`error-${book.id}-description`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].description}</div>
+                      )}
+                    </div>
+
+                    {/* Move Published checkbox to the end of the form, left aligned */}
+                    <div className="mt-4">
+                      <div className="flex items-center mb-2">
+                        <input
+                          type="checkbox"
+                          checked={book.published === true}
+                          onChange={e => handleUpdate(book.id, { published: e.target.checked })}
+                          className="form-checkbox h-4 w-4 text-[#FDB813] border-gray-600 rounded focus:ring-[#FDB813] mr-2"
+                          disabled={!isEditing}
+                          aria-checked={book.published === true}
+                          aria-label="Published"
+                        />
+                        <span className="text-sm text-white">Published</span>
+                      </div>
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-2 block">Cover Image</label>
+                      <label className="text-sm text-white mb-2 block">Cover Image <span className="text-red-400">*</span></label>
                       {isEditing ? (
-                        <div className="space-y-3">
-                          <ImageUpload
-                            bucket="book-covers"
-                            onUploadComplete={(url) => handleUpdate(book.id, { coverImage: url })}
-                            currentImage={book.coverImage}
-                            imageType="gallery"
-                          />
-                          <div className="text-xs text-gray-500 text-center">OR</div>
-                          <Input
-                            value={book.coverImage}
-                            onChange={(e) => handleUpdate(book.id, { coverImage: e.target.value })}
-                            placeholder="Enter image URL manually"
-                            className="bg-black border-gray-600 text-white"
-                          />
-                        </div>
+                        <>
+                          <div className="space-y-3">
+                            <ImageUpload
+                              bucket={`resources/books/${book.id}`}
+                              onUploadComplete={(url) => handleUpdate(book.id, { coverImage: url })}
+                              currentImage={book.coverImage}
+                              imageType="gallery"
+                            />
+                            {/* Manual image URL input removed as requested */}
+                          </div>
+                          {formErrors[book.id]?.coverImage && (
+                            <div id={`error-${book.id}-coverImage`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].coverImage}</div>
+                          )}
+                        </>
                       ) : (
                         book.coverImage && (
                           <div className="mt-2">
-                            <img
-                              src={book.coverImage}
-                              alt="Cover preview"
-                              className="w-full h-48 object-cover rounded border border-gray-600"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
+                            {book.coverImage ? (
+                              <img
+                                src={book.coverImage || undefined}
+                                alt="Cover preview"
+                                className="w-full h-48 object-cover rounded border border-gray-600"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : null}
                           </div>
                         )
                       )}
@@ -407,34 +771,23 @@ function MusicBooksManager() {
                             <Upload size={16} className="mr-2" />
                             Upload Multiple Images
                           </Button>
-                          <div className="text-xs text-gray-500 text-center">OR</div>
-                          <div className="text-xs text-gray-500 mb-2">
-                            Enter image URLs separated by commas
-                          </div>
-                          <Textarea
-                            value={book.additionalImages.join(', ')}
-                            onChange={(e) => {
-                              const urls = e.target.value.split(',').map(url => url.trim()).filter(Boolean);
-                              handleUpdate(book.id, { additionalImages: urls });
-                            }}
-                            placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-                            className="bg-black border-gray-600 text-white"
-                            rows={3}
-                          />
+                          {/* Additional image URLs text area removed as requested */}
                         </div>
                       )}
                       {book.additionalImages.length > 0 && (
                         <div className="mt-3 grid grid-cols-4 md:grid-cols-6 gap-2">
                           {book.additionalImages.map((url, index) => (
                             <div key={index} className="relative group">
-                              <img
-                                src={url}
-                                alt={`Additional ${index + 1}`}
-                                className="w-full h-20 object-cover rounded border border-gray-600"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
+                              {url ? (
+                                <img
+                                  src={url || undefined}
+                                  alt={`Additional ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded border border-gray-600"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              ) : null}
                               {isEditing && (
                                 <button
                                   onClick={() => {
@@ -482,7 +835,7 @@ function MusicBooksManager() {
             setShowAdditionalImagesUpload(null);
           }}
           onClose={() => setShowAdditionalImagesUpload(null)}
-          category="book-gallery"
+          category={showAdditionalImagesUpload ? `resources/books/${showAdditionalImagesUpload}` : 'resources/books'}
         />
       )}
     </div>
@@ -490,38 +843,106 @@ function MusicBooksManager() {
 }
 
 // Worship Videos Manager Sub-Component
-function WorshipVideosManager() {
-  const [videos, setVideos] = useState<WorshipVideo[]>([
-    {
-      id: '1',
-      title: 'Shuddha Hrudayam',
-      artist: 'Ps. Augustine Dandingi',
-      duration: '7:20',
-      date: '2020-08-08',
-      youtubeUrl: 'https://youtu.be/ViZtowhZGY4',
-      description: 'Beautiful worship song'
-    }
-  ]);
+function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
+  const [videos, setVideos] = useState<WorshipVideo[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
+
+  const fetchVideos = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/resources?type=worship');
+      if (!response.ok) throw new Error('Failed to fetch worship videos');
+      const data = await response.json();
+      
+      // Transform API response to match component interface
+      const transformedVideos = (data.data || []).map((video: any) => ({
+        id: video.id.toString(),
+        // artist removed from DB; will use YouTube metadata when available
+        youtubeUrl: video.youtube_url || '',
+        published: video.published === true || video.published === 't' || false,
+        youtubeTitle: ''
+      }));
+
+      // Fetch YouTube titles for each video (concurrent)
+      const withTitles = await Promise.all(transformedVideos.map(async (v) => {
+        try {
+          const title = await fetchYouTubeTitle(v.youtubeUrl);
+          return { ...v, youtubeTitle: title || '' };
+        } catch (e) {
+          return v;
+        }
+      }));
+
+      setVideos(withTitles);
+    } catch (error) {
+      console.error('Error fetching worship videos:', error);
+      toast.error('Failed to load worship videos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const togglePublishedVideo = async (id: string) => {
+    const video = videos.find(v => v.id === id);
+    if (!video) return;
+    const newPublished = !video.published;
+    // optimistic
+    handleUpdate(video.id, { published: newPublished });
+
+    if (id.startsWith('new-')) {
+      toast.success(newPublished ? 'Marked as published' : 'Marked as draft');
+      return;
+    }
+
+    try {
+      const currentUser = 'admin';
+      const body = {
+        type: 'worship',
+        id,
+        youtube_url: video.youtubeUrl,
+        published: newPublished,
+        updated_by: currentUser
+      };
+
+      const res = await fetch(`/api/admin/resources?type=worship&id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) throw new Error('Failed to update');
+      const json = await res.json();
+      const d = json.data;
+      handleUpdate(id, { published: d.published === true || d.published === 't' || false });
+      toast.success(newPublished ? 'Video published' : 'Video unpublished');
+    } catch (err) {
+      console.error(err);
+      handleUpdate(id, { published: !newPublished });
+      toast.error('Failed to update published state');
+    }
+  };
 
   const handleAdd = () => {
-    const newVideo: WorshipVideo = {
-      id: Date.now().toString(),
-      title: '',
-      artist: '',
-      duration: '',
-      date: new Date().toISOString().split('T')[0],
-      youtubeUrl: '',
-      description: ''
-    };
+      const newVideo: WorshipVideo = {
+        id: 'new-' + Date.now().toString(),
+        youtubeUrl: '',
+        youtubeTitle: ''
+      };
     setVideos([newVideo, ...videos]);
     setEditingId(newVideo.id);
   };
 
   const handleUpdate = (id: string, updates: Partial<WorshipVideo>) => {
     setVideos(videos.map(v => v.id === id ? { ...v, ...updates } : v));
+    const fields = Object.keys(updates || {});
+    if (fields.length) clearFieldErrors(id, fields as string[]);
   };
 
   const handleDelete = (id: string) => {
@@ -529,18 +950,72 @@ function WorshipVideosManager() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (videoToDelete) {
-      setVideos(videos.filter(v => v.id !== videoToDelete));
-      toast.success('Worship video deleted successfully');
+      try {
+        if (!videoToDelete.startsWith('new-')) {
+              const response = await fetch(`/api/admin/resources?type=worship&id=${videoToDelete}`, {
+                method: 'DELETE'
+              });
+          if (!response.ok) throw new Error('Failed to delete video');
+        }
+        setVideos(videos.filter(v => v.id !== videoToDelete));
+        toast.success('Worship video deleted successfully');
+      } catch (error) {
+        console.error('Error deleting video:', error);
+        toast.error('Failed to delete video');
+      }
       setVideoToDelete(null);
     }
     setDeleteDialogOpen(false);
   };
 
-  const handleSave = (id: string) => {
-    setEditingId(null);
-    toast.success('Worship video saved successfully');
+  const handleSave = async (id: string) => {
+    const video = videos.find(v => v.id === id);
+    if (!video) return;
+
+    try {
+      // Validate fields for worship video
+      const fieldErrors: Record<string, string> = {};
+      if (!video.youtubeUrl || video.youtubeUrl.trim().length === 0) fieldErrors.youtubeUrl = 'YouTube URL is required';
+
+      if (Object.keys(fieldErrors).length > 0) {
+        setFieldErrors(id, fieldErrors);
+        return;
+      }
+
+      const isNew = id.startsWith('new-');
+      const method = isNew ? 'POST' : 'PUT';
+      const currentUser = 'admin'; // TODO: Replace with actual user from auth context
+      const body = {
+        type: 'worship',
+        ...(isNew ? {} : { id }),
+        youtube_url: video.youtubeUrl,
+        published: video.published === true,
+        ...(isNew ? { created_by: currentUser } : { updated_by: currentUser })
+      };
+
+      const url = isNew ? `/api/admin/resources?type=worship` : `/api/admin/resources?type=worship&id=${id}`;
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) throw new Error('Failed to save video');
+      
+      const result = await response.json();
+      
+      if (isNew) {
+        setVideos(videos.map(v => v.id === id ? { ...v, id: result.data.id.toString() } : v));
+      }
+      clearFieldErrors(id);
+      setEditingId(null);
+      toast.success('Worship video saved successfully');
+    } catch (error) {
+      console.error('Error saving video:', error);
+      toast.error('Failed to save video');
+    }
   };
 
   return (
@@ -558,7 +1033,12 @@ function WorshipVideosManager() {
         </Button>
       </div>
 
-      {videos.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
+          <Music size={48} className="mx-auto mb-4 text-gray-600 animate-pulse" />
+          <p className="text-gray-400">Loading videos...</p>
+        </div>
+      ) : videos.length === 0 ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
           <Music size={48} className="mx-auto mb-4 text-gray-600" />
           <p className="text-gray-400">No worship videos yet. Click "Add Worship Video" to create one.</p>
@@ -580,88 +1060,36 @@ function WorshipVideosManager() {
                   <div className="flex-1 space-y-3">
                     {isEditing ? (
                       <>
-                        <div>
-                          <label className="text-sm text-white mb-1.5 block">Video Title</label>
-                          <Input
-                            value={video.title}
-                            onChange={(e) => handleUpdate(video.id, { title: e.target.value })}
-                            placeholder="Enter video title"
-                            className="bg-black border-gray-600 text-white"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-sm text-white mb-1.5 block">Artist</label>
-                            <Input
-                              value={video.artist}
-                              onChange={(e) => handleUpdate(video.id, { artist: e.target.value })}
-                              placeholder="Artist name"
-                              className="bg-black border-gray-600 text-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm text-white mb-1.5 block">Duration</label>
-                            <Input
-                              value={video.duration}
-                              onChange={(e) => handleUpdate(video.id, { duration: e.target.value })}
-                              placeholder="e.g., 7:20"
-                              className="bg-black border-gray-600 text-white"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm text-white mb-1.5 block">Upload Date</label>
-                          <Input
-                            type="date"
-                            value={video.date}
-                            onChange={(e) => handleUpdate(video.id, { date: e.target.value })}
-                            className="bg-black border-gray-600 text-white"
-                          />
-                        </div>
+                        {/* Title is sourced from YouTube metadata; no artist input in admin */}
                         <div>
                           <label className="text-sm text-white mb-1.5 block">YouTube URL</label>
                           <Input
+                            id={`field-${video.id}-youtubeUrl`}
                             value={video.youtubeUrl}
                             onChange={(e) => handleUpdate(video.id, { youtubeUrl: e.target.value })}
                             placeholder="https://youtu.be/..."
                             className="bg-black border-gray-600 text-white"
+                            aria-invalid={!!formErrors[video.id]?.youtubeUrl}
+                            aria-describedby={formErrors[video.id]?.youtubeUrl ? `error-${video.id}-youtubeUrl` : undefined}
                           />
-                        </div>
-                        <div>
-                          <label className="text-sm text-white mb-1.5 block">Description</label>
-                          <Textarea
-                            value={video.description}
-                            onChange={(e) => handleUpdate(video.id, { description: e.target.value })}
-                            placeholder="Enter video description"
-                            className="bg-black border-gray-600 text-white"
-                            rows={2}
-                          />
+                          {isEditing && formErrors[video.id]?.youtubeUrl && (
+                            <div id={`error-${video.id}-youtubeUrl`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[video.id].youtubeUrl}</div>
+                          )}
                         </div>
                       </>
                     ) : (
                       <>
                         <div>
-                          <h3 className="text-white text-lg mb-1">{video.title || 'Untitled Video'}</h3>
-                          <div className="flex flex-wrap gap-3 text-sm text-gray-400">
-                            <span>Artist: {video.artist}</span>
-                            <span className="flex items-center gap-1">
-                              <Clock size={12} />
-                              {video.duration}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar size={12} />
-                              {video.date}
-                            </span>
-                          </div>
-                          {video.description && (
-                            <p className="text-gray-400 text-sm mt-2">{video.description}</p>
-                          )}
+                          <h3 className="text-white text-lg mb-1">{video.youtubeTitle || 'Untitled Video'}</h3>
+                            <div className="flex flex-wrap gap-3 text-sm text-gray-400">
+                              {/* artist removed — title is from YouTube metadata */}
+                            </div>
                         </div>
                       </>
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                    <div className="flex gap-2">
                     {isEditing ? (
                       <>
                         <Button
@@ -675,7 +1103,7 @@ function WorshipVideosManager() {
                           onClick={() => {
                             setEditingId(null);
                             // Remove the video if it's empty (newly added)
-                            if (!video.title && !video.youtubeUrl) {
+                            if (!video.youtubeUrl) {
                               setVideos(videos.filter(v => v.id !== video.id));
                             }
                           }}
@@ -689,16 +1117,25 @@ function WorshipVideosManager() {
                     ) : (
                       <>
                         <Button
+                          onClick={() => togglePublishedVideo(video.id)}
+                          size="sm"
+                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-md"
+                          title={video.published ? 'Unpublish' : 'Publish'}
+                        >
+                          {video.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                        </Button>
+                        <Button
                           onClick={() => setEditingId(video.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-[#FDB813] border border-[#FDB813]"
+                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2"
                         >
-                          <Edit2 size={14} />
+                          <Edit size={14} />
+                          <span>Edit</span>
                         </Button>
                         <Button
                           onClick={() => handleDelete(video.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-red-500 border border-red-500"
+                          className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2"
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -724,33 +1161,90 @@ function WorshipVideosManager() {
 }
 
 // Sermons Manager Sub-Component
-function SermonsManager() {
-  const [sermons, setSermons] = useState<Sermon[]>([
-    {
-      id: '1',
-      title: 'కుటుంబ ఆరాధనలోని శక్తి',
-      speaker: 'Ps. Augustine Dandingi',
-      duration: '1:00',
-      date: '2025-10-18',
-      thumbnailUrl: 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=400',
-      youtubeUrl: 'https://youtube.com/shorts/ArUfnNDkflQ',
-      description: 'కుటుంబ ఆరాధనలోని శక్తి'
-    }
-  ]);
+function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
+  const [sermons, setSermons] = useState<Sermon[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sermonToDelete, setSermonToDelete] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSermons();
+  }, []);
+
+  const fetchSermons = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/resources?type=sermons');
+      if (!response.ok) throw new Error('Failed to fetch sermons');
+      const data = await response.json();
+      
+      // Transform API response to match component interface
+      const transformedSermons = (data.data || []).map((sermon: any) => ({
+        id: sermon.id.toString(),
+        // speaker removed from DB; will use YouTube metadata when available
+        youtubeUrl: sermon.youtube_url || '',
+        published: sermon.published === true || sermon.published === 't' || false,
+        youtubeTitle: ''
+      }));
+
+      const withTitles = await Promise.all(transformedSermons.map(async (s) => {
+        try {
+          const title = await fetchYouTubeTitle(s.youtubeUrl);
+          return { ...s, youtubeTitle: title || '' };
+        } catch (e) {
+          return s;
+        }
+      }));
+
+      setSermons(withTitles);
+    } catch (error) {
+      console.error('Error fetching sermons:', error);
+      toast.error('Failed to load sermons');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const togglePublishedSermon = async (id: string) => {
+    const sermon = sermons.find(s => s.id === id);
+    if (!sermon) return;
+    const newPublished = !sermon.published;
+    handleUpdate(id, { published: newPublished });
+    if (id.startsWith('new-')) {
+      toast.success(newPublished ? 'Marked as published' : 'Marked as draft');
+      return;
+    }
+    try {
+      const currentUser = 'admin';
+      const body = {
+        type: 'sermons',
+        id,
+        youtube_url: sermon.youtubeUrl,
+        published: newPublished,
+        updated_by: currentUser
+      };
+
+      const res = await fetch(`/api/admin/resources?type=sermons&id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      const json = await res.json();
+      handleUpdate(id, { published: json.data.published === true || json.data.published === 't' || false });
+      toast.success(newPublished ? 'Sermon published' : 'Sermon unpublished');
+    } catch (err) {
+      console.error(err);
+      handleUpdate(id, { published: !newPublished });
+      toast.error('Failed to update published state');
+    }
+  };
 
   const handleAdd = () => {
     const newSermon: Sermon = {
-      id: Date.now().toString(),
-      title: '',
-      speaker: '',
-      duration: '',
-      date: new Date().toISOString().split('T')[0],
-      thumbnailUrl: '',
-      youtubeUrl: '',
-      description: ''
+      id: 'new-' + Date.now().toString(),
+      youtubeUrl: ''
     };
     setSermons([newSermon, ...sermons]);
     setEditingId(newSermon.id);
@@ -758,6 +1252,8 @@ function SermonsManager() {
 
   const handleUpdate = (id: string, updates: Partial<Sermon>) => {
     setSermons(sermons.map(s => s.id === id ? { ...s, ...updates } : s));
+    const fields = Object.keys(updates || {});
+    if (fields.length) clearFieldErrors(id, fields as string[]);
   };
 
   const handleDelete = (id: string) => {
@@ -765,18 +1261,72 @@ function SermonsManager() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (sermonToDelete) {
-      setSermons(sermons.filter(s => s.id !== sermonToDelete));
-      toast.success('Sermon deleted successfully');
+      try {
+        if (!sermonToDelete.startsWith('new-')) {
+          const response = await fetch(`/api/admin/resources?type=sermons&id=${encodeURIComponent(sermonToDelete)}`, {
+            method: 'DELETE'
+          });
+          if (!response.ok) throw new Error('Failed to delete sermon');
+        }
+        setSermons(sermons.filter(s => s.id !== sermonToDelete));
+        toast.success('Sermon deleted successfully');
+      } catch (error) {
+        console.error('Error deleting sermon:', error);
+        toast.error('Failed to delete sermon');
+      }
       setSermonToDelete(null);
     }
     setDeleteDialogOpen(false);
   };
 
-  const handleSave = (id: string) => {
-    setEditingId(null);
-    toast.success('Sermon saved successfully');
+  const handleSave = async (id: string) => {
+    const sermon = sermons.find(s => s.id === id);
+    if (!sermon) return;
+
+    try {
+      // Validate sermon fields (title is sourced from YouTube)
+      const fieldErrors: Record<string, string> = {};
+      if (!sermon.youtubeUrl || sermon.youtubeUrl.trim().length === 0) fieldErrors.youtubeUrl = 'YouTube URL is required';
+
+      if (Object.keys(fieldErrors).length > 0) {
+        setFieldErrors(id, fieldErrors);
+        return;
+      }
+
+      const isNew = id.startsWith('new-');
+      const method = isNew ? 'POST' : 'PUT';
+      const currentUser = 'admin'; // TODO: Replace with actual user from auth context
+      const body = {
+        type: 'sermons',
+        ...(isNew ? {} : { id }),
+        youtube_url: sermon.youtubeUrl,
+        published: true,
+        ...(isNew ? { created_by: currentUser } : { updated_by: currentUser })
+      };
+
+      const url = isNew ? `/api/admin/resources?type=sermons` : `/api/admin/resources?type=sermons&id=${id}`;
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) throw new Error('Failed to save sermon');
+      
+      const result = await response.json();
+      
+      if (isNew) {
+        setSermons(sermons.map(s => s.id === id ? { ...s, id: result.data.id.toString() } : s));
+      }
+      clearFieldErrors(id);
+      setEditingId(null);
+      toast.success('Sermon saved successfully');
+    } catch (error) {
+      console.error('Error saving sermon:', error);
+      toast.error('Failed to save sermon');
+    }
   };
 
   return (
@@ -794,7 +1344,12 @@ function SermonsManager() {
         </Button>
       </div>
 
-      {sermons.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
+          <Video size={48} className="mx-auto mb-4 text-gray-600 animate-pulse" />
+          <p className="text-gray-400">Loading sermons...</p>
+        </div>
+      ) : sermons.length === 0 ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
           <Video size={48} className="mx-auto mb-4 text-gray-600" />
           <p className="text-gray-400">No sermons yet. Click "Add Sermon" to create one.</p>
@@ -808,98 +1363,48 @@ function SermonsManager() {
               <div key={sermon.id} className="bg-black p-4 rounded-lg border border-gray-700">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
-                    {sermon.thumbnailUrl ? (
-                      <img
-                        src={sermon.thumbnailUrl}
-                        alt={sermon.title}
-                        className="w-32 h-20 object-cover rounded border border-gray-600"
-                      />
-                    ) : (
-                      <div className="w-32 h-20 bg-black rounded flex items-center justify-center border border-gray-600">
-                        <Video size={32} className="text-gray-600" />
-                      </div>
-                    )}
+                    <div className="w-32 h-20 bg-black rounded flex items-center justify-center border border-gray-600">
+                      <Youtube size={32} className="text-red-500" />
+                    </div>
                   </div>
 
                   <div className="flex-1 space-y-3">
                     {isEditing ? (
                       <>
-                        <div>
-                          <label className="text-sm text-white mb-1.5 block">Sermon Title</label>
-                          <Input
-                            value={sermon.title}
-                            onChange={(e) => handleUpdate(sermon.id, { title: e.target.value })}
-                            placeholder="Enter sermon title"
-                            className="bg-black border-gray-600 text-white"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-sm text-white mb-1.5 block">Speaker</label>
-                            <Input
-                              value={sermon.speaker}
-                              onChange={(e) => handleUpdate(sermon.id, { speaker: e.target.value })}
-                              placeholder="Speaker name"
-                              className="bg-black border-gray-600 text-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm text-white mb-1.5 block">Duration</label>
-                            <Input
-                              value={sermon.duration}
-                              onChange={(e) => handleUpdate(sermon.id, { duration: e.target.value })}
-                              placeholder="e.g., 1:00"
-                              className="bg-black border-gray-600 text-white"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm text-white mb-1.5 block">Date</label>
-                          <Input
-                            type="date"
-                            value={sermon.date}
-                            onChange={(e) => handleUpdate(sermon.id, { date: e.target.value })}
-                            className="bg-black border-gray-600 text-white"
-                          />
+                        {/* Title is sourced from YouTube metadata; no title input in admin */}
+                        <div className="grid grid-cols-1 gap-3">
+                          {/* Speaker removed from DB; title comes from YouTube metadata */}
                         </div>
                         <div>
                           <label className="text-sm text-white mb-1.5 block">YouTube URL</label>
                           <Input
+                            id={`field-${sermon.id}-youtubeUrl`}
                             value={sermon.youtubeUrl}
                             onChange={(e) => handleUpdate(sermon.id, { youtubeUrl: e.target.value })}
                             placeholder="https://youtu.be/..."
                             className="bg-black border-gray-600 text-white"
+                            aria-invalid={!!formErrors[sermon.id]?.youtubeUrl}
+                            aria-describedby={formErrors[sermon.id]?.youtubeUrl ? `error-${sermon.id}-youtubeUrl` : undefined}
                           />
-                        </div>
-                        <div>
-                          <label className="text-sm text-white mb-1.5 block">Description</label>
-                          <Textarea
-                            value={sermon.description}
-                            onChange={(e) => handleUpdate(sermon.id, { description: e.target.value })}
-                            placeholder="Enter sermon description"
-                            className="bg-black border-gray-600 text-white"
-                            rows={2}
-                          />
+                          {isEditing && formErrors[sermon.id]?.youtubeUrl && (
+                            <div id={`error-${sermon.id}-youtubeUrl`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[sermon.id].youtubeUrl}</div>
+                          )}
                         </div>
                       </>
                     ) : (
                       <>
                         <div>
-                          <h3 className="text-white text-lg mb-1">{sermon.title || 'Untitled Sermon'}</h3>
-                          <div className="flex flex-wrap gap-3 text-sm text-gray-400">
-                            <span>Speaker: {sermon.speaker}</span>
-                            <span className="flex items-center gap-1">
-                              <Clock size={12} />
-                              {sermon.duration}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar size={12} />
-                              {sermon.date}
-                            </span>
-                          </div>
-                          {sermon.description && (
-                            <p className="text-gray-400 text-sm mt-2">{sermon.description}</p>
-                          )}
+                          {(() => {
+                            const hasTitle = !!sermon.youtubeTitle;
+                            const isNew = typeof sermon.id === 'string' && sermon.id.startsWith('new-');
+                            const placeholder = isNew ? 'Add YouTube URL' : 'Untitled Sermon';
+                            return (
+                              <h3 className={`text-lg mb-1 ${hasTitle ? 'text-white' : 'text-gray-400'}`}>
+                                {hasTitle ? sermon.youtubeTitle : placeholder}
+                              </h3>
+                            );
+                          })()}
+                          {/* speaker removed from DB; no label shown */}
                         </div>
                       </>
                     )}
@@ -919,7 +1424,7 @@ function SermonsManager() {
                           onClick={() => {
                             setEditingId(null);
                             // Remove the sermon if it's empty (newly added)
-                            if (!sermon.title && !sermon.youtubeUrl) {
+                            if (!sermon.youtubeUrl) {
                               setSermons(sermons.filter(s => s.id !== sermon.id));
                             }
                           }}
@@ -933,16 +1438,25 @@ function SermonsManager() {
                     ) : (
                       <>
                         <Button
+                          onClick={() => togglePublishedSermon(sermon.id)}
+                          size="sm"
+                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-md"
+                          title={sermon.published ? 'Unpublish' : 'Publish'}
+                        >
+                          {sermon.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                        </Button>
+                        <Button
                           onClick={() => setEditingId(sermon.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-[#FDB813] border border-[#FDB813]"
+                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2"
                         >
-                          <Edit2 size={14} />
+                          <Edit size={14} />
+                          <span>Edit</span>
                         </Button>
                         <Button
                           onClick={() => handleDelete(sermon.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-red-500 border border-red-500"
+                          className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2"
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -968,28 +1482,93 @@ function SermonsManager() {
 }
 
 // Bible Studies Manager Sub-Component
-function BibleStudiesManager() {
-  const [studies, setStudies] = useState<BibleStudy[]>([
-    {
-      id: '1',
-      title: 'The Book of Romans',
-      author: 'Dr. James White',
-      pages: 45,
-      date: '2023-01-20',
-      fileType: 'PDF',
-      fileUrl: '#',
-      thumbnailUrl: 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=400',
-      description: 'An in-depth study of Paul\'s letter to the Romans.'
-    }
-  ]);
+function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
+  const [studies, setStudies] = useState<BibleStudy[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [studyToDelete, setStudyToDelete] = useState<string | null>(null);
-  const [uploadMode, setUploadMode] = useState<Record<string, boolean>>({});
+  // File upload mode removed: always show file upload component
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStudies();
+  }, []);
+
+  const fetchStudies = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/resources?type=bibleStudies');
+      if (!response.ok) throw new Error('Failed to fetch Bible studies');
+      const data = await response.json();
+      
+      // Transform API response to match component interface
+      const transformedStudies = (data.data || []).map((study: any) => ({
+        id: study.id.toString(),
+        title: study.title || '',
+        author: study.author || '',
+        pages: study.pages || 0,
+        date: toDateInputValue(pickFirst(study.study_date, study.publish_date, study.published_at, study.created_at, study.date)),
+        fileType: study.file_type || 'PDF',
+        fileUrl: study.file_url || '',
+        thumbnailUrl: study.thumbnail_url || '',
+        description: study.description || '',
+        published: study.published === true || study.published === 't' || false
+      }));
+      
+      setStudies(transformedStudies);
+    } catch (error) {
+      console.error('Error fetching Bible studies:', error);
+      toast.error('Failed to load Bible studies');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const togglePublishedStudy = async (id: string) => {
+    const study = studies.find(s => s.id === id);
+    if (!study) return;
+    const newPublished = !study.published;
+    handleUpdate(id, { published: newPublished });
+    if (id.startsWith('new-')) {
+      toast.success(newPublished ? 'Marked as published' : 'Marked as draft');
+      return;
+    }
+    try {
+      const currentUser = 'admin';
+      const body = {
+        type: 'bibleStudies',
+        id,
+        title: study.title,
+        author: study.author,
+        pages: study.pages,
+        study_date: study.date,
+        file_type: study.fileType,
+        file_url: study.fileUrl,
+        thumbnail_url: study.thumbnailUrl,
+        description: study.description,
+        published: newPublished,
+        updated_by: currentUser
+      };
+
+      const res = await fetch(`/api/admin/resources?type=bibleStudies&id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      const json = await res.json();
+      handleUpdate(id, { published: json.data.published === true || json.data.published === 't' || false });
+      toast.success(newPublished ? 'Study published' : 'Study unpublished');
+    } catch (err) {
+      console.error(err);
+      handleUpdate(id, { published: !newPublished });
+      toast.error('Failed to update published state');
+    }
+  };
 
   const handleAdd = () => {
     const newStudy: BibleStudy = {
-      id: Date.now().toString(),
+      id: 'new-' + Date.now().toString(),
       title: '',
       author: '',
       pages: 0,
@@ -1005,6 +1584,8 @@ function BibleStudiesManager() {
 
   const handleUpdate = (id: string, updates: Partial<BibleStudy>) => {
     setStudies(studies.map(s => s.id === id ? { ...s, ...updates } : s));
+    const fields = Object.keys(updates || {});
+    if (fields.length) clearFieldErrors(id, fields as string[]);
   };
 
   const handleDelete = (id: string) => {
@@ -1012,18 +1593,89 @@ function BibleStudiesManager() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (studyToDelete) {
-      setStudies(studies.filter(s => s.id !== studyToDelete));
-      toast.success('Bible study deleted successfully');
+      try {
+        if (!studyToDelete.startsWith('new-')) {
+          const response = await fetch(`/api/admin/resources?type=bibleStudies&id=${encodeURIComponent(studyToDelete)}`, {
+            method: 'DELETE'
+          });
+          if (!response.ok) throw new Error('Failed to delete Bible study');
+        }
+        setStudies(studies.filter(s => s.id !== studyToDelete));
+        toast.success('Bible study deleted successfully');
+      } catch (error) {
+        console.error('Error deleting Bible study:', error);
+        toast.error('Failed to delete Bible study');
+      }
       setStudyToDelete(null);
     }
     setDeleteDialogOpen(false);
   };
 
-  const handleSave = (id: string) => {
-    setEditingId(null);
-    toast.success('Bible study saved successfully');
+  const handleSave = async (id: string) => {
+    const study = studies.find(s => s.id === id);
+    if (!study) return;
+
+    try {
+      // Validate study fields
+      const fieldErrors: Record<string, string> = {};
+      if (!study.title || study.title.trim().length === 0) fieldErrors.title = 'Title is required';
+      else if (study.title.length > TITLE_MAX) fieldErrors.title = `Title must be at most ${TITLE_MAX} characters`;
+
+      if (!study.author || study.author.trim().length === 0) fieldErrors.author = 'Author is required';
+      else if (study.author.length > AUTHOR_MAX) fieldErrors.author = `Author must be at most ${AUTHOR_MAX} characters`;
+
+      const pagesNum = Number(study.pages);
+      if (isNaN(pagesNum)) fieldErrors.pages = 'Pages is required';
+      else if (pagesNum < PAGES_MIN || pagesNum > PAGES_MAX) fieldErrors.pages = `Pages must be between ${PAGES_MIN} and ${PAGES_MAX}`;
+
+      if (!study.fileUrl || study.fileUrl.trim().length === 0) fieldErrors.fileUrl = 'File URL is required';
+
+      if (Object.keys(fieldErrors).length > 0) {
+        setFieldErrors(id, fieldErrors);
+        return;
+      }
+
+      const isNew = id.startsWith('new-');
+      const method = isNew ? 'POST' : 'PUT';
+      const currentUser = 'admin'; // TODO: Replace with actual user from auth context
+      const body = {
+        type: 'bibleStudies',
+        ...(isNew ? {} : { id }),
+        title: study.title,
+        author: study.author,
+        pages: study.pages,
+        study_date: study.date,
+        file_type: study.fileType,
+        file_url: study.fileUrl,
+        thumbnail_url: study.thumbnailUrl,
+        description: study.description,
+        published: true,
+        ...(isNew ? { created_by: currentUser } : { updated_by: currentUser })
+      };
+
+      const url = isNew ? `/api/admin/resources?type=bibleStudies` : `/api/admin/resources?type=bibleStudies&id=${id}`;
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) throw new Error('Failed to save Bible study');
+      
+      const result = await response.json();
+      
+      if (isNew) {
+        setStudies(studies.map(s => s.id === id ? { ...s, id: result.data.id.toString() } : s));
+      }
+      clearFieldErrors(id);
+      setEditingId(null);
+      toast.success('Bible study saved successfully');
+    } catch (error) {
+      console.error('Error saving Bible study:', error);
+      toast.error('Failed to save Bible study');
+    }
   };
 
   return (
@@ -1041,7 +1693,12 @@ function BibleStudiesManager() {
         </Button>
       </div>
 
-      {studies.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
+          <FileText size={48} className="mx-auto mb-4 text-gray-600 animate-pulse" />
+          <p className="text-gray-400">Loading Bible studies...</p>
+        </div>
+      ) : studies.length === 0 ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
           <FileText size={48} className="mx-auto mb-4 text-gray-600" />
           <p className="text-gray-400">No Bible studies yet. Click "Add Bible Study" to create one.</p>
@@ -1074,31 +1731,54 @@ function BibleStudiesManager() {
                         <div>
                           <label className="text-sm text-white mb-1.5 block">Study Title</label>
                           <Input
+                            id={`field-${study.id}-title`}
                             value={study.title}
                             onChange={(e) => handleUpdate(study.id, { title: e.target.value })}
                             placeholder="Enter study title"
                             className="bg-black border-gray-600 text-white"
+                            maxLength={TITLE_MAX}
+                            aria-invalid={!!formErrors[study.id]?.title}
+                            aria-describedby={formErrors[study.id]?.title ? `error-${study.id}-title` : undefined}
                           />
+                          {isEditing && <div className="text-xs text-gray-400">{study.title?.length || 0}/{TITLE_MAX} characters</div>}
+                          {isEditing && formErrors[study.id]?.title && (
+                            <div id={`error-${study.id}-title`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[study.id].title}</div>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-sm text-white mb-1.5 block">Author</label>
                             <Input
+                              id={`field-${study.id}-author`}
                               value={study.author}
                               onChange={(e) => handleUpdate(study.id, { author: e.target.value })}
                               placeholder="Author name"
                               className="bg-black border-gray-600 text-white"
+                              maxLength={AUTHOR_MAX}
+                              aria-invalid={!!formErrors[study.id]?.author}
+                              aria-describedby={formErrors[study.id]?.author ? `error-${study.id}-author` : undefined}
                             />
+                              {isEditing && formErrors[study.id]?.author && (
+                                <div id={`error-${study.id}-author`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[study.id].author}</div>
+                              )}
                           </div>
                           <div>
                             <label className="text-sm text-white mb-1.5 block">Pages</label>
                             <Input
+                              id={`field-${study.id}-pages`}
                               type="number"
                               value={study.pages}
                               onChange={(e) => handleUpdate(study.id, { pages: parseInt(e.target.value) })}
                               placeholder="Number of pages"
                               className="bg-black border-gray-600 text-white"
+                              min={PAGES_MIN}
+                              max={PAGES_MAX}
+                              aria-invalid={!!formErrors[study.id]?.pages}
+                              aria-describedby={formErrors[study.id]?.pages ? `error-${study.id}-pages` : undefined}
                             />
+                              {isEditing && formErrors[study.id]?.pages && (
+                                <div id={`error-${study.id}-pages`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[study.id].pages}</div>
+                              )}
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -1123,49 +1803,16 @@ function BibleStudiesManager() {
                         </div>
                         <div>
                           <label className="text-sm text-white mb-1.5 block">File URL or Upload</label>
-                          <div className="flex gap-2 mb-2">
-                            <Button
-                              type="button"
-                              variant={!uploadMode[study.id] ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => {
-                                setUploadMode({ ...uploadMode, [study.id]: false });
-                              }}
-                              className="flex-1"
-                            >
-                              <Upload className="mr-2" size={16} />
-                              Manual URL
-                            </Button>
-                            <Button
-                              type="button"
-                              variant={uploadMode[study.id] ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => {
-                                setUploadMode({ ...uploadMode, [study.id]: true });
-                              }}
-                              className="flex-1"
-                            >
-                              <FileText className="mr-2" size={16} />
-                              Upload File
-                            </Button>
-                          </div>
-                          
-                          {/* Show manual URL input or file upload based on mode */}
-                          {!uploadMode[study.id] ? (
-                            <Input
-                              value={study.fileUrl}
-                              onChange={(e) => handleUpdate(study.id, { fileUrl: e.target.value })}
-                              placeholder="https://example.com/file.pdf"
-                              className="bg-black border-gray-600 text-white"
-                            />
-                          ) : (
                             <FileUpload
                               onUploadComplete={(url) => handleUpdate(study.id, { fileUrl: url })}
                               currentFile={study.fileUrl?.startsWith('data:') ? study.fileUrl : ''}
                               maxSizeMB={10}
                               acceptedFormats={['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
                               acceptedExtensions={['.pdf', '.doc', '.docx']}
+                              uploadPath="resources/biblestudies"
                             />
+                          {formErrors[study.id]?.fileUrl && (
+                            <div id={`error-${study.id}-fileUrl`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[study.id].fileUrl}</div>
                           )}
                         </div>
                         <div>
@@ -1188,7 +1835,7 @@ function BibleStudiesManager() {
                             <span>{study.pages} pages</span>
                             <span className="flex items-center gap-1">
                               <Calendar size={12} />
-                              {study.date}
+                              {formatAdminDate(study.date)}
                             </span>
                             <span className="px-2 py-0.5 bg-[#FDB813] bg-opacity-20 text-black rounded">
                               {study.fileType}
@@ -1202,8 +1849,8 @@ function BibleStudiesManager() {
                     )}
                   </div>
 
-                  <div className="flex gap-2">
-                    {isEditing ? (
+                    <div className="flex gap-2">
+                      {isEditing ? (
                       <>
                         <Button
                           onClick={() => handleSave(study.id)}
@@ -1213,11 +1860,33 @@ function BibleStudiesManager() {
                           Save
                         </Button>
                         <Button
-                          onClick={() => {
+                          onClick={async () => {
                             setEditingId(null);
-                            // Remove the study if it's empty (newly added)
-                            if (!study.title && !study.fileUrl) {
+                            // If this is a newly added unsaved study, clean up uploaded blobs (file + thumbnail)
+                            if (study.id && typeof study.id === 'string' && study.id.startsWith('new-')) {
+                              const urls: string[] = [];
+                              if (study.fileUrl) urls.push(study.fileUrl);
+                              if (study.thumbnailUrl) urls.push(study.thumbnailUrl);
+
+                              if (urls.length) {
+                                try {
+                                  await fetch('/api/admin/blob', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ urls })
+                                  });
+                                } catch (err) {
+                                  console.error('Failed to clean up uploaded blobs for cancelled study:', err);
+                                }
+                              }
+
+                              // Remove the unsaved study from UI
                               setStudies(studies.filter(s => s.id !== study.id));
+                            } else {
+                              // Existing behavior: remove if completely empty
+                              if (!study.title && !study.fileUrl) {
+                                setStudies(studies.filter(s => s.id !== study.id));
+                              }
                             }
                           }}
                           size="sm"
@@ -1229,20 +1898,29 @@ function BibleStudiesManager() {
                       </>
                     ) : (
                       <>
-                        <Button
-                          onClick={() => setEditingId(study.id)}
-                          size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-[#FDB813] border border-[#FDB813]"
-                        >
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(study.id)}
-                          size="sm"
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-red-500 border border-red-500"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                          <Button
+                            onClick={() => togglePublishedStudy(study.id)}
+                            size="sm"
+                            className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-md"
+                            title={study.published ? 'Unpublish' : 'Publish'}
+                          >
+                            {study.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                          </Button>
+                          <Button
+                            onClick={() => setEditingId(study.id)}
+                            size="sm"
+                            className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2"
+                          >
+                            <Edit size={14} />
+                            <span>Edit</span>
+                          </Button>
+                          <Button
+                            onClick={() => handleDelete(study.id)}
+                            size="sm"
+                            className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
                       </>
                     )}
                   </div>

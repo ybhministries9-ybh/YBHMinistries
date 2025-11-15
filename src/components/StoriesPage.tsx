@@ -959,7 +959,6 @@ const SubmitTestimonyForm = memo(() => {
 
     // Simulate API call
     setTimeout(() => {
-      console.log(finalData);
       setIsSubmitting(false);
       setSubmitSuccess(true);
       reset();

@@ -21,7 +21,6 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     try {
       // Hardcoded login for demo purposes (no backend)
       // Default credentials: admin@ybhministries.org / admin123
-      console.log('Login attempt (no backend):', { email });
       
       const data: any = { success: false, message: 'Backend not configured' };
 

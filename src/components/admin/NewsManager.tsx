@@ -300,9 +300,11 @@ function ReportsManager() {
                       <span>Total: {totalYearly.total} students</span>
                       <span>National: {totalYearly.indian}</span>
                       <span>International: {totalYearly.nonIndian}</span>
-                      <span className={report.published ? 'text-green-500' : 'text-yellow-500'}>
-                        {report.published ? '● Published' : '● Draft'}
-                      </span>
+                      {report.published ? (
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">Published</span>
+                      ) : (
+                        <span className="px-3 py-1 rounded text-xs bg-[#FDB813] text-black">Draft</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">

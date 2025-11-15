@@ -137,84 +137,64 @@ export function ImageUpload({
     try {
       setError(null);
       setCompressionInfo(null);
-      
       if (!event.target.files || event.target.files.length === 0) {
         return;
       }
-
       const originalFile = event.target.files[0];
-      
       // Validate file
       const validation = validateImageFile(originalFile);
       if (!validation.valid) {
         setError(validation.error || 'Invalid file');
         return;
       }
-
       // Check if compression is needed
       const shouldCompress = needsCompression(originalFile);
-      
       let fileToUpload = originalFile;
       let previewUrl = URL.createObjectURL(originalFile);
-      
       if (shouldCompress) {
         setCompressing(true);
-        
         try {
-          // Get optimal compression settings for this image type
           const settings = getCompressionSettings(imageType);
-          
-          // Compress the image
           const compressed = await compressImage(originalFile, settings);
-          
           fileToUpload = compressed.file;
           previewUrl = compressed.dataUrl;
-          
-          // Store compression info to display to user
           setCompressionInfo({
             originalSize: compressed.originalSize,
             compressedSize: compressed.compressedSize,
             ratio: compressed.compressionRatio
           });
-          
-          console.log('Image compressed:', {
-            original: formatFileSize(compressed.originalSize),
-            compressed: formatFileSize(compressed.compressedSize),
-            saved: `${compressed.compressionRatio}%`
-          });
-          
         } catch (compressionError) {
-          console.error('Compression failed, using original:', compressionError);
-          // If compression fails, use original file
           fileToUpload = originalFile;
         } finally {
           setCompressing(false);
         }
       }
-
-      // Validate final file size
       const maxSizeBytes = maxSizeMB * 1024 * 1024;
       if (fileToUpload.size > maxSizeBytes) {
         setError(`File size must be less than ${maxSizeMB}MB even after compression`);
         return;
       }
-
       setUploading(true);
-
-      // Use data URL as the image source (no backend storage)
-      console.log('Image selected (no backend storage):', {
-        bucket,
-        fileName: fileToUpload.name,
-        size: formatFileSize(fileToUpload.size),
-        type: fileToUpload.type
-      });
-
-      setPreview(previewUrl);
-      onUploadComplete(previewUrl);
-      setError('Note: Image preview only. No backend storage configured.');
-
+      // Upload to Vercel Blob via /api/upload
+      const formData = new FormData();
+      formData.append('file', fileToUpload);
+      formData.append('folder', bucket);
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+        if (response.ok && result.url) {
+          setPreview(result.url);
+          onUploadComplete(result.url);
+        } else {
+          setError(result.error || 'Failed to upload image');
+        }
+      } catch (err) {
+        setError('Failed to upload image');
+      }
     } catch (error) {
-      console.error('Error processing file:', error);
       setError('An unexpected error occurred while processing the image');
     } finally {
       setUploading(false);
