@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar } from 'lucide-react';
+import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink } from 'lucide-react';
 import { GalleryManager } from './GalleryManager';
 import { ResourceManager } from './ResourceManager';
 import { UserManager } from './UserManager';
@@ -61,14 +61,17 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleBackToSite}
+              <a
+                href="/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg transition-colors cursor-pointer"
-                aria-label="Back to main site"
+                aria-label="Open main site in new tab"
               >
                 <Home size={20} />
                 <span className="hidden sm:inline">Main Site</span>
-              </button>
+                <ExternalLink size={14} className="ml-1 opacity-90" />
+              </a>
               <button
                 onClick={onLogout}
                 className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg transition-colors cursor-pointer"
@@ -83,20 +86,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
       </header>
 
       <div className="container mx-auto px-4 py-6">
-        {/* Backend Notice */}
-        <div className="mb-6 bg-[#2E2E2E] border-l-4 border-[#FDB813] p-4 rounded-lg">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="text-[#FDB813] flex-shrink-0 mt-0.5" size={20} />
-            <div>
-              <h3 className="text-[#FDB813] mb-1">Preview Mode</h3>
-              <p className="text-gray-300 text-sm">
-                No backend storage configured. All managers use static fallback data. 
-                Changes made here will not persist after page refresh.
-              </p>
-            </div>
-          </div>
-        </div>
-        
+
         <div className="grid lg:grid-cols-5 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">

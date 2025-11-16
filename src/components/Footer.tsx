@@ -17,8 +17,15 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
 
   const handleAdminClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    window.history.pushState({}, '', '/admin');
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    // Clear any stored admin token to force the login screen for testing
+    // (this prevents stale tokens in localStorage from showing the dashboard).
+    try {
+      localStorage.removeItem('admin_token');
+    } catch (err) {
+      // ignore (server-side rendering or restricted storage)
+    }
+    // Navigate to the admin page (full navigation to ensure server/runtime picks it up)
+    window.location.assign('/admin');
   };
 
   const scrollToSection = (id: string) => {

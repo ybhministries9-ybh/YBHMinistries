@@ -12,6 +12,9 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
+  const [mustReset, setMustReset] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,20 +22,77 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setLoading(true);
 
     try {
-      // Hardcoded login for demo purposes (no backend)
-      // Default credentials: admin@ybhministries.org / admin123
-      
-      const data: any = { success: false, message: 'Backend not configured' };
-
-      if (data.success) {
-        localStorage.setItem('admin_token', data.access_token);
-        onLogin(data.access_token);
+      const res = await fetch('/api/admin/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const j = await res.json();
+      if (!j.success) {
+        setError(j.error || 'Invalid credentials');
+        return;
+      }
+      // If user must reset password, redirect to change-password page
+      if (j.mustReset) {
+        try {
+          sessionStorage.setItem('must_reset_email', email);
+        } catch (err) {
+          // ignore
+        }
+        window.location.assign('/admin/change-password');
+        return;
+      }
+      if (j.access_token) {
+        try {
+          const expiresAt = j.expiresAt || new Date(Date.now() + 60 * 1000).toISOString();
+          // ensure stored format is a ms-timestamp number for existing code
+          const expiresMs = typeof expiresAt === 'string' ? new Date(expiresAt).getTime() : expiresAt;
+          localStorage.setItem('admin_token', JSON.stringify({ token: j.access_token, expiresAt: expiresMs }));
+        } catch (err) {
+          // ignore storage errors
+          localStorage.setItem('admin_token', j.access_token as string);
+        }
+        onLogin(j.access_token);
       } else {
-        setError(data.error || 'Invalid credentials');
+        setError('Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
       setError('Failed to sign in. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!newPassword || newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/auth/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, currentPassword: password, newPassword }) });
+      const j = await res.json();
+      if (!j.success) {
+        setError(j.error || 'Failed to reset password');
+        return;
+      }
+      // After successful reset, auto-login with new password
+      const loginRes = await fetch('/api/admin/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: newPassword }) });
+      const loginJson = await loginRes.json();
+      if (!loginJson.success) {
+        setError(loginJson.error || 'Failed to login after reset');
+        return;
+      }
+      try {
+        const expiresAt = loginJson.expiresAt || new Date(Date.now() + 60 * 1000).toISOString();
+        const expiresMs = typeof expiresAt === 'string' ? new Date(expiresAt).getTime() : expiresAt;
+        localStorage.setItem('admin_token', JSON.stringify({ token: loginJson.access_token, expiresAt: expiresMs }));
+      } catch (err) {
+        localStorage.setItem('admin_token', loginJson.access_token);
+      }
+      onLogin(loginJson.access_token);
+    } catch (err) {
+      console.error('reset error', err);
+      setError('Failed to reset password');
     } finally {
       setLoading(false);
     }
@@ -50,7 +110,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
             />
           </div>
           <h1 className="text-3xl text-white mb-2">Admin Portal</h1>
-          <p className="text-gray-400 text-sm">Yeshua Beth Hallel Ministries</p>
+          <p className="text-white text-2xl">Yeshua Beth Hallel Ministries</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -95,38 +155,37 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
           </div>
 
           {error && (
-            <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
+            <div className="bg-red-900 border border-red-700 text-white px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-[#FDB813] text-black rounded-xl hover:bg-[#e5a711] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-medium text-center"
+            className="w-full py-3 bg-[#FDB813] text-black rounded-xl hover:bg-[#e5a711] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-medium text-center"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-400">
-          <p>
-            Need an account?{' '}
-            <button
-              type="button"
-              onClick={() => setShowSetup(!showSetup)}
-              className="text-[#FDB813] hover:text-[#e5a711] underline"
-            >
-              {showSetup ? 'Hide setup' : 'First time setup'}
-            </button>
-          </p>
-        </div>
-
-        {showSetup && (
-          <div className="mt-6">
-            <SetupHelper />
-          </div>
+        {mustReset && (
+          <form onSubmit={handleReset} className="space-y-4 mt-6">
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">New Password</label>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">Confirm Password</label>
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+            </div>
+            <div>
+              <button type="submit" className="w-full py-3.5 bg-green-600 text-white rounded-xl">Set New Password</button>
+            </div>
+          </form>
         )}
+
+        {/* First-time setup link removed per UX request */}
       </div>
     </div>
   );

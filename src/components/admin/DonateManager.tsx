@@ -398,7 +398,7 @@ export function DonateManager(): React.ReactElement {
     <div className="p-6">
       <div className="flex items-center justify-between mb-4 sticky top-0 bg-[#111] z-30 py-4">
         <div>
-          <h2 className="text-white font-bold text-3xl">Donate Manager</h2>
+          <h1 className="text-white font-bold text-3xl">Donate Manager</h1>
           <p className="text-sm text-gray-400 mb-1">Manage donation methods and entries.</p>
         </div>
       </div>

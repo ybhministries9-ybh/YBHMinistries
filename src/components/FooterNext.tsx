@@ -20,6 +20,11 @@ export function FooterNext() {
   };
 
   const handleAdminClick = () => {
+    try {
+      localStorage.removeItem('admin_token');
+    } catch (err) {
+      // ignore
+    }
     router.push('/admin');
   };
 
