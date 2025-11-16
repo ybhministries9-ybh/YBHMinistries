@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { hashPassword } from '@/lib/password';
-import { verifySession } from '@/lib/sessions';
+import { getActorName, verifySession } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // verify session from Authorization header
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    // allow public reads for users list (admin mutations remain protected)
 
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || null;
@@ -38,6 +34,7 @@ export async function POST(request: NextRequest) {
     if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     const data = await request.json();
+    const actor = await getActorName(token);
     if (!data || !data.name || !data.email) return NextResponse.json({ success: false, error: 'name & email required' }, { status: 400 });
 
     // Check duplicate email
@@ -53,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     const result = await sql`
       INSERT INTO users (name, email, role, status, password_hash, must_reset_password, created_by)
-      VALUES (${data.name}, ${data.email}, ${role}, ${status}, ${passwordHash}, true, ${data.created_by || 'admin'})
+      VALUES (${data.name}, ${data.email}, ${role}, ${status}, ${passwordHash}, true, ${actor})
       RETURNING *
     `;
 
@@ -76,6 +73,7 @@ export async function PUT(request: NextRequest) {
     if (!id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
 
     const data = await request.json();
+    const actor = await getActorName(token);
 
     // If updating email, ensure uniqueness
     if (data.email) {
@@ -89,7 +87,7 @@ export async function PUT(request: NextRequest) {
         email = ${data.email},
         role = ${data.role},
         status = ${data.status},
-        updated_by = ${data.updated_by || 'admin'},
+        updated_by = ${actor},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
       RETURNING *

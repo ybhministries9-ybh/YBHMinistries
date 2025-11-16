@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put, del } from '@vercel/blob';
 import { getActiveAboutHeroImage, upsertAboutHeroImage, deleteAboutHeroImage } from '@/lib/db';
 import { sql } from '@vercel/postgres';
+import { verifySession, getActorName } from '@/lib/sessions';
 
 /**
  * GET /api/admin/about/hero-image
@@ -36,7 +37,12 @@ export async function POST(request: NextRequest) {
     if (contentType?.includes('multipart/form-data')) {
       const formData = await request.formData();
       const file = formData.get('file') as File;
-      const createdBy = formData.get('created_by') as string | null;
+      // verify session and resolve actor
+      const auth = request.headers.get('authorization') || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+      const session = await verifySession(token);
+      if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const createdBy = await getActorName(token);
 
       if (!file) {
         return NextResponse.json(
@@ -79,7 +85,13 @@ export async function POST(request: NextRequest) {
     // Handle URL submission
     else {
       const body = await request.json();
-      const { image_url, created_by } = body;
+      // verify session and resolve actor
+      const auth2 = request.headers.get('authorization') || '';
+      const token2 = auth2.startsWith('Bearer ') ? auth2.slice(7) : auth2 || null;
+      const session2 = await verifySession(token2);
+      if (!session2) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const actor = await getActorName(token2);
+      const { image_url } = body;
 
       if (!image_url) {
         return NextResponse.json(
@@ -105,7 +117,7 @@ export async function POST(request: NextRequest) {
       // Save to database
       const heroImage = await upsertAboutHeroImage(
         image_url,
-        created_by
+        actor
       );
 
       return NextResponse.json({
@@ -140,6 +152,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     const imageId = parseInt(id);
+
+    // verify session for delete
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     // Get image URL before deleting from database
     const { rows } = await sql`

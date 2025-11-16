@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@vercel/blob';
 import { sql } from '@vercel/postgres';
+import { getActorName } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,12 +87,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // books, worship, sermons, bibleStudies
 
+    // Note: allow public reads for resources (admin-only operations still require auth)
+
     if (!type) {
       return NextResponse.json(
         { success: false, error: 'Type parameter is required' },
         { status: 400 }
       );
     }
+
+    
 
     let result;
 
@@ -163,6 +168,9 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
+    // verify session and resolve actor (server-side) for updated_by
+    // (session already verified above in this function)
+    const actor = await getActorName((request.headers.get('authorization') || '').startsWith('Bearer ') ? (request.headers.get('authorization') || '').slice(7) : (request.headers.get('authorization') || '') || null);
     // Server-side validation
     let validationErrors: Record<string, string> | null = null;
     if (type === 'books') validationErrors = validateBook(data);
@@ -175,6 +183,10 @@ export async function POST(request: NextRequest) {
     }
     let result;
 
+    // verify session and resolve actor (server-side) for created_by/updated_by
+    // (session already verified above in this function)
+    const actor2 = await getActorName((request.headers.get('authorization') || '').startsWith('Bearer ') ? (request.headers.get('authorization') || '').slice(7) : (request.headers.get('authorization') || '') || null);
+
     switch (type) {
       case 'books':
         result = await sql`
@@ -186,7 +198,7 @@ export async function POST(request: NextRequest) {
             ${data.title}, ${data.author}, ${data.price}, ${data.pages}, ${data.language},
             ${data.cover_image}, ${JSON.stringify(data.additional_images || [])}, ${data.description},
             ${data.publish_date}, ${data.published || false},
-            ${data.created_by || 'admin'}, ${data.created_by || 'admin'}
+            ${actor2}, ${actor2}
           )
           RETURNING *
         `;
@@ -198,7 +210,7 @@ export async function POST(request: NextRequest) {
             youtube_url, published, created_by, updated_by
           ) VALUES (
             ${data.youtube_url}, ${data.published || false},
-            ${data.created_by || 'admin'}, ${data.created_by || 'admin'}
+            ${actor2}, ${actor2}
           )
           RETURNING *
         `;
@@ -210,7 +222,7 @@ export async function POST(request: NextRequest) {
             youtube_url, published, created_by, updated_by
           ) VALUES (
             ${data.youtube_url}, ${data.published || false},
-            ${data.created_by || 'admin'}, ${data.created_by || 'admin'}
+            ${actor2}, ${actor2}
           )
           RETURNING *
         `;
@@ -224,7 +236,7 @@ export async function POST(request: NextRequest) {
           ) VALUES (
             ${data.title}, ${data.author}, ${data.pages}, ${data.study_date},
             ${data.file_type || 'PDF'}, ${data.file_url}, ${data.thumbnail_url || null},
-            ${data.description}, ${data.published || false}, ${data.created_by || 'admin'}, ${data.created_by || 'admin'}
+            ${data.description}, ${data.published || false}, ${actor2}, ${actor2}
           )
           RETURNING *
         `;
@@ -276,6 +288,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, errors: validationErrors }, { status: 400 });
     }
 
+    // resolve actor (server-side)
+    const actor = await getActorName((request.headers.get('authorization') || '').startsWith('Bearer ') ? (request.headers.get('authorization') || '').slice(7) : (request.headers.get('authorization') || '') || null);
+
     let result;
 
     switch (type) {
@@ -293,7 +308,7 @@ export async function PUT(request: NextRequest) {
               description = ${data.description},
               publish_date = ${data.publish_date},
               published = ${data.published},
-              updated_by = ${data.updated_by || 'admin'},
+              updated_by = ${actor},
               updated_at = CURRENT_TIMESTAMP
           WHERE id = ${id}
           RETURNING *
@@ -305,7 +320,7 @@ export async function PUT(request: NextRequest) {
           UPDATE worship
           SET youtube_url = ${data.youtube_url},
               published = ${data.published},
-              updated_by = ${data.updated_by || 'admin'},
+              updated_by = ${actor},
               updated_at = CURRENT_TIMESTAMP
           WHERE id = ${id}
           RETURNING *
@@ -317,7 +332,7 @@ export async function PUT(request: NextRequest) {
           UPDATE sermons
           SET youtube_url = ${data.youtube_url},
               published = ${data.published},
-              updated_by = ${data.updated_by || 'admin'},
+              updated_by = ${actor},
               updated_at = CURRENT_TIMESTAMP
           WHERE id = ${id}
           RETURNING *
@@ -336,7 +351,7 @@ export async function PUT(request: NextRequest) {
               thumbnail_url = ${data.thumbnail_url},
               description = ${data.description},
               published = ${data.published},
-              updated_by = ${data.updated_by || 'admin'},
+              updated_by = ${actor},
               updated_at = CURRENT_TIMESTAMP
           WHERE id = ${id}
           RETURNING *

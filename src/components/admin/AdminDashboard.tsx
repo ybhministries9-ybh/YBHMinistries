@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink } from 'lucide-react';
+import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink, Clock } from 'lucide-react';
 import { GalleryManager } from './GalleryManager';
 import { ResourceManager } from './ResourceManager';
 import { UserManager } from './UserManager';
@@ -25,6 +25,58 @@ type Section = 'home' | 'about' | 'ministries' | 'gallery' | 'news' | 'resources
 
 export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
   const [activeSection, setActiveSection] = useState<Section>('home');
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const update = () => {
+      try {
+        const raw = localStorage.getItem('admin_token');
+        if (!raw) { if (mounted) setRemainingMs(null); return; }
+        let parsed: any = null;
+        try { parsed = JSON.parse(raw); } catch (e) { parsed = { token: raw, expiresAt: null }; }
+        let expiresAt: any = parsed?.expiresAt;
+        if (typeof expiresAt === 'string') {
+          const asMs = new Date(expiresAt).getTime();
+          expiresAt = Number.isNaN(asMs) ? null : asMs;
+        }
+        if (!expiresAt) { if (mounted) setRemainingMs(null); return; }
+        const rem = expiresAt - Date.now();
+        if (mounted) setRemainingMs(rem > 0 ? rem : 0);
+        if (rem <= 0) {
+          // session expired — call logout
+          onLogout();
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    update();
+    timer = setInterval(update, 1000);
+
+    const onExtended = () => update();
+    const onStorage = (e: StorageEvent) => { if (e.key === 'admin_token') update(); };
+    window.addEventListener('session-extended', onExtended as EventListener);
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      mounted = false;
+      if (timer) clearInterval(timer);
+      window.removeEventListener('session-extended', onExtended as EventListener);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [onLogout]);
+
+  const formatRemaining = (ms: number | null) => {
+    if (ms == null) return '';
+    const seconds = Math.max(0, Math.ceil(ms / 1000));
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
 
   const handleBackToSite = () => {
     window.location.href = '/';
@@ -61,6 +113,13 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Session remaining badge - keep beside the site button */}
+              {remainingMs != null && (
+                <div aria-live="polite" className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#2E2E2E] border border-[#FDB813] text-[#FDB813] text-sm font-medium mr-2">
+                  <Clock size={14} />
+                  <span>Expires in {formatRemaining(remainingMs)}</span>
+                </div>
+              )}
               <a
                 href="/"
                 target="_blank"
@@ -96,7 +155,10 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveSection(item.id)}
+                    onClick={() => {
+                      setActiveSection(item.id);
+                      try { window.dispatchEvent(new Event('admin-interaction')); } catch (e) {}
+                    }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                       activeSection === item.id
                         ? 'bg-[#FDB813] text-black'

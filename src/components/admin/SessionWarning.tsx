@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, AlertCircle, RefreshCw } from 'lucide-react';
 
-const WARNING_MS = 15 * 1000; // show warning when <= 15s left
+const WARNING_MS = 60 * 1000; // show warning when <= 60s left (1 minute)
 
 export function SessionWarning({ onLogout }: { onLogout: () => void }) {
   const [visible, setVisible] = useState(false);
