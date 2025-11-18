@@ -202,6 +202,11 @@ export function StoriesManager() {
 
   useEffect(() => { void fetchStories(); }, []);
 
+  // Keep any new (temp) story's category in sync with the top-level category selector
+  useEffect(() => {
+    setStories(prev => prev.map(s => s.id.startsWith('temp-') ? { ...s, category: filterCategory } : s));
+  }, [filterCategory]);
+
   // Character limits
   const CHAR_LIMITS = {
     name: 100,
@@ -976,22 +981,30 @@ export function StoriesManager() {
                   )}
                 </div>
 
-                {/* Category */}
+                {/* Category (for new stories the category is taken from the top filter; existing stories remain editable) */}
                 <div className="space-y-2">
                   <Label className="text-gray-300">Category <span className="text-red-500">*</span></Label>
-                  <Select 
-                    value={story.category} 
-                    onValueChange={(value) => handleUpdate(story.id, 'category', value)}
-                  >
-                    <SelectTrigger className="bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat} value={cat} className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {story.id.startsWith('temp-') ? (
+                    <Input
+                      value={filterCategory}
+                      readOnly
+                      className="bg-black border-gray-600 text-white rounded-lg px-3 py-2 cursor-default"
+                    />
+                  ) : (
+                    <Select 
+                      value={story.category} 
+                      onValueChange={(value) => handleUpdate(story.id, 'category', value)}
+                    >
+                      <SelectTrigger className="bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
+                        {CATEGORIES.map(cat => (
+                          <SelectItem key={cat} value={cat} className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {story.type === 'text' ? (
