@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Star } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Star, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -16,22 +16,27 @@ interface Story {
   id: string;
   type: 'text' | 'video';
   category: string;
-  
+
   // Text story fields
   name?: string;
   role?: string;
   location?: string;
   image?: string;
+  imageFile?: File;
   text?: string;
-  
+
   // Video story fields
   title?: string;
   youtubeUrl?: string;
-  
+
   // Common fields
   date: string;
   status?: 'Submitted' | 'In-Review' | 'Approved' | 'Rejected';
   featured?: boolean;
+  is_visible?: boolean;
+  created_at?: string;
+  created_by?: string | null;
+  thumbnail_url?: string;
 }
 
 interface ValidationErrors {
@@ -41,6 +46,7 @@ interface ValidationErrors {
   text?: string;
   title?: string;
   youtubeUrl?: string;
+  image?: string;
 }
 
 const CATEGORIES = [
@@ -65,10 +71,29 @@ function DatePicker({
   const [open, setOpen] = useState(false);
   
   // Parse the date string (YYYY-MM-DD) correctly as local date
-  const dateValue = value ? (() => {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  })() : undefined;
+  const parseDateValue = (v?: string) => {
+    if (!v) return undefined;
+    // If it's already a Date string or Date-like, normalize to a Date
+    try {
+      // if value contains a T (ISO datetime), take the date portion
+      let s = String(v);
+      if (s.includes('T')) s = s.split('T')[0];
+      // If value looks like YYYY-MM-DD, parse parts
+      const parts = s.split('-').map(p => Number(p));
+      if (parts.length === 3 && parts.every(p => !Number.isNaN(p))) {
+        const [year, month, day] = parts;
+        return new Date(year, month - 1, day);
+      }
+      // Fallback: try Date constructor
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d;
+    } catch (e) {
+      // ignore and return undefined below
+    }
+    return undefined;
+  };
+
+  const dateValue = parseDateValue(value);
   
   const today = new Date();
   today.setHours(23, 59, 59, 999); // Set to end of today
@@ -110,41 +135,57 @@ function DatePicker({
 }
 
 export function StoriesManager() {
-  const [stories, setStories] = useState<Story[]>([
-    {
-      id: '1',
-      type: 'text',
-      category: 'Guinness World Records',
-      name: 'Sarah Johnson',
-      role: 'Participant',
-      date: '2023-06-15',
-      location: 'London, UK',
-      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80',
-      text: 'Being part of the Guinness World Record attempt was a life-changing experience...',
-      status: 'Approved',
-      featured: true
-    },
-    {
-      id: '2',
-      type: 'video',
-      category: 'Bible School Training',
-      title: 'My Journey with Hallel Bible School',
-      date: '2023-07-03',
-      youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      status: 'Submitted',
-      featured: false
-    }
-  ]);
+  const [stories, setStories] = useState<Story[]>([]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>(CATEGORIES[0]);
   const [filterStatus, setFilterStatus] = useState<string>('All');
+  const [filterType, setFilterType] = useState<string>('All');
   const [validationErrors, setValidationErrors] = useState<Record<string, ValidationErrors>>({});
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string; name: string }>({
     open: false,
     id: '',
     name: '',
   });
+
+  // Authorization helper
+  function getAuthHeaders(contentType?: string) {
+    let token = '';
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem('admin_token') || '';
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          token = parsed?.token || raw;
+        } catch (e) {
+          token = raw;
+        }
+      }
+    }
+    const headers: Record<string, string> = {};
+    if (contentType) headers['Content-Type'] = contentType;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  }
+
+  // Fetch stories from server
+  const fetchStories = async () => {
+    try {
+      const resp = await fetch('/api/admin/stories', { headers: getAuthHeaders() });
+      const j = await resp.json();
+      if (j && j.success) {
+        // map server rows into client UI shape
+        const mapped = (j.data || []).map((it: any) => mapRowToClient(it));
+        setStories(mapped);
+      }
+      else toast.error(j?.error || 'Failed to fetch stories');
+    } catch (err) {
+      console.error('Error fetching stories', err);
+      toast.error('Failed to fetch stories');
+    }
+  };
+
+  useEffect(() => { void fetchStories(); }, []);
 
   // Character limits
   const CHAR_LIMITS = {
@@ -157,6 +198,70 @@ export function StoriesManager() {
     text: 1000
   };
 
+  // Image upload constraints
+  const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2 MB
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
+
+  // Map a server DB row to the UI Story shape, preserving any existing client-only fields
+  const mapRowToClient = (row: any, existing?: Story): Story => {
+    const type = row.media_type || (row.type as any) || 'text';
+    const base: any = {
+      id: String(row.id),
+      type,
+      category: existing?.category || row.category || CATEGORIES[0],
+      // prefer explicit `date` column if present, otherwise fall back to created_at
+      date: ((): string => {
+        const raw = row.date ?? row.created_at ?? existing?.date ?? new Date().toISOString();
+        const s = String(raw);
+        // strip time portion if present (ISO datetime)
+        if (s.includes('T')) return s.split('T')[0];
+        // if contains space-separated time, take first token
+        if (s.includes(' ')) return s.split(' ')[0];
+        // otherwise return as-is (may already be YYYY-MM-DD)
+        return s.substring(0, 10);
+      })(),
+      status: row.status || existing?.status || 'Submitted',
+      featured: typeof row.featured !== 'undefined' ? !!row.featured : !!existing?.featured,
+      is_visible: typeof row.is_visible !== 'undefined' ? !!row.is_visible : (existing?.is_visible ?? true),
+      created_at: row.created_at || existing?.created_at,
+      created_by: row.created_by ?? existing?.created_by ?? null,
+    };
+
+    if (type === 'text') {
+      const name = row.title || existing?.name || '';
+      const summary = row.summary || '';
+      const parts = summary.split('•').map((p: string) => p.trim()).filter(Boolean);
+      let role = '';
+      let location = '';
+      if (parts.length === 0) {
+        role = existing?.role || '';
+        location = existing?.location || '';
+      } else if (parts.length === 1) {
+        role = '';
+        location = parts[0];
+      } else {
+        role = parts[0];
+        location = parts.slice(1).join(' • ');
+      }
+      return {
+        ...base,
+        name,
+        role,
+        location,
+        image: row.thumbnail_url || existing?.image || '',
+        text: row.body || existing?.text || '',
+      } as Story;
+    }
+
+    // video
+    return {
+      ...base,
+      title: row.title || existing?.title || '',
+      youtubeUrl: row.video_url || existing?.youtubeUrl || '',
+      thumbnail_url: row.thumbnail_url || existing?.thumbnail_url || '',
+    } as Story;
+  };
+
   const validateStory = (story: Story): ValidationErrors => {
     const errors: ValidationErrors = {};
 
@@ -164,18 +269,24 @@ export function StoriesManager() {
       // Text story validation
       if (!story.name?.trim()) {
         errors.name = 'Full name is required';
+      } else if (/\d/.test(story.name)) {
+        errors.name = 'Name cannot contain numbers';
       } else if (story.name.length > CHAR_LIMITS.name) {
         errors.name = `Name must be ${CHAR_LIMITS.name} characters or less`;
       }
 
       if (!story.role?.trim()) {
         errors.role = 'Role is required';
+      } else if (/\d/.test(story.role)) {
+        errors.role = 'Role cannot contain numbers';
       } else if (story.role.length > CHAR_LIMITS.role) {
         errors.role = `Role must be ${CHAR_LIMITS.role} characters or less`;
       }
 
       if (!story.location?.trim()) {
         errors.location = 'Location is required';
+      } else if (/\d/.test(story.location)) {
+        errors.location = 'Location cannot contain numbers';
       } else if (story.location.length > CHAR_LIMITS.location) {
         errors.location = `Location must be ${CHAR_LIMITS.location} characters or less`;
       }
@@ -184,6 +295,16 @@ export function StoriesManager() {
         errors.text = 'Testimony/Story text is required';
       } else if (story.text.length > CHAR_LIMITS.text) {
         errors.text = `Text must be ${CHAR_LIMITS.text} characters or less`;
+      }
+
+      // Image validation if present (story.image may be a data URL or external URL)
+      const imgAny = (story as any).imageFile as File | undefined;
+      if (imgAny) {
+        if (!ALLOWED_IMAGE_TYPES.includes(imgAny.type)) {
+          errors.image = 'Only JPG and PNG files are supported';
+        } else if (imgAny.size > MAX_IMAGE_SIZE) {
+          errors.image = `Image must be ${Math.round(MAX_IMAGE_SIZE/1024/1024)}MB or smaller`;
+        }
       }
     } else if (story.type === 'video') {
       // Video story validation
@@ -210,31 +331,177 @@ export function StoriesManager() {
     return youtubeRegex.test(url);
   };
 
-  const handleSaveStory = (storyId: string) => {
-    const story = stories.find(s => s.id === storyId);
+  // Handle image file selection for a given story id (stable callback)
+  const handleImageFileChange = useCallback((id: string, file?: File | null) => {
+    const story = stories.find(s => s.id === id);
     if (!story) return;
 
-    const errors = validateStory(story);
-    
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors({ ...validationErrors, [storyId]: errors });
-      toast.error('Please fix the validation errors');
+    if (!file) {
+      // clear file
+      handleUpdate(id, 'image', '');
+      handleUpdate(id, 'imageFile' as any, undefined);
+      // clear image errors
+      const newErrors = { ...validationErrors };
+      if (newErrors[id]) { delete newErrors[id].image; setValidationErrors(newErrors); }
       return;
     }
 
-    // Clear validation errors for this story
-    const newErrors = { ...validationErrors };
-    delete newErrors[storyId];
-    setValidationErrors(newErrors);
+    // validate type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      const newErrors = { ...validationErrors };
+      newErrors[id] = { ...(newErrors[id] || {}), image: 'Only JPG and PNG files are supported' };
+      setValidationErrors(newErrors);
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      const newErrors = { ...validationErrors };
+      newErrors[id] = { ...(newErrors[id] || {}), image: `Image must be ${Math.round(MAX_IMAGE_SIZE/1024/1024)}MB or smaller` };
+      setValidationErrors(newErrors);
+      return;
+    }
 
-    // Save the story
-    toast.success('Story saved successfully!');
-    setEditingId(null);
+    // read as data url and store in story.image; also store file object
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      handleUpdate(id, 'image', result);
+      handleUpdate(id, 'imageFile' as any, file);
+      const newErrors = { ...validationErrors };
+      if (newErrors[id]) { delete newErrors[id].image; setValidationErrors(newErrors); }
+    };
+    reader.readAsDataURL(file);
+  }, [stories, validationErrors]);
+
+  const handleSaveStory = (storyId: string) => {
+    (async () => {
+      const story = stories.find(s => s.id === storyId);
+      if (!story) return;
+
+      const errors = validateStory(story);
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors({ ...validationErrors, [storyId]: errors });
+        toast.error('Please fix the validation errors');
+        return;
+      }
+
+      // Clear validation errors for this story
+      const newErrors = { ...validationErrors };
+      delete newErrors[storyId];
+      setValidationErrors(newErrors);
+
+      try {
+        // If it's a temp id, create (POST), otherwise update (PUT)
+        if (story.id.startsWith('temp-')) {
+          // If an image file was selected, upload it to blob first and use returned URL
+          let uploadedThumbnail: string | null = null;
+          const imgFile = (story as any).imageFile as File | undefined;
+          if (imgFile) {
+            try {
+              const form = new FormData();
+              form.append('file', imgFile);
+              const upResp = await fetch('/api/admin/upload/thumbnail', { method: 'POST', headers: getAuthHeaders(), body: form });
+              const upJ = await upResp.json();
+              if (upJ && upJ.success && upJ.url) {
+                uploadedThumbnail = upJ.url;
+              } else {
+                toast.error(upJ?.error || 'Failed to upload image');
+                return;
+              }
+            } catch (err) {
+              console.error('Upload error', err);
+              toast.error('Failed to upload image');
+              return;
+            }
+          }
+
+          const payload: any = {
+            title: story.type === 'text' ? (story.name || 'Untitled') : (story.title || 'Untitled'),
+            summary: story.type === 'text' ? (story.role ? `${story.role} • ${story.location || ''}` : story.location) : undefined,
+            body: story.type === 'text' ? story.text || null : null,
+            date: story.date || null,
+            media_type: story.type,
+            video_url: story.type === 'video' ? story.youtubeUrl || null : null,
+            thumbnail_url: uploadedThumbnail ?? story.image ?? null,
+          };
+          const resp = await fetch('/api/admin/stories', { method: 'POST', headers: getAuthHeaders('application/json'), body: JSON.stringify(payload) });
+          const j = await resp.json();
+          if (j && j.success) {
+            // replace temp id with returned story mapped to client shape
+            const mapped = mapRowToClient(j.data, story);
+            setStories(s => s.map(x => x.id === storyId ? mapped : x));
+            toast.success('Story created');
+          } else {
+            toast.error(j?.error || 'Failed to create story');
+            return;
+          }
+          } else {
+          // Build an updates payload that matches DB column names
+          const updates: any = { id: Number(story.id) };
+          // If image file selected, upload first
+          let uploadedThumbnail: string | null = null;
+          const imgFile = (story as any).imageFile as File | undefined;
+          if (imgFile) {
+            try {
+              const form = new FormData();
+              form.append('file', imgFile);
+              const upResp = await fetch('/api/admin/upload/thumbnail', { method: 'POST', headers: getAuthHeaders(), body: form });
+              const upJ = await upResp.json();
+              if (upJ && upJ.success && upJ.url) {
+                uploadedThumbnail = upJ.url;
+              } else {
+                toast.error(upJ?.error || 'Failed to upload image');
+                return;
+              }
+            } catch (err) {
+              console.error('Upload error', err);
+              toast.error('Failed to upload image');
+              return;
+            }
+          }
+          if (story.type === 'text') {
+            updates.title = story.name || story.title || '';
+            // summary: prefer explicit summary, otherwise build from role/location
+            updates.summary = (story as any).summary || (story.role ? `${story.role} • ${story.location || ''}` : (story.location || null));
+            updates.body = story.text || null;
+            updates.media_type = 'text';
+            updates.thumbnail_url = uploadedThumbnail ?? story.image ?? (story as any).thumbnail_url ?? null;
+            // include date for text stories
+            updates.date = story.date || null;
+          } else {
+            updates.title = story.title || '';
+            updates.video_url = (story as any).youtubeUrl || null;
+            updates.summary = (story as any).summary || null;
+            updates.media_type = 'video';
+            updates.thumbnail_url = uploadedThumbnail ?? story.image ?? (story as any).thumbnail_url ?? null;
+            // include date for video stories too
+            updates.date = story.date || null;
+          }
+          // include visible/status if present in UI
+          if (typeof story.is_visible !== 'undefined') updates.is_visible = story.is_visible;
+          if (story.status) updates.status = story.status;
+
+          const resp = await fetch('/api/admin/stories', { method: 'PUT', headers: getAuthHeaders('application/json'), body: JSON.stringify(updates) });
+          const j = await resp.json();
+          if (j && j.success) {
+            const mapped = mapRowToClient(j.data, story);
+            setStories(s => s.map(x => x.id === story.id ? mapped : x));
+            toast.success('Story updated');
+          } else {
+            toast.error(j?.error || 'Failed to update story');
+            return;
+          }
+        }
+        setEditingId(null);
+      } catch (err) {
+        console.error('Save story error', err);
+        toast.error('Failed to save story');
+      }
+    })();
   };
 
   const handleAddTextStory = () => {
     const newStory: Story = {
-      id: Date.now().toString(),
+      id: `temp-${Date.now()}`,
       type: 'text',
       category: CATEGORIES[0],
       name: '',
@@ -252,7 +519,7 @@ export function StoriesManager() {
 
   const handleAddVideoStory = () => {
     const newStory: Story = {
-      id: Date.now().toString(),
+      id: `temp-${Date.now()}`,
       type: 'video',
       category: CATEGORIES[0],
       title: '',
@@ -267,14 +534,37 @@ export function StoriesManager() {
 
   const handleDelete = (id: string) => {
     const story = stories.find(s => s.id === id);
-    const name = story?.type === 'text' ? story.name : story?.title;
-    setDeleteDialog({ open: true, id, name: name || '' });
+    const rawName = story?.type === 'text' ? story.name : story?.title;
+    const name = sanitizeInlineLabel(rawName) || '';
+    setDeleteDialog({ open: true, id: String(id), name });
   };
 
   const confirmDelete = () => {
-    setStories(stories.filter(s => s.id !== deleteDialog.id));
-    toast.success('Story deleted successfully');
-    setDeleteDialog({ open: false, id: '', name: '' });
+    (async () => {
+      try {
+        // If it's a temp id, just remove locally
+        if (String(deleteDialog.id).startsWith('temp-')) {
+          setStories(s => s.filter(x => x.id !== deleteDialog.id));
+          toast.success('Story removed');
+          setDeleteDialog({ open: false, id: '', name: '' });
+          return;
+        }
+        const resp = await fetch(`/api/admin/stories?ids=${deleteDialog.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+        const j = await resp.json();
+        if (j && j.success) {
+          // refetch stories to keep things consistent
+          await fetchStories();
+          toast.success(j.message || 'Deleted');
+        } else {
+          toast.error(j?.error || 'Failed to delete');
+        }
+      } catch (err) {
+        console.error('Delete story error', err);
+        toast.error('Failed to delete');
+      } finally {
+        setDeleteDialog({ open: false, id: '', name: '' });
+      }
+    })();
   };
 
   const handleCancel = (id: string) => {
@@ -282,7 +572,9 @@ export function StoriesManager() {
     
     // If it's a new story (empty fields), delete it
     if (story) {
-      if (story.type === 'text' && !story.name && !story.role && !story.location && !story.text) {
+      if (String(story.id).startsWith('temp-')) {
+        setStories(stories.filter(s => s.id !== id));
+      } else if (story.type === 'text' && !story.name && !story.role && !story.location && !story.text) {
         setStories(stories.filter(s => s.id !== id));
       } else if (story.type === 'video' && !story.title && !story.youtubeUrl) {
         setStories(stories.filter(s => s.id !== id));
@@ -298,6 +590,11 @@ export function StoriesManager() {
 
   const handleUpdate = (id: string, field: keyof Story, value: any) => {
     setStories(stories.map(s => s.id === id ? { ...s, [field]: value } : s));
+      // Prevent numbers in name, role, and location fields by stripping digits
+      if (typeof value === 'string' && (field === 'name' || field === 'role' || field === 'location')) {
+        value = value.replace(/\d/g, '');
+      }
+      setStories(stories.map(s => s.id === id ? { ...s, [field]: value } : s));
     
     // Clear validation error for this field when user starts typing
     if (validationErrors[id]) {
@@ -313,10 +610,43 @@ export function StoriesManager() {
   };
 
   const handleStatusChange = (id: string, newStatus: 'Submitted' | 'In-Review' | 'Approved' | 'Rejected') => {
-    setStories(stories.map(s => 
-      s.id === id ? { ...s, status: newStatus } : s
-    ));
-    toast.success(`Story status updated to ${newStatus}`);
+    (async () => {
+      try {
+        const resp = await fetch('/api/admin/stories', { method: 'PUT', headers: getAuthHeaders('application/json'), body: JSON.stringify({ id: Number(id), status: newStatus }) });
+        const j = await resp.json();
+          if (j && j.success) {
+          // map server response back into UI shape, preserving existing client fields
+          const existing = stories.find(s => s.id === id);
+          const mapped = mapRowToClient(j.data, existing);
+          setStories(s => s.map(x => x.id === id ? mapped : x));
+          toast.success(`Story status updated to ${newStatus}`);
+        } else {
+          toast.error(j?.error || 'Failed to update status');
+        }
+      } catch (err) {
+        console.error('Status update error', err);
+        toast.error('Failed to update status');
+      }
+    })();
+  };
+
+  const toggleVisibility = (story: Story) => {
+    (async () => {
+      try {
+        const resp = await fetch('/api/admin/stories', { method: 'PUT', headers: getAuthHeaders('application/json'), body: JSON.stringify({ id: Number(story.id), is_visible: !story.is_visible }) });
+        const j = await resp.json();
+        if (j && j.success) {
+          const mapped = mapRowToClient(j.data, story);
+          setStories(s => s.map(x => x.id === story.id ? mapped : x));
+          toast.success('Visibility updated');
+        } else {
+          toast.error(j?.error || 'Failed to update visibility');
+        }
+      } catch (err) {
+        console.error('Visibility toggle error', err);
+        toast.error('Failed to update visibility');
+      }
+    })();
   };
 
   const getStatusColor = (status?: string) => {
@@ -329,30 +659,55 @@ export function StoriesManager() {
     return colors[status || 'Submitted'] || colors['Submitted'];
   };
 
-  // Filter by both category and status
-  let filteredStories = stories;
-  
-  if (filterCategory !== 'all') {
-    filteredStories = filteredStories.filter(s => s.category === filterCategory);
-  }
-  
-  if (filterStatus !== 'All') {
-    filteredStories = filteredStories.filter(s => s.status === filterStatus);
-  }
+  // Format date for display in cards (e.g., "Nov 17, 2025")
+  const formatCardDate = (d?: string) => {
+    try {
+      if (!d) return '';
+      const s = String(d).includes('T') ? String(d).split('T')[0] : String(d).split(' ')[0];
+      const parts = s.split('-').map(p => Number(p));
+      if (parts.length === 3 && parts.every(p => !Number.isNaN(p))) {
+        const [y, m, day] = parts;
+        return format(new Date(y, m - 1, day), 'MMM dd, yyyy');
+      }
+      const dt = new Date(d);
+      if (!isNaN(dt.getTime())) return format(dt, 'MMM dd, yyyy');
+    } catch (e) {
+      // ignore and fallback
+    }
+    return String(d).substring(0, 10);
+  };
 
-  const statusCounts = {
+  // Hide accidental small type labels like 'text' or 'video' when rendering
+  const sanitizeInlineLabel = (s?: string) => {
+    if (!s) return '';
+    const t = String(s).trim();
+    const low = t.toLowerCase();
+    if (low === 'text' || low === 'video') return '';
+    return t;
+  };
+
+  // Compute filtered stories (memoized — avoids recalculation on every render)
+  const filteredStories = useMemo(() => {
+    let res = stories;
+    if (filterCategory) res = res.filter(s => s.category === filterCategory);
+    if (filterType !== 'All') res = res.filter(s => s.type === filterType);
+    if (filterStatus !== 'All') res = res.filter(s => s.status === filterStatus);
+    return res;
+  }, [stories, filterCategory, filterStatus, filterType]);
+
+  const statusCounts = useMemo(() => ({
     All: stories.length,
     Submitted: stories.filter(s => s.status === 'Submitted').length,
     'In-Review': stories.filter(s => s.status === 'In-Review').length,
     Approved: stories.filter(s => s.status === 'Approved').length,
     Rejected: stories.filter(s => s.status === 'Rejected').length,
-  };
+  }), [stories]);
 
   return (
     <div className="p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-white mb-1">Stories & Testimonies Management</h2>
+          <h2 className="text-3xl font-bold text-white mb-1">Stories & Testimonies Management</h2>
           <p className="text-sm text-gray-400">Review and approve testimonies from your community</p>
         </div>
         <div className="flex gap-2">
@@ -375,7 +730,7 @@ export function StoriesManager() {
 
       {/* Status Filter */}
       <div className="mb-6 flex gap-2 flex-wrap">
-        {(['All', 'Submitted', 'In-Review', 'Approved', 'Rejected'] as const).map((status) => (
+          {(['All', 'Submitted', 'In-Review', 'Approved', 'Rejected'] as const).map((status) => (
           <button
             key={status}
             onClick={() => setFilterStatus(status)}
@@ -385,7 +740,7 @@ export function StoriesManager() {
                 : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
             }`}
           >
-            {status} <span className="ml-1 text-xs opacity-75">({statusCounts[status]})</span>
+            {status} <span className="ml-1 text-sm font-medium opacity-90">({statusCounts[status]})</span>
           </button>
         ))}
       </div>
@@ -393,16 +748,32 @@ export function StoriesManager() {
       {/* Category Filter */}
       <div className="mb-4">
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-64 bg-[#2E2E2E] border-gray-600 text-white cursor-pointer">
-            <SelectValue placeholder="Filter by category" />
-          </SelectTrigger>
-          <SelectContent className="bg-[#2E2E2E] border-gray-600">
-            <SelectItem value="all" className="text-white cursor-pointer">All Categories</SelectItem>
-            {CATEGORIES.map(cat => (
-              <SelectItem key={cat} value={cat} className="text-white cursor-pointer">{cat}</SelectItem>
-            ))}
-          </SelectContent>
+            <SelectTrigger className="w-64 bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
+              {CATEGORIES.map(cat => (
+                <SelectItem key={cat} value={cat} className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
+              ))}
+            </SelectContent>
         </Select>
+      </div>
+
+      {/* Type Filter */}
+      <div className="mb-4 flex gap-2 flex-wrap">
+        {(['All', 'text', 'video'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setFilterType(t)}
+            className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+              filterType === t
+                ? 'bg-[#FDB813] text-black'
+                : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
+            }`}
+          >
+            {t === 'text' ? 'Text Story' : t === 'video' ? 'Video Story' : 'All'}
+          </button>
+        ))}
       </div>
 
       <div className="space-y-4">
@@ -438,12 +809,12 @@ export function StoriesManager() {
                     value={story.category} 
                     onValueChange={(value) => handleUpdate(story.id, 'category', value)}
                   >
-                    <SelectTrigger className="bg-black border-gray-600 text-white cursor-pointer">
+                    <SelectTrigger className="bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-black border-gray-600">
+                    <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
                       {CATEGORIES.map(cat => (
-                        <SelectItem key={cat} value={cat} className="text-white cursor-pointer">{cat}</SelectItem>
+                        <SelectItem key={cat} value={cat} className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -529,21 +900,40 @@ export function StoriesManager() {
                       </div>
                     </div>
 
-                    {/* Profile Image URL */}
+                    {/* Profile Image Upload or URL */}
                     <div className="space-y-2">
-                      <Label className="text-gray-300">
-                        Profile Image URL (optional)
-                        <span className="text-xs text-gray-500 ml-2">
-                          ({(story.image || '').length}/{CHAR_LIMITS.image})
-                        </span>
-                      </Label>
-                      <Input
-                        value={story.image || ''}
-                        onChange={(e) => handleUpdate(story.id, 'image', e.target.value.slice(0, CHAR_LIMITS.image))}
-                        placeholder="Profile Image URL (optional)"
-                        className="bg-black border-gray-600 text-white"
-                        maxLength={CHAR_LIMITS.image}
-                      />
+                      <Label className="text-gray-300">Profile Image (optional)</Label>
+                      <div
+                        className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md border-gray-700 bg-black text-gray-300 cursor-pointer"
+                        onClick={() => document.getElementById(`file-input-${story.id}`)?.click()}
+                        onDragOver={(e) => { e.preventDefault(); }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const f = e.dataTransfer?.files?.[0];
+                          if (f) handleImageFileChange(story.id, f);
+                        }}
+                      >
+                        <input
+                          id={`file-input-${story.id}`}
+                          type="file"
+                          accept=".jpg,.jpeg,.png"
+                          onChange={(e) => handleImageFileChange(story.id, e.target.files?.[0] || undefined)}
+                          className="hidden"
+                        />
+                        <div className="text-center">
+                          <div className="mb-1 font-medium">Click or drag image here to upload</div>
+                          <div className="text-xs text-gray-500">PNG or JPG, max 2MB</div>
+                        </div>
+                      </div>
+                      {validationErrors[story.id]?.image && (
+                        <p className="text-xs text-red-500">{validationErrors[story.id].image}</p>
+                      )}
+
+                      {story.image && (
+                        <div className="mt-2">
+                          <img src={story.image} alt="preview" className="w-24 h-24 object-cover rounded-full border border-gray-700" />
+                        </div>
+                      )}
                     </div>
 
                     {/* Testimony/Story Text */}
@@ -638,27 +1028,29 @@ export function StoriesManager() {
                       value={story.status || 'Submitted'} 
                       onValueChange={(value: any) => handleUpdate(story.id, 'status', value)}
                     >
-                      <SelectTrigger className="bg-black border-gray-600 text-white cursor-pointer">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-black border-gray-600">
-                        <SelectItem value="Submitted" className="text-white cursor-pointer">Submitted</SelectItem>
-                        <SelectItem value="In-Review" className="text-white cursor-pointer">In-Review</SelectItem>
-                        <SelectItem value="Approved" className="text-white cursor-pointer">Approved</SelectItem>
-                        <SelectItem value="Rejected" className="text-white cursor-pointer">Rejected</SelectItem>
-                      </SelectContent>
+                        <SelectTrigger className="bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
+                          <SelectItem value="Submitted" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Submitted</SelectItem>
+                          <SelectItem value="In-Review" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">In-Review</SelectItem>
+                          <SelectItem value="Approved" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Approved</SelectItem>
+                          <SelectItem value="Rejected" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Rejected</SelectItem>
+                        </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-end">
-                    <label className="flex items-center gap-2 text-sm text-gray-300 pb-2 cursor-pointer">
-                      <Checkbox
-                        checked={story.featured || false}
-                        onCheckedChange={(checked) => handleUpdate(story.id, 'featured', checked)}
-                        className="border-gray-600 data-[state=checked]:bg-[#FDB813] data-[state=checked]:border-[#FDB813] cursor-pointer"
-                      />
-                      Featured Story
-                    </label>
-                  </div>
+                  {story.type !== 'text' && (
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-2 text-sm text-gray-300 pb-2 cursor-pointer">
+                        <Checkbox
+                          checked={story.featured || false}
+                          onCheckedChange={(checked) => handleUpdate(story.id, 'featured', checked)}
+                          className="border-gray-600 data-[state=checked]:bg-[#FDB813] data-[state=checked]:border-[#FDB813] cursor-pointer"
+                        />
+                        Featured Story
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 {/* Action Buttons */}
@@ -694,12 +1086,18 @@ export function StoriesManager() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           {story.type === 'text' ? (
-                            <FileText size={16} className="text-blue-500" />
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-600 text-white text-xs">
+                              <FileText size={12} />
+                              Text Story
+                            </span>
                           ) : (
-                            <Video size={16} className="text-red-500" />
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-600 text-white text-xs">
+                              <Video size={12} />
+                              Video Story
+                            </span>
                           )}
                           <h4 className="text-white">
-                            {story.type === 'text' ? story.name : story.title}
+                            {story.type === 'text' ? sanitizeInlineLabel(story.name) : sanitizeInlineLabel(story.title)}
                           </h4>
                           <span className={`px-2 py-0.5 text-xs rounded border ${getStatusColor(story.status)}`}>
                             {story.status || 'Submitted'}
@@ -711,27 +1109,43 @@ export function StoriesManager() {
                           )}
                         </div>
                         <p className="text-sm text-gray-400">
-                          {story.type === 'text' 
-                            ? `${story.role} • ${story.location} • ${story.date}`
-                            : `Video • ${story.date}`
-                          }
+                          {story.type === 'text' ? (
+                            <>
+                              {([story.role, story.location].filter(Boolean).join(' • '))}
+                              {((story.role || story.location) && story.date) ? ' • ' : ''}
+                              {story.date ? formatCardDate(story.date) : ''}
+                            </>
+                          ) : (
+                            <>
+                              {formatCardDate(story.date)}
+                            </>
+                          )}
                         </p>
                         <p className="text-xs text-[#FDB813] mt-1">{story.category}</p>
                       </div>
                       <div className="flex gap-1 ml-4">
                         <button
+                          onClick={() => toggleVisibility(story)}
+                          className="w-10 h-10 flex items-center justify-center bg-[#1f1f1f] border border-gray-600 rounded-lg text-white hover:bg-[#252525] transition-colors cursor-pointer"
+                          aria-label={story.is_visible ? 'Make invisible' : 'Make visible'}
+                          title={story.is_visible ? 'Make invisible' : 'Make visible'}
+                        >
+                          {story.is_visible ? <Eye size={18} /> : <EyeOff size={18} />}
+                        </button>
+                        <button
                           onClick={() => setEditingId(story.id)}
-                          className="p-2 bg-[#2E2E2E] text-[#FDB813] hover:bg-[#1a1a1a] border border-[#FDB813] rounded transition-colors cursor-pointer"
+                          className="px-3 py-2 bg-[#FDB813] text-black rounded-md flex items-center gap-2 hover:bg-[#e5a610] transition-colors cursor-pointer"
                           aria-label="Edit"
                         >
-                          <Edit2 size={18} />
+                          <Edit2 size={16} />
+                          <span className="text-sm font-medium">Edit</span>
                         </button>
                         <button
                           onClick={() => handleDelete(story.id)}
-                          className="p-2 bg-[#2E2E2E] text-[#FDB813] hover:bg-[#1a1a1a] border border-[#FDB813] rounded transition-colors cursor-pointer"
+                          className="w-10 h-10 flex items-center justify-center bg-[#e11] text-white rounded-md hover:bg-[#c30] transition-colors cursor-pointer border border-red-700"
                           aria-label="Delete"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
