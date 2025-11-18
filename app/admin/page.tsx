@@ -53,12 +53,9 @@ export default function AdminPage() {
   }, []);
 
   const handleLogin = (token: string) => {
-    try {
-      const expiresAt = Date.now() + 60 * 1000; // 1 minute for testing
-      localStorage.setItem('admin_token', JSON.stringify({ token, expiresAt }));
-    } catch (err) {
-      localStorage.setItem('admin_token', token);
-    }
+    // The login component is responsible for storing `admin_token` (with a server-provided
+    // `expiresAt`). Do not overwrite that value here (a previous testing value caused the
+    // session warning to appear immediately after login). Just mark the UI as logged in.
     setIsLoggedIn(true);
   };
 
