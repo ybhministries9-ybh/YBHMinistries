@@ -370,6 +370,118 @@ export interface GalleryItem {
   updated_at: string;
 }
 
+export interface Story {
+  id: number;
+  title: string;
+  summary: string | null;
+  body: string | null;
+  media_type: 'text' | 'video';
+  video_url?: string | null;
+  thumbnail_url?: string | null;
+  status: string;
+  is_visible: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** STORIES CRUD **/
+export async function getAllStories(): Promise<Story[]> {
+  try {
+    const { rows } = await sql<Story>`
+      SELECT * FROM stories WHERE is_active = true ORDER BY created_at DESC
+    `;
+    return rows;
+  } catch (error) {
+    console.error('Error fetching stories:', error);
+    throw error;
+  }
+}
+
+export async function createStory(payload: {
+  title: string;
+  summary?: string | null;
+  body?: string | null;
+  media_type?: 'text' | 'video';
+  video_url?: string | null;
+  thumbnail_url?: string | null;
+  date?: string | null;
+  createdBy?: string | null;
+}): Promise<Story> {
+  try {
+    const { rows } = await sql<Story>`
+      INSERT INTO stories (
+        title, date, summary, body, media_type, video_url, thumbnail_url, status, is_visible, created_by, updated_by
+      ) VALUES (
+        ${payload.title}, ${payload.date || null}, ${payload.summary || null}, ${payload.body || null}, ${payload.media_type || 'text'}, ${payload.video_url || null}, ${payload.thumbnail_url || null}, 'Submitted', true, ${payload.createdBy || null}, ${payload.createdBy || null}
+      ) RETURNING *
+    `;
+    return rows[0];
+  } catch (error) {
+    console.error('Error creating story:', error);
+    throw error;
+  }
+}
+
+export async function updateStory(id: number, updates: Partial<{
+  title: string;
+  date: string | null;
+  summary: string | null;
+  body: string | null;
+  media_type: 'text' | 'video';
+  video_url: string | null;
+  thumbnail_url: string | null;
+  status: string;
+  is_visible: boolean;
+  updated_by: string | null;
+}>): Promise<Story> {
+  try {
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+    if (updates.date !== undefined) { setClauses.push(`date = $${idx++}`); values.push(updates.date); }
+    if (updates.title !== undefined) { setClauses.push(`title = $${idx++}`); values.push(updates.title); }
+    if (updates.summary !== undefined) { setClauses.push(`summary = $${idx++}`); values.push(updates.summary); }
+    if (updates.body !== undefined) { setClauses.push(`body = $${idx++}`); values.push(updates.body); }
+    if (updates.media_type !== undefined) { setClauses.push(`media_type = $${idx++}`); values.push(updates.media_type); }
+    if (updates.video_url !== undefined) { setClauses.push(`video_url = $${idx++}`); values.push(updates.video_url); }
+    if (updates.thumbnail_url !== undefined) { setClauses.push(`thumbnail_url = $${idx++}`); values.push(updates.thumbnail_url); }
+    if (updates.status !== undefined) { setClauses.push(`status = $${idx++}`); values.push(updates.status); }
+    if (updates.is_visible !== undefined) { setClauses.push(`is_visible = $${idx++}`); values.push(updates.is_visible); }
+    if (updates.updated_by !== undefined) { setClauses.push(`updated_by = $${idx++}`); values.push(updates.updated_by); }
+
+    if (setClauses.length === 0) {
+      const { rows } = await sql<Story>`SELECT * FROM stories WHERE id = ${id}`;
+      return rows[0];
+    }
+
+    // always update timestamp
+    setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+
+    values.push(id);
+    const query = `UPDATE stories SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`;
+    const { rows } = await sql.query<Story>(query, values);
+    return rows[0];
+  } catch (error) {
+    console.error('Error updating story:', error);
+    throw error;
+  }
+}
+
+export async function deleteStories(ids: number[]): Promise<number> {
+  try {
+    if (!ids || ids.length === 0) return 0;
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+    const result = await sql.query(`DELETE FROM stories WHERE id IN (${placeholders})`, ids);
+    return result.rowCount || 0;
+  } catch (error) {
+    console.error('Error deleting stories:', error);
+    throw error;
+  }
+}
+
 /**
  * Get all gallery items
  */
