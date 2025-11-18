@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { ChevronDown, ChevronUp, User, MapPin, Play, X, Quote, Maximize, Minimize, Calendar } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { toast } from 'sonner';
 import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
@@ -19,6 +20,7 @@ interface Testimonial {
   image: string | null;
   text: string;
   fullscreenTestimonial?: boolean;
+  email?: string;
 }
 
 // Type for stories coming from the public API
@@ -35,6 +37,7 @@ interface PublicStory {
   thumbnail_url?: string | null;
   date?: string | null;
   created_by?: string | null;
+  email?: string | null;
 }
 
 interface Video {
@@ -158,6 +161,7 @@ const TestimonialModal = memo(({
                   src={testimonial.image} 
                   alt={testimonial.name} 
                   className="w-full h-full object-cover"
+                  fallbackVariant="person"
                 />
               </div>
               <div className="text-left">
@@ -242,16 +246,20 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
         onClick={handleOpenModal}
       >
         <div className="flex items-start mb-4">
-          <div className="w-12 h-12 rounded-full overflow-hidden mr-4 flex-shrink-0">
+            <div className="w-12 h-12 rounded-full overflow-hidden mr-4 flex-shrink-0">
             <ImageWithFallback 
               src={testimonial.image} 
               alt={testimonial.name} 
               className="w-full h-full object-cover"
+              fallbackVariant="person"
             />
           </div>
           <div className="text-left">
             <h4 className="text-white font-medium">{testimonial.name}</h4>
             <p className="text-white text-sm">{testimonial.role}</p>
+            {testimonial.email ? (
+              <p className="text-gray-300 text-sm">{testimonial.email}</p>
+            ) : null}
             <div className="flex flex-col text-white text-xs mt-1 gap-0.5">
               <div className="flex items-center">
                 <Calendar size={12} className="mr-1" />
@@ -347,30 +355,43 @@ const SubmitTestimonyForm = memo(() => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const onSubmit = useCallback((data: any) => {
+  const onSubmit = useCallback(async (data: any) => {
     setIsSubmitting(true);
+    setSubmitSuccess(false);
 
-    // Add submission date in dd-MMM-YYYY format
-    const submissionDate = new Date();
-    const formattedDate = submissionDate.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    try {
+      // Map category key to display name on the server; send key here
+      const payload = {
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        category: data.category, // key like 'guinness'
+        location: data.location,
+        testimony: data.testimony
+      };
 
-    const finalData = {
-      ...data,
-      date: formattedDate,
-    };
+      const resp = await fetch('/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    // Simulate API call
-    setTimeout(() => {
+      const j = await resp.json();
+      if (!resp.ok || !j?.success) {
+        const msg = j?.error || 'Failed to submit testimony';
+        throw new Error(msg);
+      }
+
       setIsSubmitting(false);
       setSubmitSuccess(true);
       reset();
-      // Reset success message after 3 seconds
-      setTimeout(() => setSubmitSuccess(false), 3000);
-    }, 1000);
+      // Reset success message after 4 seconds
+      setTimeout(() => setSubmitSuccess(false), 4000);
+    } catch (err: any) {
+      console.error('Submit testimony error', err);
+      setIsSubmitting(false);
+      toast.error(err?.message || 'Submission failed');
+    }
   }, [reset]);
 
   return (
@@ -394,25 +415,31 @@ const SubmitTestimonyForm = memo(() => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 text-left">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="name" className="block text-white text-sm font-medium mb-1">{t('form.nameLabel')}</label>
+                <label htmlFor="name" className="block text-white text-sm font-medium mb-1">{t('form.nameLabel')} <span className="text-[#FDB813]">*</span></label>
                 <input
                   id="name"
+                  aria-describedby="nameHelp"
                   type="text"
+                  maxLength={100}
                   className={`w-full px-4 py-2 bg-black rounded border ${errors.name ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                   placeholder={t('form.namePlaceholder')}
                   {...register("name", { 
                     required: t('form.nameRequired'),
-                    minLength: { value: 2, message: t('form.nameMinLength') }
+                    minLength: { value: 2, message: t('form.nameMinLength') },
+                    maxLength: { value: 100, message: t('form.nameMaxLength') }
                   })}
                 />
+                <p id="nameHelp" className="text-gray-400 text-xs mt-1">Max 100 characters</p>
                 {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message as string}</p>}
               </div>
               
               <div>
-                <label htmlFor="email" className="block text-white text-sm font-medium mb-1">{t('form.emailLabel')}</label>
+                <label htmlFor="email" className="block text-white text-sm font-medium mb-1">{t('form.emailLabel')} <span className="text-[#FDB813]">*</span></label>
                 <input
                   id="email"
+                  aria-describedby="emailHelp"
                   type="email"
+                  maxLength={254}
                   className={`w-full px-4 py-2 bg-black rounded border ${errors.email ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                   placeholder={t('form.emailPlaceholder')}
                   {...register("email", { 
@@ -420,32 +447,44 @@ const SubmitTestimonyForm = memo(() => {
                     pattern: { 
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, 
                       message: t('form.emailInvalid')
-                    }
+                    },
+                    maxLength: { value: 254, message: t('form.emailMaxLength') }
                   })}
                 />
+                <p id="emailHelp" className="text-gray-400 text-xs mt-1">Max 254 characters</p>
                 {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message as string}</p>}
               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="role" className="block text-white text-sm font-medium mb-1">{t('form.roleLabel')}</label>
+                <label htmlFor="role" className="block text-white text-sm font-medium mb-1">{t('form.roleLabel')} <span className="text-[#FDB813]">*</span></label>
                 <input
                   id="role"
+                  aria-describedby="roleHelp"
                   type="text"
+                  maxLength={100}
                   className={`w-full px-4 py-2 bg-black rounded border ${errors.role ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                   placeholder={t('form.rolePlaceholder')}
-                  {...register("role", { required: t('form.roleRequired') })}
+                  {...register("role", { required: t('form.roleRequired'), maxLength: { value: 100, message: t('form.roleMaxLength') } })}
                 />
+                <p id="roleHelp" className="text-gray-400 text-xs mt-1">Max 100 characters</p>
                 {errors.role && <p className="text-red-400 text-xs mt-1">{errors.role.message as string}</p>}
               </div>
               
               <div>
-                <label htmlFor="event" className="block text-white text-sm font-medium mb-1">{t('form.eventLabel')}</label>
+                {/* Safe translation fallback: t may return the key when missing, so fall back to literal 'Category' */}
+                {(() => {
+                  const raw = t('form.categoryLabel');
+                  const label = (raw && !raw.includes('form.')) ? raw : 'Category';
+                  return (
+                    <label htmlFor="category" className="block text-white text-sm font-medium mb-1">{label} <span className="text-[#FDB813]">*</span></label>
+                  );
+                })()}
                 <select
-                  id="event"
-                  className={`w-full px-4 py-2 bg-black rounded border ${errors.event ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
-                  {...register("event", { required: t('form.eventRequired') })}
+                  id="category"
+                  className={`w-full px-4 py-2 bg-black rounded border ${errors.category ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
+                  {...register("category", { required: t('form.eventRequired') })}
                 >
                   <option value="">{t('form.eventPlaceholder')}</option>
                   {TAB_CONFIG.map((tab) => (
@@ -454,34 +493,42 @@ const SubmitTestimonyForm = memo(() => {
                     </option>
                   ))}
                 </select>
-                {errors.event && <p className="text-red-400 text-xs mt-1">{errors.event.message as string}</p>}
+                <p id="categoryHelp" className="text-gray-400 text-xs mt-1">Choose one</p>
+                {errors.category && <p className="text-red-400 text-xs mt-1">{errors.category.message as string}</p>}
               </div>
             </div>
             
             <div>
-              <label htmlFor="location" className="block text-white text-sm font-medium mb-1">{t('form.locationLabel')}</label>
+              <label htmlFor="location" className="block text-white text-sm font-medium mb-1">{t('form.locationLabel')} <span className="text-[#FDB813]">*</span></label>
               <input
                 id="location"
+                aria-describedby="locationHelp"
                 type="text"
+                maxLength={100}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.location ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 placeholder={t('form.locationPlaceholder')}
-                {...register("location", { required: t('form.locationRequired') })}
+                {...register("location", { required: t('form.locationRequired'), maxLength: { value: 100, message: t('form.locationMaxLength') } })}
               />
+              <p id="locationHelp" className="text-gray-400 text-xs mt-1">Max 100 characters</p>
               {errors.location && <p className="text-red-400 text-xs mt-1">{errors.location.message as string}</p>}
             </div>
             
             <div>
-              <label htmlFor="testimony" className="block text-white text-sm font-medium mb-1">{t('form.testimonyLabel')}</label>
+              <label htmlFor="testimony" className="block text-white text-sm font-medium mb-1">{t('form.testimonyLabel')} <span className="text-[#FDB813]">*</span></label>
               <textarea
                 id="testimony"
+                aria-describedby="testimonyHelp"
                 rows={6}
+                maxLength={5000}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.testimony ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none`}
                 placeholder={t('form.testimonyPlaceholder')}
                 {...register("testimony", { 
                   required: t('form.testimonyRequired'),
-                  minLength: { value: 50, message: t('form.testimonyMinLength') }
+                  minLength: { value: 50, message: t('form.testimonyMinLength') },
+                  maxLength: { value: 5000, message: t('form.testimonyMaxLength') }
                 })}
               />
+              <p id="testimonyHelp" className="text-gray-400 text-xs mt-1">50–5000 characters</p>
               {errors.testimony && <p className="text-red-400 text-xs mt-1">{errors.testimony.message as string}</p>}
             </div>
             
@@ -606,7 +653,8 @@ export function StoriesPage() {
         location: s.location || '',
         category: s.category || '',
         image: s.thumbnail_url || null,
-        text: s.body || ''
+        text: s.body || '',
+        email: s.email || undefined
       }));
   }, [publicStories]);
 

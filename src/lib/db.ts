@@ -408,6 +408,7 @@ export async function createStory(payload: {
   role?: string | null;
   category?: string | null;
   body?: string | null;
+  email?: string | null;
   media_type?: 'text' | 'video';
   video_url?: string | null;
   thumbnail_url?: string | null;
@@ -417,9 +418,9 @@ export async function createStory(payload: {
   try {
     const { rows } = await sql<Story>`
       INSERT INTO stories (
-        title, date, location, category, role, body, media_type, video_url, thumbnail_url, status, is_visible, created_by, updated_by
+        title, date, location, category, role, body, email, media_type, video_url, thumbnail_url, status, is_visible, created_by, updated_by
       ) VALUES (
-        ${payload.title}, ${payload.date || null}, ${payload.location || null}, ${payload.category || null}, ${payload.role || null}, ${payload.body || null}, ${payload.media_type || 'text'}, ${payload.video_url || null}, ${payload.thumbnail_url || null}, 'Submitted', true, ${payload.createdBy || null}, ${payload.createdBy || null}
+        ${payload.title}, ${payload.date || null}, ${payload.location || null}, ${payload.category || null}, ${payload.role || null}, ${payload.body || null}, ${payload.email || null}, ${payload.media_type || 'text'}, ${payload.video_url || null}, ${payload.thumbnail_url || null}, 'Submitted', true, ${payload.createdBy || null}, ${payload.createdBy || null}
       ) RETURNING *
     `;
     return rows[0];
@@ -456,6 +457,7 @@ export async function updateStory(id: number, updates: Partial<{
     if (updates.media_type !== undefined) { setClauses.push(`media_type = $${idx++}`); values.push(updates.media_type); }
     if (updates.video_url !== undefined) { setClauses.push(`video_url = $${idx++}`); values.push(updates.video_url); }
     if (updates.thumbnail_url !== undefined) { setClauses.push(`thumbnail_url = $${idx++}`); values.push(updates.thumbnail_url); }
+    if ((updates as any).email !== undefined) { setClauses.push(`email = $${idx++}`); values.push((updates as any).email); }
     if (updates.status !== undefined) { setClauses.push(`status = $${idx++}`); values.push(updates.status); }
     if (updates.is_visible !== undefined) { setClauses.push(`is_visible = $${idx++}`); values.push(updates.is_visible); }
     if (updates.updated_by !== undefined) { setClauses.push(`updated_by = $${idx++}`); values.push(updates.updated_by); }
