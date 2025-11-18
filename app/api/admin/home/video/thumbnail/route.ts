@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del, put } from '@vercel/blob';
 import { sql } from '@vercel/postgres';
+import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 
 /**
  * PUT /api/admin/home/video/thumbnail
@@ -35,10 +36,15 @@ export async function PUT(request: NextRequest) {
     `;
     const oldThumbnailUrl = rows[0]?.thumbnail_image_url;
 
-    // Update thumbnail in database
+    // resolve session and actor
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const { actor } = resolved;
+
+    // Update thumbnail in database and record actor
     await sql`
       UPDATE home_video 
-      SET thumbnail_image_url = ${thumbnail_image_url}, updated_at = CURRENT_TIMESTAMP
+      SET thumbnail_image_url = ${thumbnail_image_url}, updated_at = CURRENT_TIMESTAMP, updated_by = ${actor || null}
       WHERE id = ${videoId}
     `;
 
@@ -88,10 +94,15 @@ export async function DELETE(request: NextRequest) {
     `;
     const thumbnailUrl = rows[0]?.thumbnail_image_url;
 
-    // Remove thumbnail from database
+    // resolve session and actor
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const { actor } = resolved;
+
+    // Remove thumbnail from database and record actor
     await sql`
       UPDATE home_video 
-      SET thumbnail_image_url = NULL, updated_at = CURRENT_TIMESTAMP
+      SET thumbnail_image_url = NULL, updated_at = CURRENT_TIMESTAMP, updated_by = ${actor || null}
       WHERE id = ${videoId}
     `;
 

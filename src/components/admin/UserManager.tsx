@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { sampleUsers } from '../../utils/sampleAdminData';
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
@@ -12,6 +11,7 @@ interface User {
   status: string;
   lastLogin: string;
   createdAt: string;
+  mustReset?: boolean;
 }
 
 interface ValidationErrors {
@@ -23,7 +23,7 @@ type SortColumn = 'name' | 'role' | 'status' | 'lastLogin' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
 
 export function UserManager() {
-  const [users, setUsers] = useState<User[]>(sampleUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -43,6 +43,39 @@ export function UserManager() {
     name: 100,
     email: 100,
   };
+
+  // Load users from API
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // include admin token for server-side validation
+        const rawToken = localStorage.getItem('admin_token');
+        let token = '';
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+        const j = await res.json();
+        if (j.success) {
+          const mapped = (j.data || []).map((r: any) => ({
+            id: String(r.id),
+            name: r.name,
+            email: r.email,
+            role: r.role,
+            status: r.status,
+            lastLogin: r.last_login ? new Date(r.last_login).toLocaleString() : 'Never',
+            createdAt: r.created_at || r.createdAt || new Date().toISOString(),
+            mustReset: !!r.must_reset_password,
+          }));
+          setUsers(mapped);
+        } else {
+          toast.error('Failed to load users');
+        }
+      } catch (err) {
+        console.error('load users failed', err);
+        toast.error('Failed to load users');
+      }
+    };
+    load();
+  }, []);
 
   const validateForm = (): ValidationErrors => {
     const errors: ValidationErrors = {};
@@ -84,39 +117,77 @@ export function UserManager() {
     return emailRegex.test(email);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const errors = validateForm();
-    
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       toast.error('Please fix the validation errors');
       return;
     }
 
-    // Clear validation errors
     setValidationErrors({});
-    
-    if (editingUser) {
-      setUsers(users.map(user => 
-        user.id === editingUser.id 
-          ? { ...user, ...formData }
-          : user
-      ));
-      toast.success('User updated successfully');
-    } else {
-      const newUser: User = {
-        id: Date.now().toString(),
-        ...formData,
-        lastLogin: 'Never',
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-      setUsers([...users, newUser]);
-      toast.success('User added successfully');
+
+    try {
+        if (editingUser) {
+        const rawToken = localStorage.getItem('admin_token');
+        let token = '';
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        const resp = await fetch(`/api/admin/users?id=${editingUser.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(formData)
+        });
+        const j = await resp.json();
+        if (!j.success) {
+          toast.error(j.error || 'Failed to update user');
+          return;
+        }
+        const updated = {
+          id: String(j.data.id),
+          name: j.data.name,
+          email: j.data.email,
+          role: j.data.role,
+          status: j.data.status,
+          lastLogin: j.data.last_login ? new Date(j.data.last_login).toLocaleString() : 'Never',
+          createdAt: j.data.created_at || new Date().toISOString(),
+        } as User;
+        setUsers(u => u.map(x => x.id === editingUser.id ? updated : x));
+        toast.success('User updated successfully');
+      } else {
+        const rawToken = localStorage.getItem('admin_token');
+        let token = '';
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        const resp = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(formData)
+        });
+        const j = await resp.json();
+        if (!j.success) {
+          toast.error(j.error || 'Failed to create user');
+          return;
+        }
+        const created = {
+          id: String(j.data.id),
+          name: j.data.name,
+          email: j.data.email,
+          role: j.data.role,
+          status: j.data.status,
+          lastLogin: j.data.last_login ? new Date(j.data.last_login).toLocaleString() : 'Never',
+          createdAt: j.data.created_at || new Date().toISOString(),
+          mustReset: !!j.data.must_reset_password,
+        } as User;
+        setUsers(u => [created, ...u]);
+        // No invite flow — password is set to default and user must reset at first login.
+        toast.success('User added successfully');
+      }
+      resetForm();
+    } catch (err) {
+      console.error('submit user failed', err);
+      toast.error('Failed to save user');
     }
-    
-    resetForm();
   };
 
   const handleDelete = (user: User) => {
@@ -125,12 +196,29 @@ export function UserManager() {
   };
 
   const confirmDelete = () => {
-    if (userToDelete) {
-      setUsers(users.filter(user => user.id !== userToDelete.id));
-      toast.success('User deleted successfully');
-      setUserToDelete(null);
-    }
-    setDeleteDialogOpen(false);
+    const doDelete = async () => {
+      if (!userToDelete) return;
+      try {
+        const rawToken = localStorage.getItem('admin_token');
+        let token = '';
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        const resp = await fetch(`/api/admin/users?id=${userToDelete.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        const j = await resp.json();
+        if (!j.success) {
+          toast.error(j.error || 'Failed to delete user');
+        } else {
+          setUsers(u => u.filter(user => user.id !== userToDelete.id));
+          toast.success('User deleted successfully');
+        }
+      } catch (err) {
+        console.error('delete user failed', err);
+        toast.error('Failed to delete user');
+      } finally {
+        setUserToDelete(null);
+        setDeleteDialogOpen(false);
+      }
+    };
+    doDelete();
   };
 
   const handleEdit = (user: User) => {
@@ -143,6 +231,34 @@ export function UserManager() {
     });
     setValidationErrors({});
     setShowForm(true);
+  };
+
+  const toggleActive = async (user: User) => {
+    const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
+    // optimistic update
+    setUsers(u => u.map(x => x.id === user.id ? { ...x, status: newStatus } : x));
+    try {
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        const resp = await fetch(`/api/admin/users?id=${user.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ ...user, status: newStatus })
+        });
+      const j = await resp.json();
+      if (!j.success) {
+        toast.error(j.error || 'Failed to update status');
+        // revert
+        setUsers(u => u.map(x => x.id === user.id ? { ...x, status: user.status } : x));
+      } else {
+        toast.success(`User ${newStatus === 'Active' ? 'activated' : 'deactivated'}`);
+      }
+    } catch (err) {
+      console.error('toggleActive failed', err);
+      toast.error('Failed to update status');
+      setUsers(u => u.map(x => x.id === user.id ? { ...x, status: user.status } : x));
+    }
   };
 
   const resetForm = () => {
@@ -252,7 +368,7 @@ export function UserManager() {
     <div className="p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-2xl text-white mb-2">User Management</h2>
+          <h1 className="text-3xl font-bold text-white mb-2">User Management</h1>
           <p className="text-gray-300">Manage admin portal users and their permissions</p>
         </div>
         <button
@@ -381,13 +497,64 @@ export function UserManager() {
         </div>
       )}
 
-      <div className="bg-black border border-gray-700 rounded-lg shadow-sm overflow-hidden">
+      {/* Mobile: stacked list */}
+      <div className="md:hidden space-y-4">
+        {getSortedUsers().map(user => (
+          <div key={user.id} className="bg-[#111] border border-gray-700 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 h-10 w-10 bg-purple-900/30 rounded-full flex items-center justify-center">
+                <User size={20} className="text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-white font-medium">{user.name}</div>
+                <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
+                  <Mail size={12} />
+                  <span className="truncate">{user.email}</span>
+                </div>
+                <div className="mt-3 flex items-center gap-3 flex-wrap">
+                  <span className={`inline-flex px-2.5 py-1 text-xs rounded-full ${getRoleBadgeColor(user.role)}`}>{user.role}</span>
+                  <span className={`inline-flex px-2.5 py-1 text-xs rounded-full ${getStatusColor(user.status)}`}>{user.status}</span>
+                  <span className="text-xs text-gray-400">Last login: {user.lastLogin}</span>
+                  <span className="text-xs text-gray-400">Member since: {new Date(user.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <button onClick={() => toggleActive(user)} className={`p-2 rounded ${user.status === 'Active' ? 'bg-[#FDB813] text-black' : 'bg-gray-800 text-gray-300'}`} title={user.status === 'Active' ? 'Deactivate' : 'Activate'}>
+                <Power size={16} />
+              </button>
+              <button onClick={async () => {
+                try {
+                  const rawToken = localStorage.getItem('admin_token');
+                  let token = '';
+                  if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+                  const resp = await fetch('/api/admin/users/reset', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: user.id }) });
+                  const j = await resp.json();
+                  if (!j.success) { toast.error(j.error || 'Failed to reset password'); return; }
+                  setUsers(u => u.map(x => x.id === user.id ? { ...x, mustReset: false } : x));
+                  toast.success('Password reset to default and must-reset cleared');
+                } catch (err) { console.error(err); toast.error('Failed to reset password'); }
+              }} className="p-2 bg-[#FDB813] text-black rounded">
+                <RotateCw size={16} />
+              </button>
+              <button onClick={() => handleEdit(user)} className="p-2 text-gray-300 bg-transparent border border-gray-700 rounded">
+                <Edit size={16} />
+              </button>
+              <button onClick={() => handleDelete(user)} className="p-2 bg-[#2E2E2E] text-[#FDB813] border border-[#FDB813] rounded">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block bg-black border border-gray-700 rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-hidden">
           <table className="w-full table-fixed">
             <thead className="bg-[#2E2E2E] border-b border-gray-700">
               <tr>
                 <th 
-                  className="w-[30%] px-4 py-3 text-left text-xs text-gray-400 uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
+                  className="w-[26%] px-4 py-3 text-left text-xs text-gray-400 uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center gap-2">
@@ -431,7 +598,7 @@ export function UserManager() {
                     <SortIcon column="createdAt" />
                   </div>
                 </th>
-                <th className="w-[12%] px-3 py-3 text-right text-xs text-gray-400 uppercase tracking-wider">
+                <th className="w-[16%] px-3 py-3 text-right text-xs text-gray-400 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -445,7 +612,7 @@ export function UserManager() {
                 </tr>
               ) : (
                 getSortedUsers().map((user) => (
-                  <tr key={user.id} className="hover:bg-[#2E2E2E]">
+                  <tr key={user.id} className="hover:bg-[#1a1a1a]">
                     <td className="px-4 py-4">
                       <div className="flex items-center min-w-0">
                         <div className="flex-shrink-0 h-10 w-10 bg-purple-900/30 rounded-full flex items-center justify-center">
@@ -459,6 +626,7 @@ export function UserManager() {
                           </div>
                         </div>
                       </div>
+                      {/* Mobile actions removed from table row; mobile-only list is rendered above table */}
                     </td>
                     <td className="px-3 py-4">
                       <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(user.role)}`}>
@@ -496,10 +664,44 @@ export function UserManager() {
                       })}
                     </td>
                     <td className="px-3 py-4 text-right text-sm">
-                      <div className="flex justify-end gap-1">
+                      <div className="hidden md:flex items-center justify-end gap-2 flex-wrap">
+                        <button
+                          onClick={() => toggleActive(user)}
+                          className={`px-3 py-2 rounded transition-colors text-sm font-medium ${user.status === 'Active' ? 'bg-[#FDB813] text-black hover:bg-[#e5a711]' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+                          title={user.status === 'Active' ? 'Deactivate user' : 'Activate user'}
+                        >
+                          {user.status === 'Active' ? 'Deactivate' : 'Activate'}
+                        </button>
+                        {/* Reset password to default and require reset on first login */}
+                        <button
+                          onClick={async () => {
+                            try {
+                              const rawToken = localStorage.getItem('admin_token');
+                              let token = '';
+                              if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+                              const resp = await fetch('/api/admin/users/reset', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: user.id }) });
+                              const j = await resp.json();
+                              if (!j.success) {
+                                toast.error(j.error || 'Failed to reset password');
+                                return;
+                              }
+                              // optimistic update: password reset to default and clear mustReset flag
+                              setUsers(u => u.map(x => x.id === user.id ? { ...x, mustReset: false } : x));
+                              toast.success('Password reset to default and must-reset cleared');
+                            } catch (err) {
+                              console.error('reset password failed', err);
+                              toast.error('Failed to reset password');
+                            }
+                          }}
+                          className="px-3 py-2 bg-[#FDB813] text-black rounded hover:bg-[#e5a711] transition-colors text-sm font-medium"
+                          title="Reset password to default"
+                        >
+                          Reset Password
+                        </button>
+                        {/* Removed 'Require Reset' toggle — admin can use Reset Password to set default and clear the flag */}
                         <button
                           onClick={() => handleEdit(user)}
-                          className="p-2 text-gray-400 hover:bg-[#2E2E2E] rounded transition-colors"
+                          className="p-2 text-gray-300 bg-transparent border border-gray-700 hover:bg-gray-800 rounded transition-colors"
                           aria-label="Edit"
                           title="Edit User"
                         >

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { del } from '@vercel/blob';
+import { verifySession, getActorName } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,13 +42,51 @@ export async function POST(request: NextRequest) {
     if (!type) return NextResponse.json({ success: false, error: 'type param required' }, { status: 400 });
 
     const data = await request.json();
+    const idParam = searchParams.get('id');
+    // verify session and resolve actor
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const actor = await getActorName(token);
     let result;
 
     switch (type) {
       case 'upi':
+        // If client included an id via query or body (editing flow mistakenly using POST), update that id
+        const idToUse = idParam || data.id;
+        if (idToUse) {
+          const byId = await sql`SELECT id FROM donations_upi WHERE id = ${idToUse} LIMIT 1`;
+          if (byId.rows.length) {
+            result = await sql`
+              UPDATE donations_upi SET
+                label = ${data.label}, upi_id = ${data.upi_id}, qr_image_url = ${data.qr_image_url}, visible = ${data.visible || true}, sort_order = ${data.sort_order || 0}, updated_by = ${actor}, updated_at = CURRENT_TIMESTAMP
+              WHERE id = ${idToUse}
+              RETURNING *
+            `;
+            break;
+          }
+        }
+
+        // Fallback: if client POSTs with an upi_id that already exists, update that row instead
+        if (data.upi_id) {
+          const existing = await sql`SELECT id FROM donations_upi WHERE upi_id = ${data.upi_id} LIMIT 1`;
+          if (existing.rows.length) {
+            const existingId = existing.rows[0].id;
+            result = await sql`
+              UPDATE donations_upi SET
+                label = ${data.label}, upi_id = ${data.upi_id}, qr_image_url = ${data.qr_image_url}, visible = ${data.visible || true}, sort_order = ${data.sort_order || 0}, updated_by = ${actor}, updated_at = CURRENT_TIMESTAMP
+              WHERE id = ${existingId}
+              RETURNING *
+            `;
+            break;
+          }
+        }
+
+        // Otherwise insert a new row. (Do not use ON CONFLICT without a unique index.)
         result = await sql`
-          INSERT INTO donations_upi (label, upi_id, qr_image_url, visible, sort_order, created_by)
-          VALUES (${data.label}, ${data.upi_id}, ${data.qr_image_url}, ${data.visible || true}, ${data.sort_order || 0}, ${data.created_by || 'admin'})
+          INSERT INTO donations_upi (label, upi_id, qr_image_url, visible, sort_order, created_by, updated_by)
+          VALUES (${data.label}, ${data.upi_id}, ${data.qr_image_url}, ${data.visible || true}, ${data.sort_order || 0}, ${actor}, ${actor})
           RETURNING *
         `;
         break;
@@ -55,8 +94,9 @@ export async function POST(request: NextRequest) {
         result = await sql`
           INSERT INTO donations_bank (
             account_name, account_number, bank_name, branch_name, ifsc_code, swift_code, upi_id, visible, sort_order, created_by
+          , updated_by
           ) VALUES (
-            ${data.account_name}, ${data.account_number}, ${data.bank_name}, ${data.branch_name}, ${data.ifsc_code}, ${data.swift_code}, ${data.upi_id}, ${data.visible || true}, ${data.sort_order || 0}, ${data.created_by || 'admin'}
+            ${data.account_name}, ${data.account_number}, ${data.bank_name}, ${data.branch_name}, ${data.ifsc_code}, ${data.swift_code}, ${data.upi_id}, ${data.visible || true}, ${data.sort_order || 0}, ${actor}, ${actor}
           ) RETURNING *
         `;
         break;
@@ -80,6 +120,12 @@ export async function PUT(request: NextRequest) {
     if (!type || !id) return NextResponse.json({ success: false, error: 'type & id required' }, { status: 400 });
 
     const data = await request.json();
+    // verify session and resolve actor
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const actor = await getActorName(token);
     let result;
 
     switch (type) {
@@ -87,7 +133,7 @@ export async function PUT(request: NextRequest) {
         result = await sql`
           UPDATE donations_upi SET
             label = ${data.label}, upi_id = ${data.upi_id}, qr_image_url = ${data.qr_image_url},
-            visible = ${data.visible}, sort_order = ${data.sort_order || 0}, updated_by = ${data.updated_by || 'admin'}, updated_at = CURRENT_TIMESTAMP
+            visible = ${data.visible}, sort_order = ${data.sort_order || 0}, updated_by = ${actor}, updated_at = CURRENT_TIMESTAMP
           WHERE id = ${id}
           RETURNING *
         `;
@@ -97,7 +143,7 @@ export async function PUT(request: NextRequest) {
           UPDATE donations_bank SET
             account_name = ${data.account_name}, account_number = ${data.account_number}, bank_name = ${data.bank_name},
             branch_name = ${data.branch_name}, ifsc_code = ${data.ifsc_code}, swift_code = ${data.swift_code},
-            upi_id = ${data.upi_id}, visible = ${data.visible}, sort_order = ${data.sort_order || 0}, updated_by = ${data.updated_by || 'admin'}, updated_at = CURRENT_TIMESTAMP
+            upi_id = ${data.upi_id}, visible = ${data.visible}, sort_order = ${data.sort_order || 0}, updated_by = ${actor}, updated_at = CURRENT_TIMESTAMP
           WHERE id = ${id}
           RETURNING *
         `;
@@ -122,6 +168,12 @@ export async function DELETE(request: NextRequest) {
     const type = searchParams.get('type');
     const id = searchParams.get('id');
     if (!type || !id) return NextResponse.json({ success: false, error: 'type & id required' }, { status: 400 });
+
+    // verify session for delete
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     let result;
     switch (type) {

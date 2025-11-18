@@ -7,7 +7,7 @@ import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { ImageUpload } from './ImageUpload';
 import { toast } from 'sonner';
 
-export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, onRemoveConfirmed, startEditing, onConsumeStartEditing, onSave } : any) {
+export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, onRemoveConfirmed, startEditing, onConsumeStartEditing, onSave, onToggleVisible } : any) {
   const [editing, setEditing] = useState<boolean>(false);
   const [local, setLocal] = useState<any>(u);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -34,15 +34,16 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
     setEditing(false);
   };
   const saveEdit = async () => {
-    // Update parent state first
+    // Update parent state first with optimistic local values
     if (typeof onChange === 'function') onChange(local);
 
-    // If parent provided onSave, call it to persist immediately
+    // If parent provided onSave, call it to persist immediately and use the server result
     if (typeof (onSave as any) === 'function') {
       try {
         const res = await onSave(local);
         if (res) {
-          // saved successfully; close editor
+          // saved successfully; ensure parent list uses the server-returned row (important to replace temp ids)
+          if (typeof onChange === 'function') onChange(res);
           setEditing(false);
         } else {
           // save failed - keep editor open for user to retry
@@ -97,6 +98,21 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
       return;
     }
 
+    // If parent provided an onToggleVisible handler, delegate the persistence to it
+    if (typeof onToggleVisible === 'function') {
+      // Use the freshest state (local when editing) when delegating
+      const itemToSend = (editing ? local : u);
+      // optimistic UI update
+      onChange({ ...itemToSend, visible: newVal });
+      try {
+        await onToggleVisible(itemToSend, newVal);
+      } catch (err) {
+        // delegate error handling to parent; revert optimistic update
+        onChange({ ...itemToSend, visible: !newVal });
+      }
+      return;
+    }
+
     // optimistic UI update
     onChange({ ...u, visible: newVal });
 
@@ -110,13 +126,16 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
         upi_id: u.upi_id,
         qr_image_url: safeQr,
         visible: !!newVal,
-        sort_order: u.sort_order || 0,
-        updated_by: 'admin'
+        sort_order: u.sort_order || 0
       };
+
+      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const res = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload)
       });
       const j = await res.json();
@@ -150,14 +169,22 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3">
             {/* Visible as icon button */}
-            <Button
-              onClick={() => editing ? setLocal({ ...local, visible: !local.visible }) : toggleVisibleImmediate(!u.visible)}
-              className={`bg-[#2E2E2E] text-white ${ (editing ? !!local.visible : !!u.visible) ? '' : 'opacity-60' }`}
-              title={(editing ? (!!local.visible ? 'Hide' : 'Show') : (u.visible ? 'Hide' : 'Show'))}
-              aria-label="Toggle visible"
-            >
-              {(editing ? !!local.visible : !!u.visible) ? <Eye size={16} /> : <EyeOff size={16} />}
-            </Button>
+            {/* Hide visible toggle while editing a new unsaved UPI row; show elsewhere */}
+            {!(editing && String(u.id).startsWith('new-')) && (
+              <Button
+                onClick={() => {
+                  const newVal = editing ? !local.visible : !u.visible;
+                  if (editing) setLocal({ ...local, visible: newVal });
+                  // always call toggle handler so manager updates server for existing rows
+                  toggleVisibleImmediate(newVal);
+                }}
+                className={`bg-[#2E2E2E] text-white ${ (editing ? !!local.visible : !!u.visible) ? '' : 'opacity-60' }`}
+                title={(editing ? (!!local.visible ? 'Hide' : 'Show') : (u.visible ? 'Hide' : 'Show'))}
+                aria-label="Toggle visible"
+              >
+                {(editing ? !!local.visible : !!u.visible) ? <Eye size={16} /> : <EyeOff size={16} />}
+              </Button>
+            )}
 
             {!editing ? (
               <>
@@ -209,11 +236,11 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Label className="text-sm text-gray-300">Label</Label>
-              <Input value={local.label || ''} onChange={(e) => setLocal({ ...local, label: e.target.value })} placeholder="Label" className="bg-black border-gray-600 text-white text-sm" />
+              <Input value={local.label || ''} onChange={(e) => setLocal({ ...local, label: e.target.value })} placeholder="Label" className="bg-black border-gray-600 text-white text-sm" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} />
             </div>
             <div>
               <Label className="text-sm text-gray-300">UPI ID</Label>
-              <Input value={local.upi_id || ''} onChange={(e) => setLocal({ ...local, upi_id: e.target.value })} placeholder="example@bank" className="bg-black border-gray-600 text-white text-sm" />
+              <Input value={local.upi_id || ''} onChange={(e) => setLocal({ ...local, upi_id: e.target.value })} placeholder="example@bank" className="bg-black border-gray-600 text-white text-sm" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} />
             </div>
               <div className="flex flex-col items-center">
                 <div className="w-40 h-40 bg-gray-900 border-2 border-dashed border-gray-700 rounded flex items-center justify-center">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put, del } from '@vercel/blob';
 import { createHeroImage, updateHeroImage, deleteHeroImage, deleteHeroImages, reorderHeroImages, getActiveHeroImages } from '@/lib/db';
 import { sql } from '@vercel/postgres';
+import { verifySession, getActorName } from '@/lib/sessions';
 
 /**
  * GET /api/admin/home/hero-images
@@ -43,7 +44,12 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
-    const createdBy = formData.get('created_by') as string | null;
+    // verify session and resolve actor
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const createdBy = await getActorName(token);
     
     if (!files || files.length === 0) {
       return NextResponse.json(
@@ -107,7 +113,15 @@ export async function PATCH(request: NextRequest) {
     // Handle update
     if (body.id) {
       const { id, ...updates } = body;
-      const updatedImage = await updateHeroImage(id, updates);
+      // verify session and resolve actor for update
+      const auth = request.headers.get('authorization') || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+      const session = await verifySession(token);
+      if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const actor = await getActorName(token);
+
+      // attach updated_by
+      const updatedImage = await updateHeroImage(id, { ...updates, updated_by: actor });
       return NextResponse.json({
         success: true,
         data: updatedImage
@@ -154,6 +168,12 @@ export async function DELETE(request: NextRequest) {
       const result = await sql.query(query, imageIds);
       const blobUrls = result.rows.map((row: any) => row.image_url);
 
+      // verify session for delete
+      const auth = request.headers.get('authorization') || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+      const session = await verifySession(token);
+      if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
       // Delete from database
       await deleteHeroImages(imageIds);
 
@@ -182,6 +202,12 @@ export async function DELETE(request: NextRequest) {
       // Fetch blob URL before deleting from database
       const { rows } = await sql`SELECT image_url FROM home_hero_images WHERE id = ${imageId}`;
       const blobUrl = rows[0]?.image_url;
+
+      // verify session for delete
+      const auth = request.headers.get('authorization') || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+      const session = await verifySession(token);
+      if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
       // Delete from database
       await deleteHeroImage(imageId);

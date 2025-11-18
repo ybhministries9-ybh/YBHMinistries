@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, Twitter, Languages } from 'lucide-react';
 
@@ -13,14 +12,9 @@ const internationalStarBookOfRecords = 'https://n3elvywvxxnbjwip.public.blob.ver
 
 export function FooterNext() {
   const { t, i18n } = useTranslation('common');
-  const router = useRouter();
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
-  };
-
-  const handleAdminClick = () => {
-    router.push('/admin');
   };
 
   return (
@@ -263,12 +257,7 @@ export function FooterNext() {
               <Link href="/accessibility" className="hover:text-white transition-colors">
                 Accessibility
               </Link>
-              <button
-                onClick={handleAdminClick}
-                className="hover:text-white transition-colors"
-              >
-                Admin
-              </button>
+              {/* Admin link removed from footer for public site */}
             </div>
           </div>
         </div>

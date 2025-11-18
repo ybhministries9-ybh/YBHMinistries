@@ -34,6 +34,7 @@ import { ResourcesPage } from './components/ResourcesPage';
 // Admin
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import SessionWarning from './components/admin/SessionWarning';
 
 // Legal Pages
 import { PrivacyPolicy } from './components/PrivacyPolicy';
@@ -46,14 +47,19 @@ import { DirectorsPage } from './components/DirectorsPage';
 import { AwardsPage } from './components/AwardsPage';
 
 export default function App() {
-  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const normalizePath = (path: string) => {
+    const p = path.split('?')[0].split('#')[0];
+    return p.replace(/\/+$/ , '') || '/';
+  };
+
+  const [currentPath, setCurrentPath] = useState(normalizePath(window.location.pathname));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState<string>('');
 
   useEffect(() => {
     // Handle browser back/forward buttons and custom navigation
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
+      setCurrentPath(normalizePath(window.location.pathname));
       window.scrollTo(0, 0); // Scroll to top on navigation
     };
     
@@ -61,7 +67,7 @@ export default function App() {
       const path = event.detail.path;
       window.history.pushState({}, '', path);
       // Extract pathname without query string or hash for routing
-      const pathname = path.split('?')[0].split('#')[0];
+      const pathname = normalizePath(path);
       setCurrentPath(pathname);
       window.scrollTo(0, 0); // Scroll to top on navigation
     };
@@ -76,12 +82,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const isAdminRoute = currentPath === '/admin';
+    const isAdminRoute = currentPath.startsWith('/admin');
     if (isAdminRoute) {
-      const savedToken = localStorage.getItem('admin_token');
-      if (savedToken) {
-        setToken(savedToken);
-        setIsAuthenticated(true);
+      const raw = localStorage.getItem('admin_token');
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.token && parsed.expiresAt && parsed.expiresAt > Date.now()) {
+            setToken(parsed.token);
+            setIsAuthenticated(true);
+          } else {
+            // expired or invalid - remove
+            localStorage.removeItem('admin_token');
+            setToken('');
+            setIsAuthenticated(false);
+          }
+        } catch (err) {
+          // not JSON — legacy value. Treat as valid (no expiry) for now
+          setToken(raw);
+          setIsAuthenticated(true);
+        }
       }
     }
   }, [currentPath]);
@@ -99,19 +119,38 @@ export default function App() {
     setCurrentPath('/admin');
   };
 
+  // Auto-logout when token expires
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const raw = localStorage.getItem('admin_token');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      const expiresAt = parsed?.expiresAt;
+      if (expiresAt && expiresAt > Date.now()) {
+        const ms = expiresAt - Date.now();
+        const timer = setTimeout(() => {
+          handleLogout();
+        }, ms);
+        return () => clearTimeout(timer);
+      }
+    } catch (err) {
+      // legacy token (no expiry) — do nothing
+    }
+  }, [isAuthenticated, token]);
+
   // Admin routes
   if (currentPath === '/admin') {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Login page temporarily disabled - showing dashboard directly */}
-        <AdminDashboard token={token} onLogout={handleLogout} />
-        {/* 
         {isAuthenticated ? (
-          <AdminDashboard token={token} onLogout={handleLogout} />
+          <>
+            <AdminDashboard token={token} onLogout={handleLogout} />
+            <SessionWarning onLogout={handleLogout} />
+          </>
         ) : (
           <AdminLogin onLogin={handleLogin} />
         )}
-        */}
         <Toaster position="bottom-center" />
       </div>
     );

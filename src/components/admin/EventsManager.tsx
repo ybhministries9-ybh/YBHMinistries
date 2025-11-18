@@ -43,7 +43,11 @@ export function EventsManager() {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/events');
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
+      const response = await fetch('/api/admin/events', { headers });
       const result = await response.json();
       
       if (result.success) {
@@ -80,7 +84,8 @@ export function EventsManager() {
         internationalFee: 0,
         registrationFee: 0
       },
-      published: false
+      // Default new events to published (visible) to match UI expectation
+      published: true
     };
     
     setEvents([newEvent, ...events]);
@@ -93,10 +98,15 @@ export function EventsManager() {
       const isNew = event.id.startsWith('temp-');
       const url = '/api/admin/events';
       const method = isNew ? 'POST' : 'PUT';
-      
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(event)
       });
 
@@ -125,8 +135,13 @@ export function EventsManager() {
         return;
       }
 
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
       const response = await fetch(`/api/admin/events?id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       });
 
       const result = await response.json();

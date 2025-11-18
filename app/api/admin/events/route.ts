@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { verifySession, getActorName } from '@/lib/sessions';
 
 /**
  * GET /api/admin/events
@@ -7,6 +8,8 @@ import { sql } from '@vercel/postgres';
  */
 export async function GET(request: NextRequest) {
   try {
+    // allow public reads for events (admin mutations remain protected)
+
     const result = await sql`
       SELECT 
         id,
@@ -83,6 +86,13 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // verify session and resolve actor
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const actor = await getActorName(token);
+
     const body = await request.json();
     const {
       title,
@@ -126,7 +136,10 @@ export async function POST(request: NextRequest) {
         national_fee,
         international_fee,
         registration_fee,
-        published
+        published,
+        created_by,
+        updated_by,
+        updated_at
       ) VALUES (
         ${title},
         ${date},
@@ -144,7 +157,7 @@ export async function POST(request: NextRequest) {
         ${registration?.nationalFee || null},
         ${registration?.internationalFee || null},
         ${registration?.registrationFee || null},
-        ${published !== undefined ? published : true}
+        ${published !== undefined ? published : true}, ${actor}, ${actor}, CURRENT_TIMESTAMP
       )
       RETURNING id
     `;
@@ -174,6 +187,13 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
+    // verify session and resolve actor
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const actor = await getActorName(token);
+
     const body = await request.json();
     const {
       id,
@@ -219,7 +239,8 @@ export async function PUT(request: NextRequest) {
         international_fee = ${registration?.internationalFee || null},
         registration_fee = ${registration?.registrationFee || null},
         published = ${published !== undefined ? published : true},
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP,
+        updated_by = ${actor}
       WHERE id = ${id}
     `;
 
@@ -256,6 +277,12 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // verify session for delete
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     await sql`DELETE FROM events WHERE id = ${id}`;
 

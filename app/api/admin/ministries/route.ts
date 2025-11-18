@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
+import { verifySession, getActorName } from '@/lib/sessions';
 
 // GET - Fetch all ministries (admin)
 export async function GET() {
@@ -53,8 +54,12 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // TODO: Get actual user from session when authentication is implemented
-    const updatedBy = 'admin'; // Default admin user
+    // verify session and resolve actor
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const updatedBy = await getActorName(token);
     
     const { rows } = await sql`
       UPDATE ministries

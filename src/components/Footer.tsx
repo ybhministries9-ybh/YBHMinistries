@@ -15,11 +15,6 @@ interface FooterProps {
 export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterProps) {
   const { t, i18n } = useTranslation('common');
 
-  const handleAdminClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    window.history.pushState({}, '', '/admin');
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -296,12 +291,7 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
               >
                 Accessibility
               </a>
-              <button
-                onClick={handleAdminClick}
-                className="hover:text-white transition-colors"
-              >
-                Admin
-              </button>
+              {/* Admin link removed per request */}
             </div>
           </div>
         </div>

@@ -105,10 +105,11 @@ export async function createHeroImage(
 
     const { rows } = await sql<HeroImage>`
       INSERT INTO home_hero_images (
-        image_url, display_order, created_by
+        image_url, display_order, created_by, updated_by
       ) VALUES (
         ${blobUrl}, 
         ${displayOrder},
+        ${createdBy || null},
         ${createdBy || null}
       )
       RETURNING *
@@ -239,16 +240,23 @@ export async function upsertHomeVideo(
   createdBy?: string
 ): Promise<HomeVideo> {
   try {
-    // Deactivate all existing videos
-    await sql`UPDATE home_video SET is_active = false`;
+    // Deactivate any currently active video(s) and record who performed the change
+    await sql`
+      UPDATE home_video
+      SET is_active = false,
+          updated_at = CURRENT_TIMESTAMP,
+          updated_by = ${createdBy || null}
+      WHERE is_active = true
+    `;
 
     // Insert new video
     const { rows } = await sql<HomeVideo>`
       INSERT INTO home_video (
-        video_url, thumbnail_image_url, created_by
+        video_url, thumbnail_image_url, created_by, updated_by
       ) VALUES (
         ${blobUrl}, 
         ${thumbnailUrl || null},
+        ${createdBy || null},
         ${createdBy || null}
       )
       RETURNING *
@@ -320,9 +328,10 @@ export async function upsertAboutHeroImage(
       // Insert new record
       const { rows } = await sql<AboutHeroImage>`
         INSERT INTO about_hero_image (
-          image_url, created_by
+          image_url, created_by, updated_by
         ) VALUES (
           ${imageUrl}, 
+          ${createdBy || null},
           ${createdBy || null}
         )
         RETURNING *
@@ -414,14 +423,15 @@ export async function addGalleryItems(
     for (const item of items) {
       const { rows } = await sql<GalleryItem>`
         INSERT INTO gallery_items (
-          category, media_type, url, title, date, created_by
+          category, media_type, url, title, date, created_by, updated_by
         ) VALUES (
           ${item.category},
           ${item.media_type},
           ${item.url},
           ${item.title || 'Untitled'},
           ${item.date || new Date().toISOString().split('T')[0]},
-          ${item.created_by || defaultCreatedBy || 'admin'}
+          ${item.created_by || defaultCreatedBy || null},
+          ${item.created_by || defaultCreatedBy || null}
         )
         RETURNING *
       `;

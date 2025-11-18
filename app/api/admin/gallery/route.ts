@@ -7,6 +7,7 @@ import {
   updateGalleryItem, 
   deleteGalleryItems 
 } from '@/lib/db';
+import { getActorName, verifySession } from '@/lib/sessions';
 
 /**
  * GET /api/admin/gallery
@@ -18,6 +19,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     
+    // allow public reads for gallery (admin mutations remain protected)
+
     let items;
     if (category && category !== 'all') {
       // Get items for specific category
@@ -58,13 +61,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const contentType = request.headers.get('content-type') || '';
+
+    // verify session for admin and resolve actor
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     
     // Handle file upload
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
       const files = formData.getAll('files') as File[];
       const category = formData.get('category') as string;
-      const createdBy = formData.get('created_by') as string | null;
+      // resolve actor for created_by
+      const createdBy = await getActorName(token);
       
       if (!files || files.length === 0) {
         return NextResponse.json(
@@ -126,7 +136,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const items = await addGalleryItems(body.items, body.created_by);
+    // resolve actor for created_by (server-side)
+    const actor = await getActorName(token);
+    const items = await addGalleryItems(body.items, actor);
 
     return NextResponse.json({
       success: true,
@@ -158,8 +170,15 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { id, updated_by, ...updates } = body;
-    const updatedItem = await updateGalleryItem(id, updates);
+    const { id, ...updates } = body;
+    // verify session and resolve actor
+    const auth2 = request.headers.get('authorization') || '';
+    const token2 = auth2.startsWith('Bearer ') ? auth2.slice(7) : auth2 || null;
+    const session2 = await verifySession(token2);
+    if (!session2) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const actor2 = await getActorName(token2);
+
+    const updatedItem = await updateGalleryItem(id, { ...updates, updated_by: actor2 });
 
     return NextResponse.json({
       success: true,
@@ -228,6 +247,12 @@ export async function DELETE(request: NextRequest) {
         }
       }
     }
+
+    // verify session for delete
+    const auth3 = request.headers.get('authorization') || '';
+    const token3 = auth3.startsWith('Bearer ') ? auth3.slice(7) : auth3 || null;
+    const session3 = await verifySession(token3);
+    if (!session3) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     // Delete from database
     await deleteGalleryItems(itemIds);
