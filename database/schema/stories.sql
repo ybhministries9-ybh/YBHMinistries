@@ -3,7 +3,9 @@ CREATE TABLE IF NOT EXISTS stories (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   date DATE,
-  summary TEXT,
+  location TEXT,
+  role TEXT,
+  category VARCHAR(255),
   body TEXT,
   media_type VARCHAR(16) NOT NULL DEFAULT 'text', -- 'text' or 'video'
   video_url TEXT,

@@ -373,7 +373,9 @@ export interface GalleryItem {
 export interface Story {
   id: number;
   title: string;
-  summary: string | null;
+  location: string | null;
+  category?: string | null;
+  role?: string | null;
   body: string | null;
   media_type: 'text' | 'video';
   video_url?: string | null;
@@ -402,7 +404,9 @@ export async function getAllStories(): Promise<Story[]> {
 
 export async function createStory(payload: {
   title: string;
-  summary?: string | null;
+  location?: string | null;
+  role?: string | null;
+  category?: string | null;
   body?: string | null;
   media_type?: 'text' | 'video';
   video_url?: string | null;
@@ -413,9 +417,9 @@ export async function createStory(payload: {
   try {
     const { rows } = await sql<Story>`
       INSERT INTO stories (
-        title, date, summary, body, media_type, video_url, thumbnail_url, status, is_visible, created_by, updated_by
+        title, date, location, category, role, body, media_type, video_url, thumbnail_url, status, is_visible, created_by, updated_by
       ) VALUES (
-        ${payload.title}, ${payload.date || null}, ${payload.summary || null}, ${payload.body || null}, ${payload.media_type || 'text'}, ${payload.video_url || null}, ${payload.thumbnail_url || null}, 'Submitted', true, ${payload.createdBy || null}, ${payload.createdBy || null}
+        ${payload.title}, ${payload.date || null}, ${payload.location || null}, ${payload.category || null}, ${payload.role || null}, ${payload.body || null}, ${payload.media_type || 'text'}, ${payload.video_url || null}, ${payload.thumbnail_url || null}, 'Submitted', true, ${payload.createdBy || null}, ${payload.createdBy || null}
       ) RETURNING *
     `;
     return rows[0];
@@ -428,7 +432,9 @@ export async function createStory(payload: {
 export async function updateStory(id: number, updates: Partial<{
   title: string;
   date: string | null;
-  summary: string | null;
+  location: string | null;
+  category: string | null;
+  role: string | null;
   body: string | null;
   media_type: 'text' | 'video';
   video_url: string | null;
@@ -443,7 +449,9 @@ export async function updateStory(id: number, updates: Partial<{
     let idx = 1;
     if (updates.date !== undefined) { setClauses.push(`date = $${idx++}`); values.push(updates.date); }
     if (updates.title !== undefined) { setClauses.push(`title = $${idx++}`); values.push(updates.title); }
-    if (updates.summary !== undefined) { setClauses.push(`summary = $${idx++}`); values.push(updates.summary); }
+    if (updates.location !== undefined) { setClauses.push(`location = $${idx++}`); values.push(updates.location); }
+    if (updates.category !== undefined) { setClauses.push(`category = $${idx++}`); values.push(updates.category); }
+    if (updates.role !== undefined) { setClauses.push(`role = $${idx++}`); values.push(updates.role); }
     if (updates.body !== undefined) { setClauses.push(`body = $${idx++}`); values.push(updates.body); }
     if (updates.media_type !== undefined) { setClauses.push(`media_type = $${idx++}`); values.push(updates.media_type); }
     if (updates.video_url !== undefined) { setClauses.push(`video_url = $${idx++}`); values.push(updates.video_url); }
