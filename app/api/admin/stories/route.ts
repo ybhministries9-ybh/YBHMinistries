@@ -29,7 +29,9 @@ export async function POST(request: NextRequest) {
     }
     const story = await createStory({
       title,
-      summary: body.summary || null,
+      location: body.location || body.summary || null,
+      category: body.category || null,
+      role: body.role || null,
       body: body.body || null,
       media_type: body.media_type === 'video' ? 'video' : 'text',
       video_url: body.video_url || null,

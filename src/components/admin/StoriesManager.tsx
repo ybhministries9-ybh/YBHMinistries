@@ -9,6 +9,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { Checkbox } from '../ui/checkbox';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -148,6 +158,11 @@ export function StoriesManager() {
     name: '',
   });
 
+  // Unsaved-form confirmation dialog state
+  const [unsavedDialog, setUnsavedDialog] = useState<{ open: boolean; pendingType?: 'text' | 'video' | null }>(
+    { open: false, pendingType: null }
+  );
+
   // Authorization helper
   function getAuthHeaders(contentType?: string) {
     let token = '';
@@ -186,6 +201,11 @@ export function StoriesManager() {
   };
 
   useEffect(() => { void fetchStories(); }, []);
+
+  // Keep any new (temp) story's category in sync with the top-level category selector
+  useEffect(() => {
+    setStories(prev => prev.map(s => s.id.startsWith('temp-') ? { ...s, category: filterCategory } : s));
+  }, [filterCategory]);
 
   // Character limits
   const CHAR_LIMITS = {
@@ -229,19 +249,25 @@ export function StoriesManager() {
 
     if (type === 'text') {
       const name = row.title || existing?.name || '';
-      const summary = row.summary || '';
-      const parts = summary.split('•').map((p: string) => p.trim()).filter(Boolean);
+      // Prefer explicit role/location columns if present, otherwise fall back to legacy `summary` parsing
       let role = '';
       let location = '';
-      if (parts.length === 0) {
-        role = existing?.role || '';
-        location = existing?.location || '';
-      } else if (parts.length === 1) {
-        role = '';
-        location = parts[0];
+      if (row.role || row.location) {
+        role = row.role || existing?.role || '';
+        location = row.location || existing?.location || '';
       } else {
-        role = parts[0];
-        location = parts.slice(1).join(' • ');
+        const combined = row.summary || '';
+        const parts = combined.split('•').map((p: string) => p.trim()).filter(Boolean);
+        if (parts.length === 0) {
+          role = existing?.role || '';
+          location = existing?.location || '';
+        } else if (parts.length === 1) {
+          role = '';
+          location = parts[0];
+        } else {
+          role = parts[0];
+          location = parts.slice(1).join(' • ');
+        }
       }
       return {
         ...base,
@@ -259,6 +285,9 @@ export function StoriesManager() {
       title: row.title || existing?.title || '',
       youtubeUrl: row.video_url || existing?.youtubeUrl || '',
       thumbnail_url: row.thumbnail_url || existing?.thumbnail_url || '',
+      // include role/location for video stories as DB has these columns
+      role: row.role || existing?.role || '',
+      location: row.location || existing?.location || ''
     } as Story;
   };
 
@@ -321,6 +350,22 @@ export function StoriesManager() {
       } else if (!isValidYouTubeUrl(story.youtubeUrl)) {
         errors.youtubeUrl = 'Please enter a valid YouTube URL';
       }
+        // Require role and location for video stories as well
+        if (!story.role?.trim()) {
+          errors.role = 'Role is required';
+        } else if (/\d/.test(story.role)) {
+          errors.role = 'Role cannot contain numbers';
+        } else if (story.role.length > CHAR_LIMITS.role) {
+          errors.role = `Role must be ${CHAR_LIMITS.role} characters or less`;
+        }
+
+        if (!story.location?.trim()) {
+          errors.location = 'Location is required';
+        } else if (/\d/.test(story.location)) {
+          errors.location = 'Location cannot contain numbers';
+        } else if (story.location.length > CHAR_LIMITS.location) {
+          errors.location = `Location must be ${CHAR_LIMITS.location} characters or less`;
+        }
     }
 
     return errors;
@@ -416,7 +461,10 @@ export function StoriesManager() {
 
           const payload: any = {
             title: story.type === 'text' ? (story.name || 'Untitled') : (story.title || 'Untitled'),
-            summary: story.type === 'text' ? (story.role ? `${story.role} • ${story.location || ''}` : story.location) : undefined,
+            // send role and location separately
+            category: story.category || null,
+            role: story.role || null,
+            location: story.location || null,
             body: story.type === 'text' ? story.text || null : null,
             date: story.date || null,
             media_type: story.type,
@@ -460,8 +508,10 @@ export function StoriesManager() {
           }
           if (story.type === 'text') {
             updates.title = story.name || story.title || '';
-            // summary: prefer explicit summary, otherwise build from role/location
-            updates.summary = (story as any).summary || (story.role ? `${story.role} • ${story.location || ''}` : (story.location || null));
+            updates.category = story.category || null;
+            // send role and location fields separately
+            updates.role = story.role || null;
+            updates.location = story.location || null;
             updates.body = story.text || null;
             updates.media_type = 'text';
             updates.thumbnail_url = uploadedThumbnail ?? story.image ?? (story as any).thumbnail_url ?? null;
@@ -469,8 +519,10 @@ export function StoriesManager() {
             updates.date = story.date || null;
           } else {
             updates.title = story.title || '';
+            updates.category = story.category || null;
             updates.video_url = (story as any).youtubeUrl || null;
-            updates.summary = (story as any).summary || null;
+            updates.role = story.role || null;
+            updates.location = story.location || null;
             updates.media_type = 'video';
             updates.thumbnail_url = uploadedThumbnail ?? story.image ?? (story as any).thumbnail_url ?? null;
             // include date for video stories too
@@ -500,10 +552,17 @@ export function StoriesManager() {
   };
 
   const handleAddTextStory = () => {
+    // If a form is already open, show the in-app confirmation modal
+    if (editingId) {
+      setUnsavedDialog({ open: true, pendingType: 'text' });
+      return;
+    }
+
+    // otherwise open new immediately
     const newStory: Story = {
       id: `temp-${Date.now()}`,
       type: 'text',
-      category: CATEGORIES[0],
+      category: filterCategory,
       name: '',
       role: '',
       date: new Date().toISOString().split('T')[0],
@@ -518,13 +577,20 @@ export function StoriesManager() {
   };
 
   const handleAddVideoStory = () => {
+    if (editingId) {
+      setUnsavedDialog({ open: true, pendingType: 'video' });
+      return;
+    }
+
     const newStory: Story = {
       id: `temp-${Date.now()}`,
       type: 'video',
-      category: CATEGORIES[0],
+      category: filterCategory,
       title: '',
       date: new Date().toISOString().split('T')[0],
       youtubeUrl: '',
+      role: '',
+      location: '',
       status: 'Submitted',
       featured: false
     };
@@ -565,6 +631,98 @@ export function StoriesManager() {
         setDeleteDialog({ open: false, id: '', name: '' });
       }
     })();
+  };
+
+  // Handlers for the unsaved-form modal actions
+  const handleUnsavedSaveDraft = () => {
+    const current = stories.find(s => s.id === editingId);
+    if (current) {
+      try {
+        localStorage.setItem(`story_draft_${current.id}`, JSON.stringify(current));
+        toast.success('Draft saved');
+      } catch (e) {
+        console.error('Failed to save draft', e);
+        toast.error('Failed to save draft');
+      }
+    }
+
+    // create the requested new form and prepend it using a functional update to avoid stale state
+    if (unsavedDialog.pendingType === 'text') {
+      const newStory: Story = {
+        id: `temp-${Date.now()}`,
+        type: 'text',
+        category: filterCategory,
+        name: '',
+        role: '',
+        date: new Date().toISOString().split('T')[0],
+        location: '',
+        image: '',
+        text: '',
+        status: 'Submitted',
+        featured: false
+      };
+      setStories(prev => [newStory, ...prev]);
+      setEditingId(newStory.id);
+    } else if (unsavedDialog.pendingType === 'video') {
+      const newStory: Story = {
+        id: `temp-${Date.now()}`,
+        type: 'video',
+        category: filterCategory,
+        title: '',
+        date: new Date().toISOString().split('T')[0],
+        youtubeUrl: '',
+        status: 'Submitted',
+        featured: false
+      };
+      setStories(prev => [newStory, ...prev]);
+      setEditingId(newStory.id);
+    }
+    setUnsavedDialog({ open: false, pendingType: null });
+  };
+
+  const handleUnsavedDiscard = () => {
+    const currentId = editingId;
+    // remove the temp draft (functional update)
+    setStories(prev => prev.filter(s => s.id !== currentId));
+    try { if (currentId) localStorage.removeItem(`story_draft_${currentId}`); } catch (e) {}
+    setEditingId(null);
+
+    // open new form (functional prepend)
+    if (unsavedDialog.pendingType === 'text') {
+      const newStory: Story = {
+        id: `temp-${Date.now()}`,
+        type: 'text',
+        category: filterCategory,
+        name: '',
+        role: '',
+        date: new Date().toISOString().split('T')[0],
+        location: '',
+        image: '',
+        text: '',
+        status: 'Submitted',
+        featured: false
+      };
+      setStories(prev => [newStory, ...prev]);
+      setEditingId(newStory.id);
+    } else if (unsavedDialog.pendingType === 'video') {
+      const newStory: Story = {
+        id: `temp-${Date.now()}`,
+        type: 'video',
+        category: filterCategory,
+        title: '',
+        date: new Date().toISOString().split('T')[0],
+        youtubeUrl: '',
+        status: 'Submitted',
+        featured: false
+      };
+      setStories(prev => [newStory, ...prev]);
+      setEditingId(newStory.id);
+    }
+    setUnsavedDialog({ open: false, pendingType: null });
+  };
+
+  const handleUnsavedCancel = () => {
+    setUnsavedDialog({ open: false, pendingType: null });
   };
 
   const handleCancel = (id: string) => {
@@ -695,6 +853,16 @@ export function StoriesManager() {
     return res;
   }, [stories, filterCategory, filterStatus, filterType]);
 
+  // Counts for the currently selected category
+  const countsInCategory = useMemo(() => {
+    const items = stories.filter(s => s.category === filterCategory);
+    return {
+      total: items.length,
+      text: items.filter(s => s.type === 'text').length,
+      video: items.filter(s => s.type === 'video').length,
+    };
+  }, [stories, filterCategory]);
+
   const statusCounts = useMemo(() => ({
     All: stories.length,
     Submitted: stories.filter(s => s.status === 'Submitted').length,
@@ -707,7 +875,7 @@ export function StoriesManager() {
     <div className="p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-white mb-1">Stories & Testimonies Management</h2>
+          <h2 className="text-3xl font-bold text-white mb-1">Stories Management Page</h2>
           <p className="text-sm text-gray-400">Review and approve testimonies from your community</p>
         </div>
         <div className="flex gap-2">
@@ -759,21 +927,32 @@ export function StoriesManager() {
         </Select>
       </div>
 
-      {/* Type Filter */}
+      {/* Type Filter (show counts for selected category) */}
       <div className="mb-4 flex gap-2 flex-wrap">
-        {(['All', 'text', 'video'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setFilterType(t)}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
-              filterType === t
-                ? 'bg-[#FDB813] text-black'
-                : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
-            }`}
-          >
-            {t === 'text' ? 'Text Story' : t === 'video' ? 'Video Story' : 'All'}
-          </button>
-        ))}
+        <button
+          onClick={() => setFilterType('All')}
+          className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+            filterType === 'All' ? 'bg-[#FDB813] text-black' : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
+          }`}
+        >
+          All ({countsInCategory.total})
+        </button>
+        <button
+          onClick={() => setFilterType('text')}
+          className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+            filterType === 'text' ? 'bg-[#FDB813] text-black' : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
+          }`}
+        >
+          Text Story ({countsInCategory.text})
+        </button>
+        <button
+          onClick={() => setFilterType('video')}
+          className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+            filterType === 'video' ? 'bg-[#FDB813] text-black' : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
+          }`}
+        >
+          Video Story ({countsInCategory.video})
+        </button>
       </div>
 
       <div className="space-y-4">
@@ -802,22 +981,30 @@ export function StoriesManager() {
                   )}
                 </div>
 
-                {/* Category */}
+                {/* Category (for new stories the category is taken from the top filter; existing stories remain editable) */}
                 <div className="space-y-2">
                   <Label className="text-gray-300">Category <span className="text-red-500">*</span></Label>
-                  <Select 
-                    value={story.category} 
-                    onValueChange={(value) => handleUpdate(story.id, 'category', value)}
-                  >
-                    <SelectTrigger className="bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat} value={cat} className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {story.id.startsWith('temp-') ? (
+                    <Input
+                      value={filterCategory}
+                      readOnly
+                      className="bg-black border-gray-600 text-white rounded-lg px-3 py-2 cursor-default"
+                    />
+                  ) : (
+                    <Select 
+                      value={story.category} 
+                      onValueChange={(value) => handleUpdate(story.id, 'category', value)}
+                    >
+                      <SelectTrigger className="bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
+                        {CATEGORIES.map(cat => (
+                          <SelectItem key={cat} value={cat} className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {story.type === 'text' ? (
@@ -984,6 +1171,36 @@ export function StoriesManager() {
                       )}
                     </div>
 
+                    {/* Role (for video stories) - moved here per request */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-gray-300">Role <span className="text-red-500">*</span></Label>
+                        <Input
+                          value={story.role || ''}
+                          onChange={(e) => handleUpdate(story.id, 'role', e.target.value.slice(0, CHAR_LIMITS.role))}
+                          placeholder="Role (e.g., Participant, Student)"
+                          className={`bg-black border-gray-600 text-white ${validationErrors[story.id]?.role ? 'border-red-500' : ''}`}
+                          maxLength={CHAR_LIMITS.role}
+                        />
+                        {validationErrors[story.id]?.role && (
+                          <p className="text-xs text-red-500">{validationErrors[story.id].role}</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-gray-300">Location <span className="text-red-500">*</span></Label>
+                        <Input
+                          value={story.location || ''}
+                          onChange={(e) => handleUpdate(story.id, 'location', e.target.value.slice(0, CHAR_LIMITS.location))}
+                          placeholder="Location (e.g., Mumbai, India)"
+                          className={`bg-black border-gray-600 text-white ${validationErrors[story.id]?.location ? 'border-red-500' : ''}`}
+                          maxLength={CHAR_LIMITS.location}
+                        />
+                        {validationErrors[story.id]?.location && (
+                          <p className="text-xs text-red-500">{validationErrors[story.id].location}</p>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Date */}
                     <div className="space-y-2">
                       <Label className="text-gray-300">Date <span className="text-red-500">*</span></Label>
@@ -1039,18 +1256,7 @@ export function StoriesManager() {
                         </SelectContent>
                     </Select>
                   </div>
-                  {story.type !== 'text' && (
-                    <div className="flex items-end">
-                      <label className="flex items-center gap-2 text-sm text-gray-300 pb-2 cursor-pointer">
-                        <Checkbox
-                          checked={story.featured || false}
-                          onCheckedChange={(checked) => handleUpdate(story.id, 'featured', checked)}
-                          className="border-gray-600 data-[state=checked]:bg-[#FDB813] data-[state=checked]:border-[#FDB813] cursor-pointer"
-                        />
-                        Featured Story
-                      </label>
-                    </div>
-                  )}
+                  {/* Featured checkbox removed per design change */}
                 </div>
 
                 {/* Action Buttons */}
@@ -1109,44 +1315,39 @@ export function StoriesManager() {
                           )}
                         </div>
                         <p className="text-sm text-gray-400">
-                          {story.type === 'text' ? (
-                            <>
-                              {([story.role, story.location].filter(Boolean).join(' • '))}
-                              {((story.role || story.location) && story.date) ? ' • ' : ''}
-                              {story.date ? formatCardDate(story.date) : ''}
-                            </>
-                          ) : (
-                            <>
-                              {formatCardDate(story.date)}
-                            </>
-                          )}
+                          {([story.role, story.location].filter(Boolean).join(' • '))}
+                          {((story.role || story.location) && story.date) ? ' • ' : ''}
+                          {story.date ? formatCardDate(story.date) : ''}
                         </p>
                         <p className="text-xs text-[#FDB813] mt-1">{story.category}</p>
                       </div>
                       <div className="flex gap-1 ml-4">
-                        <button
+                        <Button
+                          size="sm"
                           onClick={() => toggleVisibility(story)}
-                          className="w-10 h-10 flex items-center justify-center bg-[#1f1f1f] border border-gray-600 rounded-lg text-white hover:bg-[#252525] transition-colors cursor-pointer"
+                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-md transition-colors"
                           aria-label={story.is_visible ? 'Make invisible' : 'Make visible'}
                           title={story.is_visible ? 'Make invisible' : 'Make visible'}
                         >
                           {story.is_visible ? <Eye size={18} /> : <EyeOff size={18} />}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          size="sm"
                           onClick={() => setEditingId(story.id)}
-                          className="px-3 py-2 bg-[#FDB813] text-black rounded-md flex items-center gap-2 hover:bg-[#e5a610] transition-colors cursor-pointer"
+                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2 transition-colors"
                           aria-label="Edit"
                         >
                           <Edit2 size={16} />
                           <span className="text-sm font-medium">Edit</span>
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          size="sm"
                           onClick={() => handleDelete(story.id)}
-                          className="w-10 h-10 flex items-center justify-center bg-[#e11] text-white rounded-md hover:bg-[#c30] transition-colors cursor-pointer border border-red-700"
+                          className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2 transition-colors"
                           aria-label="Delete"
                         >
                           <Trash2 size={16} />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                     {story.type === 'text' && story.text && (
@@ -1209,6 +1410,24 @@ export function StoriesManager() {
         itemType="story"
         itemName={deleteDialog.name}
       />
+
+      {/* Unsaved-form confirmation modal (use AlertDialog to match delete dialog styling) */}
+      <AlertDialog open={unsavedDialog.open} onOpenChange={(open) => setUnsavedDialog({ open, pendingType: open ? unsavedDialog.pendingType : null })}>
+        <AlertDialogContent className="bg-[#2E2E2E] border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white text-xl">Save draft?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300 text-base">You have an unsaved story open.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-[#1a1a1a] hover:bg-[#2E2E2E] text-white hover:text-[#FDB813] border-gray-600">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnsavedDiscard} className="bg-[#FDB813] hover:bg-[#e5a610] text-black">
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

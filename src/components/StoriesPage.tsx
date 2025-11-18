@@ -15,9 +15,26 @@ interface Testimonial {
   role: string;
   date: string;
   location: string;
+  category?: string;
   image: string | null;
   text: string;
   fullscreenTestimonial?: boolean;
+}
+
+// Type for stories coming from the public API
+interface PublicStory {
+  id: number;
+  title?: string | null;
+  location?: string | null;
+  role?: string | null;
+  status?: string | null;
+  category?: string | null;
+  body?: string | null;
+  media_type: 'text' | 'video';
+  video_url?: string | null;
+  thumbnail_url?: string | null;
+  date?: string | null;
+  created_by?: string | null;
 }
 
 interface Video {
@@ -26,31 +43,41 @@ interface Video {
   title: string;
   date: string;
   description: string;
+  location?: string;
+  role?: string;
+  category?: string;
 }
 
 // Date formatting helper function - memoized
-const formatDate = (dateStr: string): string => {
-  // Input format: "DD-MMM-YYYY" or "D-MMM-YYYY"
-  // Output format: "MMM DD, YYYY"
+const formatDate = (dateStr?: string | null): string => {
+  if (!dateStr) return '';
+  // Handle ISO dates like 2025-11-18 or 2025-11-18T08:00:00.000Z
+  const isoMatch = /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(dateStr);
+  if (isoMatch) {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+  }
+
+  // Handle legacy format: "DD-MMM-YYYY" (e.g., "15-Jun-2023")
   const parts = dateStr.split('-');
-  if (parts.length !== 3) return dateStr;
-  
-  const day = parts[0];
-  const month = parts[1];
-  const year = parts[2];
-  
-  return `${month} ${day}, ${year}`;
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    return `${month} ${day}, ${year}`;
+  }
+
+  return dateStr;
 };
 
 interface EventData {
   id: string;
   title: string;
   description: string;
-  testimonials: Testimonial[];
-  videos: Video[];
+  testimonials?: Testimonial[];
+  videos?: Video[];
 }
 
-// Tab configuration
+// Tab configuration (used for the page tabs and the event select)
 const TAB_CONFIG = [
   { key: "guinness", label: "Guinness", title: "Guinness World Records" },
   { key: "asian", label: "Asian Book", title: "Asian Book of Records" },
@@ -61,640 +88,6 @@ const TAB_CONFIG = [
   { key: "hallel", label: "Hallel Summer Kids Training", title: "Hallel Summer Kids Training" }
 ] as const;
 
-// Mock data for testimonials (same as in StoriesPage.tsx)
-const eventsData: EventData[] = [
-  {
-    id: "guinness",
-    title: "Guinness World Records",
-    description: "Celebrating extraordinary achievements recognized by the global authority on record-breaking.",
-    testimonials: [
-      {
-        id: 1,
-        name: "Sarah Johnson",
-        role: "Participant",
-        date: "15-Jun-2023",
-        location: "London, UK",
-        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Being part of the Guinness World Record attempt was a life-changing experience. The energy in the room was electric, and when we finally achieved the record, the sense of accomplishment was overwhelming. The organizers were incredibly professional and made sure everything ran smoothly. I would definitely participate in another event like this in the future. The preparation was intense but worth every moment when we saw our names in the record book."
-      },
-      {
-        id: 2,
-        name: "Michael Chen",
-        role: "Event Coordinator",
-        date: "03-Jul-2023",
-        location: "Singapore, Singapore",
-        image: null,
-        text: "Coordinating this record attempt was challenging but incredibly rewarding. The team's dedication and perseverance were inspiring. We faced numerous obstacles along the way, but everyone remained focused on our goal. The moment we received confirmation from Guinness was unforgettable. I'm proud to have been part of making history with such an amazing group of people."
-      },
-      {
-        id: 3,
-        name: "Priya Patel",
-        role: "Volunteer",
-        date: "22-Jun-2023",
-        location: "Mumbai, India",
-        image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Volunteering for the Guinness World Record event opened my eyes to what humans can achieve when they work together. The community spirit was incredible, and I made lifelong friends during the process. Seeing everyone's hard work pay off was an emotional moment I'll never forget."
-      },
-      {
-        id: 4,
-        name: "James Wilson",
-        role: "Judge",
-        date: "18-Jun-2023",
-        location: "New York, USA",
-        image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "As a judge for the Guinness World Record attempt, I was impressed by the level of preparation and attention to detail. Everyone involved showed tremendous enthusiasm and determination. It was a pleasure to be part of such a well-organized event, and witnessing the moment when the record was achieved was truly special."
-      },
-      {
-        id: 5,
-        name: "Emily Thompson",
-        role: "Media Coordinator",
-        date: "25-Jun-2023",
-        location: "Toronto, Canada",
-        image: null,
-        text: "Covering this Guinness World Record attempt was one of the highlights of my career in media. The story practically wrote itself—the passion, the challenges, the triumph. What made it special was how inclusive the whole event was, bringing together people from all walks of life. The footage and interviews we captured that day continue to inspire our audience."
-      },
-      {
-        id: 6,
-        name: "Ahmed Hassan",
-        role: "Participant",
-        date: "20-Jun-2023",
-        location: "Dubai, UAE",
-        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Participating in the Guinness World Record attempt was a once-in-a-lifetime experience. The atmosphere was charged with excitement and anticipation. When we finally broke the record, the celebration was unforgettable. I'm grateful for the opportunity to have been part of something so significant and to have my name associated with a world record."
-      }
-    ],
-    videos: [
-      {
-        id: "video-1",
-        videoId: "7NOSDKb0HlU",
-        title: "Official Guinness World Record Ceremony",
-        date: "25-Jun-2023",
-        description: "Watch the official ceremony where participants received their Guinness World Record certificates."
-      },
-      {
-        id: "video-2",
-        videoId: "0VwGR2f0fnM",
-        title: "Behind the Scenes: Making of a World Record",
-        date: "20-Jun-2023",
-        description: "See what happens behind the scenes in preparing for a Guinness World Record attempt."
-      },
-      {
-        id: "video-3",
-        videoId: "5qap5aO4i9A",
-        title: "Participant Interviews and Reactions",
-        date: "22-Jun-2023",
-        description: "Hear from the participants about their experience breaking a world record."
-      },
-      {
-        id: "video-4",
-        videoId: "DWcJFNfaw9c",
-        title: "The Journey to Breaking a World Record",
-        date: "18-Jun-2023",
-        description: "Follow the journey from idea to execution in this documentary about breaking a world record."
-      }
-    ]
-  },
-  {
-    id: "asian",
-    title: "Asian Book of Records",
-    description: "Recognizing exceptional achievements across the Asian continent.",
-    testimonials: [
-      {
-        id: 1,
-        name: "Li Wei",
-        role: "Record Holder",
-        date: "10-Apr-2023",
-        location: "Beijing, China",
-        image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Being recognized by the Asian Book of Records was a dream come true. The validation of years of practice and dedication meant everything to me. The ceremony was beautifully organized, and meeting other record holders was inspiring. This achievement has opened many doors for me professionally and personally. I'm grateful for the platform that the Asian Book of Records provides to showcase unique talents from across Asia."
-      },
-      {
-        id: 2,
-        name: "Aisha Rahman",
-        role: "Participant",
-        date: "25-May-2023",
-        location: "Kuala Lumpur, Malaysia",
-        image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The Asian Book of Records event was meticulously organized and professionally executed. I felt honored to be among such talented individuals from across Asia. The cultural exchange was as valuable as the recognition itself. I would highly recommend others to participate in future events."
-      },
-      {
-        id: 3,
-        name: "Hiroshi Tanaka",
-        role: "Judge",
-        date: "15-May-2023",
-        location: "Tokyo, Japan",
-        image: null,
-        text: "Being a judge for the Asian Book of Records was a profound honor. The talent and dedication displayed by the participants was nothing short of extraordinary. I was particularly impressed by how the event celebrated diversity while highlighting excellence across various disciplines. It was inspiring to see so many individuals pushing the boundaries of what's possible."
-      },
-      {
-        id: 4,
-        name: "Ananya Sharma",
-        role: "Organizer",
-        date: "30-May-2023",
-        location: "New Delhi, India",
-        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Organizing the Asian Book of Records event was a challenging but incredibly rewarding experience. Coordinating participants from across Asia required meticulous planning and cultural sensitivity, but seeing the joy on the faces of record holders made every challenge worthwhile. The event truly showcased the exceptional talents that Asia has to offer to the world."
-      },
-      {
-        id: 5,
-        name: "Kim Min-Jun",
-        role: "Record Holder",
-        date: "22-May-2023",
-        location: "Seoul, South Korea",
-        image: null,
-        text: "Achieving recognition in the Asian Book of Records has been the pinnacle of my career. The rigorous verification process gave me a deep appreciation for the prestige associated with this achievement. The ceremony was conducted with utmost professionalism, and the networking opportunities with fellow record holders have led to exciting collaborations. I'm proud to represent my country in this prestigious publication."
-      },
-      {
-        id: 6,
-        name: "Nguyen Thi Minh",
-        role: "Participant",
-        date: "18-May-2023",
-        location: "Ho Chi Minh City, Vietnam",
-        image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The Asian Book of Records event exceeded all my expectations. From the application process to the final ceremony, everything was handled with professionalism and respect for all participants. The event provided excellent visibility for my work and connected me with like-minded individuals from across Asia. I'm grateful for the recognition and the doors it has opened for my future endeavors."
-      }
-    ],
-    videos: [
-      {
-        id: "video-1",
-        videoId: "jfKfPfyJRdk",
-        title: "Asian Book of Records Annual Ceremony 2023",
-        date: "05-Jun-2023",
-        description: "Highlights from the annual Asian Book of Records ceremony in Singapore."
-      },
-      {
-        id: "video-2",
-        videoId: "n61ULEU7CO0",
-        title: "Record Breaking Moments from Across Asia",
-        date: "15-May-2023",
-        description: "A compilation of the most impressive record-breaking moments from the past year."
-      },
-      {
-        id: "video-3",
-        videoId: "kJQP7kiw5Fk",
-        title: "Cultural Performances at the Award Ceremony",
-        date: "07-Jun-2023",
-        description: "Traditional performances from various Asian countries during the award ceremony."
-      }
-    ]
-  },
-  {
-    id: "ingenious",
-    title: "Ingenious Charm World Record",
-    description: "Celebrating creativity and innovation through record-breaking achievements.",
-    testimonials: [
-      {
-        id: 1,
-        name: "David Wilson",
-        role: "Participant",
-        date: "08-Feb-2023",
-        location: "Sydney, Australia",
-        image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The Ingenious Charm World Record event pushed me beyond my creative limits. The challenge was unlike anything I had attempted before, but the supportive environment made it possible to succeed. Breaking the record was exhilarating, but the journey of preparation and the friendships formed along the way were equally rewarding. I've gained new skills and confidence that I apply in my daily life now."
-      },
-      {
-        id: 2,
-        name: "Emma Rodriguez",
-        role: "Designer",
-        date: "17-Mar-2023",
-        location: "Barcelona, Spain",
-        image: null,
-        text: "As a designer, participating in the Ingenious Charm World Record was both challenging and inspiring. The event brought together creative minds from diverse backgrounds, resulting in an incredible exchange of ideas. The record attempt itself was nerve-wracking but ultimately successful, and I'm proud to have been part of such an innovative achievement."
-      },
-      {
-        id: 3,
-        name: "Raj Mehta",
-        role: "Innovation Lead",
-        date: "05-Apr-2023",
-        location: "Dubai, UAE",
-        image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Leading the innovation team for this world record attempt was one of the highlights of my career. The creativity and determination displayed by everyone involved was remarkable. Breaking the record validated our approach to problem-solving and has inspired us to take on even greater challenges in the future."
-      },
-      {
-        id: 4,
-        name: "Sophia Chen",
-        role: "Technical Specialist",
-        date: "22-Mar-2023",
-        location: "San Francisco, USA",
-        image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The technical challenges of the Ingenious Charm World Record were immense, but that's what made the achievement so satisfying. I worked with an incredible team of professionals who brought diverse skills to the table. The moment when all our hard work came together and we realized we'd broken the record was indescribable. This experience has significantly enhanced my portfolio and professional network."
-      },
-      {
-        id: 5,
-        name: "Carlos Mendoza",
-        role: "Creative Director",
-        date: "10-Apr-2023",
-        location: "Mexico City, Mexico",
-        image: null,
-        text: "As Creative Director for the Ingenious Charm World Record attempt, I had the privilege of witnessing true innovation in action. Our team pushed boundaries and challenged conventional thinking to achieve something truly remarkable. The collaborative spirit and determination displayed throughout the project were inspiring. This record is a testament to what can be accomplished when creative minds unite toward a common goal."
-      },
-      {
-        id: 6,
-        name: "Leila Abadi",
-        role: "Participant",
-        date: "28-Mar-2023",
-        location: "Paris, France",
-        image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The Ingenious Charm World Record event was a perfect blend of artistic expression and technical precision. The challenge required us to think outside the box while maintaining meticulous attention to detail. The organizers created an environment that fostered both competition and camaraderie. I'm proud of what we accomplished and the recognition we received for our innovative approach."
-      }
-    ],
-    videos: [
-      {
-        id: "video-1",
-        videoId: "PT2_F-1esPk",
-        title: "Ingenious Charm World Record - The Complete Story",
-        date: "18-Apr-2023",
-        description: "A documentary covering the entire Ingenious Charm World Record event from preparation to celebration."
-      },
-      {
-        id: "video-2",
-        videoId: "4NRXx6U8ABQ",
-        title: "Creative Process Behind the Record",
-        date: "25-Mar-2023",
-        description: "Go behind the scenes to see the creative process that went into breaking this innovative record."
-      },
-      {
-        id: "video-3",
-        videoId: "V_MXGdSBbAI",
-        title: "Innovation Summit Highlights",
-        date: "15-Apr-2023",
-        description: "Key moments from the Innovation Summit that accompanied the world record attempt."
-      },
-      {
-        id: "video-4",
-        videoId: "HXV3zeQKqGY",
-        title: "Technical Breakdown of the Record Attempt",
-        date: "10-Apr-2023",
-        description: "A detailed technical explanation of what made this record-breaking attempt possible."
-      }
-    ]
-  },
-  {
-    id: "international",
-    title: "International Star Book of Records",
-    description: "Global recognition for outstanding achievements that inspire communities worldwide.",
-    testimonials: [
-      {
-        id: 1,
-        name: "Anika Sharma",
-        role: "Team Lead",
-        date: "12-Jan-2023",
-        location: "Mumbai, India",
-        image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Leading our team to set a record in the International Star Book of Records was an incredible honor. The scale of the event was massive, bringing together thousands of participants from different countries. The coordination required was immense, but seeing everyone work together toward a common goal was truly inspiring. This achievement has brought international recognition to our community and inspired countless others to dream big."
-      },
-      {
-        id: 2,
-        name: "David Martinez",
-        role: "Volunteer Coordinator",
-        date: "25-Jan-2023",
-        location: "São Paulo, Brazil",
-        image: null,
-        text: "Coordinating volunteers for this international record attempt taught me the true meaning of teamwork on a global scale. People from diverse backgrounds came together with shared purpose and enthusiasm. The energy was electric, and the sense of achievement when we broke the record was overwhelming. This experience has reinforced my belief in the power of collective action."
-      },
-      {
-        id: 3,
-        name: "Li Wei",
-        role: "Documentation Specialist",
-        date: "08-Feb-2023",
-        location: "Shanghai, China",
-        image: "https://images.unsplash.com/photo-1580518324671-c2f0833a3af3?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Documenting this record-breaking event was both challenging and rewarding. The attention to detail required for international record verification was intense, but our team rose to the challenge. Witnessing thousands of people working in perfect synchronization was a sight I'll never forget. This achievement showcases what humanity can accomplish when we unite for a common purpose."
-      },
-      {
-        id: 4,
-        name: "Rachel Thompson",
-        role: "Participant",
-        date: "15-Jan-2023",
-        location: "Toronto, Canada",
-        image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Being part of an international record attempt was a dream come true. The organization was impeccable, and every participant felt valued and important. The sense of community that developed among us was incredible. Breaking the record was the highlight, but the friendships and memories created along the way are what I treasure most."
-      },
-      {
-        id: 5,
-        name: "Ahmed Hassan",
-        role: "Media Coordinator",
-        date: "20-Feb-2023",
-        location: "Cairo, Egypt",
-        image: null,
-        text: "Covering this event for international media was an extraordinary experience. The scale and ambition of the record attempt captured global attention, and rightfully so. The dedication of all participants and organizers was remarkable. This achievement has put our community on the world map and inspired similar initiatives in other regions."
-      },
-      {
-        id: 6,
-        name: "Isabella Rossi",
-        role: "Logistics Manager",
-        date: "03-Feb-2023",
-        location: "Rome, Italy",
-        image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Managing the logistics for thousands of participants across multiple locations was the biggest challenge of my career, but also the most rewarding. The precision required for an international record attempt is extraordinary. Every detail had to be perfect, and our team delivered. The moment we received confirmation that we'd set the record was pure joy. This experience has elevated my professional capabilities and confidence tremendously."
-      }
-    ],
-    videos: [
-      {
-        id: "video-1",
-        videoId: "dQw4w9WgXcQ",
-        title: "International Star Record Breaking Moment",
-        date: "10-Feb-2023",
-        description: "The moment we officially broke the International Star Book of Records with thousands of participants."
-      },
-      {
-        id: "video-2",
-        videoId: "3WEuPJUvfWk",
-        title: "Behind the Scenes: Global Coordination",
-        date: "05-Feb-2023",
-        description: "A look at how teams across multiple countries coordinated to achieve this historic record."
-      },
-      {
-        id: "video-3",
-        videoId: "UBLOvSBzsCQ",
-        title: "Participant Stories from Around the World",
-        date: "18-Feb-2023",
-        description: "Hear from participants across different continents about their experience in this record attempt."
-      },
-      {
-        id: "video-4",
-        videoId: "9qvNtzCj29Q",
-        title: "International Recognition Ceremony",
-        date: "25-Feb-2023",
-        description: "The official ceremony where we received recognition from the International Star Book of Records."
-      }
-    ]
-  },
-  {
-    id: "songwriting",
-    title: "Song Writing Classes",
-    description: "Nurturing musical talent and lyrical creativity through expert guidance.",
-    testimonials: [
-      {
-        id: 1,
-        name: "Jessica Lee",
-        role: "Student",
-        date: "12-Sep-2023",
-        location: "Nashville, USA",
-        image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The songwriting classes transformed my approach to music creation. The instructors were not only knowledgeable but also genuinely invested in each student's growth. I came in with basic skills and left with a portfolio of songs I'm proud of. The collaborative environment and constructive feedback helped me find my unique voice as a songwriter. I've since recorded two of the songs I wrote during the class, and they've received positive responses from listeners."
-      },
-      {
-        id: 2,
-        name: "Marcus Brown",
-        role: "Amateur Musician",
-        date: "28-Oct-2023",
-        location: "Berlin, Germany",
-        image: null,
-        text: "I've always played instruments but struggled with writing my own music. These classes broke down the songwriting process into manageable steps that made sense to me. The instructors created a safe space for experimentation and growth. I now have the confidence and tools to express myself through music in ways I never thought possible."
-      },
-      {
-        id: 3,
-        name: "Olivia Taylor",
-        role: "Vocalist",
-        date: "05-Oct-2023",
-        location: "London, UK",
-        image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "As a vocalist, I always relied on others to write material for me. The songwriting classes empowered me to create my own music and express my personal experiences. The instructors provided excellent guidance while encouraging us to develop our individual styles. I now have a collection of songs that truly represent who I am as an artist, and I've even started collaborating with other musicians from the class."
-      },
-      {
-        id: 4,
-        name: "Jake Peterson",
-        role: "Guitarist",
-        date: "15-Sep-2023",
-        location: "Austin, USA",
-        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The songwriting classes helped me break out of musical ruts I'd been stuck in for years. The instructors challenged us to explore different genres and writing techniques, which expanded my creativity enormously. The feedback sessions were invaluable—hearing perspectives from both professionals and peers helped refine my songs in ways I couldn't have achieved alone. I'm now writing music that feels both authentic and innovative."
-      },
-      {
-        id: 5,
-        name: "Sofia Mendez",
-        role: "Composer",
-        date: "22-Oct-2023",
-        location: "Madrid, Spain",
-        image: null,
-        text: "These songwriting classes were exactly what I needed to overcome my creative blocks. The structured approach to teaching songwriting as both an art and a craft was extremely effective. I particularly appreciated how the instructors helped us develop our own unique writing processes rather than forcing a one-size-fits-all method. The community of fellow songwriters has become an important support network for my ongoing musical journey."
-      },
-      {
-        id: 6,
-        name: "Liam O'Connor",
-        role: "Singer-Songwriter",
-        date: "08-Nov-2023",
-        location: "Dublin, Ireland",
-        image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "I enrolled in the songwriting classes hoping to refine my technique, but I gained so much more. The classes helped me discover my authentic voice as an artist and taught me how to effectively communicate emotion through music and lyrics. The instructors created a supportive environment that encouraged risk-taking and experimentation. I've since performed my original songs at several venues, something I never would have had the courage to do before taking these classes."
-      }
-    ],
-    videos: [
-      {
-        id: "video-1",
-        videoId: "EErSKhC0CZs",
-        title: "Songwriting Masterclass Highlights",
-        date: "15-Oct-2023",
-        description: "The best moments from our intensive songwriting masterclass with industry experts."
-      },
-      {
-        id: "video-2",
-        videoId: "fJ9rUzIMcZQ",
-        title: "Student Performances Showcase",
-        date: "28-Oct-2023",
-        description: "Students perform songs they've written during the songwriting classes."
-      },
-      {
-        id: "video-3",
-        videoId: "eVTXPUF4Oz4",
-        title: "Lyric Writing Workshop",
-        date: "20-Sep-2023",
-        description: "A workshop focused on crafting meaningful and impactful lyrics for songs."
-      },
-      {
-        id: "video-4",
-        videoId: "YR5ApYxkU-U",
-        title: "Melody and Harmony Tutorial",
-        date: "05-Oct-2023",
-        description: "Learn the fundamentals of creating memorable melodies and harmonies in this tutorial."
-      }
-    ]
-  },
-  {
-    id: "bibleschool",
-    title: "Bible School Training",
-    description: "Deepening spiritual understanding through comprehensive biblical education.",
-    testimonials: [
-      {
-        id: 1,
-        name: "Thomas Clark",
-        role: "Student",
-        date: "05-May-2023",
-        location: "Dallas, USA",
-        image: "https://images.unsplash.com/photo-1552058544-f2b08422138a?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The Bible School Training program provided me with a solid foundation in biblical studies that has enriched both my personal faith and my ability to serve others. The instructors were deeply knowledgeable and approachable, creating an environment where questions were welcomed and thoughtfully addressed. The curriculum was comprehensive yet accessible, and I appreciated the balance between academic rigor and practical application. This training has equipped me to better understand and share the teachings of scripture in my community."
-      },
-      {
-        id: 2,
-        name: "Grace Kim",
-        role: "Ministry Leader",
-        date: "17-Jun-2023",
-        location: "Seoul, South Korea",
-        image: null,
-        text: "As a ministry leader, the Bible School Training has been invaluable for deepening my understanding of scripture and improving my teaching abilities. The program challenged me intellectually while nurturing my spiritual growth. I've been able to immediately apply what I learned to my work with youth in our community, and I've seen a positive impact on their engagement with biblical teachings."
-      },
-      {
-        id: 3,
-        name: "Robert Johnson",
-        role: "Community Volunteer",
-        date: "22-Jul-2023",
-        location: "Cape Town, South Africa",
-        image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        fullscreenTestimonial: true,
-        text: "The training exceeded my expectations in every way. The depth of study combined with practical application made for a transformative experience. I particularly valued the community aspect of learning together with others who shared my passion for biblical studies. The instructors modeled both scholarly excellence and humble service, which has inspired my own approach to community work.\\n\\nOne of the most impactful aspects of the Bible School Training was the comprehensive approach to scripture interpretation. We were taught to examine texts within their historical and cultural contexts, which opened up entirely new dimensions of understanding. The instructors challenged us to think critically and engage deeply with difficult passages rather than settling for surface-level readings.\\n\\nThe program also emphasized the importance of applying biblical principles in contemporary contexts. Through case studies and group discussions, we explored how ancient teachings remain relevant to modern challenges. This practical focus ensured that our growing knowledge was paired with wisdom about how to live out these teachings in our daily lives and communities.\\n\\nAnother highlight was the diverse community of learners. My fellow students came from various denominations, cultural backgrounds, and walks of life. Our discussions were enriched by these different perspectives, and I developed friendships that have continued beyond the program. There's something powerful about studying alongside others who bring unique insights to shared texts.\\n\\nThe teaching methods were varied and engaging, combining lectures with interactive workshops, field experiences, and independent research. This multifaceted approach catered to different learning styles and kept the material fresh and engaging throughout the program. I particularly appreciated the mentorship component, where experienced scholars provided personalized guidance on our individual areas of interest.\\n\\nThe program didn't shy away from addressing difficult questions about faith, doubt, and the complexities of religious tradition. Instead, these topics were approached with intellectual honesty and pastoral sensitivity. This created a safe space for authentic exploration that strengthened rather than undermined my faith.\\n\\nPerhaps most importantly, the Bible School Training fostered a deep love for lifelong learning. Rather than positioning itself as a comprehensive education that would answer all questions, it provided tools for ongoing study and discovery. I left with more questions than when I arrived, but they were better questions, and I had the resources to pursue answers.\\n\\nIn the months since completing the program, I've integrated what I learned into my volunteer work with community organizations. The training has transformed how I approach scripture study groups, community outreach, and even personal conversations about faith. I'm more attentive to different interpretive perspectives and more thoughtful about how ancient wisdom applies to contemporary issues.\\n\\nFor anyone considering similar training, I would strongly recommend making the investment of time and resources. The impact goes far beyond academic knowledge—it shapes how you read, think, serve, and live in profound and lasting ways."
-      },
-      {
-        id: 4,
-        name: "Maria Gonzalez",
-        role: "Youth Pastor",
-        date: "10-Jun-2023",
-        location: "Barcelona, Spain",
-        image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The Bible School Training gave me the tools and confidence to effectively minister to the youth in my church. The program offered a perfect blend of theological depth and practical ministry techniques. I especially appreciated how the instructors contextualized ancient teachings for modern application. My youth group has grown both in numbers and in spiritual maturity since I implemented what I learned from this training."
-      },
-      {
-        id: 5,
-        name: "Daniel Okafor",
-        role: "Church Elder",
-        date: "28-Jun-2023",
-        location: "Lagos, Nigeria",
-        image: null,
-        text: "This Bible School Training was transformative for me as a church elder. The comprehensive study of biblical texts equipped me with deeper insights to share with our congregation. The instructors fostered a learning environment that was both rigorous and spiritually enriching. I've applied the knowledge and approaches I gained from this program to our church's teaching ministry, and it has greatly enhanced the quality of our biblical education programs."
-      },
-      {
-        id: 6,
-        name: "Rachel Steinberg",
-        role: "Seminary Student",
-        date: "15-Jul-2023",
-        location: "Jerusalem, Israel",
-        image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "The Bible School Training complemented my seminary education perfectly. The hands-on approach and emphasis on practical application of biblical principles gave me tools that my academic studies alone couldn't provide. The instructors brought scholarly rigor together with pastoral warmth, creating an ideal learning atmosphere. This program has prepared me well for the practical realities of ministry work."
-      }
-    ],
-    videos: [
-      {
-        id: "video-1",
-        videoId: "dXZQl_mz1A4",
-        title: "Bible School Training Overview",
-        date: "10-Jun-2023",
-        description: "An introduction to our comprehensive Bible School Training program."
-      },
-      {
-        id: "video-2",
-        videoId: "3xN5ztYx3nQ",
-        title: "Scripture Study Techniques Workshop",
-        date: "15-May-2023",
-        description: "Learn effective methods for studying and interpreting scripture."
-      },
-      {
-        id: "video-3",
-        videoId: "OV3UOgYy8rs",
-        title: "Student Testimonies from Bible School",
-        date: "22-Jul-2023",
-        description: "Hear from students about their transformative experiences in the program."
-      },
-      {
-        id: "video-4",
-        videoId: "Zy2AQlK6C5k",
-        title: "Practical Ministry Applications",
-        date: "01-Aug-2023",
-        description: "How to apply biblical teachings in real-world ministry contexts."
-      }
-    ]
-  },
-  {
-    id: "hallel",
-    title: "Hallel Summer Kids Training",
-    description: "Inspiring young hearts through joyful worship and creative expression.",
-    testimonials: [
-      {
-        id: 1,
-        name: "Rebecca Martinez",
-        role: "Parent",
-        date: "12-Aug-2023",
-        location: "Miami, USA",
-        image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "My daughter attended the Hallel Summer Kids Training and came home every day bursting with joy and new songs. The program beautifully balanced fun activities with meaningful spiritual lessons. She not only learned about worship but also made wonderful friends and grew in confidence. I'm so grateful for the caring instructors who made this summer unforgettable for her."
-      },
-      {
-        id: 2,
-        name: "David Thompson",
-        role: "Instructor",
-        date: "20-Aug-2023",
-        location: "Atlanta, USA",
-        image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "Teaching at the Hallel Summer Kids Training was one of the most rewarding experiences of my career. Watching children discover the joy of worship and creative expression was truly inspiring. The curriculum was well-designed, age-appropriate, and effective. The kids were engaged, enthusiastic, and genuinely connected with the material in a way that will stay with them for years to come."
-      },
-      {
-        id: 3,
-        name: "Sarah Kim",
-        role: "Parent",
-        date: "05-Sep-2023",
-        location: "Los Angeles, USA",
-        image: null,
-        text: "The Hallel Summer Kids Training exceeded all our expectations. My son developed a genuine love for music and worship that continues even after the program ended. The instructors were patient, talented, and truly cared about each child's growth. This program has been a blessing to our family, and we look forward to enrolling him again next summer."
-      },
-      {
-        id: 4,
-        name: "Michael Anderson",
-        role: "Youth Pastor",
-        date: "18-Aug-2023",
-        location: "Chicago, USA",
-        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "I had the privilege of partnering with the Hallel Summer Kids Training program at our church. The impact on our young members has been remarkable. The children learned not just songs, but the heart of worship. The program's approach to teaching is creative, engaging, and spiritually rich. Many of the kids who participated are now active in our youth worship team."
-      },
-      {
-        id: 5,
-        name: "Jennifer Lee",
-        role: "Music Teacher",
-        date: "25-Aug-2023",
-        location: "Seattle, USA",
-        image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-        text: "As a music educator, I was impressed by the quality and depth of the Hallel Summer Kids Training curriculum. The program strikes a perfect balance between musical education and spiritual formation. The children I observed were not only learning technical skills but also developing a genuine passion for worship. The teaching methods are innovative and effective, making this program a valuable addition to any summer schedule."
-      },
-      {
-        id: 6,
-        name: "Patricia Wilson",
-        role: "Parent",
-        date: "30-Aug-2023",
-        location: "Phoenix, USA",
-        image: null,
-        text: "The Hallel Summer Kids Training was transformative for my twin daughters. They were shy at the beginning of the summer, but by the end of the program, they were confidently singing and participating in worship. The instructors created such a warm, welcoming environment where every child felt valued and encouraged. This program has given my daughters skills and confidence that extend far beyond music—they're more outgoing and joyful in all areas of their lives."
-      }
-    ],
-    videos: [
-      {
-        id: "video-1",
-        videoId: "3WEuPJUvfWk",
-        title: "Hallel Summer Kids Training Highlights",
-        date: "15-Sep-2023",
-        description: "A compilation of the best moments from this year's Hallel Summer Kids Training program."
-      },
-      {
-        id: "video-2",
-        videoId: "UBLOvSBzsCQ",
-        title: "Kids Worship Performance",
-        date: "20-Aug-2023",
-        description: "Watch the incredible worship performance by our Hallel Summer Kids participants."
-      },
-      {
-        id: "video-3",
-        videoId: "9qvNtzCj29Q",
-        title: "Creative Arts Workshop for Kids",
-        date: "10-Aug-2023",
-        description: "Behind the scenes of our creative arts workshop where kids learn worship through expression."
-      },
-      {
-        id: "video-4",
-        videoId: "kbB0iHNfW_E",
-        title: "Parent and Child Testimonies",
-        date: "01-Sep-2023",
-        description: "Hear from parents and children about their experiences at Hallel Summer Kids Training."
-      }
-    ]
-  }
-];
 
 // Testimonial Modal Component - Memoized for performance
 const TestimonialModal = memo(({ 
@@ -845,7 +238,7 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
   return (
     <>
       <div 
-        className="bg-[#2E2E2E] p-6 rounded-lg shadow-lg hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-[#FDB813]" 
+        className="bg-[#2E2E2E] p-6 rounded-lg shadow-lg hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-[#FDB813] flex flex-col justify-between h-full" 
         onClick={handleOpenModal}
       >
         <div className="flex items-start mb-4">
@@ -871,8 +264,8 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
             </div>
           </div>
         </div>
-        <p className="text-white text-sm text-left leading-relaxed">{shortText}</p>
-        <button className="mt-4 text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer">
+        <p className="text-white text-sm text-left leading-relaxed flex-grow">{shortText}</p>
+        <button className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer self-start">
           Read more →
         </button>
       </div>
@@ -904,7 +297,7 @@ const VideoCard = memo(({ video }: { video: Video }) => {
       href={youtubeUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="bg-[#2E2E2E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all block no-underline group border-2 border-transparent hover:border-[#FDB813] cursor-pointer"
+      className="bg-[#2E2E2E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all group border-2 border-transparent hover:border-[#FDB813] cursor-pointer flex flex-col h-full no-underline"
     >
       <div className="relative aspect-video bg-gray-900">
         <img 
@@ -921,9 +314,22 @@ const VideoCard = memo(({ video }: { video: Video }) => {
           </div>
         </div>
       </div>
-      <div className="p-4">
+      <div className="p-4 flex flex-col flex-grow">
         <h4 className="text-white font-medium mb-1 text-left">{video.title}</h4>
-        <div className="flex items-center text-white text-xs">
+        <div className="flex items-center text-white text-xs gap-3 mb-2">
+          {video.role ? (
+            <span className="text-white text-xs">{video.role}</span>
+          ) : null}
+          {video.role && video.location ? <span className="text-gray-500">•</span> : null}
+          {video.location ? (
+            <div className="flex items-center">
+              <MapPin size={12} className="mr-1" />
+              <span>{video.location}</span>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-auto flex items-center text-white text-xs">
           <Calendar size={12} className="mr-1" />
           <span>{formatDate(video.date)}</span>
         </div>
@@ -1042,9 +448,9 @@ const SubmitTestimonyForm = memo(() => {
                   {...register("event", { required: t('form.eventRequired') })}
                 >
                   <option value="">{t('form.eventPlaceholder')}</option>
-                  {eventsData.map((event) => (
-                    <option key={event.id} value={event.id}>
-                      {t(`tabs.${event.id}.title`)}
+                  {TAB_CONFIG.map((tab) => (
+                    <option key={tab.key} value={tab.key}>
+                      {t(`tabs.${tab.key}.title`)}
                     </option>
                   ))}
                 </select>
@@ -1100,21 +506,63 @@ SubmitTestimonyForm.displayName = 'SubmitTestimonyForm';
 export function StoriesPage() {
   const { t } = useTranslation('stories');
   
-  // Parse URL hash for initial tab
-  const getInitialTab = () => {
-    const hash = window.location.hash.substring(1); // Remove the '#'
-    const params = new URLSearchParams(hash);
-    const tab = params.get('tab') || 'guinness';
-    return tab;
-  };
-  
-  const initialTab = getInitialTab();
-  
-  const [activeTab, setActiveTab] = useState<string>(initialTab);
+  // default tab (server-safe). We will read URL hash on the client and update.
+  const [activeTab, setActiveTab] = useState<string>('guinness');
+  const [publicStories, setPublicStories] = useState<PublicStory[]>([]);
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  // fetch public stories from DB (approved & visible)
+  useEffect(() => {
+    // read hash on client only
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.substring(1); // Remove the '#'
+      const params = new URLSearchParams(hash);
+      const tab = params.get('tab') || 'guinness';
+      setActiveTab(tab);
+    }
+
+    let mounted = true;
+    const fetchStories = async () => {
+      try {
+        const resp = await fetch('/api/stories');
+        const j = await resp.json();
+        if (!mounted) return;
+        if (j?.success) {
+          setPublicStories(j.data || []);
+        } else {
+          setPublicStories([]);
+        }
+      } catch (err) {
+        // fail silently — keep UI unchanged
+        setPublicStories([]);
+        console.error('Failed to load public stories', err);
+      }
+    };
+
+    void fetchStories();
+    return () => { mounted = false; };
+  }, []);
+
+  // helper: extract YouTube id from url or return the string if it's already an id
+  const extractYouTubeId = useCallback((url?: string | null) => {
+    if (!url) return null;
+    // if it already looks like an id (no slashes), return as-is
+    if (!url.includes('/')) return url;
+    try {
+      const u = new URL(url);
+      // look for v= param
+      const v = u.searchParams.get('v');
+      if (v) return v;
+      // check path formats like /embed/ID or /watch/ID or /ID
+      const parts = u.pathname.split('/').filter(Boolean);
+      return parts.length ? parts[parts.length - 1] : null;
+    } catch (e) {
+      return null;
+    }
   }, []);
 
   // Memoize tab buttons
@@ -1142,8 +590,66 @@ export function StoriesPage() {
     [activeTab, handleTabChange, t]
   );
 
-  // Get current tab data with memoization
-  const currentEvent = useMemo(() => eventsData.find((event) => event.id === activeTab), [activeTab]);
+  // No mock `eventsData` — tab-specific titles/descriptions are provided via translations.
+
+  // Map public stories into testimonial/video shapes used by this page
+  // Only include stories with status 'approved'
+  const mappedPublicText = useMemo(() => {
+    return publicStories
+      .filter(s => s.media_type === 'text' && (s.status || '').toLowerCase() === 'approved')
+      .map<Testimonial>(s => ({
+        id: s.id,
+        name: s.title || 'Story',
+        role: s.role || '',
+        date: s.date || '',
+        // Use the story `location` field as the displayed location
+        location: s.location || '',
+        category: s.category || '',
+        image: s.thumbnail_url || null,
+        text: s.body || ''
+      }));
+  }, [publicStories]);
+
+  const mappedPublicVideos = useMemo(() => {
+    return publicStories
+      .filter(s => s.media_type === 'video' && (s.status || '').toLowerCase() === 'approved')
+      .map<Video>(s => ({
+        id: `story-${s.id}`,
+        videoId: extractYouTubeId(s.video_url) || (s.video_url || '').replace(/.*\//, ''),
+        title: s.title || 'Video Story',
+        date: s.date || '',
+        description: s.body || '',
+        // Use the story `location` field as the displayed location
+        location: s.location || '',
+        role: s.role || '',
+        category: s.category || ''
+      }));
+  }, [publicStories, extractYouTubeId]);
+
+  // Map active tab key -> admin category display name
+  const TAB_TO_CATEGORY: Record<string, string> = {
+    guinness: 'Guinness World Records',
+    asian: 'Asian Book of Records',
+    ingenious: 'Ingenious Charm World Record',
+    songwriting: 'Song Writing Classes',
+    bibleschool: 'Bible School Training',
+    hallel: 'Hallel Summer Kids Training'
+  };
+
+  // Decide which data to display: only show DB-fed stories; do not fall back to mock data
+  const displayedTestimonials = useMemo(() => {
+    const cat = TAB_TO_CATEGORY[activeTab] || '';
+    return mappedPublicText.filter(t => (t.category || '') === cat);
+  }, [mappedPublicText, activeTab]);
+
+  const displayedVideos = useMemo(() => {
+    const cat = TAB_TO_CATEGORY[activeTab] || '';
+    return mappedPublicVideos.filter(v => (v.category || '') === cat);
+  }, [mappedPublicVideos, activeTab]);
+
+  const hasContentForTab = useMemo(() => {
+    return (displayedTestimonials && displayedTestimonials.length > 0) || (displayedVideos && displayedVideos.length > 0);
+  }, [displayedTestimonials, displayedVideos]);
 
   return (
     <div
@@ -1159,11 +665,9 @@ export function StoriesPage() {
           </div>
         </div>
 
-        {/* Tab Content */}
-        <div className="mt-4" role="tabpanel">
-          {currentEvent && (
-            <>
-              {/* Section Header */}
+          {/* Tab Content */}
+          <div className="mt-4" role="tabpanel">
+            {/* Section Header */}
               <div className="text-center mb-10">
                 <h2 className="text-3xl md:text-4xl text-white mb-2">
                   {t(`tabs.${activeTab}.title`)}
@@ -1177,20 +681,27 @@ export function StoriesPage() {
                 </p>
               </div>
 
+              {/* Empty-state when no stories in this tab */}
+              {!hasContentForTab && (
+                <div className="text-center py-12 bg-black border border-gray-700 rounded-lg mb-8">
+                  <p className="text-gray-400">No Stories Available.</p>
+                </div>
+              )}
+
               {/* Testimonies Section */}
-              {currentEvent.testimonials && currentEvent.testimonials.length > 0 && (
+              {displayedTestimonials && displayedTestimonials.length > 0 && (
                 <div className="mb-12">
                   <h3 className="text-2xl md:text-3xl text-white mb-6 text-center">{t('testimoniesHeading')}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0">
-                    {currentEvent.testimonials.map((testimonial) => (
-                      <TestimonialCard key={testimonial.id} testimonial={testimonial} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
+                    {displayedTestimonials.map((testimonial) => (
+                      <TestimonialCard key={`disp-${testimonial.id}`} testimonial={testimonial} />
                     ))}
                   </div>
                 </div>
               )}
 
               {/* Videos Section */}
-              {currentEvent.videos && currentEvent.videos.length > 0 && (
+              {displayedVideos && displayedVideos.length > 0 && (
                 <div className="mt-12">
                   <div className="flex items-center mb-6">
                     <div className="flex-grow h-px bg-gray-700"></div>
@@ -1200,15 +711,13 @@ export function StoriesPage() {
                     </h3>
                     <div className="flex-grow h-px bg-gray-700"></div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0">
-                    {currentEvent.videos.map((video) => (
-                      <VideoCard key={video.id} video={video} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
+                    {displayedVideos.map((video) => (
+                      <VideoCard key={`disp-${video.id}`} video={video} />
                     ))}
                   </div>
                 </div>
               )}
-            </>
-          )}
         </div>
 
         {/* Submit Testimony Form - Common for all tabs */}
