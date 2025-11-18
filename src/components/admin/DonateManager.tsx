@@ -56,7 +56,10 @@ export function DonateManager(): React.ReactElement {
         return;
       }
 
-      const res = await fetch(`/api/admin/donations?type=${type}&id=${id}`, { method: 'DELETE' });
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const res = await fetch(`/api/admin/donations?type=${type}&id=${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       const json = await res.json();
       if (json.success) {
         toast.success(type === 'upi' ? 'UPI removed' : 'Bank removed');
@@ -73,9 +76,13 @@ export function DonateManager(): React.ReactElement {
   const loadAll = async () => {
     setLoading(true);
     try {
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
       const [uRes, bRes] = await Promise.all([
-        fetch('/api/admin/donations?type=upi'),
-        fetch('/api/admin/donations?type=bank')
+        fetch('/api/admin/donations?type=upi', { headers }),
+        fetch('/api/admin/donations?type=bank', { headers })
       ]);
       const ujson = await uRes.json().catch(() => ({ success: false }));
       const bjson = await bRes.json().catch(() => ({ success: false }));
@@ -118,8 +125,11 @@ export function DonateManager(): React.ReactElement {
     try {
       // If it's a new unsaved entry, create it first so we have a real id to attach the QR to.
       if (String(item.id).startsWith('new-')) {
-        const createPayload = { label: item.label, upi_id: item.upi_id, qr_image_url: item.qr_image_url, visible: !!item.visible, sort_order: item.sort_order || 0, created_by: 'admin' };
-        const resp = await fetch('/api/admin/donations?type=upi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) });
+        const createPayload = { label: item.label, upi_id: item.upi_id, qr_image_url: item.qr_image_url, visible: typeof item.visible === 'boolean' ? item.visible : true, sort_order: item.sort_order || 0 };
+        const rawToken = localStorage.getItem('admin_token');
+        let token = '';
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        const resp = await fetch('/api/admin/donations?type=upi', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(createPayload) });
         const j = await resp.json();
         if (!j.success) {
           toast.error('Failed to create UPI before generating QR');
@@ -156,10 +166,13 @@ export function DonateManager(): React.ReactElement {
 
       if (String(u.id).startsWith('new-')) {
         // Create record; if QR is a data URL, don't include it in create payload (upload later)
-        const createPayload: any = { label: u.label, upi_id: u.upi_id, visible: !!u.visible, sort_order: u.sort_order || 0, created_by: 'admin' };
+        const createPayload: any = { label: u.label, upi_id: u.upi_id, visible: typeof u.visible === 'boolean' ? u.visible : true, sort_order: u.sort_order || 0 };
         if (!isDataUrl) createPayload.qr_image_url = u.qr_image_url || null;
 
-        const resp = await fetch('/api/admin/donations?type=upi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) });
+        const rawToken = localStorage.getItem('admin_token');
+        let token = '';
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        const resp = await fetch('/api/admin/donations?type=upi', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(createPayload) });
         const j = await resp.json();
         if (!j.success) {
           toast.error('Failed to create UPI');
@@ -169,7 +182,10 @@ export function DonateManager(): React.ReactElement {
 
         // If QR was a data URL, upload it now and fetch updated row
         if (isDataUrl) {
-          const upResp = await fetch('/api/admin/donations/upload-qr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: newRow.id, dataUrl: u.qr_image_url }) });
+          const rawToken2 = localStorage.getItem('admin_token');
+          let token2 = '';
+          if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+          const upResp = await fetch('/api/admin/donations/upload-qr', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token2}` }, body: JSON.stringify({ id: newRow.id, dataUrl: u.qr_image_url }) });
           const upj = await upResp.json();
           if (!upj.success) {
             toast.error('Failed to upload QR image');
@@ -185,15 +201,21 @@ export function DonateManager(): React.ReactElement {
       } else {
         // Existing row
         if (isDataUrl) {
-          const upResp = await fetch('/api/admin/donations/upload-qr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: u.id, dataUrl: u.qr_image_url }) });
+          const rawToken3 = localStorage.getItem('admin_token');
+          let token3 = '';
+          if (rawToken3) try { token3 = JSON.parse(rawToken3).token || rawToken3 } catch (e) { token3 = rawToken3 }
+          const upResp = await fetch('/api/admin/donations/upload-qr', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token3}` }, body: JSON.stringify({ id: u.id, dataUrl: u.qr_image_url }) });
           const upj = await upResp.json();
           if (!upj.success) {
             toast.error('Failed to upload QR image');
             return null;
           }
           // ensure metadata (label/upi_id) is persisted
-          const payload = { label: u.label, upi_id: u.upi_id, qr_image_url: upj.url || (upj.row && upj.row.qr_image_url) || null, visible: !!u.visible, sort_order: u.sort_order || 0, updated_by: 'admin' };
-          const putResp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const payload = { label: u.label, upi_id: u.upi_id, qr_image_url: upj.url || (upj.row && upj.row.qr_image_url) || null, visible: !!u.visible, sort_order: u.sort_order || 0 };
+          const rawToken4 = localStorage.getItem('admin_token');
+          let token4 = '';
+          if (rawToken4) try { token4 = JSON.parse(rawToken4).token || rawToken4 } catch (e) { token4 = rawToken4 }
+          const putResp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token4}` }, body: JSON.stringify(payload) });
           const putJ = await putResp.json();
           if (!putJ.success) {
             toast.error('Failed to save UPI metadata');
@@ -202,8 +224,11 @@ export function DonateManager(): React.ReactElement {
           toast.success(`UPI saved${putJ.data.label ? `: ${putJ.data.label}` : ''}`);
           return putJ.data;
         } else {
-          const payload = { label: u.label, upi_id: u.upi_id, qr_image_url: u.qr_image_url, visible: !!u.visible, sort_order: u.sort_order || 0, updated_by: 'admin' };
-          const putResp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const payload = { label: u.label, upi_id: u.upi_id, qr_image_url: u.qr_image_url, visible: !!u.visible, sort_order: u.sort_order || 0 };
+          const rawToken5 = localStorage.getItem('admin_token');
+          let token5 = '';
+          if (rawToken5) try { token5 = JSON.parse(rawToken5).token || rawToken5 } catch (e) { token5 = rawToken5 }
+          const putResp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token5}` }, body: JSON.stringify(payload) });
           const putJ = await putResp.json();
           if (!putJ.success) {
             toast.error('Failed to update UPI');
@@ -230,6 +255,10 @@ export function DonateManager(): React.ReactElement {
         // account number must be digits only and not negative
         if (!/^\d+$/.test(String(row.account_number))) return 'Account number must contain digits only (no signs or letters)';
         if (!row.bank_name || String(row.bank_name).trim().length === 0) return 'Bank name is required';
+        // disallow digits in textual name fields
+        if (/\d/.test(String(row.account_name))) return 'Account name must not contain numbers';
+        if (/\d/.test(String(row.bank_name))) return 'Bank name must not contain numbers';
+        if (row.branch_name && /\d/.test(String(row.branch_name))) return 'Branch name must not contain numbers';
         if (row.account_name && String(row.account_name).length > 200) return 'Account name too long';
         if (row.account_number && String(row.account_number).length > 100) return 'Account number too long';
         if (row.bank_name && String(row.bank_name).length > 200) return 'Bank name too long';
@@ -255,12 +284,14 @@ export function DonateManager(): React.ReactElement {
         swift_code: b.swift_code || null,
         upi_id: b.upi_id || null,
         visible: !!b.visible,
-        sort_order: b.sort_order || 0,
-        updated_by: 'admin'
+        sort_order: b.sort_order || 0
       } as any;
 
       if (String(b.id).startsWith('new-')) {
-        const resp = await fetch('/api/admin/donations?type=bank', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, created_by: 'admin' }) });
+        const rawToken = localStorage.getItem('admin_token');
+        let token = '';
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        const resp = await fetch('/api/admin/donations?type=bank', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
         const j = await resp.json();
         if (!j.success) {
           toast.error(j.error || 'Failed to create bank');
@@ -269,7 +300,10 @@ export function DonateManager(): React.ReactElement {
         toast.success('Bank saved');
         return j.data;
       } else {
-        const resp = await fetch(`/api/admin/donations?type=bank&id=${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const rawToken2 = localStorage.getItem('admin_token');
+        let token2 = '';
+        if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+        const resp = await fetch(`/api/admin/donations?type=bank&id=${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token2}` }, body: JSON.stringify(payload) });
         const j = await resp.json();
         if (!j.success) {
           toast.error(j.error || 'Failed to update bank');
@@ -308,13 +342,18 @@ export function DonateManager(): React.ReactElement {
           swift_code: b.swift_code,
           upi_id: b.upi_id,
           visible: !!b.visible,
-          sort_order: b.sort_order || 0,
-          updated_by: 'admin'
+          sort_order: b.sort_order || 0
         };
         if (String(b.id).startsWith('new-')) {
-          await fetch('/api/admin/donations?type=bank', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, created_by: 'admin' }) });
+          const rawToken = localStorage.getItem('admin_token');
+          let token = '';
+          if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+          await fetch('/api/admin/donations?type=bank', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
         } else {
-          await fetch(`/api/admin/donations?type=bank&id=${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const rawToken2 = localStorage.getItem('admin_token');
+          let token2 = '';
+          if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+          await fetch(`/api/admin/donations?type=bank&id=${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token2}` }, body: JSON.stringify(payload) });
         }
       }
 
@@ -371,11 +410,13 @@ export function DonateManager(): React.ReactElement {
         swift_code: b.swift_code || null,
         upi_id: b.upi_id || null,
         visible: !!newVisible,
-        sort_order: b.sort_order || 0,
-        updated_by: 'admin'
+        sort_order: b.sort_order || 0
       } as any;
 
-      const resp = await fetch(`/api/admin/donations?type=bank&id=${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const resp = await fetch(`/api/admin/donations?type=bank&id=${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
       const j = await resp.json();
       if (!j.success) {
         toast.error(j.error || 'Failed to update visibility');
@@ -391,6 +432,44 @@ export function DonateManager(): React.ReactElement {
       console.error('toggleVisibleBank failed', err);
       toast.error('Failed to update visibility');
       setBankList((s) => s.map((x) => (String(x.id) === String(b.id) ? { ...x, visible: b.visible } : x)));
+    }
+  };
+
+  // Toggle visibility for an UPI row (optimistic update). Called by DonateUpiRow via prop.
+  const toggleVisibleUpi = async (u: UpiItem, newVisible?: boolean) => {
+    const newVal = typeof newVisible === 'boolean' ? newVisible : !u.visible;
+
+    // Optimistic UI update already applied by caller; perform server update
+    if (String(u.id).startsWith('new-')) return;
+
+    try {
+      const payload = {
+        label: u.label,
+        upi_id: u.upi_id,
+        qr_image_url: typeof u.qr_image_url === 'string' && u.qr_image_url.startsWith('data:') ? null : u.qr_image_url || null,
+        visible: !!newVal,
+        sort_order: u.sort_order || 0
+      } as any;
+
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const resp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
+      const j = await resp.json();
+      if (!j.success) {
+        toast.error(j.error || 'Failed to update visibility');
+        // revert optimistic update
+        setUpiList((s) => s.map((x) => (String(x.id) === String(u.id) ? { ...x, visible: u.visible } : x)));
+        return;
+      }
+
+      toast.success(`Visibility ${j.data.visible ? 'enabled' : 'disabled'}`);
+      // ensure server row synced
+      setUpiList((s) => s.map((x) => (String(x.id) === String(u.id) ? { ...x, ...j.data } : x)));
+    } catch (err) {
+      console.error('toggleVisibleUpi failed', err);
+      toast.error('Failed to update visibility');
+      setUpiList((s) => s.map((x) => (String(x.id) === String(u.id) ? { ...x, visible: u.visible } : x)));
     }
   };
 
@@ -425,7 +504,36 @@ export function DonateManager(): React.ReactElement {
                 <DonateUpiRow
                   key={u.id}
                   u={u}
-                  onChange={(next: UpiItem) => setUpiList((s) => s.map(x => x.id === u.id ? next : x))}
+                  onChange={(next: UpiItem) => setUpiList((s) => {
+                    // Prefer exact id match
+                    const byIdIndex = s.findIndex(x => String(x.id) === String(next.id));
+                    if (byIdIndex !== -1) {
+                      const copy = [...s];
+                      copy[byIdIndex] = next;
+                      return copy;
+                    }
+
+                    // If no id match (e.g. temp `new-` id replaced by server id), try to match by upi_id
+                    if (next.upi_id) {
+                      const byUpi = s.findIndex(x => x.upi_id && String(x.upi_id) === String(next.upi_id));
+                      if (byUpi !== -1) {
+                        const copy = [...s];
+                        copy[byUpi] = next;
+                        return copy;
+                      }
+                    }
+
+                    // As a last resort, replace the first temporary new-* entry (most likely the one being edited)
+                    const newIndex = s.findIndex(x => String(x.id).startsWith('new-'));
+                    if (newIndex !== -1) {
+                      const copy = [...s];
+                      copy[newIndex] = next;
+                      return copy;
+                    }
+
+                    // No match, return original list
+                    return s;
+                  })}
                   onSave={(item: UpiItem) => saveSingleUpi(item)}
                   onRemove={(id: string | number) => removeUpi(id)}
                   onRemoveConfirmed={(id: string | number) => doRemove('upi', id)}
@@ -433,6 +541,7 @@ export function DonateManager(): React.ReactElement {
                   onConsumeStartEditing={() => setStartEditId(null)}
                   onGenerate={(item: UpiItem) => onGenerateQr(item)}
                   generating={generating === String(u.id)}
+                  onToggleVisible={(item: UpiItem, newVal: boolean) => toggleVisibleUpi(item, newVal)}
                 />
               ))
             )}
@@ -467,7 +576,12 @@ export function DonateManager(): React.ReactElement {
                             placeholder="e.g. John Doe Foundation"
                             maxLength={200}
                             value={b.account_name || ''}
-                            onChange={(e) => setBankList((s) => s.map(x => x.id === b.id ? { ...x, account_name: e.target.value } : x))}
+                            onChange={(e) => {
+                              const sanitized = String(e.target.value).replace(/\d+/g, '');
+                              setBankList((s) => s.map(x => x.id === b.id ? { ...x, account_name: sanitized } : x));
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
                             className="bg-black border-gray-600 text-white"
                           />
                         </div>
@@ -492,7 +606,12 @@ export function DonateManager(): React.ReactElement {
                             placeholder="e.g. State Bank of India"
                             maxLength={200}
                             value={b.bank_name || ''}
-                            onChange={(e) => setBankList((s) => s.map(x => x.id === b.id ? { ...x, bank_name: e.target.value } : x))}
+                            onChange={(e) => {
+                              const sanitized = String(e.target.value).replace(/\d+/g, '');
+                              setBankList((s) => s.map(x => x.id === b.id ? { ...x, bank_name: sanitized } : x));
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
                             className="bg-black border-gray-600 text-white"
                           />
                         </div>
@@ -505,7 +624,12 @@ export function DonateManager(): React.ReactElement {
                             placeholder="e.g. MG Road Branch"
                             maxLength={200}
                             value={b.branch_name || ''}
-                            onChange={(e) => setBankList((s) => s.map(x => x.id === b.id ? { ...x, branch_name: e.target.value } : x))}
+                            onChange={(e) => {
+                              const sanitized = String(e.target.value).replace(/\d+/g, '');
+                              setBankList((s) => s.map(x => x.id === b.id ? { ...x, branch_name: sanitized } : x));
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
                             className="bg-black border-gray-600 text-white"
                           />
                         </div>
@@ -539,6 +663,8 @@ export function DonateManager(): React.ReactElement {
                             maxLength={200}
                             value={b.upi_id || ''}
                             onChange={(e) => setBankList((s) => s.map(x => x.id === b.id ? { ...x, upi_id: e.target.value } : x))}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
                             className="bg-black border-gray-600 text-white"
                           />
                         </div>

@@ -44,16 +44,32 @@ export async function invalidateSession(token: string) {
 }
 
 export async function getActorName(token?: string) {
-  if (!token) return 'admin';
+  if (!token) return null;
   try {
     const session = await verifySession(token);
-    if (!session) return 'admin';
+    if (!session) return null;
     const res = await sql`SELECT name, email FROM users WHERE id = ${session.user_id} LIMIT 1`;
-    if (!res.rows.length) return 'admin';
+    if (!res.rows.length) return null;
     const user = res.rows[0];
     return user.name || user.email || `user_${session.user_id}`;
   } catch (err) {
     console.error('Failed to resolve actor name from token', err);
-    return 'admin';
+    return null;
   }
+}
+
+/**
+ * Resolve session and actor from an Authorization header value.
+ * Parses the header, verifies the session, and returns a stable actor
+ * (falls back to `user_<id>` when the user has no name/email).
+ */
+export async function resolveSessionAndActorFromAuthHeader(
+  authHeader?: string
+): Promise<{ session: any; actor: string; token: string | null } | null> {
+  const auth = authHeader || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+  const session = await verifySession(token);
+  if (!session) return null;
+  const actor = (await getActorName(token)) || `user_${session.user_id}`;
+  return { session, actor, token };
 }

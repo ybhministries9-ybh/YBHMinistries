@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put, del } from '@vercel/blob';
 import { upsertHomeVideo, getActiveHomeVideo } from '@/lib/db';
 import { sql } from '@vercel/postgres';
-import { verifySession, getActorName } from '@/lib/sessions';
+import { verifySession, getActorName, resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 
 /**
  * GET /api/admin/home/video
@@ -47,11 +47,9 @@ export async function POST(request: NextRequest) {
       const file = formData.get('file') as File;
       const thumbnailFile = formData.get('thumbnail') as File | null;
       // verify session and resolve actor
-      const auth = request.headers.get('authorization') || '';
-      const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-      const session = await verifySession(token);
-      if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-      const createdBy = await getActorName(token);
+      const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+      if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const { session, actor: resolvedName } = resolved;
       
       if (!file) {
         return NextResponse.json(
@@ -126,8 +124,8 @@ export async function POST(request: NextRequest) {
           UPDATE home_video 
           SET video_url = ${videoBlob.url}, 
               thumbnail_image_url = ${thumbnailUrl || null},
-                updated_at = CURRENT_TIMESTAMP,
-                  updated_by = ${createdBy || null}
+              updated_at = CURRENT_TIMESTAMP,
+              updated_by = ${resolvedName || null}
           WHERE id = ${existingVideo.id}
         `;
         
@@ -135,11 +133,11 @@ export async function POST(request: NextRequest) {
         const result = await sql`SELECT * FROM home_video WHERE id = ${existingVideo.id}`;
         homeVideo = result.rows[0];
       } else {
-        // Insert new record
+        // Insert new record (pass resolved actor)
         homeVideo = await upsertHomeVideo(
           videoBlob.url,
           thumbnailUrl,
-          createdBy || undefined
+          resolvedName
         );
       }
 
@@ -154,11 +152,9 @@ export async function POST(request: NextRequest) {
     else {
       const body = await request.json();
       // verify session and resolve actor
-      const auth = request.headers.get('authorization') || '';
-      const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-      const session = await verifySession(token);
-      if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-      const actor = await getActorName(token);
+      const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+      if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const { session: _session2, actor } = resolved;
 
       const { video_url, thumbnail_image_url } = body;
 
@@ -206,8 +202,8 @@ export async function POST(request: NextRequest) {
           UPDATE home_video 
           SET video_url = ${video_url}, 
               thumbnail_image_url = ${finalThumbnailUrl},
-                updated_at = CURRENT_TIMESTAMP,
-                  updated_by = ${actor || null}
+              updated_at = CURRENT_TIMESTAMP,
+              updated_by = ${actor || null}
           WHERE id = ${existingVideo.id}
         `;
         
@@ -215,7 +211,7 @@ export async function POST(request: NextRequest) {
         const result = await sql`SELECT * FROM home_video WHERE id = ${existingVideo.id}`;
         homeVideo = result.rows[0];
       } else {
-        // Insert new record
+        // Insert new record (pass resolved actor)
         homeVideo = await upsertHomeVideo(
           video_url,
           finalThumbnailUrl,
@@ -257,10 +253,9 @@ export async function DELETE(request: NextRequest) {
     const videoId = parseInt(id);
 
     // verify session for delete
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const { session: _session, actor } = resolved;
 
     // Fetch video URL before updating database
     const { rows } = await sql`
@@ -281,7 +276,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Update database to set video_url to NULL (keeps thumbnail_image_url intact)
-    await sql`UPDATE home_video SET video_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ${videoId}`;
+    await sql`
+      UPDATE home_video
+      SET video_url = NULL,
+          updated_at = CURRENT_TIMESTAMP,
+          updated_by = ${actor || null}
+      WHERE id = ${videoId}
+    `;
     
     return NextResponse.json({
       success: true,

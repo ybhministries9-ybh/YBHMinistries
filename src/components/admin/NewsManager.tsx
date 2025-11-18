@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Calendar, BarChart3, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Calendar, BarChart3, ChevronUp, ChevronDown, X, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -85,8 +85,13 @@ function ReportsManager() {
   const fetchReports = async () => {
     try {
       setLoading(true);
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || '') : '';
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch('/api/admin/reports', {
-        cache: 'no-store'
+        cache: 'no-store',
+        headers
       });
       const result = await response.json();
 
@@ -155,8 +160,13 @@ function ReportsManager() {
   const confirmDelete = async () => {
     if (reportToDelete) {
       try {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || '') : '';
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
         const response = await fetch(`/api/admin/reports?id=${reportToDelete}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers
         });
 
         const result = await response.json();
@@ -185,11 +195,15 @@ function ReportsManager() {
       // Check if this is a new report (temporary ID)
       const isNewReport = id.startsWith('temp-');
 
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || '') : '';
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       if (isNewReport) {
         // Create new report
         const response = await fetch('/api/admin/reports', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             year: report.year,
             classType: report.classType,
@@ -213,7 +227,7 @@ function ReportsManager() {
         // Update existing report
         const response = await fetch('/api/admin/reports', {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             id: report.id,
             year: report.year,
@@ -235,6 +249,44 @@ function ReportsManager() {
     } catch (error) {
       console.error('Error saving report:', error);
       toast.error('Error saving report');
+    }
+  };
+
+  // Toggle published (visibility) for a report card
+  const togglePublished = async (reportId: string) => {
+    const report = reports.find(r => r.id === reportId);
+    if (!report) return;
+
+    const newVal = !report.published;
+    // Optimistic update
+    handleUpdate(reportId, { published: newVal });
+
+    // If it's a temporary report, don't call API yet
+    if (reportId.startsWith('temp-')) return;
+
+    try {
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || '') : '';
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const response = await fetch('/api/admin/reports', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ id: reportId, published: newVal })
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        // revert
+        handleUpdate(reportId, { published: report.published });
+        toast.error(result.error || 'Failed to update visibility');
+      } else {
+        toast.success(newVal ? 'Report published' : 'Report unpublished');
+      }
+    } catch (err) {
+      handleUpdate(reportId, { published: report.published });
+      console.error('Error toggling visibility:', err);
+      toast.error('Error updating visibility');
     }
   };
 
@@ -308,6 +360,14 @@ function ReportsManager() {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      onClick={() => togglePublished(report.id)}
+                      size="sm"
+                      aria-label={report.published ? 'Unpublish report' : 'Publish report'}
+                      className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600"
+                    >
+                      {report.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </Button>
                     <Button
                       onClick={() => setExpandedReport(isExpanded ? null : report.id)}
                       size="sm"

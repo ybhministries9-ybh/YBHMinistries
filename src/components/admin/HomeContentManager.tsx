@@ -27,6 +27,27 @@ interface HomeVideo {
   created_at: string;
 }
 
+// Helper to include Authorization header when available
+function getAuthHeaders(contentType?: string) {
+  let token = '';
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('admin_token') || '';
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        token = parsed?.token || raw;
+      } catch (e) {
+        token = raw;
+      }
+    }
+  }
+
+  const headers: Record<string, string> = {};
+  if (contentType) headers['Content-Type'] = contentType;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
 function SortableImageCard({ image, onDelete, isSelected, onToggleSelect }: { 
   image: HeroImage;
   onDelete: (id: number) => void;
@@ -206,6 +227,7 @@ export function HomeContentManager() {
       const response = await fetch('/api/admin/home/hero-images', {
         method: 'POST',
         body: formData,
+        headers: getAuthHeaders() // FormData: helper will not set Content-Type so browser sets boundary
       });
 
       const result = await response.json();
@@ -237,7 +259,9 @@ export function HomeContentManager() {
         try {
           const response = await fetch(`/api/admin/home/hero-images?id=${id}`, {
             method: 'DELETE',
+            headers: getAuthHeaders()
           });
+      
 
           const result = await response.json();
           
@@ -274,6 +298,7 @@ export function HomeContentManager() {
           const ids = Array.from(selectedImageIds).join(',');
           const response = await fetch(`/api/admin/home/hero-images?ids=${ids}`, {
             method: 'DELETE',
+            headers: getAuthHeaders()
           });
 
           const result = await response.json();
@@ -334,7 +359,7 @@ export function HomeContentManager() {
 
       const response = await fetch('/api/admin/home/hero-images', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders('application/json'),
         body: JSON.stringify({ action: 'reorder', images: updates }),
       });
 
@@ -386,14 +411,13 @@ export function HomeContentManager() {
         response = await fetch('/api/admin/home/video', {
           method: 'POST',
           body: formData,
+          headers: getAuthHeaders() // FormData - let browser set Content-Type
         });
       } else {
         response = await fetch('/api/admin/home/video', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            video_url: videoUrl,
-          }),
+          headers: getAuthHeaders('application/json'),
+          body: JSON.stringify({ video_url: videoUrl }),
         });
       }
 
@@ -436,7 +460,7 @@ export function HomeContentManager() {
     try {
       const response = await fetch(`/api/admin/home/video/thumbnail?id=${homeVideo.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders('application/json'),
         body: JSON.stringify({
           thumbnail_image_url: thumbnailUploadType === 'file' 
             ? await uploadThumbnailToBlob(thumbnailFile!)
@@ -470,6 +494,7 @@ export function HomeContentManager() {
     const response = await fetch('/api/admin/upload/thumbnail', {
       method: 'POST',
       body: formData,
+      headers: getAuthHeaders() // FormData upload - include auth
     });
     
     const result = await response.json();
@@ -493,6 +518,7 @@ export function HomeContentManager() {
         try {
           const response = await fetch(`/api/admin/home/video/thumbnail?id=${homeVideo.id}`, {
             method: 'DELETE',
+            headers: getAuthHeaders()
           });
 
           const result = await response.json();
@@ -525,6 +551,7 @@ export function HomeContentManager() {
         try {
           const response = await fetch(`/api/admin/home/video?id=${homeVideo.id}`, {
             method: 'DELETE',
+            headers: getAuthHeaders()
           });
 
           const result = await response.json();

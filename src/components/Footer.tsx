@@ -15,18 +15,6 @@ interface FooterProps {
 export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterProps) {
   const { t, i18n } = useTranslation('common');
 
-  const handleAdminClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    // Clear any stored admin token to force the login screen for testing
-    // (this prevents stale tokens in localStorage from showing the dashboard).
-    try {
-      localStorage.removeItem('admin_token');
-    } catch (err) {
-      // ignore (server-side rendering or restricted storage)
-    }
-    // Navigate to the admin page (full navigation to ensure server/runtime picks it up)
-    window.location.assign('/admin');
-  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -303,12 +291,7 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
               >
                 Accessibility
               </a>
-              <button
-                onClick={handleAdminClick}
-                className="hover:text-white transition-colors"
-              >
-                Admin
-              </button>
+              {/* Admin link removed per request */}
             </div>
           </div>
         </div>

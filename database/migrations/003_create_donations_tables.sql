@@ -9,8 +9,8 @@ CREATE TABLE donations_upi (
   qr_image_url text NULL,
   visible boolean DEFAULT true,
   sort_order integer DEFAULT 0,
-  created_by varchar(100) DEFAULT 'admin',
-  updated_by varchar(100) DEFAULT 'admin',
+  created_by varchar(100),
+  updated_by varchar(100),
   created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz DEFAULT CURRENT_TIMESTAMP
 );
@@ -26,8 +26,8 @@ CREATE TABLE donations_bank (
   upi_id varchar(200) NULL,
   visible boolean DEFAULT true,
   sort_order integer DEFAULT 0,
-  created_by varchar(100) DEFAULT 'admin',
-  updated_by varchar(100) DEFAULT 'admin',
+  created_by varchar(100),
+  updated_by varchar(100),
   created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz DEFAULT CURRENT_TIMESTAMP
 );

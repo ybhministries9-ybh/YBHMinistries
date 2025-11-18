@@ -136,7 +136,10 @@ export async function POST(request: NextRequest) {
         national_fee,
         international_fee,
         registration_fee,
-        published, created_by
+        published,
+        created_by,
+        updated_by,
+        updated_at
       ) VALUES (
         ${title},
         ${date},
@@ -154,7 +157,7 @@ export async function POST(request: NextRequest) {
         ${registration?.nationalFee || null},
         ${registration?.internationalFee || null},
         ${registration?.registrationFee || null},
-        ${published !== undefined ? published : true}, ${actor}
+        ${published !== undefined ? published : true}, ${actor}, ${actor}, CURRENT_TIMESTAMP
       )
       RETURNING id
     `;

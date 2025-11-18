@@ -8,8 +8,8 @@ CREATE TABLE users (
   status varchar(20) NOT NULL DEFAULT 'Active',
   password_hash text NULL,
   last_login timestamptz NULL,
-  created_by varchar(100) DEFAULT 'admin',
-  updated_by varchar(100) DEFAULT 'admin',
+  created_by varchar(100),
+  updated_by varchar(100),
   created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz DEFAULT CURRENT_TIMESTAMP
 );

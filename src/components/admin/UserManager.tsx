@@ -137,7 +137,7 @@ export function UserManager() {
         const resp = await fetch(`/api/admin/users?id=${editingUser.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ ...formData, updated_by: 'admin' })
+          body: JSON.stringify(formData)
         });
         const j = await resp.json();
         if (!j.success) {
@@ -241,10 +241,10 @@ export function UserManager() {
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
       if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
-      const resp = await fetch(`/api/admin/users?id=${user.id}`, {
+        const resp = await fetch(`/api/admin/users?id=${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ ...user, status: newStatus, updated_by: 'admin' })
+          body: JSON.stringify({ ...user, status: newStatus })
         });
       const j = await resp.json();
       if (!j.success) {

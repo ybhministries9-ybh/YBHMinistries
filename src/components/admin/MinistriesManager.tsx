@@ -50,10 +50,26 @@ export function MinistriesManager() {
   const handleToggleActive = useCallback(async (ministry: Ministry) => {
     try {
       setUpdatingStatus(prev => ({ ...prev, [ministry.id]: true }));
-      
+      // prepare auth headers
+      let token = '';
+      if (typeof window !== 'undefined') {
+        const raw = localStorage.getItem('admin_token') || '';
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            token = parsed?.token || raw;
+          } catch (e) {
+            token = raw;
+          }
+        }
+      }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch('/api/admin/ministries', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ id: ministry.id, is_active: !ministry.is_active }),
       });
 

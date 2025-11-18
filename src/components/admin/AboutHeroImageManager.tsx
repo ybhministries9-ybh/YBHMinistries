@@ -86,10 +86,17 @@ export function AboutHeroImageManager() {
     try {
       const formData = new FormData();
       formData.append('file', imageFile);
-      formData.append('created_by', 'admin');
+
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+
+      const headers: Record<string,string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const response = await fetch('/api/admin/about/hero-image', {
         method: 'POST',
+        headers,
         body: formData,
       });
 
@@ -119,15 +126,16 @@ export function AboutHeroImageManager() {
 
     setIsLoading(true);
     try {
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch('/api/admin/about/hero-image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image_url: trimmedUrl,
-          created_by: 'admin',
-        }),
+        headers,
+        body: JSON.stringify({ image_url: trimmedUrl }),
       });
 
       const result = await response.json();
@@ -153,8 +161,15 @@ export function AboutHeroImageManager() {
 
     setIsLoading(true);
     try {
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch(`/api/admin/about/hero-image?id=${heroImage.id}`, {
         method: 'DELETE',
+        headers
       });
 
       const result = await response.json();

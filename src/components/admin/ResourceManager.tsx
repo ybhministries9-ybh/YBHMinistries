@@ -203,7 +203,12 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
   const fetchBooks = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/resources?type=books');
+      // include auth token for admin endpoints so server can set created_by/updated_by
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
+      const response = await fetch('/api/admin/resources?type=books', { headers });
       if (!response.ok) throw new Error('Failed to fetch books');
       const data = await response.json();
       
@@ -271,7 +276,12 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
     }
 
     try {
-      const currentUser = 'admin';
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const body: any = {
         type: 'books',
         id,
@@ -284,13 +294,12 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
         additional_images: book.additionalImages,
         description: book.description,
         publish_date: book.publishDate,
-        published: newPublished,
-        updated_by: currentUser
+        published: newPublished
       };
 
       const response = await fetch(`/api/admin/resources?type=books&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body)
       });
 
@@ -358,8 +367,13 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
           }
         } else {
           // Only delete from DB if it's not a new unsaved book
+          const rawToken = localStorage.getItem('admin_token');
+          let token = '';
+          if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+          const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
           const response = await fetch(`/api/admin/resources?type=books&id=${bookToDelete}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers
           });
           if (!response.ok) throw new Error('Failed to delete book');
         }
@@ -412,7 +426,12 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
     try {
       const isNew = id.startsWith('new-');
       const method = isNew ? 'POST' : 'PUT';
-      const currentUser = 'admin'; // TODO: Replace with actual user from auth context
+      // include auth token so server can set created_by/updated_by
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       // Always include type in body
       const body: any = {
         type: 'books',
@@ -427,17 +446,12 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
         publish_date: book.publishDate,
         published: book.published === true ? true : false,
       };
-      if (isNew) {
-        body.created_by = currentUser;
-      } else {
-        body.id = id;
-        body.updated_by = currentUser;
-      }
+      if (!isNew) body.id = id;
 
       const url = isNew ? `/api/admin/resources?type=books` : `/api/admin/resources?type=books&id=${id}`;
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body)
       });
 
@@ -450,7 +464,21 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
 
       // Update local state with the saved book (includes DB id)
       if (isNew) {
-        setBooks(books.map(b => b.id === id ? { ...b, id: result.data.id.toString() } : b));
+        const d = result.data;
+        const saved: MusicBook = {
+          id: d.id.toString(),
+          title: d.title || '',
+          author: d.author || '',
+          price: d.price || 0,
+          pages: d.pages || 0,
+          language: d.language || 'English',
+          coverImage: d.cover_image || '',
+          additionalImages: d.additional_images || [],
+          description: d.description || '',
+          publishDate: d.publish_date || '',
+          published: d.published === true || d.published === 't' || false
+        };
+        setBooks(books.map(b => b.id === id ? saved : b));
       }
 
       // Clear any field errors and finish
@@ -857,7 +885,11 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/resources?type=worship');
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
+      const response = await fetch('/api/admin/resources?type=worship', { headers });
       if (!response.ok) throw new Error('Failed to fetch worship videos');
       const data = await response.json();
       
@@ -902,18 +934,22 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
     }
 
     try {
-      const currentUser = 'admin';
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const body = {
         type: 'worship',
         id,
         youtube_url: video.youtubeUrl,
-        published: newPublished,
-        updated_by: currentUser
+        published: newPublished
       };
 
       const res = await fetch(`/api/admin/resources?type=worship&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body)
       });
 
@@ -954,8 +990,13 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
     if (videoToDelete) {
       try {
         if (!videoToDelete.startsWith('new-')) {
+              const rawToken = localStorage.getItem('admin_token');
+              let token = '';
+              if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+              const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
               const response = await fetch(`/api/admin/resources?type=worship&id=${videoToDelete}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers
               });
           if (!response.ok) throw new Error('Failed to delete video');
         }
@@ -986,19 +1027,23 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
 
       const isNew = id.startsWith('new-');
       const method = isNew ? 'POST' : 'PUT';
-      const currentUser = 'admin'; // TODO: Replace with actual user from auth context
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const body = {
         type: 'worship',
         ...(isNew ? {} : { id }),
         youtube_url: video.youtubeUrl,
-        published: video.published === true,
-        ...(isNew ? { created_by: currentUser } : { updated_by: currentUser })
+        published: video.published === true
       };
 
       const url = isNew ? `/api/admin/resources?type=worship` : `/api/admin/resources?type=worship&id=${id}`;
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body)
       });
 
@@ -1175,7 +1220,11 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
   const fetchSermons = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/resources?type=sermons');
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
+      const response = await fetch('/api/admin/resources?type=sermons', { headers });
       if (!response.ok) throw new Error('Failed to fetch sermons');
       const data = await response.json();
       
@@ -1216,18 +1265,22 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
       return;
     }
     try {
-      const currentUser = 'admin';
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const body = {
         type: 'sermons',
         id,
         youtube_url: sermon.youtubeUrl,
-        published: newPublished,
-        updated_by: currentUser
+        published: newPublished
       };
 
       const res = await fetch(`/api/admin/resources?type=sermons&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error('Failed to update');
@@ -1297,19 +1350,23 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
 
       const isNew = id.startsWith('new-');
       const method = isNew ? 'POST' : 'PUT';
-      const currentUser = 'admin'; // TODO: Replace with actual user from auth context
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const body = {
         type: 'sermons',
         ...(isNew ? {} : { id }),
         youtube_url: sermon.youtubeUrl,
-        published: true,
-        ...(isNew ? { created_by: currentUser } : { updated_by: currentUser })
+        published: true
       };
 
       const url = isNew ? `/api/admin/resources?type=sermons` : `/api/admin/resources?type=sermons&id=${id}`;
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body)
       });
 
@@ -1497,7 +1554,11 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
   const fetchStudies = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/resources?type=bibleStudies');
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
+      const response = await fetch('/api/admin/resources?type=bibleStudies', { headers });
       if (!response.ok) throw new Error('Failed to fetch Bible studies');
       const data = await response.json();
       
@@ -1534,7 +1595,12 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
       return;
     }
     try {
-      const currentUser = 'admin';
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const body = {
         type: 'bibleStudies',
         id,
@@ -1546,13 +1612,12 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
         file_url: study.fileUrl,
         thumbnail_url: study.thumbnailUrl,
         description: study.description,
-        published: newPublished,
-        updated_by: currentUser
+        published: newPublished
       };
 
       const res = await fetch(`/api/admin/resources?type=bibleStudies&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error('Failed to update');
@@ -1639,7 +1704,12 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
 
       const isNew = id.startsWith('new-');
       const method = isNew ? 'POST' : 'PUT';
-      const currentUser = 'admin'; // TODO: Replace with actual user from auth context
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const body = {
         type: 'bibleStudies',
         ...(isNew ? {} : { id }),
@@ -1651,14 +1721,13 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
         file_url: study.fileUrl,
         thumbnail_url: study.thumbnailUrl,
         description: study.description,
-        published: true,
-        ...(isNew ? { created_by: currentUser } : { updated_by: currentUser })
+        published: true
       };
 
       const url = isNew ? `/api/admin/resources?type=bibleStudies` : `/api/admin/resources?type=bibleStudies&id=${id}`;
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body)
       });
 
@@ -1667,7 +1736,20 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
       const result = await response.json();
       
       if (isNew) {
-        setStudies(studies.map(s => s.id === id ? { ...s, id: result.data.id.toString() } : s));
+        const d = result.data;
+        const saved: BibleStudy = {
+          id: d.id.toString(),
+          title: d.title || '',
+          author: d.author || '',
+          pages: d.pages || 0,
+          date: toDateInputValue(pickFirst(d.study_date, d.publish_date, d.published_at, d.created_at, d.date)),
+          fileType: d.file_type || 'PDF',
+          fileUrl: d.file_url || '',
+          thumbnailUrl: d.thumbnail_url || '',
+          description: d.description || '',
+          published: d.published === true || d.published === 't' || false
+        };
+        setStudies(studies.map(s => s.id === id ? saved : s));
       }
       clearFieldErrors(id);
       setEditingId(null);

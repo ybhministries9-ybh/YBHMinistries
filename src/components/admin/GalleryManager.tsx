@@ -157,6 +157,27 @@ function MediaCard({ item, onDelete, isSelected, onToggleSelect }: MediaCardProp
   );
 }
 
+// Helper to include Authorization header when available
+function getAuthHeaders(contentType?: string) {
+  let token = '';
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('admin_token') || '';
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        token = parsed?.token || raw;
+      } catch (e) {
+        token = raw;
+      }
+    }
+  }
+
+  const headers: Record<string, string> = {};
+  if (contentType) headers['Content-Type'] = contentType;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
 export function GalleryManager() {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>([]);
@@ -222,7 +243,9 @@ export function GalleryManager() {
       const counts: Record<string, number> = {};
       await Promise.all(
         CATEGORIES.map(async (category) => {
-          const response = await fetch(`/api/admin/gallery?category=${category}`);
+          const response = await fetch(`/api/admin/gallery?category=${category}`, {
+            headers: getAuthHeaders()
+          });
           const result = await response.json();
           if (result.success) {
             counts[category] = result.data?.length || 0;
@@ -238,7 +261,9 @@ export function GalleryManager() {
   const fetchGalleryItems = async (category?: string) => {
     try {
       const cat = category || activeCategory;
-      const response = await fetch(`/api/admin/gallery?category=${cat}`);
+      const response = await fetch(`/api/admin/gallery?category=${cat}`, {
+        headers: getAuthHeaders()
+      });
       const result = await response.json();
       if (result.success) {
         setGalleryItems(result.data || []);
@@ -326,7 +351,8 @@ export function GalleryManager() {
           try {
             const response = await fetch('/api/admin/gallery', {
               method: 'POST',
-              body: formData
+              body: formData,
+              headers: getAuthHeaders()
             });
 
             const result = await response.json();
@@ -375,10 +401,8 @@ export function GalleryManager() {
 
         const response = await fetch('/api/admin/gallery', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items: items
-          })
+          headers: getAuthHeaders('application/json'),
+          body: JSON.stringify({ items: items })
         });
 
         const result = await response.json();
@@ -410,7 +434,8 @@ export function GalleryManager() {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         try {
           const response = await fetch(`/api/admin/gallery?id=${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getAuthHeaders()
           });
           const result = await response.json();
 
@@ -444,8 +469,9 @@ export function GalleryManager() {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         try {
           const ids = Array.from(selectedIds).join(',');
-          const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
-            method: 'DELETE'
+            const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
+              method: 'DELETE',
+              headers: getAuthHeaders()
           });
           const result = await response.json();
 
@@ -520,11 +546,11 @@ export function GalleryManager() {
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setDeleteProgress({ isOpen: true, message: `Deleting ${selectedImageIds.length} image(s)...` });
-        
         try {
           const ids = selectedImageIds.join(',');
           const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getAuthHeaders()
           });
           const result = await response.json();
 
@@ -565,7 +591,8 @@ export function GalleryManager() {
         try {
           const ids = selectedVideoIds.join(',');
           const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getAuthHeaders()
           });
           const result = await response.json();
 
