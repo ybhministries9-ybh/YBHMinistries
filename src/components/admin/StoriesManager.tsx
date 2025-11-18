@@ -875,7 +875,7 @@ export function StoriesManager() {
     <div className="p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-white mb-1">Stories & Testimonies Management</h2>
+          <h2 className="text-3xl font-bold text-white mb-1">Stories Management Page</h2>
           <p className="text-sm text-gray-400">Review and approve testimonies from your community</p>
         </div>
         <div className="flex gap-2">
