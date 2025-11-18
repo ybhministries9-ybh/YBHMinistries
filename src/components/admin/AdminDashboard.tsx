@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink, Clock } from 'lucide-react';
+import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink, Clock, Star } from 'lucide-react';
 import { GalleryManager } from './GalleryManager';
 import { ResourceManager } from './ResourceManager';
 import { UserManager } from './UserManager';
@@ -12,6 +12,7 @@ import { SetupHelper } from './SetupHelper';
 import { HeroImageManager } from './HeroImageManager';
 import { DonateManager } from './DonateManager';
 import { MenuManager } from './MenuManager';
+import { Welcome } from './Welcome';
 import { AdminScrollToTop } from './AdminScrollToTop';
 
 const logoImage = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg';
@@ -21,10 +22,11 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type Section = 'home' | 'about' | 'ministries' | 'gallery' | 'news' | 'resources' | 'stories' | 'donate' | 'menu' | 'users';
+type Section = 'welcome' | 'home' | 'about' | 'ministries' | 'gallery' | 'news' | 'resources' | 'stories' | 'donate' | 'menu' | 'users';
 
 export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
-  const [activeSection, setActiveSection] = useState<Section>('home');
+  // default to Welcome page
+  const [activeSection, setActiveSection] = useState<Section>('welcome');
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
 
   useEffect(() => {
@@ -83,7 +85,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
   };
 
   const menuItems = [
-    { id: 'menu' as Section, label: 'Menu', icon: Menu },
+    { id: 'welcome' as Section, label: 'Welcome', icon: Star },
     { id: 'home' as Section, label: 'Home', icon: Home },
     { id: 'about' as Section, label: 'About', icon: Info },
     { id: 'ministries' as Section, label: 'Ministries', icon: Book },
@@ -93,6 +95,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
     { id: 'stories' as Section, label: 'Stories', icon: MessageCircle },
     { id: 'donate' as Section, label: 'Donate', icon: DollarSign },
     { id: 'users' as Section, label: 'Users', icon: Users },
+    { id: 'menu' as Section, label: 'Menu', icon: Menu, hidden: true }, // UI-hidden but code retained
   ];
 
   return (
@@ -100,19 +103,19 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
       {/* Header */}
       <header className="bg-[#2E2E2E] text-white shadow-lg">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between flex-wrap">
+            <div className="flex items-center gap-4 min-w-0">
               <img 
                 src="https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg" 
                 alt="YBH Ministries" 
                 className="h-12 w-auto object-contain" 
               />
               <div>
-                <h1 className="text-2xl md:text-3xl">Admin Portal</h1>
-                <p className="text-sm text-gray-300">Yeshua Beth Hallel Ministries</p>
+                <h1 className="text-2xl md:text-3xl truncate">Admin Portal</h1>
+                <p className="text-sm text-gray-300 truncate">Yeshua Beth Hallel Ministries</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-2 md:mt-0">
               {/* Session remaining badge - keep beside the site button */}
               {remainingMs != null && (
                 <div aria-live="polite" className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#2E2E2E] border border-[#FDB813] text-[#FDB813] text-sm font-medium mr-2">
@@ -153,6 +156,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 return (
+                  // preserve the code for all menu items but hide items marked `hidden` in the UI
                   <button
                     key={item.id}
                     onClick={() => {
@@ -163,7 +167,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
                       activeSection === item.id
                         ? 'bg-[#FDB813] text-black'
                         : 'text-gray-300 hover:bg-black'
-                    }`}
+                    } ${item.hidden ? 'hidden' : ''}`}
                   >
                     <Icon size={20} />
                     <span>{item.label}</span>
@@ -176,6 +180,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
           {/* Main Content */}
           <div className="lg:col-span-4">
             <div className="bg-[#2E2E2E] rounded-lg shadow-md">
+              {activeSection === 'welcome' && <Welcome />}
               {activeSection === 'home' && <HomeContentManager />}
               {activeSection === 'about' && <AboutManager />}
               {activeSection === 'ministries' && <MinistriesManager />}
