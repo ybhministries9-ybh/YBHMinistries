@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { getAllStories } from '@/lib/db';
+import { getVisibleApprovedStories } from '@/lib/db';
 
 function sanitizeString(input: any, maxLength = 2000) {
   if (!input && input !== 0) return null;
@@ -15,10 +15,9 @@ function sanitizeString(input: any, maxLength = 2000) {
 
 export async function GET() {
   try {
-    const stories = await getAllStories();
-    // Return visible stories for the public site (only approved)
-    const filtered = stories.filter(s => s.is_visible && s.status && s.status.toLowerCase() === 'approved');
-    return NextResponse.json({ success: true, data: filtered });
+    // Use targeted DB query to fetch only public-facing stories.
+    const stories = await getVisibleApprovedStories();
+    return NextResponse.json({ success: true, data: stories });
   } catch (err) {
     console.error('GET /api/stories error', err);
     return NextResponse.json({ success: false, error: 'Failed to fetch stories' }, { status: 500 });

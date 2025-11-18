@@ -402,6 +402,25 @@ export async function getAllStories(): Promise<Story[]> {
   }
 }
 
+/**
+ * Get visible & approved stories for public consumption.
+ * Select only the columns required by the public site to reduce payload size.
+ */
+export async function getVisibleApprovedStories(): Promise<Pick<Story, 'id' | 'title' | 'location' | 'role' | 'status' | 'category' | 'body' | 'media_type' | 'video_url' | 'thumbnail_url' | 'date' | 'created_by' | 'email'>[]> {
+  try {
+    const { rows } = await sql`
+      SELECT id, title, location, role, status, category, body, media_type, video_url, thumbnail_url, date, created_by, email
+      FROM stories
+      WHERE is_active = true AND is_visible = true AND status = 'Approved'
+      ORDER BY created_at DESC
+    `;
+    return rows;
+  } catch (error) {
+    console.error('Error fetching visible approved stories:', error);
+    throw error;
+  }
+}
+
 export async function createStory(payload: {
   title: string;
   location?: string | null;

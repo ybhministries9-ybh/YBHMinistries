@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { ImageOff, User } from 'lucide-react';
 
 interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -14,7 +14,7 @@ interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElemen
   fallbackVariant?: 'image' | 'person';
 }
 
-export function ImageWithFallback({
+function _ImageWithFallback({
   src,
   alt,
   fallbackSrc = '/images/placeholder.jpg',
@@ -139,3 +139,8 @@ export function ImageWithFallback({
     </div>
   );
 }
+
+// Memoize and export as the public `ImageWithFallback` named export
+export const ImageWithFallback = memo(_ImageWithFallback);
+// Also export the original function for tests or special cases
+export { _ImageWithFallback as UnmemoizedImageWithFallback };
