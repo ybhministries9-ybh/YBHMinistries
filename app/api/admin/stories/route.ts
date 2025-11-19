@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
       category: body.category || null,
       role: body.role || null,
       body: body.body || null,
+      // include optional email for text stories
+      email: body.email || null,
       media_type: body.media_type === 'video' ? 'video' : 'text',
       video_url: body.video_url || null,
       thumbnail_url: body.thumbnail_url || null,

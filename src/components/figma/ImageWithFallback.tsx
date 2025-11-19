@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { ImageOff } from 'lucide-react';
+import { useState, useEffect, memo } from 'react';
+import Image from 'next/image';
+import { ImageOff, User } from 'lucide-react';
 
 interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src?: string;
@@ -10,33 +11,48 @@ interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElemen
   className?: string;
   loading?: 'lazy' | 'eager';
   enableResponsive?: boolean;
+  // New: choose a person-icon fallback instead of the image placeholder
+  fallbackVariant?: 'image' | 'person';
 }
 
-export function ImageWithFallback({
+function _ImageWithFallback({
   src,
   alt,
   fallbackSrc = '/images/placeholder.jpg',
   className = '',
   loading = 'lazy',
   enableResponsive = true,
+  fallbackVariant = 'image',
   ...props
 }: ImageWithFallbackProps) {
-  const [imgSrc, setImgSrc] = useState(src || fallbackSrc);
+  // If caller requests a person fallback and no src is provided, avoid loading
+  // the default image placeholder and render the person icon instead.
+  const [imgSrc, setImgSrc] = useState(
+    src ?? (fallbackVariant === 'person' ? '' : fallbackSrc)
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    setImgSrc(src || fallbackSrc);
-    setIsLoading(true);
+    const newSrc = src ?? (fallbackVariant === 'person' ? '' : fallbackSrc);
+    setImgSrc(newSrc);
+    // Only show loading skeleton when there's an image to load
+    setIsLoading(!!newSrc);
     setHasError(false);
-  }, [src, fallbackSrc]);
+  }, [src, fallbackSrc, fallbackVariant]);
 
   const handleError = () => {
-    if (imgSrc !== fallbackSrc) {
-      setImgSrc(fallbackSrc);
-      setHasError(false);
-    } else {
+    if (fallbackVariant === 'person') {
+      // For person fallback, treat any error as a signal to show the person icon
+      setImgSrc('');
       setHasError(true);
+    } else {
+      if (imgSrc !== fallbackSrc) {
+        setImgSrc(fallbackSrc);
+        setHasError(false);
+      } else {
+        setHasError(true);
+      }
     }
     setIsLoading(false);
   };
@@ -66,8 +82,21 @@ export function ImageWithFallback({
 
   const responsiveSizes = enableResponsive && imgSrc ? getResponsiveSizes(imgSrc) : null;
 
-  // If error and no fallback worked, show error state
-  if (hasError) {
+  // If an error occurred or there's no image and the caller requested the
+  // person fallback, render the appropriate fallback UI instead of an <img>.
+  if (hasError || (!imgSrc && fallbackVariant === 'person')) {
+    if (fallbackVariant === 'person') {
+      return (
+        <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
+          <div className="text-center p-4">
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-2">
+              <User className="text-gray-500" size={20} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
         <div className="text-center p-4">
@@ -85,27 +114,28 @@ export function ImageWithFallback({
         <div className={`absolute inset-0 bg-gray-200 animate-pulse ${className}`} />
       )}
       
-      {/* Actual image */}
-      <img
-        {...props}
-        src={imgSrc}
-        alt={alt}
-        className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
-        onError={handleError}
-        onLoad={handleLoad}
-        loading={loading}
-        // Add responsive srcset if available
-        {...(responsiveSizes && {
-          srcSet: `
-            ${responsiveSizes.small} 400w,
-            ${responsiveSizes.medium} 800w,
-            ${responsiveSizes.large} 1600w
-          `,
-          sizes: '(max-width: 640px) 400px, (max-width: 1024px) 800px, 1600px'
-        })}
-        // Enable browser-level image decoding optimization
-        decoding="async"
-      />
+      {/* Actual image - only render when we have a non-empty src */}
+      {imgSrc ? (
+        // Use Next.js Image for optimized loading. We use `fill` so the parent
+        // container's size (set via className) controls layout. `onLoadingComplete`
+        // doesn't provide error info, so we use `onError` for fallback handling.
+        <div className={`w-full h-full relative ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+          <Image
+            src={imgSrc}
+            alt={alt}
+            fill
+            className={`object-cover ${className}`}
+            onError={handleError}
+            onLoadingComplete={handleLoad}
+            sizes={responsiveSizes ? '(max-width: 640px) 400px, (max-width: 1024px) 800px, 1600px' : undefined}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
+
+// Memoize and export as the public `ImageWithFallback` named export
+export const ImageWithFallback = memo(_ImageWithFallback);
+// Also export the original function for tests or special cases
+export { _ImageWithFallback as UnmemoizedImageWithFallback };
