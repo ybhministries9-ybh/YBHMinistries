@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { Music, Heart, Home, Church, Youtube } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -188,32 +189,32 @@ export function HallelMusicSchoolMinistry() {
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: '#FDB813' }}></div>
-                <a 
-                  href="#" 
+                <Link
+                  href="/contact?tab=student-form"
                   className="text-lg text-white hover:opacity-80 transition-opacity"
                 >
                   {t('hallelMusicSchoolPage.registration.onlineStudent')}
-                </a>
+                </Link>
               </div>
               
               <div className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: '#FDB813' }}></div>
-                <a 
-                  href="#" 
+                <Link
+                  href="/contact?tab=student-form"
                   className="text-lg text-white hover:opacity-80 transition-opacity"
                 >
                   {t('hallelMusicSchoolPage.registration.lmsStudent')}
-                </a>
+                </Link>
               </div>
               
               <div className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: '#FDB813' }}></div>
-                <a 
-                  href="#" 
+                <Link
+                  href="/contact?tab=student-form"
                   className="text-lg text-white hover:opacity-80 transition-opacity"
                 >
                   {t('hallelMusicSchoolPage.registration.guinnessAttempt')}
-                </a>
+                </Link>
               </div>
             </div>
           </div>

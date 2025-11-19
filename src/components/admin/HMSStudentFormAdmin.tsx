@@ -233,7 +233,7 @@ export function HMSStudentFormAdmin({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label htmlFor="fullName" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.fullName')} *
+                {t('studentForm.fields.fullName')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="fullName"
@@ -259,7 +259,7 @@ export function HMSStudentFormAdmin({
             
             <div>
               <label htmlFor="dateOfBirth" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.dateOfBirth')} *
+                {t('studentForm.fields.dateOfBirth')} <span className="text-[#FDB813]">*</span>
               </label>
               <div>
                 <Controller
@@ -301,7 +301,7 @@ export function HMSStudentFormAdmin({
             
             <div>
               <label htmlFor="gender" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.gender')} *
+                {t('studentForm.fields.gender')} <span className="text-[#FDB813]">*</span>
               </label>
               <select
                 id="gender"
@@ -321,7 +321,7 @@ export function HMSStudentFormAdmin({
             
             <div className="md:col-span-2">
               <label htmlFor="address" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.address')} *
+                {t('studentForm.fields.address')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="address"
@@ -343,7 +343,7 @@ export function HMSStudentFormAdmin({
             
             <div className="md:col-span-2">
               <label htmlFor="cityStateZip" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.cityStateZip')} *
+                {t('studentForm.fields.cityStateZip')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="cityStateZip"
@@ -364,7 +364,7 @@ export function HMSStudentFormAdmin({
             
             <div>
               <label htmlFor="phoneNumber" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.phoneNumber')} *
+                {t('studentForm.fields.phoneNumber')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="phoneNumber"
@@ -394,7 +394,7 @@ export function HMSStudentFormAdmin({
             
             <div>
               <label htmlFor="emailId" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emailId')} *
+                {t('studentForm.fields.emailId')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="emailId"
@@ -479,7 +479,7 @@ export function HMSStudentFormAdmin({
             {/* Program Applying For */}
             <div>
               <label className="block text-white text-sm font-medium mb-3">
-                {t('studentForm.fields.programApplyingFor')} *
+                {t('studentForm.fields.programApplyingFor')} <span className="text-[#FDB813]">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
                 {PROGRAM_LEVELS.map((level) => (
@@ -504,7 +504,7 @@ export function HMSStudentFormAdmin({
             {/* Instrument / Specialization */}
             <div>
               <label className="block text-white text-sm font-medium mb-3">
-                {t('studentForm.fields.instrumentSpecialization')} *
+                {t('studentForm.fields.instrumentSpecialization')} <span className="text-[#FDB813]">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
                 {INSTRUMENTS.map((instrument) => (
@@ -560,7 +560,7 @@ export function HMSStudentFormAdmin({
             {/* Preferred Class Type */}
             <div>
               <label className="block text-white text-sm font-medium mb-3">
-                {t('studentForm.fields.preferredClassType')} *
+                {t('studentForm.fields.preferredClassType')} <span className="text-[#FDB813]">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
                 {CLASS_TYPES.map((type) => (
@@ -585,7 +585,7 @@ export function HMSStudentFormAdmin({
             {/* Preferred Schedule */}
             <div>
               <label className="block text-white text-sm font-medium mb-3">
-                {t('studentForm.fields.preferredSchedule')} *
+                {t('studentForm.fields.preferredSchedule')} <span className="text-[#FDB813]">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
                 {SCHEDULES.map((schedule) => (
@@ -882,7 +882,7 @@ export function HMSStudentFormAdmin({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label htmlFor="emergencyName" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emergencyName')} *
+                {t('studentForm.fields.emergencyName')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="emergencyName"
@@ -904,7 +904,7 @@ export function HMSStudentFormAdmin({
             
             <div>
               <label htmlFor="emergencyRelationship" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emergencyRelationship')} *
+                {t('studentForm.fields.emergencyRelationship')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="emergencyRelationship"
@@ -925,7 +925,7 @@ export function HMSStudentFormAdmin({
             
             <div>
               <label htmlFor="emergencyContact" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emergencyContact')} *
+                {t('studentForm.fields.emergencyContact')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="emergencyContact"

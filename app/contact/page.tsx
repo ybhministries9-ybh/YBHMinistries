@@ -11,10 +11,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Contact() {
+export default async function Contact({ searchParams }: { searchParams?: any }) {
+  const params = await searchParams;
+  const initialTab = typeof params?.tab === 'string' ? params.tab : undefined;
   return (
     <ClientLayout>
-      <ContactsPage />
+      <ContactsPage initialTab={initialTab} />
     </ClientLayout>
   );
 }

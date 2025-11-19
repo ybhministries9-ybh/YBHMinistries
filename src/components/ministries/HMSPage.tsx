@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import { Menu, X, ChevronRight, Music, Book, Users, Heart, Youtube } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -39,6 +40,7 @@ export function HMSPage({
   accentColor = "#8A2BE2"
 }) {
   const { t } = useTranslation('ministries');
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const sectionRefs = {
@@ -337,6 +339,7 @@ export function HMSPage({
               <button 
                 className="flex items-center gap-2 px-6 py-3 rounded-full font-medium cursor-pointer transition-all duration-300 hover:opacity-90 hover:scale-105"
                 style={{ backgroundColor: ctaButtonColor, color: 'black' }}
+                onClick={() => router.push('/contact?tab=student-form')}
               >
                 {t('hmsPage.join.online.button')} <ChevronRight size={18} />
               </button>
@@ -350,6 +353,7 @@ export function HMSPage({
               <button 
                 className="flex items-center gap-2 px-6 py-3 rounded-full font-medium cursor-pointer transition-all duration-300 hover:opacity-90 hover:scale-105"
                 style={{ backgroundColor: ctaButtonColor, color: 'black' }}
+                onClick={() => router.push('/contact?tab=student-form')}
               >
                 {t('hmsPage.join.lms.button')} <ChevronRight size={18} />
               </button>

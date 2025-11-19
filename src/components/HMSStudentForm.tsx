@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { toast } from 'sonner';
 
 // Static option lists extracted to top-level constants to avoid re-creating arrays on each render
 const PROGRAM_LEVELS = ['beginner', 'intermediate', 'advanced'];
@@ -16,6 +15,12 @@ const SCHEDULES = ['weekdays', 'weekends', 'morning', 'evening'];
 const COURSE_TYPES = ['freeBasicMusic', 'hmsWithCertificate', 'lcmWithCertificate'];
 const PERFORMANCE_OPTIONS = ['schoolEvents', 'competitions', 'choir'];
 const VOLUNTEER_AREAS = ['volunteerOnlineTeacher', 'volunteerOfflineConferences', 'volunteerSummerKids', 'volunteerEvents'];
+
+// Shared constants to avoid recreating inline objects / regexes
+const ACCENT_STYLE = { accentColor: '#000000' } as const;
+const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const PHONE_PATTERN = /^[0-9]{7,15}$/;
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 interface FormData {
   // Personal Information
@@ -91,6 +96,7 @@ export function HMSStudentForm({
   });
 
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [formAlert, setFormAlert] = useState<{ type?: 'error' | 'info'; message?: string }>({});
   const [programLevels, setProgramLevels] = useState<string[]>(() => (mergedDefaults.programApplyingFor as string[]) || []);
   const [instruments, setInstruments] = useState<string[]>(() => (mergedDefaults.instrumentSpecialization as string[]) || []);
   const [classTypes, setClassTypes] = useState<string[]>(() => (mergedDefaults.preferredClassType as string[]) || []);
@@ -101,6 +107,16 @@ export function HMSStudentForm({
 
   const volunteerInterested = watch('volunteerInterested');
 
+  const successRef = useRef<HTMLDivElement | null>(null);
+
+  // stable helper to toggle values in checkbox-backed string arrays
+  const toggleArray = useCallback((setter: (updater: (prev: string[]) => string[]) => void) => {
+    return (value: string, checked: boolean) => {
+      setter((prev: string[]) => (checked ? [...prev, value] : prev.filter((p) => p !== value)));
+    };
+  }, []);
+
+  // legacy-compatible handler (kept for backwards readability) — prefer `toggleArray` for performance
   const handleCheckboxChange = (
     value: string,
     checked: boolean,
@@ -114,7 +130,7 @@ export function HMSStudentForm({
     }
   };
 
-  const handleReset = () => {
+  const handleReset = (keepSuccess = false) => {
     reset();
     setProgramLevels([]);
     setInstruments([]);
@@ -123,33 +139,60 @@ export function HMSStudentForm({
     setCourseTypes([]);
     setPerformances([]);
     setVolunteerAreas([]);
-    setSubmitSuccess(false);
+    if (!keepSuccess) setSubmitSuccess(false);
   };
+
+  // Scroll to top of the page whenever the success panel is shown
+  useEffect(() => {
+    if (submitSuccess) {
+      try {
+        if (typeof window !== 'undefined' && window.scrollTo) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } catch (err) {
+        // ignore if scrolling is not available
+      }
+      // focus success panel for keyboard / screen reader users
+      try {
+        successRef.current?.focus();
+      } catch (err) {
+        // ignore
+      }
+    }
+  }, [submitSuccess]);
+
+  // memoize computed flags to avoid calling `t` repeatedly during renders
+  const courseTypeError = useMemo(() => formAlert?.message === String(t('studentForm.validation.courseTypeRequired')), [formAlert?.message, t]);
+  const programError = useMemo(() => formAlert?.message === String(t('studentForm.validation.programRequired')), [formAlert?.message, t]);
+  const instrumentError = useMemo(() => formAlert?.message === String(t('studentForm.validation.instrumentRequired')), [formAlert?.message, t]);
+  const classTypeError = useMemo(() => formAlert?.message === String(t('studentForm.validation.classTypeRequired')), [formAlert?.message, t]);
+  const scheduleError = useMemo(() => formAlert?.message === String(t('studentForm.validation.scheduleRequired')), [formAlert?.message, t]);
 
   const effectiveSubmitUrl = submitUrl || '/api/hms-students';
   const effectiveSubmitMethod = submitMethod || 'POST';
 
   const onSubmit = async (data: FormData) => {
     try {
-      // Validate checkbox arrays
+      // Validate checkbox arrays (show inline alert instead of toast)
+      setFormAlert({});
       if (programLevels.length === 0) {
-        toast.error(t('studentForm.validation.programRequired'));
+        setFormAlert({ type: 'error', message: String(t('studentForm.validation.programRequired')) });
         return;
       }
       if (instruments.length === 0) {
-        toast.error(t('studentForm.validation.instrumentRequired'));
+        setFormAlert({ type: 'error', message: String(t('studentForm.validation.instrumentRequired')) });
         return;
       }
       if (classTypes.length === 0) {
-        toast.error(t('studentForm.validation.classTypeRequired'));
+        setFormAlert({ type: 'error', message: String(t('studentForm.validation.classTypeRequired')) });
         return;
       }
       if (schedules.length === 0) {
-        toast.error(t('studentForm.validation.scheduleRequired'));
+        setFormAlert({ type: 'error', message: String(t('studentForm.validation.scheduleRequired')) });
         return;
       }
       if (courseTypes.length === 0) {
-        toast.error(t('studentForm.validation.courseTypeRequired'));
+        setFormAlert({ type: 'error', message: String(t('studentForm.validation.courseTypeRequired')) });
         return;
       }
 
@@ -169,7 +212,7 @@ export function HMSStudentForm({
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const yyyy = String(d.getFullYear());
         data.dateOfBirth = `${dd}-${mm}-${yyyy}`;
-      } else if (/^\d{4}-\d{2}-\d{2}$/.test(data.dateOfBirth as string)) {
+      } else if (ISO_DATE_REGEX.test(data.dateOfBirth as string)) {
         const parts = (data.dateOfBirth as string).split('-');
         data.dateOfBirth = `${parts[2]}-${parts[1]}-${parts[0]}`;
       }
@@ -179,7 +222,7 @@ export function HMSStudentForm({
         const result = await onSubmitOverride(data);
         // allow override to indicate success/failure
         if (result && result.success === false) {
-          toast.error(t('studentForm.messages.error'));
+          setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
           return;
         }
       } else {
@@ -192,37 +235,66 @@ export function HMSStudentForm({
         const result = await resp.json();
         if (!resp.ok || !result.success) {
           console.error('Server responded with error', result);
-          toast.error(t('studentForm.messages.error'));
+          setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
           return;
         }
       }
 
-      toast.success(t('studentForm.messages.success'));
+      // show inline success panel (no toast)
       setSubmitSuccess(true);
-      handleReset();
-      if (onClose) onClose();
-      // Reset success message after 3 seconds
-      setTimeout(() => setSubmitSuccess(false), 3000);
+      // Reset the form fields/state but keep the success panel visible
+      handleReset(true);
+      // clear any alert messages
+      setFormAlert({});
     } catch (error) {
       console.error('Form submission error:', error);
-      toast.error(t('studentForm.messages.error'));
+      setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
     }
   };
 
+  // success message text and a short-length heuristic to decide whether to hide the form
+  const successMessage = useMemo(() => String(t('studentForm.messages.success')), [t]);
+  const successIsShort = useMemo(() => successMessage.length > 0 && successMessage.length <= 120, [successMessage]);
+
   return (
     <div className="max-w-6xl mx-auto w-full">
-      
-      {submitSuccess && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-green-900/50 text-green-100 p-4 rounded mb-6"
-        >
-          {t('studentForm.messages.success')}
+
+      {/* Show a global alert only for messages that are not handled inline */}
+      {formAlert?.message && !(programError || instrumentError || classTypeError || scheduleError || courseTypeError) && (
+        <div className="max-w-3xl mx-auto mb-6 px-4">
+          <div className="rounded-md bg-red-600 text-white p-3 text-sm">
+            {formAlert.message}
+          </div>
+        </div>
+      )}
+
+      {/* If the success message is short, show only the success panel and hide the form to keep focus on the message */}
+      {submitSuccess && successIsShort && (
+        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <div className="py-8 text-center">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full" style={{ backgroundColor: '#FDB813' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <p className="mb-4 text-xl font-semibold text-white">{successMessage}</p>
+            <button
+              type="button"
+              onClick={() => {
+                handleReset(false);
+                setSubmitSuccess(false);
+              }}
+              className="px-6 py-2 rounded-md text-black font-bold transition-all duration-300"
+              style={{ backgroundColor: '#FDB813' }}
+            >
+              {t('studentForm.buttons.submitAnother') || 'Submit another application'}
+            </button>
+          </div>
         </motion.div>
       )}
-      
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+
+      {! (submitSuccess && successIsShort) && (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
         
         {/* 1. Personal Information */}
         <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
@@ -232,8 +304,8 @@ export function HMSStudentForm({
           <div className="w-24 h-1 bg-[#FDB813] mb-6"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label htmlFor="fullName" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.fullName')} *
+              <label htmlFor="fullName" className="block text-white text-sm font-medium mb-1 cursor-pointer">
+                {t('studentForm.fields.fullName')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="fullName"
@@ -259,8 +331,8 @@ export function HMSStudentForm({
             </div>
             
             <div>
-              <label htmlFor="dateOfBirth" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.dateOfBirth')} *
+              <label htmlFor="dateOfBirth" className="block text-white text-sm font-medium mb-1 cursor-pointer">
+                {t('studentForm.fields.dateOfBirth')} <span className="text-[#FDB813]">*</span>
               </label>
               <div>
                 <Controller
@@ -302,8 +374,8 @@ export function HMSStudentForm({
             </div>
             
             <div>
-              <label htmlFor="gender" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.gender')} *
+              <label htmlFor="gender" className="block text-white text-sm font-medium mb-1 cursor-pointer">
+                {t('studentForm.fields.gender')} <span className="text-[#FDB813]">*</span>
               </label>
               <select
                 id="gender"
@@ -323,8 +395,8 @@ export function HMSStudentForm({
             </div>
             
             <div className="md:col-span-2">
-              <label htmlFor="address" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.address')} *
+              <label htmlFor="address" className="block text-white text-sm font-medium mb-1 cursor-pointer">
+                {t('studentForm.fields.address')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="address"
@@ -346,8 +418,8 @@ export function HMSStudentForm({
             </div>
             
             <div className="md:col-span-2">
-              <label htmlFor="cityStateZip" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.cityStateZip')} *
+              <label htmlFor="cityStateZip" className="block text-white text-sm font-medium mb-1 cursor-pointer">
+                {t('studentForm.fields.cityStateZip')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="cityStateZip"
@@ -368,8 +440,8 @@ export function HMSStudentForm({
             </div>
             
             <div>
-              <label htmlFor="phoneNumber" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.phoneNumber')} *
+              <label htmlFor="phoneNumber" className="block text-white text-sm font-medium mb-1 cursor-pointer">
+                {t('studentForm.fields.phoneNumber')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="phoneNumber"
@@ -399,8 +471,8 @@ export function HMSStudentForm({
             </div>
             
             <div>
-              <label htmlFor="emailId" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emailId')} *
+              <label htmlFor="emailId" className="block text-white text-sm font-medium mb-1 cursor-pointer">
+                {t('studentForm.fields.emailId')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="emailId"
@@ -425,7 +497,7 @@ export function HMSStudentForm({
             </div>
             
             <div>
-              <label htmlFor="parentGuardianName" className="block text-white text-sm font-medium mb-1">
+              <label htmlFor="parentGuardianName" className="block text-white text-sm font-medium mb-1 cursor-pointer">
                 {t('studentForm.fields.parentGuardianName')}
               </label>
               <input
@@ -446,7 +518,7 @@ export function HMSStudentForm({
             </div>
             
             <div>
-              <label htmlFor="parentGuardianContact" className="block text-white text-sm font-medium mb-1">
+              <label htmlFor="parentGuardianContact" className="block text-white text-sm font-medium mb-1 cursor-pointer">
                 {t('studentForm.fields.parentGuardianContact')}
               </label>
               <input
@@ -486,10 +558,17 @@ export function HMSStudentForm({
           
           <div className="space-y-6">
             {/* Program Applying For */}
-            <div>
-              <label className="block text-white text-sm font-medium mb-3">
+            <div className={`${programError ? 'ring-2 ring-red-500 border border-red-500 rounded-md p-3 bg-[#2a2a2a]' : ''}`}>
+              <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
                 {t('studentForm.fields.programApplyingFor')} *
               </label>
+              {programError && (
+                <div className="mb-3 px-2">
+                  <div className="rounded-md bg-red-600 text-white p-2 text-sm">
+                    {t('studentForm.validation.programRequired')}
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap gap-4">
                 {PROGRAM_LEVELS.map((level) => (
                   <div key={level} className="flex items-center space-x-2">
@@ -510,10 +589,17 @@ export function HMSStudentForm({
             </div>
 
             {/* Instrument / Specialization */}
-            <div>
-              <label className="block text-white text-sm font-medium mb-3">
+            <div className={`${instrumentError ? 'ring-2 ring-red-500 border border-red-500 rounded-md p-3 bg-[#2a2a2a]' : ''}`}>
+              <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
                 {t('studentForm.fields.instrumentSpecialization')} *
               </label>
+              {instrumentError && (
+                <div className="mb-3 px-2">
+                  <div className="rounded-md bg-red-600 text-white p-2 text-sm">
+                    {t('studentForm.validation.instrumentRequired')}
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap gap-4">
                 {INSTRUMENTS.map((instrument) => (
                   <div key={instrument} className="flex items-center space-x-2">
@@ -561,14 +647,21 @@ export function HMSStudentForm({
                     )
                   )}
                 </div>
-              </div>
+                </div>
             </div>
 
             {/* Preferred Class Type */}
-            <div>
-              <label className="block text-white text-sm font-medium mb-3">
+            <div className={`${classTypeError ? 'ring-2 ring-red-500 border border-red-500 rounded-md p-3 bg-[#2a2a2a]' : ''}`}>
+              <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
                 {t('studentForm.fields.preferredClassType')} *
               </label>
+              {classTypeError && (
+                <div className="mb-3 px-2">
+                  <div className="rounded-md bg-red-600 text-white p-2 text-sm">
+                    {t('studentForm.validation.classTypeRequired')}
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap gap-4">
                 {CLASS_TYPES.map((type) => (
                   <div key={type} className="flex items-center space-x-2">
@@ -589,10 +682,17 @@ export function HMSStudentForm({
             </div>
 
             {/* Preferred Schedule */}
-            <div>
-              <label className="block text-white text-sm font-medium mb-3">
+            <div className={`${scheduleError ? 'ring-2 ring-red-500 border border-red-500 rounded-md p-3 bg-[#2a2a2a]' : ''}`}>
+              <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
                 {t('studentForm.fields.preferredSchedule')} *
               </label>
+              {scheduleError && (
+                <div className="mb-3 px-2">
+                  <div className="rounded-md bg-red-600 text-white p-2 text-sm">
+                    {t('studentForm.validation.scheduleRequired')}
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap gap-4">
                 {SCHEDULES.map((schedule) => (
                   <div key={schedule} className="flex items-center space-x-2">
@@ -615,13 +715,20 @@ export function HMSStudentForm({
         </section>
 
         {/* 3. Course Type / Certification Options */}
-        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
+        <section className={`bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg ${courseTypeError ? 'ring-2 ring-red-500 border border-red-500' : ''}`}>
           <h3 className="text-2xl text-white font-normal mb-2">
-            {t('studentForm.sections.courseType')}
+            {t('studentForm.sections.courseType')} <span className="text-[#FDB813]">*</span>
           </h3>
           <div className="w-24 h-1 bg-[#FDB813] mb-6"></div>
           
           <p className="mb-4 text-gray-300">{t('studentForm.fields.courseTypePrompt')}</p>
+          {courseTypeError && (
+            <div className="mb-4 px-3">
+              <div className="rounded-md bg-red-600 text-white p-2 text-sm">
+                {t('studentForm.validation.courseTypeRequired')}
+              </div>
+            </div>
+          )}
           
           <div className="space-y-3">
             {COURSE_TYPES.map((type) => (
@@ -651,7 +758,7 @@ export function HMSStudentForm({
           
           <div className="space-y-6">
             <div>
-              <label htmlFor="yearsOfExperience" className="block text-white text-sm font-medium mb-1">
+              <label htmlFor="yearsOfExperience" className="block text-white text-sm font-medium mb-1 cursor-pointer">
                 {t('studentForm.fields.yearsOfExperience')}
               </label>
               <input
@@ -683,7 +790,7 @@ export function HMSStudentForm({
             </div>
             
             <div>
-              <label htmlFor="previousTraining" className="block text-white text-sm font-medium mb-1">
+              <label htmlFor="previousTraining" className="block text-white text-sm font-medium mb-1 cursor-pointer">
                 {t('studentForm.fields.previousTraining')}
               </label>
               <input
@@ -704,7 +811,7 @@ export function HMSStudentForm({
             </div>
             
             <div>
-              <label htmlFor="musicExamCertifications" className="block text-white text-sm font-medium mb-1">
+              <label htmlFor="musicExamCertifications" className="block text-white text-sm font-medium mb-1 cursor-pointer">
                 {t('studentForm.fields.musicExamCertifications')}
               </label>
               <input
@@ -725,7 +832,7 @@ export function HMSStudentForm({
             </div>
             
             <div>
-              <label className="block text-white text-sm font-medium mb-3">
+              <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
                 {t('studentForm.fields.performanceExperience')}
               </label>
               <div className="flex flex-wrap gap-4">
@@ -788,7 +895,7 @@ export function HMSStudentForm({
           <div className="w-24 h-1 bg-[#FDB813] mb-6"></div>
           
           <div>
-            <label htmlFor="goals" className="block text-white text-sm font-medium mb-1">
+            <label htmlFor="goals" className="block text-white text-sm font-medium mb-1 cursor-pointer">
               {t('studentForm.fields.goalsPrompt')}
             </label>
             <textarea
@@ -818,7 +925,7 @@ export function HMSStudentForm({
           
           <div className="space-y-4">
             <div>
-              <label className="block text-white text-sm font-medium mb-3">
+              <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
                 {t('studentForm.fields.volunteerPrompt')}
               </label>
               <div className="flex gap-4">
@@ -853,7 +960,7 @@ export function HMSStudentForm({
 
             {volunteerInterested === 'yes' && (
               <div className="space-y-3 pt-4 border-t border-gray-700 bg-[#252525] p-4 rounded-md">
-                <label className="block text-white text-sm font-medium mb-3">
+                <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
                   {t('studentForm.fields.volunteerDetailsPrompt')}
                 </label>
                 {VOLUNTEER_AREAS.map((area) => (
@@ -885,8 +992,8 @@ export function HMSStudentForm({
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label htmlFor="emergencyName" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emergencyName')} *
+              <label htmlFor="emergencyName" className="block text-white text-sm font-medium mb-1 cursor-pointer">
+                {t('studentForm.fields.emergencyName')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="emergencyName"
@@ -909,7 +1016,7 @@ export function HMSStudentForm({
             
             <div>
               <label htmlFor="emergencyRelationship" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emergencyRelationship')} *
+                {t('studentForm.fields.emergencyRelationship')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="emergencyRelationship"
@@ -931,7 +1038,7 @@ export function HMSStudentForm({
             
             <div>
               <label htmlFor="emergencyContact" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emergencyContact')} *
+                {t('studentForm.fields.emergencyContact')} <span className="text-[#FDB813]">*</span>
               </label>
               <input
                 id="emergencyContact"
@@ -984,7 +1091,33 @@ export function HMSStudentForm({
             {t('studentForm.buttons.reset')}
           </button>
         </div>
-      </form>
+
+        {/* success panel shown below the buttons (only for long messages) */}
+        {submitSuccess && !successIsShort && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
+            <div className="py-8 text-center">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full" style={{ backgroundColor: '#FDB813' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <p className="mb-4 text-xl font-semibold text-white">{t('studentForm.messages.success')}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  handleReset(false);
+                  setSubmitSuccess(false);
+                }}
+                className="px-6 py-2 rounded-md text-black font-bold transition-all duration-300"
+                style={{ backgroundColor: '#FDB813' }}
+              >
+                {t('studentForm.buttons.submitAnother') || 'Submit another application'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+        </form>
+      )}
     </div>
   );
 }
