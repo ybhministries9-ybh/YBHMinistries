@@ -1082,7 +1082,7 @@ export function HMSStudentForm({
           </button>
           <button
             type="button"
-            onClick={handleReset}
+            onClick={() => handleReset()}
             disabled={isSubmitting}
             className={`w-full sm:w-auto px-8 py-3 bg-black hover:bg-gray-900 text-white rounded border-2 border-[#FDB813] text-center transition-colors ${
               isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'

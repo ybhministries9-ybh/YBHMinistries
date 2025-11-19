@@ -538,6 +538,41 @@ export async function createGetInTouch(payload: {
 }
 
 /**
+ * Get recent Get In Touch submissions for admin listing
+ */
+export async function getGetInTouch(opts?: { limit?: number; offset?: number }) {
+  try {
+    const limit = opts?.limit || 50;
+    const offset = opts?.offset || 0;
+    const { rows } = await sql`
+      SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
+      FROM get_in_touch
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    return rows;
+  } catch (error) {
+    console.error('Error fetching get_in_touch records:', error);
+    throw error;
+  }
+}
+
+export async function getGetInTouchById(id: number) {
+  try {
+    const { rows } = await sql`
+      SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
+      FROM get_in_touch
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error fetching get_in_touch by id:', error);
+    throw error;
+  }
+}
+
+/**
  * Fetch a page of HMS student enrolments for admin listing
  */
 export async function getHMSStudents(opts?: { limit?: number; offset?: number }) {

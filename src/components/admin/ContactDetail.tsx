@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import HMSStudentForm from './HMSStudentFormAdmin';
 
 function getAuthHeader() {
@@ -16,33 +16,86 @@ function getAuthHeader() {
   }
 }
 
-export default function ContactDetail({ id }: { id: string }) {
+export default function ContactDetail({ id, forcedTypeProp }: { id: string, forcedTypeProp?: string }) {
   const [record, setRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
+  const searchParams = useSearchParams();
+  const forcedType = forcedTypeProp || searchParams?.get('type');
+
   useEffect(() => {
     let mounted = true;
     setLoading(true);
+
     (async () => {
       try {
-        const resp = await fetch(`/api/admin/hms-students?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
-        if (resp.status === 401) {
-          try { localStorage.removeItem('admin_token'); } catch (e) {}
-          router.push('/admin');
+        // If the caller requested getintouch explicitly, try that first.
+        if (forcedType === 'getintouch') {
+          try {
+            const resp2 = await fetch(`/api/admin/get-in-touch?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
+            if (resp2.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+            const j2 = await resp2.json();
+            if (mounted && j2 && j2.success && j2.data) {
+              setRecord(j2.data || null);
+              return;
+            }
+          } catch (err) {
+            console.error('Failed to load get-in-touch record', err);
+          }
+          // fallback to HMS if get-in-touch not found
+          try {
+            const resp = await fetch(`/api/admin/hms-students?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
+            if (resp.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+            const j = await resp.json();
+            if (mounted && j && j.success && j.data) {
+              setRecord(j.data || null);
+              return;
+            }
+          } catch (err) {
+            console.error('Failed to load hms record', err);
+          }
+          if (mounted) setRecord(null);
           return;
         }
-        const j = await resp.json();
-        if (mounted) setRecord(j?.data || null);
+
+        // Default behavior: try HMS first, then fallback to get-in-touch
+        try {
+          const resp = await fetch(`/api/admin/hms-students?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
+          if (resp.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+          const j = await resp.json();
+          if (mounted && j && j.success && j.data) {
+            setRecord(j.data || null);
+            return;
+          }
+        } catch (err) {
+          console.error('Failed to load hms record', err);
+        }
+
+        // fallback to get-in-touch
+        try {
+          const resp2 = await fetch(`/api/admin/get-in-touch?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
+          if (resp2.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+          const j2 = await resp2.json();
+          if (mounted && j2 && j2.success && j2.data) {
+            setRecord(j2.data || null);
+            return;
+          }
+        } catch (err) {
+          console.error('Failed to load get-in-touch record', err);
+        }
+
+        if (mounted) setRecord(null);
       } catch (err) {
         console.error('Failed to load record', err);
       } finally {
         if (mounted) setLoading(false);
       }
     })();
+
     return () => { mounted = false; };
-  }, [id]);
+  }, [id, forcedType, searchParams, forcedTypeProp]);
 
   const formatDateForInput = (raw?: string | null) => {
     if (!raw) return '';
@@ -100,6 +153,58 @@ export default function ContactDetail({ id }: { id: string }) {
 
   if (loading) return <div className="p-6 text-white">Loading...</div>;
   if (!record) return <div className="p-6 text-white">Record not found. <Link href="/admin/contacts">Back to list</Link></div>;
+
+  // If the fetched record appears to be a Get In Touch submission (has `message` field), render a simple readonly view
+  const isGetInTouch = record && ('message' in record || 'phone' in record && !('full_name' in record && record.full_name));
+
+  if (isGetInTouch) {
+    const r: any = record;
+    return (
+      <div className="w-full text-white px-0">
+        <div className="max-w-6xl mx-auto mb-4 px-2">
+              <button onClick={() => router.push('/admin/contacts/getintouch')} className="inline-flex items-center px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg shadow-sm">
+                Back to list
+              </button>
+            </div>
+
+        <div className="mb-6 text-center px-2">
+          <h2 className="text-2xl font-bold">Contact #{r.id}</h2>
+          <div className="text-sm text-gray-300 mt-1">View the Get In Touch submission details.</div>
+        </div>
+
+        <div className="max-w-6xl mx-auto px-2">
+          <div className="bg-[#2e2e2e] rounded-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 w-full">
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Name</h3>
+                <div className="text-white font-medium break-all whitespace-normal w-full">{r.name || '-'}</div>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Email</h3>
+                <div className="text-white font-medium break-all whitespace-normal w-full">{r.email || '-'}</div>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Phone</h3>
+                <div className="text-white font-medium break-all whitespace-normal w-full">{r.phone || '-'}</div>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Location</h3>
+                <div className="text-white font-medium break-all whitespace-normal w-full">{r.location || '-'}</div>
+              </div>
+              <div className="md:col-span-2 min-w-0">
+                <h3 className="text-sm text-gray-300">Message</h3>
+                <div className="text-white whitespace-pre-wrap mt-2 break-words max-w-full">{r.message || '-'}</div>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Submitted</h3>
+                <div className="text-white">{(r.created_at || '').split('T')[0]}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full text-white px-0">

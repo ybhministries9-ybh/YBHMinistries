@@ -16,11 +16,16 @@ function getAuthHeader() {
   }
 }
 
-export function ContactsManager() {
-  const [activeTab, setActiveTab] = useState<'hms'>('hms');
+export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' | 'getintouch' }) {
+  const [activeTab, setActiveTab] = useState<'hms' | 'getintouch'>(forcedActiveTab || 'hms');
+  // Pagination for Get In Touch
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 20;
+  const [hasMore, setHasMore] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   // replaced modal flow with separate detail page; no selected state here
   const [sortBy, setSortBy] = useState<string>('id');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -33,7 +38,9 @@ export function ContactsManager() {
 
     (async () => {
       try {
-        const resp = await fetch(`/api/admin/hms-students?limit=100`, {
+        const limit = pageSize + 1;
+        const offset = (page - 1) * pageSize;
+        const resp = await fetch(`/api/admin/hms-students?limit=${limit}&offset=${offset}`, {
           headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
           signal: controller.signal,
         });
@@ -45,7 +52,14 @@ export function ContactsManager() {
         }
         const j = await resp.json();
         if (j && j.success) {
-          setStudents(j.data || []);
+          const arr = j.data || [];
+          if (arr.length > pageSize) {
+            setHasMore(true);
+            setStudents(arr.slice(0, pageSize));
+          } else {
+            setHasMore(false);
+            setStudents(arr);
+          }
           setUnauthorized(false);
         }
       } catch (err) {
@@ -60,7 +74,51 @@ export function ContactsManager() {
       aborted = true;
       controller.abort();
     };
-  }, [activeTab]);
+  }, [activeTab, page]);
+
+  useEffect(() => {
+    if (activeTab !== 'getintouch') return;
+    let aborted = false;
+    const controller = new AbortController();
+    setLoading(true);
+
+    (async () => {
+      try {
+        // fetch one extra record to detect if there is a next page
+        const limit = pageSize + 1;
+        const offset = (page - 1) * pageSize;
+        const resp = await fetch(`/api/admin/get-in-touch?limit=${limit}&offset=${offset}`, {
+          headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
+          signal: controller.signal,
+        });
+        if (aborted) return;
+        if (resp.status === 401) {
+          setUnauthorized(true);
+          setContacts([]);
+          return;
+        }
+        const j = await resp.json();
+        if (j && j.success) {
+          const arr = j.data || [];
+          if (arr.length > pageSize) {
+            setHasMore(true);
+            setContacts(arr.slice(0, pageSize));
+          } else {
+            setHasMore(false);
+            setContacts(arr);
+          }
+          setUnauthorized(false);
+        }
+      } catch (err) {
+        if ((err as any)?.name === 'AbortError') return;
+        console.error('Failed to load get-in-touch submissions', err);
+      } finally {
+        if (!aborted) setLoading(false);
+      }
+    })();
+
+    return () => { aborted = true; controller.abort(); };
+  }, [activeTab, page]);
 
   // modal removed — detail page used instead
 
@@ -70,6 +128,17 @@ export function ContactsManager() {
       const d = new Date(raw);
       if (Number.isNaN(d.getTime())) return raw.split('T')[0] || raw;
       return d.toISOString().split('T')[0];
+    } catch (e) {
+      return String(raw).split('T')[0] || String(raw);
+    }
+  }, []);
+
+  const formatDatePretty = useCallback((raw?: string | null) => {
+    if (!raw) return '-';
+    try {
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return raw.split('T')[0] || raw;
+      return new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).format(d);
     } catch (e) {
       return String(raw).split('T')[0] || String(raw);
     }
@@ -105,6 +174,31 @@ export function ContactsManager() {
     return arr;
   }, [students, sortBy, sortDir]);
 
+  const sortedContacts = useMemo(() => {
+    const arr = [...contacts];
+    const dir = sortDir === 'asc' ? 1 : -1;
+    if (sortBy === 'id') {
+      arr.sort((a: any, b: any) => (Number(a.id || 0) - Number(b.id || 0)) * dir);
+      return arr;
+    }
+    if (sortBy === 'created_at') {
+      arr.sort((a: any, b: any) => {
+        const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
+        const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
+        return (ta - tb) * dir;
+      });
+      return arr;
+    }
+    arr.sort((a: any, b: any) => {
+      const A = a?.[sortBy];
+      const B = b?.[sortBy];
+      const sa = String(A || '').toLowerCase();
+      const sb = String(B || '').toLowerCase();
+      return sa.localeCompare(sb) * dir;
+    });
+    return arr;
+  }, [contacts, sortBy, sortDir]);
+
   const handleSort = useCallback((column: string) => {
     if (sortBy === column) {
       setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
@@ -114,6 +208,8 @@ export function ContactsManager() {
       setSortDir(column === 'date_of_birth' ? 'desc' : 'asc');
     }
   }, [sortBy]);
+
+  const goldBtnClass = (_disabled: boolean) => `px-3 py-1 rounded bg-[#FDB813] text-black disabled:opacity-60 disabled:cursor-not-allowed`;
 
   // navigation to detail page will be handled by link/button
 
@@ -127,12 +223,21 @@ export function ContactsManager() {
         <nav className="mt-5">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setActiveTab('hms')}
-              className={`flex items-center gap-2 transition-colors text-sm ${activeTab === 'hms' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
+              onClick={() => { setActiveTab('hms'); setPage(1); }}
+              className={`flex items-center gap-2 transition-colors text-base ${activeTab === 'hms' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
               style={activeTab === 'hms' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
             >
               <Book size={16} />
               <span className="font-medium">HMS Enrollments</span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('getintouch'); setPage(1); }}
+              className={`flex items-center gap-2 transition-colors text-base ${activeTab === 'getintouch' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
+              style={activeTab === 'getintouch' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
+            >
+              <Book size={16} />
+              <span className="font-medium">Get In Touch</span>
             </button>
 
             {/* Removed "Other" tab per design */}
@@ -155,16 +260,16 @@ export function ContactsManager() {
               <div className="w-full bg-[#1f1f1f] rounded-lg p-2 md:p-3 border border-[#2b2b2b]">
                 {/* Desktop/table view (md and up) */}
                 <div className="hidden md:block">
-                  <table className="w-full text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
+                  <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
                     <thead>
                       <tr style={{ backgroundColor: '#2e2e2e', color: '#e6e6e6' }}>
-                        <th onClick={() => handleSort('id')} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer"># {sortBy === 'id' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('full_name')} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Name {sortBy === 'full_name' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('date_of_birth')} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">DOB {sortBy === 'date_of_birth' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('phone_number')} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Phone {sortBy === 'phone_number' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('email')} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Email {sortBy === 'email' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('status')} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Status {sortBy === 'status' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Actions</th>
+                        <th onClick={() => handleSort('id')} style={{ width: '6%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer"># {sortBy === 'id' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('full_name')} style={{ width: '26%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Name {sortBy === 'full_name' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('date_of_birth')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">DOB {sortBy === 'date_of_birth' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('phone_number')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Phone {sortBy === 'phone_number' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('email')} style={{ width: '24%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Email {sortBy === 'email' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('status')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Status {sortBy === 'status' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th style={{ width: '8%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -175,12 +280,12 @@ export function ContactsManager() {
                           style={{ backgroundColor: i % 2 === 0 ? '#242424' : '#1a1a1a' }}
                         >
                           <td className="px-4 py-3 text-gray-200">{s.id}</td>
-                          <td className="px-4 py-3 text-gray-100">{s.full_name}</td>
-                          <td className="px-4 py-3 text-gray-200">{formatDateOnly(s.date_of_birth)}</td>
-                          <td className="px-4 py-3 text-gray-200">{s.phone_number || '-'}</td>
-                          <td className="px-4 py-3 text-gray-200">{s.email || '-'}</td>
+                          <td className="px-4 py-3 text-gray-100 truncate max-w-[1px]">{s.full_name}</td>
+                          <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(s.date_of_birth)}</td>
+                          <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.phone_number || '-'}</td>
+                          <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.email || '-'}</td>
                           <td className="px-4 py-3 text-gray-200">{s.status || '-'}</td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 text-right">
                               <Link href={`/admin/contacts/${s.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
                           </td>
                         </tr>
@@ -201,7 +306,7 @@ export function ContactsManager() {
                             <span className="uppercase text-[11px] text-gray-300">{s.status || 'Submitted'}</span>
                           </div>
                           <div className="font-medium text-gray-100 truncate">{s.full_name}</div>
-                          <div className="text-sm text-gray-200 mt-1">{formatDateOnly(s.date_of_birth)} • {s.phone_number || '-'}</div>
+                          <div className="text-sm text-gray-200 mt-1">{formatDatePretty(s.date_of_birth)} • {s.phone_number || '-'}</div>
                           <div className="text-sm text-gray-200 truncate mt-1">{s.email || '-'}</div>
                         </div>
                         <div className="flex-shrink-0">
@@ -210,6 +315,104 @@ export function ContactsManager() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Pagination controls (mobile) */}
+                <div className="md:hidden flex items-center justify-between mt-3">
+                  <div className="text-sm text-gray-400">Page {page}</div>
+                  <div className="flex items-center gap-2">
+                    <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className={goldBtnClass(page <= 1)}>Prev</button>
+                    <button disabled={!hasMore} onClick={() => setPage(p => p + 1)} className={goldBtnClass(!hasMore)}>Next</button>
+                  </div>
+                </div>
+
+                {/* Pagination controls (desktop) */}
+                <div className="hidden md:flex items-center justify-between mt-3 px-2">
+                  <div className="text-sm text-gray-400">Page {page}</div>
+                  <div className="flex items-center gap-2">
+                    <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className={goldBtnClass(page <= 1)}>Prev</button>
+                    <button disabled={!hasMore} onClick={() => setPage(p => p + 1)} className={goldBtnClass(!hasMore)}>Next</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'getintouch' && (
+        <div>
+          {loading ? (
+            <div>Loading...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="w-full bg-[#1f1f1f] rounded-lg p-2 md:p-3 border border-[#2b2b2b]">
+                <div className="hidden md:block">
+                  <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
+                    <thead>
+                      <tr style={{ backgroundColor: '#2e2e2e', color: '#e6e6e6' }}>
+                        <th onClick={() => handleSort('id')} style={{ width: '6%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer"># {sortBy === 'id' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('name')} style={{ width: '26%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Name {sortBy === 'name' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('phone')} style={{ width: '14%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Phone {sortBy === 'phone' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('email')} style={{ width: '28%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Email {sortBy === 'email' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('created_at')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer whitespace-nowrap">Submitted {sortBy === 'created_at' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedContacts.map((c: any, i) => (
+                        <tr key={c.id} className={`border-b border-gray-800 hover:bg-[#151515]`} style={{ backgroundColor: i % 2 === 0 ? '#242424' : '#1a1a1a' }}>
+                          <td className="px-4 py-3 text-gray-200">{c.id}</td>
+                          <td className="px-4 py-3 text-gray-100 truncate max-w-[1px]">{c.name}</td>
+                          <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.phone || '-'}</td>
+                          <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.email || '-'}</td>
+                          <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.created_at)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="md:hidden space-y-3 mt-2">
+                  {contacts.map((c: any) => (
+                    <div key={c.id} className="bg-[#232323] rounded-md p-3 border border-[#2b2b2b]">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+                            <span>#{c.id}</span>
+                            <span className="mx-1">•</span>
+                            <span className="uppercase text-[11px] text-gray-300">{c.status || 'Submitted'}</span>
+                          </div>
+                          <div className="font-medium text-gray-100 truncate">{c.name}</div>
+                          <div className="text-sm text-gray-200 mt-1">{formatDatePretty(c.created_at)} • {c.phone || '-'}</div>
+                          <div className="text-sm text-gray-200 truncate mt-1">{c.email || '-'}</div>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Pagination controls (mobile) for Get In Touch */}
+                <div className="md:hidden flex items-center justify-between mt-3">
+                  <div className="text-sm text-gray-400">Page {page}</div>
+                  <div className="flex items-center gap-2">
+                    <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className={goldBtnClass(page <= 1)}>Prev</button>
+                    <button disabled={!hasMore} onClick={() => setPage(p => p + 1)} className={goldBtnClass(!hasMore)}>Next</button>
+                  </div>
+                </div>
+
+                {/* Pagination controls (desktop) for Get In Touch */}
+                <div className="hidden md:flex items-center justify-between mt-3 px-2">
+                  <div className="text-sm text-gray-400">Page {page}</div>
+                  <div className="flex items-center gap-2">
+                    <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className={goldBtnClass(page <= 1)}>Prev</button>
+                    <button disabled={!hasMore} onClick={() => setPage(p => p + 1)} className={goldBtnClass(!hasMore)}>Next</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -221,5 +424,4 @@ export function ContactsManager() {
     </div>
   );
 }
-
 export default ContactsManager;

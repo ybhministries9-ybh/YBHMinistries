@@ -26,17 +26,18 @@ async function handleReorder(req: VercelRequest, res: VercelResponse) {
     }
 
     // Update display_order for each image based on array position
-    for (let i = 0; i < imageIds.length; i++) {
-      await sql`
+    // Parallelize updates instead of awaiting each one sequentially
+    await Promise.all(imageIds.map((id: number, i: number) =>
+      sql`
         UPDATE hero_images
         SET display_order = ${i}
-        WHERE id = ${imageIds[i]}
-      `;
-    }
+        WHERE id = ${id}
+      `
+    ));
 
     return res.status(200).json({ success: true, message: 'Images reordered successfully' });
   } catch (error) {
-    console.error('Reorder error:', error);
+    if (process.env.NODE_ENV !== 'production') console.error('Reorder error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

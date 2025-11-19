@@ -79,7 +79,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({ name: true, email: true, phone: true, message: true });
+    setTouched({ name: true, email: true, phone: true, location: true, message: true });
     const nextErrors = validate(formData);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -152,7 +152,6 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   aria-invalid={!!errors.name}
                   aria-describedby={errors.name ? 'name-error' : 'name-help'}
                   className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.name ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
-                  placeholder={t('contactForm.namePlaceholder')}
                   placeholder={t('contactForm.namePlaceholder', { defaultValue: '' })}
                 />
                 <div className="mt-1 flex items-center justify-between">
