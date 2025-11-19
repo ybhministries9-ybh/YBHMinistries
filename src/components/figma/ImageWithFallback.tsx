@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, memo } from 'react';
+import Image from 'next/image';
 import { ImageOff, User } from 'lucide-react';
 
 interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -115,26 +116,20 @@ function _ImageWithFallback({
       
       {/* Actual image - only render when we have a non-empty src */}
       {imgSrc ? (
-        <img
-          {...props}
-          src={imgSrc}
-          alt={alt}
-          className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
-          onError={handleError}
-          onLoad={handleLoad}
-          loading={loading}
-          // Add responsive srcset if available
-          {...(responsiveSizes && {
-            srcSet: `
-              ${responsiveSizes.small} 400w,
-              ${responsiveSizes.medium} 800w,
-              ${responsiveSizes.large} 1600w
-            `,
-            sizes: '(max-width: 640px) 400px, (max-width: 1024px) 800px, 1600px'
-          })}
-          // Enable browser-level image decoding optimization
-          decoding="async"
-        />
+        // Use Next.js Image for optimized loading. We use `fill` so the parent
+        // container's size (set via className) controls layout. `onLoadingComplete`
+        // doesn't provide error info, so we use `onError` for fallback handling.
+        <div className={`w-full h-full relative ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+          <Image
+            src={imgSrc}
+            alt={alt}
+            fill
+            className={`object-cover ${className}`}
+            onError={handleError}
+            onLoadingComplete={handleLoad}
+            sizes={responsiveSizes ? '(max-width: 640px) 400px, (max-width: 1024px) 800px, 1600px' : undefined}
+          />
+        </div>
       ) : null}
     </div>
   );
