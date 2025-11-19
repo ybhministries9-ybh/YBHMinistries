@@ -59,7 +59,7 @@ interface FormData {
   emergencyContact: string;
 }
 
-export function HMSStudentForm({
+export function HMSStudentFormAdmin({
   onClose,
   initialData,
   submitUrl,
@@ -247,14 +247,13 @@ export function HMSStudentForm({
                     message: t('studentForm.validation.fullNamePattern') 
                   }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.fullName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.fullName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 placeholder={t('studentForm.placeholders.fullName')}
                 maxLength={100}
+                readOnly
               />
-              {errors.fullName ? (
+              {errors.fullName && (
                 <p className="text-red-400 text-xs mt-1">{errors.fullName.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -288,16 +287,15 @@ export function HMSStudentForm({
                       dateFormat="dd-MM-yyyy"
                       maxDate={new Date()}
                       placeholderText={t('studentForm.placeholders.dateOfBirth')}
-                      className={`w-full px-4 py-2 bg-black rounded border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                      className={`w-full px-4 py-2 bg-black rounded border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                       showPopperArrow={false}
+                      disabled
                     />
                   )}
                 />
               </div>
-              {errors.dateOfBirth ? (
+              {errors.dateOfBirth && (
                 <p className="text-red-400 text-xs mt-1">{errors.dateOfBirth.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.dateRequired')}</p>
               )}
             </div>
             
@@ -308,17 +306,16 @@ export function HMSStudentForm({
               <select
                 id="gender"
                 {...register('gender', { required: t('studentForm.validation.genderRequired') })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.gender ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.gender ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                disabled
               >
                 <option value="">{t('studentForm.placeholders.selectGender')}</option>
                 <option value="male">{t('studentForm.options.male')}</option>
                 <option value="female">{t('studentForm.options.female')}</option>
                 <option value="preferNotToSay">{t('studentForm.options.preferNotToSay')}</option>
               </select>
-              {errors.gender ? (
+              {errors.gender && (
                 <p className="text-red-400 text-xs mt-1">{errors.gender.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.selectFromOptions')}</p>
               )}
             </div>
             
@@ -334,14 +331,13 @@ export function HMSStudentForm({
                   minLength: { value: 5, message: t('studentForm.validation.addressMin') },
                   maxLength: { value: 200, message: t('studentForm.validation.addressMax') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.address ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.address ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 placeholder={t('studentForm.placeholders.address')}
                 maxLength={200}
+                readOnly
               />
-              {errors.address ? (
+              {errors.address && (
                 <p className="text-red-400 text-xs mt-1">{errors.address.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 200 })}</p>
               )}
             </div>
             
@@ -356,14 +352,13 @@ export function HMSStudentForm({
                   required: t('studentForm.validation.cityStateZipRequired'),
                   maxLength: { value: 100, message: t('studentForm.validation.cityStateZipMax') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.cityStateZip ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.cityStateZip ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 placeholder={t('studentForm.placeholders.cityStateZip')}
                 maxLength={100}
+                readOnly
               />
-              {errors.cityStateZip ? (
+              {errors.cityStateZip && (
                 <p className="text-red-400 text-xs mt-1">{errors.cityStateZip.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -383,18 +378,17 @@ export function HMSStudentForm({
                     message: t('studentForm.validation.phonePattern') 
                   }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={15}
                 placeholder={t('studentForm.placeholders.phone')}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
                   setValue('phoneNumber', cleaned, { shouldValidate: true, shouldDirty: true });
                 }}
+                readOnly
               />
-              {errors.phoneNumber ? (
+              {errors.phoneNumber && (
                 <p className="text-red-400 text-xs mt-1">{errors.phoneNumber.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.validNumberNoCountry')}</p>
               )}
             </div>
             
@@ -413,14 +407,13 @@ export function HMSStudentForm({
                     message: t('studentForm.validation.emailPattern') 
                   }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emailId ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.emailId ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={100}
                 placeholder={t('studentForm.placeholders.email')}
+                readOnly
               />
-              {errors.emailId ? (
+              {errors.emailId && (
                 <p className="text-red-400 text-xs mt-1">{errors.emailId.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -434,14 +427,13 @@ export function HMSStudentForm({
                 {...register('parentGuardianName', {
                   maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 placeholder={t('studentForm.placeholders.parentGuardianName')}
                 maxLength={100}
+                readOnly
               />
-              {errors.parentGuardianName ? (
+              {errors.parentGuardianName && (
                 <p className="text-red-400 text-xs mt-1">{errors.parentGuardianName.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -460,18 +452,17 @@ export function HMSStudentForm({
                     message: t('studentForm.validation.phonePattern')
                   }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={15}
                 placeholder={t('studentForm.placeholders.parentGuardianContact')}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
                   setValue('parentGuardianContact', cleaned, { shouldValidate: true, shouldDirty: true });
                 }}
+                readOnly
               />
-              {errors.parentGuardianContact ? (
+              {errors.parentGuardianContact && (
                 <p className="text-red-400 text-xs mt-1">{errors.parentGuardianContact.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.validNumberNoCountry')}</p>
               )}
             </div>
           </div>
@@ -498,10 +489,11 @@ export function HMSStudentForm({
                       id={`program-${level}`}
                       checked={programLevels.includes(level)}
                       onChange={(e) => handleCheckboxChange(level, e.target.checked, programLevels, setProgramLevels)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
                       style={{ accentColor: '#000000' }}
+                      disabled
                     />
-                    <label htmlFor={`program-${level}`} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={`program-${level}`} className="text-white text-sm">
                       {t(`studentForm.options.${level}`)}
                     </label>
                   </div>
@@ -522,10 +514,11 @@ export function HMSStudentForm({
                       id={`instrument-${instrument}`}
                       checked={instruments.includes(instrument)}
                       onChange={(e) => handleCheckboxChange(instrument, e.target.checked, instruments, setInstruments)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
                       style={{ accentColor: '#000000' }}
+                      disabled
                     />
-                    <label htmlFor={`instrument-${instrument}`} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={`instrument-${instrument}`} className="text-white text-sm">
                       {t(`studentForm.options.${instrument}`)}
                     </label>
                   </div>
@@ -536,10 +529,11 @@ export function HMSStudentForm({
                     id="instrument-other"
                     checked={instruments.includes('other')}
                     onChange={(e) => handleCheckboxChange('other', e.target.checked, instruments, setInstruments)}
-                    className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                    className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
                     style={{ accentColor: '#000000' }}
+                    disabled
                   />
-                  <label htmlFor="instrument-other" className="text-white text-sm cursor-pointer">
+                  <label htmlFor="instrument-other" className="text-white text-sm">
                     {t('studentForm.options.other')}:
                   </label>
                   {instruments.includes('other') && (
@@ -549,15 +543,14 @@ export function HMSStudentForm({
                         maxLength: { value: 50, message: t('studentForm.validation.instrumentOtherMax') }
                       })}
                       placeholder={t('studentForm.placeholders.instrumentOther')}
-                      className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32 cursor-text"
+                      className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32"
                       maxLength={50}
+                      readOnly
                     />
                   )}
                   {instruments.includes('other') && (
-                    errors.instrumentOther ? (
+                    errors.instrumentOther && (
                       <p className="text-red-400 text-xs mt-1">{(errors as any).instrumentOther?.message}</p>
-                    ) : (
-                      <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 50 })}</p>
                     )
                   )}
                 </div>
@@ -577,10 +570,11 @@ export function HMSStudentForm({
                       id={`class-${type}`}
                       checked={classTypes.includes(type)}
                       onChange={(e) => handleCheckboxChange(type, e.target.checked, classTypes, setClassTypes)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
                       style={{ accentColor: '#000000' }}
+                      disabled
                     />
-                    <label htmlFor={`class-${type}`} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={`class-${type}`} className="text-white text-sm">
                       {t(`studentForm.options.${type}`)}
                     </label>
                   </div>
@@ -601,10 +595,11 @@ export function HMSStudentForm({
                       id={`schedule-${schedule}`}
                       checked={schedules.includes(schedule)}
                       onChange={(e) => handleCheckboxChange(schedule, e.target.checked, schedules, setSchedules)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
                       style={{ accentColor: '#000000' }}
+                      disabled
                     />
-                    <label htmlFor={`schedule-${schedule}`} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={`schedule-${schedule}`} className="text-white text-sm">
                       {t(`studentForm.options.${schedule}`)}
                     </label>
                   </div>
@@ -631,10 +626,11 @@ export function HMSStudentForm({
                   id={`course-${type}`}
                   checked={courseTypes.includes(type)}
                   onChange={(e) => handleCheckboxChange(type, e.target.checked, courseTypes, setCourseTypes)}
-                  className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                  className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
                   style={{ accentColor: '#000000' }}
+                  disabled
                 />
-                <label htmlFor={`course-${type}`} className="text-white text-sm cursor-pointer">
+                <label htmlFor={`course-${type}`} className="text-white text-sm">
                   {t(`studentForm.options.${type}`)}
                 </label>
               </div>
@@ -664,7 +660,7 @@ export function HMSStudentForm({
                   min: { value: 0, message: t('studentForm.validation.yearsMin') },
                   max: { value: 100, message: t('studentForm.validation.yearsMax') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 min={0}
                 max={100}
                 placeholder={t('studentForm.placeholders.yearsOfExperience')}
@@ -674,11 +670,10 @@ export function HMSStudentForm({
                   let num = cleaned === '' ? '' : String(Math.min(100, Math.max(0, parseInt(cleaned, 10))));
                   setValue('yearsOfExperience', num as any, { shouldValidate: true, shouldDirty: true });
                 }}
+                readOnly
               />
-              {errors.yearsOfExperience ? (
+              {errors.yearsOfExperience && (
                 <p className="text-red-400 text-xs mt-1">{errors.yearsOfExperience.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.range0to100')}</p>
               )}
             </div>
             
@@ -692,15 +687,14 @@ export function HMSStudentForm({
                 {...register('previousTraining', {
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.previousTraining ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.previousTraining ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 placeholder={t('studentForm.placeholders.previousTraining')}
                 maxLength={200}
+                readOnly
               />
-              {errors.previousTraining ? (
-                <p className="text-red-400 text-xs mt-1">{errors.previousTraining.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 200 })}</p>
-              )}
+                {errors.previousTraining && (
+                  <p className="text-red-400 text-xs mt-1">{errors.previousTraining.message}</p>
+                )}
             </div>
             
             <div>
@@ -713,14 +707,13 @@ export function HMSStudentForm({
                 {...register('musicExamCertifications', {
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.musicExamCertifications ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.musicExamCertifications ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 placeholder={t('studentForm.placeholders.musicExamCertifications')}
                 maxLength={200}
+                readOnly
               />
-              {errors.musicExamCertifications ? (
+              {errors.musicExamCertifications && (
                 <p className="text-red-400 text-xs mt-1">{errors.musicExamCertifications.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 200 })}</p>
               )}
             </div>
             
@@ -736,10 +729,11 @@ export function HMSStudentForm({
                       id={`performance-${perf}`}
                       checked={performances.includes(perf)}
                       onChange={(e) => handleCheckboxChange(perf, e.target.checked, performances, setPerformances)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
                       style={{ accentColor: '#000000' }}
+                      disabled
                     />
-                    <label htmlFor={`performance-${perf}`} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={`performance-${perf}`} className="text-white text-sm">
                       {t(`studentForm.options.${perf}`)}
                     </label>
                   </div>
@@ -750,10 +744,11 @@ export function HMSStudentForm({
                     id="performance-other"
                     checked={performances.includes('other')}
                     onChange={(e) => handleCheckboxChange('other', e.target.checked, performances, setPerformances)}
-                    className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                    className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
                     style={{ accentColor: '#000000' }}
+                    disabled
                   />
-                  <label htmlFor="performance-other" className="text-white text-sm cursor-pointer">
+                  <label htmlFor="performance-other" className="text-white text-sm">
                     {t('studentForm.options.other')}:
                   </label>
                   {performances.includes('other') && (
@@ -763,15 +758,14 @@ export function HMSStudentForm({
                         maxLength: { value: 100, message: t('studentForm.validation.performanceOtherMax') }
                       })}
                       placeholder={t('studentForm.placeholders.performanceOther')}
-                      className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32 cursor-text"
+                      className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32"
                       maxLength={100}
+                      readOnly
                     />
                   )}
                   {performances.includes('other') && (
-                    (errors as any).performanceOther ? (
+                    (errors as any).performanceOther && (
                       <p className="text-red-400 text-xs mt-1">{(errors as any).performanceOther?.message}</p>
-                    ) : (
-                      <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
                     )
                   )}
                 </div>
@@ -797,14 +791,13 @@ export function HMSStudentForm({
                 maxLength: { value: 1000, message: t('studentForm.validation.goalsMax') }
               })}
               rows={4}
-              className={`w-full px-4 py-2 bg-black rounded border ${errors.goals ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none`}
+              className={`w-full px-4 py-2 bg-black rounded border ${errors.goals ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] resize-none`}
               maxLength={1000}
               placeholder={t('studentForm.fields.goalsPlaceholder')}
+              readOnly
             />
-            {errors.goals ? (
+            {errors.goals && (
               <p className="text-red-400 text-xs mt-1">{errors.goals.message}</p>
-            ) : (
-              <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 1000 })}</p>
             )}
           </div>
         </section>
@@ -828,8 +821,9 @@ export function HMSStudentForm({
                     id="volunteer-yes"
                     value="yes"
                     {...register('volunteerInterested')}
-                    className="w-4 h-4 bg-white border-gray-600 cursor-pointer accent-black"
+                    className="w-4 h-4 bg-white border-gray-600 accent-black"
                     style={{ accentColor: '#000000' }}
+                    disabled
                   />
                   <label htmlFor="volunteer-yes" className="text-white text-sm cursor-pointer">
                     {t('studentForm.options.yes')}
@@ -841,10 +835,11 @@ export function HMSStudentForm({
                     id="volunteer-no"
                     value="no"
                     {...register('volunteerInterested')}
-                    className="w-4 h-4 bg-white border-gray-600 cursor-pointer accent-black"
+                    className="w-4 h-4 bg-white border-gray-600 accent-black"
                     style={{ accentColor: '#000000' }}
+                    disabled
                   />
-                  <label htmlFor="volunteer-no" className="text-white text-sm cursor-pointer">
+                  <label htmlFor="volunteer-no" className="text-white text-sm">
                     {t('studentForm.options.no')}
                   </label>
                 </div>
@@ -863,10 +858,11 @@ export function HMSStudentForm({
                       id={area}
                       checked={volunteerAreas.includes(area)}
                       onChange={(e) => handleCheckboxChange(area, e.target.checked, volunteerAreas, setVolunteerAreas)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
                       style={{ accentColor: '#000000' }}
+                      disabled
                     />
-                    <label htmlFor={area} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={area} className="text-white text-sm">
                       {t(`studentForm.options.${area}`)}
                     </label>
                   </div>
@@ -896,14 +892,13 @@ export function HMSStudentForm({
                   minLength: { value: 2, message: t('studentForm.validation.emergencyNameMin') },
                   maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 placeholder={t('studentForm.placeholders.emergencyName')}
                 maxLength={100}
+                readOnly
               />
-              {errors.emergencyName ? (
+              {errors.emergencyName && (
                 <p className="text-red-400 text-xs mt-1">{errors.emergencyName.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -918,14 +913,13 @@ export function HMSStudentForm({
                   required: t('studentForm.validation.emergencyRelationshipRequired'),
                   maxLength: { value: 50, message: t('studentForm.validation.relationshipMax') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 placeholder={t('studentForm.placeholders.emergencyRelationship')}
                 maxLength={50}
+                readOnly
               />
-              {errors.emergencyRelationship ? (
+              {errors.emergencyRelationship && (
                 <p className="text-red-400 text-xs mt-1">{errors.emergencyRelationship.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 50 })}</p>
               )}
             </div>
             
@@ -945,46 +939,35 @@ export function HMSStudentForm({
                     message: t('studentForm.validation.phonePattern') 
                   }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={15}
                 placeholder={t('studentForm.placeholders.emergencyContact')}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
                   setValue('emergencyContact', cleaned, { shouldValidate: true, shouldDirty: true });
                 }}
+                readOnly
               />
-              {errors.emergencyContact ? (
+              {errors.emergencyContact && (
                 <p className="text-red-400 text-xs mt-1">{errors.emergencyContact.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.validNumberNoCountry')}</p>
               )}
             </div>
           </div>
         </section>
 
-        {/* Submit and Reset Buttons */}
-        <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-full sm:w-auto px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded text-center transition-colors ${
-              isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            }`}
-          >
-            {isSubmitting ? t('studentForm.buttons.submitting') : t('studentForm.buttons.submit')}
-          </button>
+        {/* Close Button Only */}
+        <div className="flex justify-center">
           <button
             type="button"
-            onClick={handleReset}
-            disabled={isSubmitting}
-            className={`w-full sm:w-auto px-8 py-3 bg-black hover:bg-gray-900 text-white rounded border-2 border-[#FDB813] text-center transition-colors ${
-              isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            }`}
+            onClick={() => onClose && onClose()}
+            className="px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded border border-[#FDB813] text-center transition-colors"
           >
-            {t('studentForm.buttons.reset')}
+            Close
           </button>
         </div>
       </form>
     </div>
   );
 }
+
+export default HMSStudentFormAdmin;

@@ -491,6 +491,75 @@ export async function createHMSStudent(payload: {
   }
 }
 
+/**
+ * Fetch a page of HMS student enrolments for admin listing
+ */
+export async function getHMSStudents(opts?: { limit?: number; offset?: number }) {
+  try {
+    const limit = opts?.limit || 50;
+    const offset = opts?.offset || 0;
+    const { rows } = await sql<HMSStudentRecord>`
+      SELECT * FROM hms_students
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    return rows;
+  } catch (error) {
+    console.error('Error fetching HMS students:', error);
+    throw error;
+  }
+}
+
+export async function getHMSStudentById(id: number) {
+  try {
+    const { rows } = await sql<HMSStudentRecord>`SELECT * FROM hms_students WHERE id = ${id} LIMIT 1`;
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error fetching HMS student by id:', error);
+    throw error;
+  }
+}
+
+export async function updateHMSStudent(id: number, updates: Partial<any>) {
+  try {
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    const allowed = [
+      'full_name','date_of_birth','gender','address','city_state_zip','phone_number','email','parent_guardian_name','parent_guardian_contact',
+      'program_applying_for','instrument_specialization','instrument_other','preferred_class_type','preferred_schedule','course_type',
+      'years_of_experience','previous_training','music_exam_certifications','performance_experience','performance_other','goals',
+      'volunteer_interested','volunteer_areas','emergency_name','emergency_relationship','emergency_contact','status','updated_by'
+    ];
+
+    for (const key of Object.keys(updates)) {
+      if (!allowed.includes(key)) continue;
+      let val: any = (updates as any)[key];
+      // JSON stringify arrays/objects for storage
+      if (Array.isArray(val) || typeof val === 'object') val = JSON.stringify(val);
+      setClauses.push(`${key} = $${idx++}`);
+      values.push(val);
+    }
+
+    if (setClauses.length === 0) {
+      const { rows } = await sql<HMSStudentRecord>`SELECT * FROM hms_students WHERE id = ${id} LIMIT 1`;
+      return rows[0] || null;
+    }
+
+    // always update timestamp
+    setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+    const query = `UPDATE hms_students SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`;
+    values.push(id);
+
+    const result = await sql.query<HMSStudentRecord>(query, values);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error updating HMS student:', error);
+    throw error;
+  }
+}
+
 /** STORIES CRUD **/
 export async function getAllStories(): Promise<Story[]> {
   try {
