@@ -64,6 +64,32 @@ export default {
       emergencyRelationship: "Relationship",
       emergencyContact: "Contact Number"
     },
+    placeholders: {
+      fullName: "Enter your full name",
+      dateOfBirth: "dd-mm-yyyy",
+      selectGender: "Select your gender",
+      address: "Enter your street address",
+      cityStateZip: "Enter city, state, and ZIP code",
+      phone: "1234567890",
+      email: "example@email.com",
+      parentGuardianName: "Enter parent/guardian name",
+      parentGuardianContact: "1234567890",
+      instrumentOther: "Specify",
+      yearsOfExperience: "Enter years of experience (0-100)",
+      previousTraining: "Describe your previous music training",
+      musicExamCertifications: "List any certifications or exams completed",
+      performanceOther: "Specify",
+      emergencyName: "Enter emergency contact name",
+      emergencyRelationship: "Enter relationship (e.g., Parent, Spouse)",
+      emergencyContact: "1234567890"
+    },
+    helpers: {
+      maxChars: "Max {{count}} characters",
+      dateRequired: "Date is required",
+      selectFromOptions: "Select from options",
+      validNumberNoCountry: "Valid number without country code",
+      range0to100: "Range: 0–100"
+    },
     options: {
       beginner: "Beginner",
       intermediate: "Intermediate",

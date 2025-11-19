@@ -11,6 +11,7 @@ import { StoriesManager } from './StoriesManager';
 import { SetupHelper } from './SetupHelper';
 import { HeroImageManager } from './HeroImageManager';
 import { DonateManager } from './DonateManager';
+import ContactsManager from './ContactsManager';
 import { MenuManager } from './MenuManager';
 import { Welcome } from './Welcome';
 import { AdminScrollToTop } from './AdminScrollToTop';
@@ -20,13 +21,14 @@ const logoImage = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/
 interface AdminDashboardProps {
   token: string;
   onLogout: () => void;
+  initialSection?: string;
 }
 
-type Section = 'welcome' | 'home' | 'about' | 'ministries' | 'gallery' | 'news' | 'resources' | 'stories' | 'donate' | 'menu' | 'users';
+type Section = 'welcome' | 'home' | 'about' | 'ministries' | 'gallery' | 'news' | 'resources' | 'stories' | 'donate' | 'contacts' | 'menu' | 'users';
 
-export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
-  // default to Welcome page
-  const [activeSection, setActiveSection] = useState<Section>('welcome');
+export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboardProps) {
+  // default to Welcome page; allow parent to request an initial section via prop
+  const [activeSection, setActiveSection] = useState<Section>((initialSection as Section) || 'welcome');
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
 
   useEffect(() => {
@@ -94,6 +96,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
     { id: 'resources' as Section, label: 'Resources', icon: FileText },
     { id: 'stories' as Section, label: 'Stories', icon: MessageCircle },
     { id: 'donate' as Section, label: 'Donate', icon: DollarSign },
+    { id: 'contacts' as Section, label: 'Contacts', icon: MessageCircle },
     { id: 'users' as Section, label: 'Users', icon: Users },
     { id: 'menu' as Section, label: 'Menu', icon: Menu, hidden: true }, // UI-hidden but code retained
   ];
@@ -189,6 +192,7 @@ export function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
               {activeSection === 'resources' && <ResourceManager />}
               {activeSection === 'stories' && <StoriesManager />}
               {activeSection === 'donate' && <DonateManager />}
+              {activeSection === 'contacts' && <ContactsManager />}
               {activeSection === 'menu' && <MenuManager />}
               {activeSection === 'users' && <UserManager />}
             </div>

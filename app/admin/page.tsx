@@ -1,14 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AdminLogin } from '@/components/admin/AdminLogin';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import SessionWarning from '@/components/admin/SessionWarning';
 
 export default function AdminPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Optimistically assume logged in if a token exists locally to avoid
+  // flashing the login UI while we verify the token with the server.
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    try {
+      return !!localStorage.getItem('admin_token');
+    } catch (e) {
+      return false;
+    }
+  });
+  const searchParams = useSearchParams();
+  const requestedSection = searchParams?.get('section') || undefined;
 
   useEffect(() => {
     // If there's a stored token, validate it with the server before marking logged in.
@@ -28,7 +38,7 @@ export default function AdminPage() {
       }
 
       if (!token) {
-        localStorage.removeItem('admin_token');
+        try { localStorage.removeItem('admin_token'); } catch {}
         setIsLoggedIn(false);
         return;
       }
@@ -39,13 +49,12 @@ export default function AdminPage() {
           setIsLoggedIn(true);
         } else {
           // invalid on server — clear stored token
-          localStorage.removeItem('admin_token');
+          try { localStorage.removeItem('admin_token'); } catch {}
           setIsLoggedIn(false);
         }
       } catch (err) {
-        // network error: be conservative and treat as not logged in
-        localStorage.removeItem('admin_token');
-        setIsLoggedIn(false);
+        // network error: do not force a logout — keep optimistic state to avoid flash
+        console.warn('Token verify network error, keeping optimistic login state', err);
       }
     };
 
@@ -296,7 +305,7 @@ export default function AdminPage() {
 
   return (
     <>
-      <AdminDashboard token={token} onLogout={handleLogout} />
+      <AdminDashboard token={token} onLogout={handleLogout} initialSection={requestedSection} />
       <SessionWarning onLogout={handleLogout} />
     </>
   );

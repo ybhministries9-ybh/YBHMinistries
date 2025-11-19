@@ -17,9 +17,15 @@ const TAB_CONFIG = [
   { key: "trustee", labelKey: "tabs.trustee" }
 ] as const;
 
+// Visible tabs on the UI. Keep other tab definitions in TAB_CONFIG
+// so their code remains available, but only the keys listed here
+// will render as buttons in the tab bar.
+const VISIBLE_TAB_KEYS = new Set(["student-form"]);
+
 export function ContactsPage() {
   const { t } = useTranslation('contact');
-  const [activeTab, setActiveTab] = useState<string>("guinness-attempt");
+  // default to HMS Student Form and hide other tab buttons
+  const [activeTab, setActiveTab] = useState<string>("student-form");
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
@@ -30,7 +36,7 @@ export function ContactsPage() {
   // Memoize tab buttons
   const tabButtons = useMemo(
     () =>
-      TAB_CONFIG.map((tab) => {
+      TAB_CONFIG.filter(tab => VISIBLE_TAB_KEYS.has(tab.key)).map((tab) => {
         const isActive = activeTab === tab.key;
         return (
           <button

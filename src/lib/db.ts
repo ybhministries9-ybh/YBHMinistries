@@ -389,6 +389,177 @@ export interface Story {
   updated_by?: string | null;
 }
 
+export interface HMSStudentRecord {
+  id: number;
+  full_name: string;
+  date_of_birth: string;
+  gender: string;
+  address?: string | null;
+  city_state_zip?: string | null;
+  phone_number?: string | null;
+  email?: string | null;
+  parent_guardian_name?: string | null;
+  parent_guardian_contact?: string | null;
+
+  program_applying_for?: any[] | null;
+  instrument_specialization?: any[] | null;
+  instrument_other?: string | null;
+  preferred_class_type?: any[] | null;
+  preferred_schedule?: any[] | null;
+  course_type?: any[] | null;
+
+  years_of_experience?: number | null;
+  previous_training?: string | null;
+  music_exam_certifications?: string | null;
+  performance_experience?: any[] | null;
+  performance_other?: string | null;
+
+  goals?: string | null;
+
+  volunteer_interested?: boolean;
+  volunteer_areas?: any[] | null;
+
+  emergency_name: string;
+  emergency_relationship: string;
+  emergency_contact: string;
+
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Persist a new HMS student enrolment record into the database
+ */
+export async function createHMSStudent(payload: {
+  full_name: string;
+  date_of_birth: string;
+  gender: string;
+  address?: string | null;
+  city_state_zip?: string | null;
+  phone_number?: string | null;
+  email?: string | null;
+  parent_guardian_name?: string | null;
+  parent_guardian_contact?: string | null;
+
+  program_applying_for?: any[] | null;
+  instrument_specialization?: any[] | null;
+  instrument_other?: string | null;
+  preferred_class_type?: any[] | null;
+  preferred_schedule?: any[] | null;
+  course_type?: any[] | null;
+
+  years_of_experience?: number | null;
+  previous_training?: string | null;
+  music_exam_certifications?: string | null;
+  performance_experience?: any[] | null;
+  performance_other?: string | null;
+
+  goals?: string | null;
+
+  volunteer_interested?: boolean;
+  volunteer_areas?: any[] | null;
+
+  emergency_name: string;
+  emergency_relationship: string;
+  emergency_contact: string;
+  createdBy?: string | null;
+}): Promise<HMSStudentRecord> {
+  try {
+    const { rows } = await sql<HMSStudentRecord>`
+      INSERT INTO hms_students (
+        full_name, date_of_birth, gender, address, city_state_zip, phone_number, email, parent_guardian_name, parent_guardian_contact,
+        program_applying_for, instrument_specialization, instrument_other, preferred_class_type, preferred_schedule, course_type,
+        years_of_experience, previous_training, music_exam_certifications, performance_experience, performance_other,
+        goals, volunteer_interested, volunteer_areas,
+        emergency_name, emergency_relationship, emergency_contact,
+        status, created_by, updated_by
+      ) VALUES (
+        ${payload.full_name}, ${payload.date_of_birth}, ${payload.gender}, ${payload.address || null}, ${payload.city_state_zip || null}, ${payload.phone_number || null}, ${payload.email || null}, ${payload.parent_guardian_name || null}, ${payload.parent_guardian_contact || null},
+        ${payload.program_applying_for ? JSON.stringify(payload.program_applying_for) : null}, ${payload.instrument_specialization ? JSON.stringify(payload.instrument_specialization) : null}, ${payload.instrument_other || null}, ${payload.preferred_class_type ? JSON.stringify(payload.preferred_class_type) : null}, ${payload.preferred_schedule ? JSON.stringify(payload.preferred_schedule) : null}, ${payload.course_type ? JSON.stringify(payload.course_type) : null},
+        ${payload.years_of_experience || null}, ${payload.previous_training || null}, ${payload.music_exam_certifications || null}, ${payload.performance_experience ? JSON.stringify(payload.performance_experience) : null}, ${payload.performance_other || null},
+        ${payload.goals || null}, ${payload.volunteer_interested || false}, ${payload.volunteer_areas ? JSON.stringify(payload.volunteer_areas) : null},
+        ${payload.emergency_name}, ${payload.emergency_relationship}, ${payload.emergency_contact},
+        'Submitted', ${payload.createdBy || null}, ${payload.createdBy || null}
+      ) RETURNING *
+    `;
+
+    return rows[0];
+  } catch (error) {
+    console.error('Error creating HMS student record:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch a page of HMS student enrolments for admin listing
+ */
+export async function getHMSStudents(opts?: { limit?: number; offset?: number }) {
+  try {
+    const limit = opts?.limit || 50;
+    const offset = opts?.offset || 0;
+    const { rows } = await sql<HMSStudentRecord>`
+      SELECT * FROM hms_students
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    return rows;
+  } catch (error) {
+    console.error('Error fetching HMS students:', error);
+    throw error;
+  }
+}
+
+export async function getHMSStudentById(id: number) {
+  try {
+    const { rows } = await sql<HMSStudentRecord>`SELECT * FROM hms_students WHERE id = ${id} LIMIT 1`;
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error fetching HMS student by id:', error);
+    throw error;
+  }
+}
+
+export async function updateHMSStudent(id: number, updates: Partial<any>) {
+  try {
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    const allowed = [
+      'full_name','date_of_birth','gender','address','city_state_zip','phone_number','email','parent_guardian_name','parent_guardian_contact',
+      'program_applying_for','instrument_specialization','instrument_other','preferred_class_type','preferred_schedule','course_type',
+      'years_of_experience','previous_training','music_exam_certifications','performance_experience','performance_other','goals',
+      'volunteer_interested','volunteer_areas','emergency_name','emergency_relationship','emergency_contact','status','updated_by'
+    ];
+
+    for (const key of Object.keys(updates)) {
+      if (!allowed.includes(key)) continue;
+      let val: any = (updates as any)[key];
+      // JSON stringify arrays/objects for storage
+      if (Array.isArray(val) || typeof val === 'object') val = JSON.stringify(val);
+      setClauses.push(`${key} = $${idx++}`);
+      values.push(val);
+    }
+
+    if (setClauses.length === 0) {
+      const { rows } = await sql<HMSStudentRecord>`SELECT * FROM hms_students WHERE id = ${id} LIMIT 1`;
+      return rows[0] || null;
+    }
+
+    // always update timestamp
+    setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+    const query = `UPDATE hms_students SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`;
+    values.push(id);
+
+    const result = await sql.query<HMSStudentRecord>(query, values);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error updating HMS student:', error);
+    throw error;
+  }
+}
+
 /** STORIES CRUD **/
 export async function getAllStories(): Promise<Story[]> {
   try {
