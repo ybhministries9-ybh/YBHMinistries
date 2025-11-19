@@ -50,6 +50,32 @@ export default {
       emergencyRelationship: "సంబంధం",
       emergencyContact: "సంప్రదింపు నంబర్"
     },
+    placeholders: {
+      fullName: "మీ పూర్తి పేరును నమోదు చేయండి",
+      dateOfBirth: "dd-mm-yyyy",
+      selectGender: "మీ లింగాన్ని ఎంచుకోండి",
+      address: "మీ వీధి చిరునామాని నమోదు చేయండి",
+      cityStateZip: "నగరం, రాష్ట్రం మరియు ZIPని నమోదు చేయండి",
+      phone: "1234567890",
+      email: "example@email.com",
+      parentGuardianName: "తల్లి/తండ్రి లేదా సంరక్షకుని పేరు నమోదు చేయండి",
+      parentGuardianContact: "1234567890",
+      instrumentOther: "వివరించండి",
+      yearsOfExperience: "అనుభవ సంవత్సరాలను నమోదు చేయండి (0-100)",
+      previousTraining: "మీ గత సంగీత శిక్షణను వివరించండి",
+      musicExamCertifications: "ఒకేలా ఉంటే సర్టిఫికేషన్లు నమోదు చేయండి",
+      performanceOther: "వివరించండి",
+      emergencyName: "అత్యవసర సంప్రదింపు పేరును నమోదు చేయండి",
+      emergencyRelationship: "సంబంధాన్ని నమోదు చేయండి (ఉదా., తల్లిదండ్రులు, భార్య)",
+      emergencyContact: "1234567890"
+    },
+    helpers: {
+      maxChars: "గరిష్టం {{count}} అక్షరాలు",
+      dateRequired: "తేదీ అవసరం",
+      selectFromOptions: "ఎంపికల నుండి ఎంచుకోండి",
+      validNumberNoCountry: "దేశ కోడ్ లేకుండా చెల్లుబాటు అయ్యే нంబర్",
+      range0to100: "శ్రేణి: 0–100"
+    },
     options: {
       beginner: "ప్రారంభకుడు",
       intermediate: "మధ్యస్థ",

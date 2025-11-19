@@ -1993,6 +1993,45 @@
     background-color: var(--card);
   }
 
+/* react-datepicker dark theme overrides for HMSStudentForm */
+.react-datepicker {
+  background: #1f1f1f;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+.react-datepicker__header {
+  background: #111827;
+  border-bottom: 1px solid #374151;
+}
+.react-datepicker__current-month,
+.react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__quarter-text,
+.react-datepicker__year-text {
+  color: #e5e7eb;
+}
+.react-datepicker__day:hover {
+  color: #000 !important;
+}
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #FDB813 !important;
+  color: #000 !important;
+}
+.react-datepicker__day--today {
+  border: 1px solid #6b7280;
+}
+.react-datepicker__navigation--previous, .react-datepicker__navigation--next {
+  border-color: #9CA3AF;
+}
+.react-datepicker__triangle {
+  display: none;
+}
+.react-datepicker__month-container {
+  background: transparent;
+}
+
   .bg-cyan-900\/30 {
     background-color: color-mix(in srgb, oklch(.398 .07 227.392) 30%, transparent);
   }

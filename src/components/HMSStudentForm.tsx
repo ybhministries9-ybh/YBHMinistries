@@ -1,15 +1,26 @@
 "use client";
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 
+// Static option lists extracted to top-level constants to avoid re-creating arrays on each render
+const PROGRAM_LEVELS = ['beginner', 'intermediate', 'advanced'];
+const INSTRUMENTS = ['piano', 'guitar', 'violin', 'drums', 'vocal'];
+const CLASS_TYPES = ['individual', 'group', 'online', 'inPerson'];
+const SCHEDULES = ['weekdays', 'weekends', 'morning', 'evening'];
+const COURSE_TYPES = ['freeBasicMusic', 'hmsWithCertificate', 'lcmWithCertificate'];
+const PERFORMANCE_OPTIONS = ['schoolEvents', 'competitions', 'choir'];
+const VOLUNTEER_AREAS = ['volunteerOnlineTeacher', 'volunteerOfflineConferences', 'volunteerSummerKids', 'volunteerEvents'];
+
 interface FormData {
   // Personal Information
   fullName: string;
-  dateOfBirth: string;
+  dateOfBirth: string | Date;
   gender: string;
   address: string;
   cityStateZip: string;
@@ -50,7 +61,7 @@ interface FormData {
 
 export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
   const { t } = useTranslation('contact');
-  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     mode: 'onBlur',
     defaultValues: {
       programApplyingFor: [],
@@ -133,12 +144,36 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
       data.performanceExperience = performances;
       data.volunteerAreas = volunteerAreas;
 
-      // TODO: Replace with actual API call to Supabase
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Normalize dateOfBirth to DD-MM-YYYY
+      if (data.dateOfBirth instanceof Date) {
+        const d = data.dateOfBirth as Date;
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = String(d.getFullYear());
+        data.dateOfBirth = `${dd}-${mm}-${yyyy}`;
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(data.dateOfBirth as string)) {
+        const parts = (data.dateOfBirth as string).split('-');
+        data.dateOfBirth = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+
+      // Submit to server API
+      const resp = await fetch('/api/hms-students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await resp.json();
+      if (!resp.ok || !result.success) {
+        console.error('Server responded with error', result);
+        toast.error(t('studentForm.messages.error'));
+        return;
+      }
+
+      toast.success(t('studentForm.messages.success'));
       setSubmitSuccess(true);
       handleReset();
-      
+      if (onClose) onClose();
       // Reset success message after 3 seconds
       setTimeout(() => setSubmitSuccess(false), 3000);
     } catch (error) {
@@ -149,11 +184,6 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <style>{`
-        input[type="checkbox"]:checked {
-          border: 2px solid white !important;
-        }
-      `}</style>
       
       {submitSuccess && (
         <motion.div 
@@ -191,11 +221,13 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                   }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.fullName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder="Enter your full name"
+                placeholder={t('studentForm.placeholders.fullName')}
                 maxLength={100}
               />
-              {errors.fullName && (
+              {errors.fullName ? (
                 <p className="text-red-400 text-xs mt-1">{errors.fullName.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -203,55 +235,42 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
               <label htmlFor="dateOfBirth" className="block text-white text-sm font-medium mb-1">
                 {t('studentForm.fields.dateOfBirth')} *
               </label>
-              <input
-                id="dateOfBirth"
-                type="text"
-                {...register('dateOfBirth', { 
-                  required: t('studentForm.validation.dateOfBirthRequired'),
-                  pattern: {
-                    value: /^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-\d{4}$/,
-                    message: 'Please enter date in DD-MM-YYYY format'
-                  },
-                  validate: (value) => {
-                    // Parse DD-MM-YYYY format
-                    const parts = value.split('-');
-                    if (parts.length !== 3) return t('studentForm.validation.ageMinimum');
-                    
-                    const day = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-                    const year = parseInt(parts[2], 10);
-                    
-                    const date = new Date(year, month, day);
-                    const today = new Date();
-                    
-                    // Validate it's a valid date
-                    if (date.getDate() !== day || date.getMonth() !== month || date.getFullYear() !== year) {
-                      return 'Please enter a valid date';
+              <div>
+                <Controller
+                  control={control}
+                  name="dateOfBirth"
+                  rules={{
+                    required: t('studentForm.validation.dateOfBirthRequired'),
+                    validate: (value: Date | string) => {
+                      if (!value) return t('studentForm.validation.ageMinimum');
+                      const date = value instanceof Date ? value : (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(value) : null);
+                      if (!date || isNaN(date.getTime())) return 'Please select a valid date';
+                      const today = new Date();
+                      if (date > today) return 'Date of birth cannot be in the future';
+                      const age = today.getFullYear() - date.getFullYear();
+                      const monthDiff = today.getMonth() - date.getMonth();
+                      const dayDiff = today.getDate() - date.getDate();
+                      if (age < 5 || (age === 5 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))) return t('studentForm.validation.ageMinimum');
+                      return true;
                     }
-                    
-                    // Check age is at least 5 years
-                    const age = today.getFullYear() - date.getFullYear();
-                    const monthDiff = today.getMonth() - date.getMonth();
-                    const dayDiff = today.getDate() - date.getDate();
-                    
-                    if (age < 5 || (age === 5 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))) {
-                      return t('studentForm.validation.ageMinimum');
-                    }
-                    
-                    // Check date is not in the future
-                    if (date > today) {
-                      return 'Date of birth cannot be in the future';
-                    }
-                    
-                    return true;
-                  }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder="DD-MM-YYYY"
-                maxLength={10}
-              />
-              {errors.dateOfBirth && (
+                  }}
+                  render={({ field }) => (
+                    <DatePicker
+                      selected={field.value instanceof Date ? field.value : (typeof field.value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(field.value) ? new Date(field.value) : null)}
+                      onChange={(d: Date | null) => field.onChange(d)}
+                      dateFormat="dd-MM-yyyy"
+                      maxDate={new Date()}
+                      placeholderText={t('studentForm.placeholders.dateOfBirth')}
+                      className={`w-full px-4 py-2 bg-black rounded border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                      showPopperArrow={false}
+                    />
+                  )}
+                />
+              </div>
+              {errors.dateOfBirth ? (
                 <p className="text-red-400 text-xs mt-1">{errors.dateOfBirth.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.dateRequired')}</p>
               )}
             </div>
             
@@ -264,13 +283,15 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                 {...register('gender', { required: t('studentForm.validation.genderRequired') })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.gender ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
               >
-                <option value="">Select your gender</option>
+                <option value="">{t('studentForm.placeholders.selectGender')}</option>
                 <option value="male">{t('studentForm.options.male')}</option>
                 <option value="female">{t('studentForm.options.female')}</option>
                 <option value="preferNotToSay">{t('studentForm.options.preferNotToSay')}</option>
               </select>
-              {errors.gender && (
+              {errors.gender ? (
                 <p className="text-red-400 text-xs mt-1">{errors.gender.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.selectFromOptions')}</p>
               )}
             </div>
             
@@ -287,11 +308,13 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                   maxLength: { value: 200, message: t('studentForm.validation.addressMax') }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.address ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder="Enter your street address"
+                placeholder={t('studentForm.placeholders.address')}
                 maxLength={200}
               />
-              {errors.address && (
+              {errors.address ? (
                 <p className="text-red-400 text-xs mt-1">{errors.address.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 200 })}</p>
               )}
             </div>
             
@@ -307,11 +330,13 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                   maxLength: { value: 100, message: t('studentForm.validation.cityStateZipMax') }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.cityStateZip ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder="Enter city, state, and ZIP code"
+                placeholder={t('studentForm.placeholders.cityStateZip')}
                 maxLength={100}
               />
-              {errors.cityStateZip && (
+              {errors.cityStateZip ? (
                 <p className="text-red-400 text-xs mt-1">{errors.cityStateZip.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -322,19 +347,27 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
               <input
                 id="phoneNumber"
                 type="tel"
+                inputMode="numeric"
+                pattern="^[0-9]{7,15}$"
                 {...register('phoneNumber', { 
                   required: t('studentForm.validation.phoneRequired'),
                   pattern: { 
-                    value: /^[0-9+\-\s()]{10,15}$/, 
+                    value: /^[0-9]{7,15}$/, 
                     message: t('studentForm.validation.phonePattern') 
                   }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 maxLength={15}
-                placeholder="(123) 456-7890"
+                placeholder={t('studentForm.placeholders.phone')}
+                onInput={(e) => {
+                  const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
+                  setValue('phoneNumber', cleaned, { shouldValidate: true, shouldDirty: true });
+                }}
               />
-              {errors.phoneNumber && (
+              {errors.phoneNumber ? (
                 <p className="text-red-400 text-xs mt-1">{errors.phoneNumber.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.validNumberNoCountry')}</p>
               )}
             </div>
             
@@ -355,10 +388,12 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.emailId ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 maxLength={100}
-                placeholder="example@email.com"
+                placeholder={t('studentForm.placeholders.email')}
               />
-              {errors.emailId && (
+              {errors.emailId ? (
                 <p className="text-red-400 text-xs mt-1">{errors.emailId.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -373,11 +408,13 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                   maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder="Enter parent/guardian name"
+                placeholder={t('studentForm.placeholders.parentGuardianName')}
                 maxLength={100}
               />
-              {errors.parentGuardianName && (
+              {errors.parentGuardianName ? (
                 <p className="text-red-400 text-xs mt-1">{errors.parentGuardianName.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -388,18 +425,26 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
               <input
                 id="parentGuardianContact"
                 type="tel"
+                inputMode="numeric"
+                pattern="^[0-9]{7,15}$"
                 {...register('parentGuardianContact', {
-                  pattern: { 
-                    value: /^[0-9+\-\s()]{10,15}$/, 
-                    message: t('studentForm.validation.phonePattern') 
+                  pattern: {
+                    value: /^[0-9]{7,15}$/, 
+                    message: t('studentForm.validation.phonePattern')
                   }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 maxLength={15}
-                placeholder="(123) 456-7890"
+                placeholder={t('studentForm.placeholders.parentGuardianContact')}
+                onInput={(e) => {
+                  const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
+                  setValue('parentGuardianContact', cleaned, { shouldValidate: true, shouldDirty: true });
+                }}
               />
-              {errors.parentGuardianContact && (
+              {errors.parentGuardianContact ? (
                 <p className="text-red-400 text-xs mt-1">{errors.parentGuardianContact.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.validNumberNoCountry')}</p>
               )}
             </div>
           </div>
@@ -419,7 +464,7 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                 {t('studentForm.fields.programApplyingFor')} *
               </label>
               <div className="flex flex-wrap gap-4">
-                {['beginner', 'intermediate', 'advanced'].map((level) => (
+                {PROGRAM_LEVELS.map((level) => (
                   <div key={level} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -443,7 +488,7 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                 {t('studentForm.fields.instrumentSpecialization')} *
               </label>
               <div className="flex flex-wrap gap-4">
-                {['piano', 'guitar', 'violin', 'drums', 'vocal'].map((instrument) => (
+                {INSTRUMENTS.map((instrument) => (
                   <div key={instrument} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -476,10 +521,17 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                       {...register('instrumentOther', {
                         maxLength: { value: 50, message: t('studentForm.validation.instrumentOtherMax') }
                       })}
-                      placeholder="Specify"
+                      placeholder={t('studentForm.placeholders.instrumentOther')}
                       className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32 cursor-text"
                       maxLength={50}
                     />
+                  )}
+                  {instruments.includes('other') && (
+                    errors.instrumentOther ? (
+                      <p className="text-red-400 text-xs mt-1">{(errors as any).instrumentOther?.message}</p>
+                    ) : (
+                      <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 50 })}</p>
+                    )
                   )}
                 </div>
               </div>
@@ -491,7 +543,7 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                 {t('studentForm.fields.preferredClassType')} *
               </label>
               <div className="flex flex-wrap gap-4">
-                {['individual', 'group', 'online', 'inPerson'].map((type) => (
+                {CLASS_TYPES.map((type) => (
                   <div key={type} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -515,7 +567,7 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                 {t('studentForm.fields.preferredSchedule')} *
               </label>
               <div className="flex flex-wrap gap-4">
-                {['weekdays', 'weekends', 'morning', 'evening'].map((schedule) => (
+                {SCHEDULES.map((schedule) => (
                   <div key={schedule} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -545,7 +597,7 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
           <p className="mb-4 text-gray-300">{t('studentForm.fields.courseTypePrompt')}</p>
           
           <div className="space-y-3">
-            {['freeBasicMusic', 'hmsWithCertificate', 'lcmWithCertificate'].map((type) => (
+            {COURSE_TYPES.map((type) => (
               <div key={type} className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -578,6 +630,9 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
               <input
                 id="yearsOfExperience"
                 type="number"
+                inputMode="numeric"
+                step={1}
+                pattern="^[0-9]{1,3}$"
                 {...register('yearsOfExperience', {
                   min: { value: 0, message: t('studentForm.validation.yearsMin') },
                   max: { value: 100, message: t('studentForm.validation.yearsMax') }
@@ -585,10 +640,18 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 min={0}
                 max={100}
-                placeholder="Enter years of experience (0-100)"
+                placeholder={t('studentForm.placeholders.yearsOfExperience')}
+                onInput={(e) => {
+                  const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/[^0-9]/g, '');
+                  // clamp
+                  let num = cleaned === '' ? '' : String(Math.min(100, Math.max(0, parseInt(cleaned, 10))));
+                  setValue('yearsOfExperience', num as any, { shouldValidate: true, shouldDirty: true });
+                }}
               />
-              {errors.yearsOfExperience && (
+              {errors.yearsOfExperience ? (
                 <p className="text-red-400 text-xs mt-1">{errors.yearsOfExperience.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.range0to100')}</p>
               )}
             </div>
             
@@ -603,11 +666,13 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.previousTraining ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder="Describe your previous music training"
+                placeholder={t('studentForm.placeholders.previousTraining')}
                 maxLength={200}
               />
-              {errors.previousTraining && (
+              {errors.previousTraining ? (
                 <p className="text-red-400 text-xs mt-1">{errors.previousTraining.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 200 })}</p>
               )}
             </div>
             
@@ -622,11 +687,13 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.musicExamCertifications ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder="List any certifications or exams completed"
+                placeholder={t('studentForm.placeholders.musicExamCertifications')}
                 maxLength={200}
               />
-              {errors.musicExamCertifications && (
+              {errors.musicExamCertifications ? (
                 <p className="text-red-400 text-xs mt-1">{errors.musicExamCertifications.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 200 })}</p>
               )}
             </div>
             
@@ -635,7 +702,7 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                 {t('studentForm.fields.performanceExperience')}
               </label>
               <div className="flex flex-wrap gap-4">
-                {['schoolEvents', 'competitions', 'choir'].map((perf) => (
+                {PERFORMANCE_OPTIONS.map((perf) => (
                   <div key={perf} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -668,10 +735,17 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                       {...register('performanceOther', {
                         maxLength: { value: 100, message: t('studentForm.validation.performanceOtherMax') }
                       })}
-                      placeholder="Specify"
+                      placeholder={t('studentForm.placeholders.performanceOther')}
                       className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32 cursor-text"
                       maxLength={100}
                     />
+                  )}
+                  {performances.includes('other') && (
+                    (errors as any).performanceOther ? (
+                      <p className="text-red-400 text-xs mt-1">{(errors as any).performanceOther?.message}</p>
+                    ) : (
+                      <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
+                    )
                   )}
                 </div>
               </div>
@@ -698,10 +772,12 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
               rows={4}
               className={`w-full px-4 py-2 bg-black rounded border ${errors.goals ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none`}
               maxLength={1000}
-              placeholder="Describe your music learning goals and interests"
+              placeholder={t('studentForm.fields.goalsPlaceholder')}
             />
-            {errors.goals && (
+            {errors.goals ? (
               <p className="text-red-400 text-xs mt-1">{errors.goals.message}</p>
+            ) : (
+              <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 1000 })}</p>
             )}
           </div>
         </section>
@@ -753,7 +829,7 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                 <label className="block text-white text-sm font-medium mb-3">
                   {t('studentForm.fields.volunteerDetailsPrompt')}
                 </label>
-                {['volunteerOnlineTeacher', 'volunteerOfflineConferences', 'volunteerSummerKids', 'volunteerEvents'].map((area) => (
+                {VOLUNTEER_AREAS.map((area) => (
                   <div key={area} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -794,11 +870,13 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                   maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder="Enter emergency contact name"
+                placeholder={t('studentForm.placeholders.emergencyName')}
                 maxLength={100}
               />
-              {errors.emergencyName && (
+              {errors.emergencyName ? (
                 <p className="text-red-400 text-xs mt-1">{errors.emergencyName.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
               )}
             </div>
             
@@ -814,11 +892,13 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
                   maxLength: { value: 50, message: t('studentForm.validation.relationshipMax') }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder="Enter relationship (e.g., Parent, Spouse)"
+                placeholder={t('studentForm.placeholders.emergencyRelationship')}
                 maxLength={50}
               />
-              {errors.emergencyRelationship && (
+              {errors.emergencyRelationship ? (
                 <p className="text-red-400 text-xs mt-1">{errors.emergencyRelationship.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 50 })}</p>
               )}
             </div>
             
@@ -829,19 +909,27 @@ export function HMSStudentForm({ onClose }: { onClose?: () => void }) {
               <input
                 id="emergencyContact"
                 type="tel"
+                inputMode="numeric"
+                pattern="^[0-9]{7,15}$"
                 {...register('emergencyContact', { 
                   required: t('studentForm.validation.emergencyContactRequired'),
                   pattern: { 
-                    value: /^[0-9+\-\s()]{10,15}$/, 
+                    value: /^[0-9]{7,15}$/, 
                     message: t('studentForm.validation.phonePattern') 
                   }
                 })}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 maxLength={15}
-                placeholder="(123) 456-7890"
+                placeholder={t('studentForm.placeholders.emergencyContact')}
+                onInput={(e) => {
+                  const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
+                  setValue('emergencyContact', cleaned, { shouldValidate: true, shouldDirty: true });
+                }}
               />
-              {errors.emergencyContact && (
+              {errors.emergencyContact ? (
                 <p className="text-red-400 text-xs mt-1">{errors.emergencyContact.message}</p>
+              ) : (
+                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.validNumberNoCountry')}</p>
               )}
             </div>
           </div>
