@@ -60,6 +60,8 @@ async function handleHeroImages(req: VercelRequest, res: VercelResponse) {
         updatedAt: row.updated_at,
       }));
 
+      // small short-circuit cache for callers (10s) to reduce DB hits for frequent page loads
+      res.setHeader('Cache-Control', 'public, max-age=10');
       return res.status(200).json({ images });
     }
 
@@ -103,7 +105,7 @@ async function handleHeroImages(req: VercelRequest, res: VercelResponse) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('Hero images API error:', error);
+    if (process.env.NODE_ENV !== 'production') console.error('Hero images API error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -245,19 +245,9 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
             </div>
             
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
-              <button 
+                <button 
                 onClick={() => {
-                  const element = document.getElementById('contact');
-                  if (element) {
-                    const headerOffset = 150;
-                    const elementPosition = element.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                    
-                    window.scrollTo({
-                      top: offsetPosition,
-                      behavior: 'smooth'
-                    });
-                  }
+                  window.location.href = '/contact?tab=getintouch';
                 }}
                 className="px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer"
                 style={{ backgroundColor: accentColor }}
@@ -761,8 +751,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
         <img src={separatorImage} alt="" className="w-full max-w-4xl h-auto opacity-60" />
       </div>
 
-      {/* Contact Section */}
-      <ContactSection accentColor={accentColor} contactId="contact" />
+      {/* Contact Section moved to Stories 'Get In Touch' tab */}
     </div>
   );
 });
@@ -839,17 +828,7 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: strin
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
               <button 
                 onClick={() => {
-                  const element = document.getElementById('contact-vijaya');
-                  if (element) {
-                    const headerOffset = 150;
-                    const elementPosition = element.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                    
-                    window.scrollTo({
-                      top: offsetPosition,
-                      behavior: 'smooth'
-                    });
-                  }
+                  window.location.href = '/contact?tab=getintouch';
                 }}
                 className="px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer"
                 style={{ backgroundColor: accentColor }}
@@ -959,8 +938,7 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: strin
         <img src={separatorImage} alt="" className="w-full max-w-4xl h-auto opacity-60" />
       </div>
 
-      {/* Contact Section */}
-      <ContactSection accentColor={accentColor} contactId="contact-vijaya" />
+      {/* Contact Section moved to Stories 'Get In Touch' tab */}
     </div>
   );
 });
@@ -1025,17 +1003,7 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: stri
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
               <button 
                 onClick={() => {
-                  const element = document.getElementById('contact-charles');
-                  if (element) {
-                    const headerOffset = 150;
-                    const elementPosition = element.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                    
-                    window.scrollTo({
-                      top: offsetPosition,
-                      behavior: 'smooth'
-                    });
-                  }
+                  window.location.href = '/contact?tab=getintouch';
                 }}
                 className="px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer"
                 style={{ backgroundColor: accentColor }}
@@ -1141,8 +1109,7 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: stri
         <img src={separatorImage} alt="" className="w-full max-w-4xl h-auto opacity-60" />
       </div>
 
-      {/* Contact Section */}
-      <ContactSection accentColor={accentColor} contactId="contact-charles" />
+      {/* Contact Section moved to Stories 'Get In Touch' tab */}
     </div>
   );
 });
@@ -1207,17 +1174,7 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: string
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
               <button 
                 onClick={() => {
-                  const element = document.getElementById('contact-nancy');
-                  if (element) {
-                    const headerOffset = 150;
-                    const elementPosition = element.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                    
-                    window.scrollTo({
-                      top: offsetPosition,
-                      behavior: 'smooth'
-                    });
-                  }
+                  window.location.href = '/contact?tab=getintouch';
                 }}
                 className="px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer"
                 style={{ backgroundColor: accentColor }}
@@ -1318,162 +1275,11 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: string
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section id="contact-nancy" className="pt-2 pb-8">
-        <div className="max-w-3xl mx-auto mb-12 text-center px-4">
-          <h2 className="mb-4 text-3xl md:text-4xl text-white">{t('nancy.contactSection.title')}</h2>
-          <div className="w-20 h-1 mx-auto mb-6" style={{ backgroundColor: accentColor }}></div>
-          <p className="text-lg text-white">
-            {t('nancy.contactSection.subtitle')}
-          </p>
-        </div>
-        
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="p-8 rounded-lg bg-[#2E2E2E] border border-gray-800">
-            <div className="space-y-6">
-              <div className="flex items-start">
-                <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="4" width="20" height="16" rx="2"/>
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-medium text-white mb-1">{t('nancy.contactSection.email')}</h4>
-                  <a href="mailto:nancy@ybhministries.org" className="text-white hover:underline">
-                    nancy@ybhministries.org
-                  </a>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-medium text-white mb-1">{t('nancy.contactSection.phone')}</h4>
-                  <a href="tel:+919876543213" className="text-white hover:underline">
-                    +91 98765 43213
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Contact Section moved to Stories 'Get In Touch' tab */}
     </div>
   );
 });
 
 NancyTab.displayName = 'NancyTab';
 
-// Memoized Contact Section Component
-const ContactSection = memo(({ accentColor, contactId }: { accentColor: string; contactId: string }) => {
-  const { t } = useTranslation('directors');
-  const contactFormRef = useRef<HTMLFormElement | null>(null);
-  const [formStatus, setFormStatus] = useState({ submitted: false, message: "" });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormStatus({
-      submitted: true,
-      message: t('contactForm.success')
-    });
-    if (contactFormRef.current) {
-      contactFormRef.current.reset();
-    }
-  };
-
-  return (
-    <section id={contactId} className="pt-6 pb-8">
-      <div className="max-w-3xl mx-auto mb-12 text-center px-4">
-        <h2 className="mb-4 text-3xl md:text-4xl text-white">{t('contactForm.title')}</h2>
-        <div className="w-20 h-1 mx-auto mb-6" style={{ backgroundColor: accentColor }}></div>
-        <p className="text-lg text-white">
-          {t('contactForm.subtitle')}
-        </p>
-      </div>
-      
-      <div className="max-w-2xl mx-auto px-4">
-        <form ref={contactFormRef} onSubmit={handleSubmit} className="p-8 rounded-lg bg-[#2E2E2E] border border-gray-800">
-          {formStatus.submitted ? (
-            <div className="py-8 text-center">
-              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full" style={{ backgroundColor: accentColor }}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-              <p className="mb-4 text-xl font-semibold text-white">{formStatus.message}</p>
-              <button
-                type="button"
-                onClick={() => setFormStatus({ submitted: false, message: "" })}
-                className="px-6 py-2 rounded-md text-black font-bold transition-all duration-300"
-                style={{ backgroundColor: accentColor }}
-              >
-                {t('contactForm.sendAnother')}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div>
-                <label htmlFor="name" className="block mb-2 font-medium text-white">
-                  {t('contactForm.name')}
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  required
-                  className="w-full px-4 py-3 bg-black border border-gray-700 rounded-md text-white focus:outline-none focus:border-[#FDB813] transition-colors"
-                  placeholder={t('contactForm.namePlaceholder')}
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="email" className="block mb-2 font-medium text-white">
-                  {t('contactForm.email')}
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  required
-                  className="w-full px-4 py-3 bg-black border border-gray-700 rounded-md text-white focus:outline-none focus:border-[#FDB813] transition-colors"
-                  placeholder={t('contactForm.emailPlaceholder')}
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="message" className="block mb-2 font-medium text-white">
-                  {t('contactForm.message')}
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  required
-                  rows={5}
-                  className="w-full px-4 py-3 bg-black border border-gray-700 rounded-md text-white focus:outline-none focus:border-[#FDB813] transition-colors resize-none"
-                  placeholder={t('contactForm.messagePlaceholder')}
-                ></textarea>
-              </div>
-              
-              <button
-                type="submit"
-                className="w-full px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 text-center"
-                style={{ backgroundColor: accentColor }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#DAA520'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = accentColor}
-              >
-                {t('contactForm.send')}
-              </button>
-            </div>
-          )}
-        </form>
-      </div>
-    </section>
-  );
-});
-
-ContactSection.displayName = 'ContactSection';
+// ContactSection has been extracted to `src/components/GetInTouchSection.tsx`

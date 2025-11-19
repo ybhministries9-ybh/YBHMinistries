@@ -6,9 +6,11 @@ import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 import { HMSStudentForm } from './HMSStudentForm';
+import GetInTouchSection from './GetInTouchSection';
 
 // Tab configuration
 const TAB_CONFIG = [
+  { key: "getintouch", labelKey: "tabs.getInTouch" },
   { key: "guinness-attempt", labelKey: "tabs.guinnessAttempt" },
   { key: "student-form", labelKey: "tabs.studentForm" },
   { key: "conference-request", labelKey: "tabs.conferenceRequest" },
@@ -20,12 +22,14 @@ const TAB_CONFIG = [
 // Visible tabs on the UI. Keep other tab definitions in TAB_CONFIG
 // so their code remains available, but only the keys listed here
 // will render as buttons in the tab bar.
-const VISIBLE_TAB_KEYS = new Set(["student-form"]);
+const VISIBLE_TAB_KEYS = new Set(["student-form", "getintouch"]);
 
-export function ContactsPage() {
+export function ContactsPage({ initialTab }: { initialTab?: string } ) {
   const { t } = useTranslation('contact');
-  // default to HMS Student Form and hide other tab buttons
-  const [activeTab, setActiveTab] = useState<string>("student-form");
+  // Determine initial active tab: prefer server-provided `initialTab`,
+  // otherwise pick the first visible tab from `TAB_CONFIG` to avoid flashes
+  const defaultTab = initialTab || TAB_CONFIG.find(tab => VISIBLE_TAB_KEYS.has(tab.key))?.key || "student-form";
+  const [activeTab, setActiveTab] = useState<string>(defaultTab);
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
@@ -109,6 +113,21 @@ export function ContactsPage() {
                 </h2>
                 <div className="w-24 h-1 mx-auto rounded-full mb-12" style={{ backgroundColor: accentGold }}></div>
                 <HMSStudentForm />
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Get In Touch Tab */}
+        {activeTab === "getintouch" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="container mx-auto px-4 pt-1 pb-12">
+              <div className="max-w-4xl mx-auto">
+                <GetInTouchSection />
               </div>
             </div>
           </motion.div>

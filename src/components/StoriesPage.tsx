@@ -88,7 +88,8 @@ const TAB_CONFIG = [
   { key: "international", label: "International Star Book", title: "International Star Book of Records" },
   { key: "songwriting", label: "Song Writing Classes", title: "Song Writing Classes" },
   { key: "bibleschool", label: "Bible School Training", title: "Bible School Training" },
-  { key: "hallel", label: "Hallel Summer Kids Training", title: "Hallel Summer Kids Training" }
+  { key: "hallel", label: "Hallel Summer Kids Training", title: "Hallel Summer Kids Training" },
+  
 ] as const;
 
 
@@ -736,36 +737,39 @@ export function StoriesPage() {
                 </div>
               )}
 
-              {/* Testimonies Section */}
-              {displayedTestimonials && displayedTestimonials.length > 0 && (
-                <div className="mb-12">
-                  <h3 className="text-2xl md:text-3xl text-white mb-6 text-center">{t('testimoniesHeading')}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
-                    {displayedTestimonials.map((testimonial) => (
-                      <TestimonialCard key={`disp-${testimonial.id}`} testimonial={testimonial} />
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Tab-specific content (testimonies/videos) */}
+              <>
+                  {/* Testimonies Section */}
+                  {displayedTestimonials && displayedTestimonials.length > 0 && (
+                    <div className="mb-12">
+                      <h3 className="text-2xl md:text-3xl text-white mb-6 text-center">{t('testimoniesHeading')}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
+                        {displayedTestimonials.map((testimonial) => (
+                          <TestimonialCard key={`disp-${testimonial.id}`} testimonial={testimonial} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              {/* Videos Section */}
-              {displayedVideos && displayedVideos.length > 0 && (
-                <div className="mt-12">
-                  <div className="flex items-center mb-6">
-                    <div className="flex-grow h-px bg-gray-700"></div>
-                    <h3 className="text-xl text-white font-medium px-4 flex items-center">
-                      <Play size={20} className="text-[#FDB813] mr-2" />
-                      {t('relatedVideos')}
-                    </h3>
-                    <div className="flex-grow h-px bg-gray-700"></div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
-                    {displayedVideos.map((video) => (
-                      <VideoCard key={`disp-${video.id}`} video={video} />
-                    ))}
-                  </div>
-                </div>
-              )}
+                  {/* Videos Section */}
+                  {displayedVideos && displayedVideos.length > 0 && (
+                    <div className="mt-12">
+                      <div className="flex items-center mb-6">
+                        <div className="flex-grow h-px bg-gray-700"></div>
+                        <h3 className="text-xl text-white font-medium px-4 flex items-center">
+                          <Play size={20} className="text-[#FDB813] mr-2" />
+                          {t('relatedVideos')}
+                        </h3>
+                        <div className="flex-grow h-px bg-gray-700"></div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
+                        {displayedVideos.map((video) => (
+                          <VideoCard key={`disp-${video.id}`} video={video} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
         </div>
 
         {/* Submit Testimony Form - Common for all tabs */}

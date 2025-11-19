@@ -15,10 +15,49 @@ export default {
   tabs: {
     guinnessAttempt: "Guinness World Records Attempt-2",
     studentForm: "HMS Student Form",
+    getInTouch: "Get In Touch",
     conferenceRequest: "Offline Conference in Your City?",
     lsmStudent: "London School of Music Student?",
     sponsor: "Become a Sponsor for Event?",
     trustee: "Become a Trustee?"
+  },
+
+  contactForm: {
+    title: "Get In Touch",
+    subtitle: "Send us a message and we'll get back to you.",
+    name: "Full Name",
+    phone: "Phone Number",
+    email: "Email-id",
+    location: "Location",
+    message: "Message",
+    namePlaceholder: "Enter your name",
+    phonePlaceholder: "e.g. +1 555 555 5555",
+    emailPlaceholder: "yourname@example.com",
+    locationPlaceholder: "City, State or Country (optional)",
+    messagePlaceholder: "Write your message here",
+    send: "Send",
+    sending: "Sending...",
+    sendAnother: "Send another message",
+    success: "Thanks — we'll get back to you soon!",
+    error: "There was an error sending your message. Please try again."
+    ,
+    validation: {
+      nameRequired: 'Name is required.',
+      nameMin: 'Please enter at least 2 characters.',
+      nameMax: 'Maximum 100 characters allowed.',
+      emailRequired: 'Email is required.',
+      emailInvalid: 'Please enter a valid email address.',
+      emailMax: 'Maximum 254 characters allowed.',
+      phoneRequired: 'Phone number is required.',
+      phoneMin: 'Please enter at least 7 characters for phone number.',
+      phoneInvalid: 'Please enter a valid phone number.',
+      phoneMax: 'Maximum 30 characters allowed for phone number.',
+      messageRequired: 'Message is required.',
+      messageMin: 'Please enter at least 10 characters.',
+      messageMax: 'Maximum 1000 characters allowed.',
+      locationMin: 'Please enter at least 2 characters for location',
+      locationMax: 'Maximum 200 characters allowed for location'
+    }
   },
   
   guinnessAttempt: {
@@ -128,6 +167,8 @@ export default {
       submit: "Submit Application",
       submitting: "Submitting...",
       reset: "Reset Form"
+      ,
+      submitAnother: "Submit another application"
     },
     messages: {
       success: "Application submitted successfully! We will contact you soon.",

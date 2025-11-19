@@ -492,6 +492,87 @@ export async function createHMSStudent(payload: {
 }
 
 /**
+ * Persist a Get In Touch submission
+ */
+export async function createGetInTouch(payload: {
+  name: string;
+  email?: string | null;
+  message: string;
+  phone: string;
+  location?: string | null;
+  user_agent?: string | null;
+  createdBy?: string | null;
+}) {
+  try {
+    // Diagnostic: log payload shape to help debug server-side 500 errors
+    try {
+      if (process.env.NODE_ENV !== 'production') {
+        try {
+          console.debug('createGetInTouch payload:', {
+            name: payload.name?.slice(0, 100),
+            email: payload.email,
+            phone: payload.phone,
+            messageLen: payload.message ? payload.message.length : 0,
+            location: payload.location,
+          });
+        } catch (logErr) {
+          console.debug('Failed to stringify createGetInTouch payload for logging', logErr);
+        }
+      }
+    } catch (e) {
+      // swallow logging errors to avoid breaking DB flow
+    }
+    const { rows } = await sql`
+      INSERT INTO get_in_touch (
+        name, email, phone, message, location, user_agent, status, created_by, updated_by
+      ) VALUES (
+        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.message}, ${payload.location || null}, ${payload.user_agent || null}, 'new', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
+      ) RETURNING *
+    `;
+    return rows[0];
+  } catch (error) {
+    console.error('Error creating get_in_touch record:', error);
+    // Re-throw with additional context for the API route to surface in non-prod
+    throw new Error(`DB createGetInTouch error: ${error && (error as any).message ? (error as any).message : String(error)}`);
+  }
+}
+
+/**
+ * Get recent Get In Touch submissions for admin listing
+ */
+export async function getGetInTouch(opts?: { limit?: number; offset?: number }) {
+  try {
+    const limit = opts?.limit || 50;
+    const offset = opts?.offset || 0;
+    const { rows } = await sql`
+      SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
+      FROM get_in_touch
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    return rows;
+  } catch (error) {
+    console.error('Error fetching get_in_touch records:', error);
+    throw error;
+  }
+}
+
+export async function getGetInTouchById(id: number) {
+  try {
+    const { rows } = await sql`
+      SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
+      FROM get_in_touch
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error fetching get_in_touch by id:', error);
+    throw error;
+  }
+}
+
+/**
  * Fetch a page of HMS student enrolments for admin listing
  */
 export async function getHMSStudents(opts?: { limit?: number; offset?: number }) {
