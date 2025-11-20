@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { sql } from '@vercel/postgres';
-import { parseKeyFromUrl, getPresignedGetUrl, uploadBuffer } from '@/lib/r2';
+import { parseKeyFromUrl, getPresignedGetUrl, uploadBuffer, headObject } from '@/lib/r2';
 
 export async function processHeroImageById(heroId: number) {
   // fetch hero row
@@ -44,3 +44,39 @@ export async function processHeroImageById(heroId: number) {
 }
 
 export default processHeroImageById;
+
+/**
+ * Process an arbitrary image buffer and upload medium + thumb variants to R2.
+ * Returns { thumbRef, mediumRef } as r2:// references.
+ */
+export async function processBufferToVariants(buffer: Buffer, basePath: string, bucket?: string) {
+  const baseName = `${Date.now()}-img`;
+  const mediumKey = `${basePath}/medium/${baseName}.webp`;
+  const thumbKey = `${basePath}/thumbs/${baseName}.webp`;
+
+  const mediumBuffer = await sharp(buffer).resize({ width: 1200, withoutEnlargement: true }).webp({ quality: 75 }).toBuffer();
+  const thumbBuffer = await sharp(buffer).resize({ width: 400 }).webp({ quality: 60 }).toBuffer();
+
+  // Upload thumb first (smaller), then medium. Verify each upload with headObject;
+  // if medium upload fails we still return the thumbRef.
+  try {
+    await uploadBuffer(thumbKey, thumbBuffer, 'image/webp', bucket || undefined, 'public, max-age=31536000, immutable');
+  } catch (e) {
+    console.error('Thumb upload failed', e);
+    throw e;
+  }
+
+  let mediumRef: string | null = null;
+  try {
+    await uploadBuffer(mediumKey, mediumBuffer, 'image/webp', bucket || undefined, 'public, max-age=31536000, immutable');
+    const h = await headObject(mediumKey, bucket || undefined);
+    if (h) mediumRef = `r2://${bucket}/${mediumKey}`;
+  } catch (e) {
+    console.error('Medium upload failed', e);
+    mediumRef = null;
+  }
+
+  const thumbRef = `r2://${bucket}/${thumbKey}`;
+
+  return { thumbRef, mediumRef };
+}

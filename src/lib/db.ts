@@ -505,24 +505,7 @@ export async function createGetInTouch(payload: {
   createdBy?: string | null;
 }) {
   try {
-    // Diagnostic: log payload shape to help debug server-side 500 errors
-    try {
-      if (process.env.NODE_ENV !== 'production') {
-        try {
-          console.debug('createGetInTouch payload:', {
-            name: payload.name?.slice(0, 100),
-            email: payload.email,
-            phone: payload.phone,
-            messageLen: payload.message ? payload.message.length : 0,
-            location: payload.location,
-          });
-        } catch (logErr) {
-          console.debug('Failed to stringify createGetInTouch payload for logging', logErr);
-        }
-      }
-    } catch (e) {
-      // swallow logging errors to avoid breaking DB flow
-    }
+    // No debug logging here to avoid leaking data in logs.
     const { rows } = await sql`
       INSERT INTO get_in_touch (
         name, email, phone, message, location, user_agent, status, created_by, updated_by

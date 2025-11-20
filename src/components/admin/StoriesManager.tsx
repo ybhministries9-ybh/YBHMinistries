@@ -454,14 +454,14 @@ export function StoriesManager() {
           // If an image file was selected, upload it to blob first and use returned URL
           let uploadedThumbnail: string | null = null;
           const imgFile = (story as any).imageFile as File | undefined;
-          if (imgFile) {
+              if (imgFile) {
             try {
               const form = new FormData();
               form.append('file', imgFile);
               const upResp = await fetch('/api/admin/upload/thumbnail', { method: 'POST', headers: getAuthHeaders(), body: form });
               const upJ = await upResp.json();
-              if (upJ && upJ.success && upJ.url) {
-                uploadedThumbnail = upJ.url;
+              if (upJ && upJ.success) {
+                uploadedThumbnail = upJ.url || upJ.thumbRef || null;
               } else {
                 toast.error(upJ?.error || 'Failed to upload image');
                 return;
@@ -510,8 +510,8 @@ export function StoriesManager() {
               form.append('file', imgFile);
               const upResp = await fetch('/api/admin/upload/thumbnail', { method: 'POST', headers: getAuthHeaders(), body: form });
               const upJ = await upResp.json();
-              if (upJ && upJ.success && upJ.url) {
-                uploadedThumbnail = upJ.url;
+              if (upJ && upJ.success) {
+                uploadedThumbnail = upJ.url || upJ.thumbRef || null;
               } else {
                 toast.error(upJ?.error || 'Failed to upload image');
                 return;

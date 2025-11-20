@@ -174,6 +174,9 @@ export function HomeContentManager() {
   const [videoThumbnailUrl, setVideoThumbnailUrl] = useState('');
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [isVideoDragActive, setIsVideoDragActive] = useState(false);
+  const [isThumbDragActive, setIsThumbDragActive] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -468,13 +471,19 @@ export function HomeContentManager() {
 
     setIsUploadingThumbnail(true);
     try {
+      let thumbResult: { url: string } | null = null;
+      let finalThumbUrl = videoThumbnailUrl;
+
+      if (thumbnailUploadType === 'file' && thumbnailFile) {
+        thumbResult = await uploadThumbnailToBlob(thumbnailFile);
+        finalThumbUrl = thumbResult.url;
+      }
+
       const response = await fetch(`/api/admin/home/video/thumbnail?id=${homeVideo.id}`, {
         method: 'PUT',
         headers: getAuthHeaders('application/json'),
         body: JSON.stringify({
-          thumbnail_image_url: thumbnailUploadType === 'file' 
-            ? await uploadThumbnailToBlob(thumbnailFile!)
-            : videoThumbnailUrl,
+          thumbnail_image_url: thumbnailUploadType === 'file' ? finalThumbUrl : videoThumbnailUrl,
         }),
       });
 
@@ -496,8 +505,21 @@ export function HomeContentManager() {
     }
   };
 
+  // Create an object URL for thumbnail preview when a file is selected
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailPreview(url);
+    return () => {
+      try { URL.revokeObjectURL(url); } catch {}
+    };
+  }, [thumbnailFile]);
+
   // Helper function to upload thumbnail to blob
-  const uploadThumbnailToBlob = async (file: File): Promise<string> => {
+  const uploadThumbnailToBlob = async (file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('file', file);
     
@@ -511,7 +533,8 @@ export function HomeContentManager() {
     if (!result.success) {
       throw new Error('Failed to upload thumbnail');
     }
-    return result.url;
+    // Return single url reference
+    return { url: result.url || result.thumbRef };
   };
 
   // Delete thumbnail only
@@ -777,44 +800,55 @@ export function HomeContentManager() {
           <div className="bg-black rounded-lg p-6 mb-6 border border-[#3a3a3a]">
             <h3 className="text-lg font-semibold text-white mb-4">Current Content</h3>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="flex flex-row items-start gap-6 flex-nowrap">
               {/* Video Player */}
               <div className="space-y-3">
                 <h4 className="text-sm font-medium text-white mb-3">Video</h4>
                 {homeVideo.video_url ? (
-                  <div className="relative group">
-                    <video
-                      src={homeVideo.video_url}
-                      poster={homeVideo.thumbnail_image_url || undefined}
-                      controls
-                      className="w-full rounded-lg border border-[#3a3a3a]"
-                    />
-                    <button
-                      onClick={handleDeleteVideo}
-                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-red-600"
-                      title="Delete video"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                  <div className="flex items-center justify-center">
+                    <div className="w-full lg:w-1/4">
+                      <div className="relative group">
+                        <video
+                          src={homeVideo.video_url}
+                          poster={homeVideo.thumbnail_image_url || undefined}
+                          controls
+                          style={{ width: 'auto', height: '360px' }}
+                          className="rounded-lg border border-[#3a3a3a] object-cover"
+                        />
+                        <button
+                          onClick={handleDeleteVideo}
+                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-red-600"
+                          title="Delete video"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="w-full aspect-video flex flex-col items-center justify-center bg-[#2E2E2E] rounded-lg border border-[#3a3a3a]">
-                    <VideoIcon className="h-12 w-12 text-gray-600 mb-2" />
-                    <p className="text-gray-500 text-sm">No video uploaded</p>
+                  <div className="flex items-center justify-center">
+                    <div className="w-full lg:w-1/4 aspect-video flex flex-col items-center justify-center bg-[#2E2E2E] rounded-lg border border-[#3a3a3a]">
+                      <VideoIcon className="h-12 w-12 text-gray-600 mb-2" />
+                      <p className="text-gray-500 text-sm">No video uploaded</p>
+                    </div>
                   </div>
                 )}
               </div>
               
-              {/* Thumbnail Preview */}
+              {/* Thumbnail Preview (render as smaller thumbnail) */}
               <div className="space-y-3">
                 <h4 className="text-sm font-medium text-white mb-3">Thumbnail Image</h4>
                 {homeVideo.thumbnail_image_url ? (
-                  <div className="relative group">
-                    <img
-                      src={homeVideo.thumbnail_image_url}
-                      alt="Video thumbnail"
-                      className="w-full rounded-lg border border-[#3a3a3a] object-cover aspect-video"
-                    />
+                  <div className="relative group flex items-center justify-center">
+                    <div className="w-full lg:w-1/4">
+                      <img
+                        src={homeVideo.thumbnail_image_url}
+                        alt="Video thumbnail"
+                        style={{ width: 'auto', height: '360px' }}
+                        className="rounded-lg border border-[#3a3a3a] object-cover"
+                      />
+                    </div>
+
                     <button
                       onClick={handleDeleteThumbnail}
                       className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-red-600"
@@ -824,7 +858,7 @@ export function HomeContentManager() {
                     </button>
                   </div>
                 ) : (
-                  <div className="w-full aspect-video flex items-center justify-center bg-[#2E2E2E] rounded-lg border border-[#3a3a3a]">
+                  <div className="w-full max-w-sm aspect-video flex items-center justify-center bg-[#2E2E2E] rounded-lg border border-[#3a3a3a]">
                     <p className="text-gray-500 text-sm">No thumbnail available</p>
                   </div>
                 )}
@@ -841,74 +875,44 @@ export function HomeContentManager() {
               {homeVideo ? 'Replace Video' : 'Upload Video'}
             </h3>
             
-            {/* Tab-style selector for Video */}
-            <div className="flex border-b border-[#3a3a3a] mb-4">
-              <button
-                onClick={() => setVideoUploadType('file')}
-                className={`px-4 py-2 flex items-center gap-2 transition-all cursor-pointer border-b-2 text-sm ${
-                  videoUploadType === 'file'
-                    ? 'border-[#FDB813] text-[#FDB813] font-medium'
-                    : 'border-transparent text-gray-400 hover:text-white'
-                }`}
-              >
-                <Upload className="h-4 w-4" />
-                Upload File
-              </button>
-              <button
-                onClick={() => setVideoUploadType('url')}
-                className={`px-4 py-2 flex items-center gap-2 transition-all cursor-pointer border-b-2 text-sm ${
-                  videoUploadType === 'url'
-                    ? 'border-[#FDB813] text-[#FDB813] font-medium'
-                    : 'border-transparent text-gray-400 hover:text-white'
-                }`}
-              >
-                <Plus className="h-4 w-4" />
-                Add URL
-              </button>
+            {/* Video file upload (drag & drop) */}
+            <div className="mb-4 p-2 bg-yellow-900/20 border border-yellow-700/50 rounded text-xs">
+              <span className="text-white"><strong>Note:</strong> Max 500MB. Upload a file (drag & drop supported).</span>
             </div>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="videoFile" className="text-white mb-2 block text-sm">Video File</Label>
+                <div
+                  className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md ${isVideoDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 bg-black'} text-gray-300 cursor-pointer`}
+                  onClick={() => document.getElementById('videoFile')?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setIsVideoDragActive(true); }}
+                  onDragEnter={(e) => { e.preventDefault(); setIsVideoDragActive(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsVideoDragActive(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsVideoDragActive(false);
+                    const f = e.dataTransfer?.files?.[0];
+                    if (f && f.type.startsWith('video/')) setVideoFile(f);
+                  }}
+                >
+                  <input
+                    id="videoFile"
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
 
-            {videoUploadType === 'file' && (
-              <div className="mb-4 p-2 bg-yellow-900/20 border border-yellow-700/50 rounded text-xs">
-                <span className="text-white"><strong>Note:</strong> Max 500MB. Use URL for larger files.</span>
-              </div>
-            )}
-
-            {videoUploadType === 'file' ? (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="videoFile" className="text-white mb-2 block text-sm">Video File</Label>
-                  <div className="flex items-stretch bg-[#2E2E2E] border border-[#3a3a3a] rounded-md overflow-hidden">
-                    <label htmlFor="videoFile" className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold">
-                      Choose File
-                    </label>
-                    <span className="text-white px-2 flex items-center">:</span>
-                    <span className="text-white px-3 flex-1 flex items-center truncate">
-                      {videoFile ? videoFile.name : 'No file chosen'}
-                    </span>
-                    <Input
-                      id="videoFile"
-                      type="file"
-                      accept="video/*"
-                      onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                    />
+                  <div className="text-center">
+                    <div className="mb-1 font-medium">Click or drag video here to upload</div>
+                    <div className="text-xs text-gray-500">MP4, MOV, WebM — max 500MB</div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="videoUrl" className="text-white mb-2 block text-sm">Video URL</Label>
-                  <Input
-                    id="videoUrl"
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                    placeholder="https://example.com/video.mp4"
-                    className="bg-[#2E2E2E] border-[#3a3a3a] text-white placeholder:text-gray-500"
-                  />
-                </div>
-              </div>
-            )}
+
+              {/* Thumbnail preview moved to the Thumbnail Upload section */}
+
+            </div>
 
             <button
               onClick={handleUploadVideo}
@@ -933,68 +937,58 @@ export function HomeContentManager() {
               {homeVideo?.thumbnail_image_url ? 'Replace Thumbnail' : 'Upload Thumbnail'}
             </h3>
             
-            {/* Tab-style selector for Thumbnail */}
-            <div className="flex border-b border-[#3a3a3a] mb-4">
-              <button
-                onClick={() => setThumbnailUploadType('file')}
-                className={`px-4 py-2 flex items-center gap-2 transition-all cursor-pointer border-b-2 text-sm ${
-                  thumbnailUploadType === 'file'
-                    ? 'border-[#FDB813] text-[#FDB813] font-medium'
-                    : 'border-transparent text-gray-400 hover:text-white'
-                }`}
-              >
-                <Upload className="h-4 w-4" />
-                Upload File
-              </button>
-              <button
-                onClick={() => setThumbnailUploadType('url')}
-                className={`px-4 py-2 flex items-center gap-2 transition-all cursor-pointer border-b-2 text-sm ${
-                  thumbnailUploadType === 'url'
-                    ? 'border-[#FDB813] text-[#FDB813] font-medium'
-                    : 'border-transparent text-gray-400 hover:text-white'
-                }`}
-              >
-                <Plus className="h-4 w-4" />
-                Add URL
-              </button>
-            </div>
+            {/* Thumbnail file upload (drag & drop) */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="thumbnailFileOnly" className="text-white mb-2 block text-sm">Thumbnail Image</Label>
+                <div
+                  className={`flex items-center justify-center w-full px-4 py-4 border-2 border-dashed rounded-md ${isThumbDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 bg-black'} text-gray-300 cursor-pointer`}
+                  onClick={() => document.getElementById('thumbnailFileOnly')?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setIsThumbDragActive(true); }}
+                  onDragEnter={(e) => { e.preventDefault(); setIsThumbDragActive(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsThumbDragActive(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsThumbDragActive(false);
+                    const f = e.dataTransfer?.files?.[0];
+                    if (f && f.type.startsWith('image/')) setThumbnailFile(f);
+                  }}
+                >
+                  <input
+                    id="thumbnailFileOnly"
+                    type="file"
+                    accept=".jpg,.jpeg,.png"
+                    onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
 
-            {thumbnailUploadType === 'file' ? (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="thumbnailFileOnly" className="text-white mb-2 block text-sm">Thumbnail Image</Label>
-                  <div className="flex items-stretch bg-[#2E2E2E] border border-[#3a3a3a] rounded-md overflow-hidden">
-                    <label htmlFor="thumbnailFileOnly" className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold">
-                      Choose File
-                    </label>
-                    <span className="text-white px-2 flex items-center">:</span>
-                    <span className="text-white px-3 flex-1 flex items-center truncate">
-                      {thumbnailFile ? thumbnailFile.name : 'No file chosen'}
-                    </span>
-                    <Input
-                      id="thumbnailFileOnly"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                    />
+                  <div className="text-center">
+                    <div className="mb-1 font-medium">Click or drag image here to upload</div>
+                    <div className="text-xs text-gray-500">PNG or JPG, max 2MB</div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="thumbnailUrlOnly" className="text-white mb-2 block text-sm">Thumbnail URL</Label>
-                  <Input
-                    id="thumbnailUrlOnly"
-                    value={videoThumbnailUrl}
-                    onChange={(e) => setVideoThumbnailUrl(e.target.value)}
-                    placeholder="https://example.com/thumbnail.jpg"
-                    className="bg-[#2E2E2E] border-[#3a3a3a] text-white placeholder:text-gray-500"
-                  />
+              {/* Small preview for selected thumbnail (shows in Thumbnail Upload section) */}
+              {thumbnailPreview && (
+                <div className="mt-3">
+                  <div className="w-28">
+                    <div className="relative bg-black border border-gray-700 rounded overflow-hidden">
+                      <div className="w-full aspect-square bg-gray-900 overflow-hidden">
+                        <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-full object-cover" />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setThumbnailFile(null); const input = document.getElementById('thumbnailFileOnly') as HTMLInputElement; if (input) input.value = ''; }}
+                          className="absolute top-1 right-1 z-10 p-1 bg-red-600 hover:bg-red-700 text-white rounded"
+                          title="Remove"
+                          aria-label="Remove thumbnail"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <button
               onClick={handleUploadThumbnail}
