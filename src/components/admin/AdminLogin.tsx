@@ -1,4 +1,5 @@
 import { useState } from 'react';
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 import { Lock, Mail } from 'lucide-react';
 import { SetupHelper } from './SetupHelper';
 
@@ -104,7 +105,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         <div className="text-center mb-8">
           <div className="w-32 mx-auto mb-6">
             <img 
-              src="https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg" 
+              src={`${R2_BASE}/logo/ybh.png`} 
               alt="YBH Logo" 
               className="w-full h-auto object-contain"
             />

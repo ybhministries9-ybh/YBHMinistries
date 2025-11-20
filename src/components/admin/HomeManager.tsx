@@ -12,6 +12,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import { API_ENDPOINTS, apiCall } from '../../utils/api-config';
 
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+
 interface VideoContent {
   id: string;
   title: string;
@@ -126,8 +128,8 @@ export function HomeManager() {
     {
       id: '1',
       title: 'Our Ministry in Action',
-      videoUrl: 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/Augustine.mp4',
-      posterUrl: 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/hero/16x9/00.jpg',
+      videoUrl: `${R2_BASE}/Home/Augustine.mp4`,
+      posterUrl: `${R2_BASE}/Home/hero/16x9/00.jpg`,
       description: 'Ministry highlights and testimonies'
     }
   ]);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink, Clock, Star } from 'lucide-react';
 import { GalleryManager } from './GalleryManager';
+import PresignUploader from './PresignUploader';
 import { ResourceManager } from './ResourceManager';
 import { UserManager } from './UserManager';
 import { HomeContentManager } from './HomeContentManager';
@@ -16,7 +17,8 @@ import { MenuManager } from './MenuManager';
 import { Welcome } from './Welcome';
 import { AdminScrollToTop } from './AdminScrollToTop';
 
-const logoImage = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg';
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+const logoImage = `${R2_BASE}/logo/ybh.png`;
 
 interface AdminDashboardProps {
   token: string;
@@ -109,7 +111,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
           <div className="flex items-center justify-between flex-wrap">
             <div className="flex items-center gap-4 min-w-0">
               <img 
-                src="https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg" 
+                src={logoImage} 
                 alt="YBH Ministries" 
                 className="h-12 w-auto object-contain" 
               />
@@ -187,7 +189,12 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
               {activeSection === 'home' && <HomeContentManager />}
               {activeSection === 'about' && <AboutManager />}
               {activeSection === 'ministries' && <MinistriesManager />}
-              {activeSection === 'gallery' && <GalleryManager />}
+              {activeSection === 'gallery' && (
+                <div className="p-4 space-y-4">
+                  <PresignUploader prefix="gallery" />
+                  <GalleryManager />
+                </div>
+              )}
               {activeSection === 'news' && <NewsManager />}
               {activeSection === 'resources' && <ResourceManager />}
               {activeSection === 'stories' && <StoriesManager />}

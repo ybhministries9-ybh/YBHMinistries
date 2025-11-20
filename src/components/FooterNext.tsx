@@ -3,12 +3,16 @@
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, Twitter, Languages } from 'lucide-react';
+import SmartImage from './SmartImage';
 
-const ybhLogo = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg';
-const guinnessWorldRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/guiness.png';
-const asianBookOfRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/Asian%20book%20of%20records.png';
-const ingeniousWorldRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/ingenious.png';
-const internationalStarBookOfRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/Star%20book%20of%20records%20-%20final.png';
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+const ybhLogo = `${R2_BASE}/logo/ybh.png`;
+const guinnessWorldRecords = `${R2_BASE}/logo/awards/guiness.png`;
+const asianBookOfRecords = `${R2_BASE}/logo/awards/Asian%20book%20of%20records.png`;
+const ingeniousWorldRecords = `${R2_BASE}/logo/awards/ingenious.png`;
+// Try multiple local filename variants (some builds used a "- final" suffix or different casing)
+const internationalStarBookOfRecords = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
+const internationalStarBookOfRecordsFinal = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
 
 export function FooterNext() {
   const { t, i18n } = useTranslation('common');
@@ -187,23 +191,31 @@ export function FooterNext() {
 
         {/* Awards Logos */}
         <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 pb-6">
-          <img 
-            src={guinnessWorldRecords}
+          <SmartImage
+            srcs={[`/logo/awards/guiness.png`, guinnessWorldRecords]}
             alt="Guinness World Records 2024"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
-          <img 
-            src={asianBookOfRecords}
+          <SmartImage
+            srcs={[`/logo/awards/Asian%20book%20of%20records.png`, asianBookOfRecords]}
             alt="Asian Book of Records 2024"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
-          <img 
-            src={ingeniousWorldRecords}
+          <SmartImage
+            srcs={[`/logo/awards/ingenious.png`, ingeniousWorldRecords]}
             alt="Ingenious Charm World Records 2024"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
-          <img 
-            src={internationalStarBookOfRecords}
+          <SmartImage
+            srcs={[
+              `/logo/awards/Star%20book%20of%20records.png`,
+              `/logo/awards/Star%20book%20of%20records.png`,
+              `/logo/awards/star-book-of-records.png`,
+              `/logo/awards/Star-book-of-records.png`,
+              internationalStarBookOfRecordsFinal,
+              internationalStarBookOfRecords,
+              `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`,
+            ]}
             alt="International Star Book of Records 2023"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />

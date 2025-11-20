@@ -1,12 +1,27 @@
 import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, Twitter, Heart, Languages } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import SmartImage from './SmartImage';
 
-const ybhLogo = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg';
+// Build public image URLs from either local `public/` assets (recommended for a small set of logos)
+// or from an environment-provided R2 base URL. Set `NEXT_PUBLIC_USE_LOCAL_ASSETS=true`
+// in `.env.local` to prefer local files under `/logo/...` and `/Home/awards/...`.
+const USE_LOCAL_ASSETS = process.env.NEXT_PUBLIC_USE_LOCAL_ASSETS === 'true';
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 
-const guinnessWorldRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/guiness.png';
-const asianBookOfRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/Asian%20book%20of%20records.png';
-const ingeniousWorldRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/ingenious.png';
-const internationalStarBookOfRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/Star%20book%20of%20records%20-%20final.png';
+// Local paths (place files under `public/logo/` and `public/Home/awards/`)
+const LOCAL_YBH_LOGO = '/logo/ybh.png';
+const LOCAL_GUINNESS = '/logo/awards/guiness.png';
+const LOCAL_ASIAN_BOOK = '/logo/awards/Asian%20book%20of%20records.png';
+const LOCAL_INGENIOUS = '/logo/awards/ingenious.png';
+const LOCAL_INTERNATIONAL_STAR = '/logo/awards/Star%20book%20of%20records.png';
+const LOCAL_INTERNATIONAL_STAR_FINAL = '/logo/awards/Star%20book%20of%20records.png';
+
+const ybhR2 = `${R2_BASE}/logo/YBH.jpg`;
+const ybhR2Png = `${R2_BASE}/logo/ybh.png`;
+const guinnessR2 = `${R2_BASE}/logo/awards/guiness.png`;
+const asianBookR2 = `${R2_BASE}/logo/awards/Asian%20book%20of%20records.png`;
+const ingeniousR2 = `${R2_BASE}/logo/awards/ingenious.png`;
+const internationalStarR2 = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
 
 interface FooterProps {
   siteTitle?: string;
@@ -38,9 +53,9 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
           {/* Site Title Column */}
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <img 
-                src={ybhLogo} 
-                alt="YBH Logo" 
+              <SmartImage
+                srcs={[LOCAL_YBH_LOGO, '/logo/YBH.png', '/logo/YBH.jpg', ybhR2Png, ybhR2]}
+                alt="YBH Logo"
                 className="h-12 w-12 object-contain"
               />
               <h3 className="text-white">{t('footer.siteTitle')}</h3>
@@ -197,23 +212,29 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
 
         {/* Awards Logos */}
         <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 pb-6">
-          <img 
-            src={guinnessWorldRecords}
+          <SmartImage
+            srcs={[LOCAL_GUINNESS, guinnessR2]}
             alt="Guinness World Records 2024"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
-          <img 
-            src={asianBookOfRecords}
+          <SmartImage
+            srcs={[LOCAL_ASIAN_BOOK, asianBookR2]}
             alt="Asian Book of Records 2024"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
-          <img 
-            src={ingeniousWorldRecords}
+          <SmartImage
+            srcs={[LOCAL_INGENIOUS, ingeniousR2]}
             alt="Ingenious Charm World Records 2024"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
-          <img 
-            src={internationalStarBookOfRecords}
+          <SmartImage
+            srcs={[
+              LOCAL_INTERNATIONAL_STAR_FINAL,
+              LOCAL_INTERNATIONAL_STAR,
+              '/logo/awards/star-book-of-records.png',
+              internationalStarR2,
+              `${R2_BASE}/Home/awards/Star%20book%20of%20records.png`,
+            ]}
             alt="International Star Book of Records 2023"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />

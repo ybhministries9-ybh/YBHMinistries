@@ -12,8 +12,9 @@ import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 
-// Default fallback image URL
-const FALLBACK_HERO_IMAGE = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/defaults/about-default.jpg';
+// Default fallback image URL (derived from env; leave blank if not provided)
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+const FALLBACK_HERO_IMAGE = `${R2_BASE}/defaults/about-default.jpg`;
 
 // Tab configuration
 const TAB_CONFIG = [

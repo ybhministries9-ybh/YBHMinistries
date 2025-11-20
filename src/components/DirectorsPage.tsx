@@ -7,10 +7,11 @@ import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
 import { useTranslation } from 'react-i18next';
 
-const separatorImage = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/separator.png';
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+const separatorImage = `${R2_BASE}/separator.png`;
 
 // Hero image URL
-const HERO_IMAGE_URL = "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Founder/Augustine/1.JPG";
+const HERO_IMAGE_URL = `${R2_BASE}/Founder/Augustine/1.JPG`;
 
 // Image URLs for preloading
 const IMAGE_URLS = {

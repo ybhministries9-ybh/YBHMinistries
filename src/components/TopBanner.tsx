@@ -1,10 +1,24 @@
 import { Menu, X } from 'lucide-react';
+import SmartImage from './SmartImage';
 
-const ybhLogo = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg';
-const guinnessWorldRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/guiness.png';
-const asianBookOfRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/Asian%20book%20of%20records.png';
-const ingeniousWorldRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/ingenious.png';
-const internationalStarBookOfRecords = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/Star%20book%20of%20records%20-%20final.png';
+// Allow local assets (in `public/`) for a small set of logos, else fall back to R2 public URL.
+const USE_LOCAL_ASSETS = process.env.NEXT_PUBLIC_USE_LOCAL_ASSETS === 'true';
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+
+const LOCAL_YBH_LOGO = '/logo/ybh.png';
+const LOCAL_GUINNESS = '/logo/awards/guiness.png';
+const LOCAL_ASIAN_BOOK = '/logo/awards/Asian%20book%20of%20records.png';
+const LOCAL_INGENIOUS = '/logo/awards/ingenious.png';
+const LOCAL_INTERNATIONAL_STAR = '/logo/awards/Star%20book%20of%20records.png';
+const LOCAL_INTERNATIONAL_STAR_FINAL = '/logo/awards/Star%20book%20of%20records.png';
+
+const ybhR2 = `${R2_BASE}/logo/ybh.png`;
+const ybhR2Png = `${R2_BASE}/logo/ybh.png`;
+const ybhR2Jpg = `${R2_BASE}/logo/ybh.png`;
+const guinnessR2 = `${R2_BASE}/logo/awards/guiness.png`;
+const asianBookR2 = `${R2_BASE}/logo/awards/Asian%20book%20of%20records.png`;
+const ingeniousR2 = `${R2_BASE}/logo/awards/ingenious.png`;
+const internationalStarR2 = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
 
 interface TopBannerProps {
   isMenuOpen?: boolean;
@@ -27,9 +41,9 @@ export function TopBanner({ isMenuOpen = false, onMenuToggle }: TopBannerProps) 
             className="outline-none transition-opacity hover:opacity-80 cursor-pointer flex-shrink-0"
             aria-label="Go to home page"
           >
-            <img 
-              src={ybhLogo} 
-              alt="Yeshua Beth Hallel Ministries" 
+            <SmartImage
+              srcs={[LOCAL_YBH_LOGO, '/logo/YBH.png', '/logo/YBH.jpg', ybhR2Png, ybhR2Jpg]}
+              alt="Yeshua Beth Hallel Ministries"
               className="h-12 w-auto object-contain"
             />
           </button>
@@ -55,9 +69,9 @@ export function TopBanner({ isMenuOpen = false, onMenuToggle }: TopBannerProps) 
               className="outline-none transition-opacity hover:opacity-80 cursor-pointer"
               aria-label="Go to home page"
             >
-              <img 
-                src={ybhLogo} 
-                alt="Yeshua Beth Hallel Ministries" 
+              <SmartImage
+                srcs={[LOCAL_YBH_LOGO, '/logo/YBH.png', '/logo/YBH.jpg', ybhR2Png, ybhR2Jpg]}
+                alt="Yeshua Beth Hallel Ministries"
                 className="h-16 w-auto object-contain"
               />
             </button>
@@ -72,24 +86,30 @@ export function TopBanner({ isMenuOpen = false, onMenuToggle }: TopBannerProps) 
           
           {/* Record Logos - Right Aligned */}
           <div className="flex items-center gap-3">
-            <img 
-              src={guinnessWorldRecords} 
-              alt="Guinness World Records" 
+            <SmartImage
+              srcs={[LOCAL_GUINNESS, guinnessR2]}
+              alt="Guinness World Records"
               className="h-12 w-auto object-contain"
             />
-            <img 
-              src={asianBookOfRecords} 
-              alt="Asian Book of Records" 
+            <SmartImage
+              srcs={[LOCAL_ASIAN_BOOK, asianBookR2]}
+              alt="Asian Book of Records"
               className="h-12 w-auto object-contain"
             />
-            <img 
-              src={ingeniousWorldRecords} 
-              alt="Ingenious Charm World Records" 
+            <SmartImage
+              srcs={[LOCAL_INGENIOUS, ingeniousR2]}
+              alt="Ingenious Charm World Records"
               className="h-12 w-auto object-contain"
             />
-            <img 
-              src={internationalStarBookOfRecords} 
-              alt="International Star Book of Records" 
+            <SmartImage
+              srcs={[
+                LOCAL_INTERNATIONAL_STAR_FINAL,
+                LOCAL_INTERNATIONAL_STAR,
+                '/logo/awards/star-book-of-records.png',
+                internationalStarR2,
+                `${R2_BASE}/Home/awards/Star%20book%20of%20records.png`,
+              ]}
+              alt="International Star Book of Records"
               className="h-12 w-auto object-contain"
             />
           </div>

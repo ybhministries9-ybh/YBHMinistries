@@ -22,6 +22,8 @@ export interface Event {
 }
 
 // Fallback data when API is not available
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+
 const FALLBACK_EVENTS: Event[] = [
   { 
     id: 1, 
@@ -35,7 +37,7 @@ const FALLBACK_EVENTS: Event[] = [
     capacity: "Unlimited",
     extendedDescription: "This is our second attempt at the Guinness World Record, aiming to break the first Guinness World Record that we previously achieved.",
     whatToBring: ["Key Board","Key Board Stand","Smart Phone with Internet","HMS - Song Book"],
-    imageUrl: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/News/GWR2/GWR-2%20-%20Poster.jpg",
+    imageUrl: `${R2_BASE}/News/GWR2/GWR-2%20-%20Poster.jpg`,
     registration: {
       enabled: true,
       description: "Register early to secure your spot for this event.",

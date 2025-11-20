@@ -3,6 +3,7 @@ import React from 'react';
 import '@/i18n/config';
 import { Home, ExternalLink, Clock, LogOut, Image, FileText, MessageCircle, Book, Newspaper, DollarSign, Users, Info, Star } from 'lucide-react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 import Link from 'next/link';
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -41,7 +42,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between flex-wrap">
             <div className="flex items-center gap-4 min-w-0">
               <img 
-                src="https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg" 
+                src={`${R2_BASE}/logo/ybh.png`} 
                 alt="YBH Ministries" 
                 className="h-12 w-auto object-contain" 
               />

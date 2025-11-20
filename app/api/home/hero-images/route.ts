@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHeroImages } from '@/lib/db';
+import { parseKeyFromUrl, getPresignedGetUrl, PRIVATE_BUCKET } from '@/lib/r2';
 
 /**
  * GET /api/home/hero-images
@@ -8,11 +9,43 @@ import { getActiveHeroImages } from '@/lib/db';
 export async function GET(request: NextRequest) {
   try {
     const images = await getActiveHeroImages();
-    
+
+    // For images stored in a private R2 bucket, generate short-lived presigned GET URLs
+    const enhanced = await Promise.all(
+      images.map(async (img: any) => {
+        const image_url = img.image_url || img.url || '';
+        const parsed = parseKeyFromUrl(image_url);
+        const out: any = { ...img };
+        if (parsed && parsed.key) {
+          try {
+            const bucket = parsed.bucket || PRIVATE_BUCKET;
+            const signedUrl = await getPresignedGetUrl(parsed.key, 3600, bucket || undefined);
+            out.signedUrl = signedUrl;
+          } catch (err) {
+            console.error('Failed to generate presigned URL for', parsed, err);
+          }
+        }
+        // also generate signed thumbnail URL if thumbnail_url exists
+        const thumbUrl = img.thumbnail_url || img.thumb_url || '';
+        if (thumbUrl) {
+          try {
+            const p = parseKeyFromUrl(thumbUrl);
+            const bucket = p.bucket || PRIVATE_BUCKET;
+            if (p && p.key) {
+              out.signedThumbUrl = await getPresignedGetUrl(p.key, 3600, bucket || undefined);
+            }
+          } catch (err) {
+            console.error('Failed to generate presigned thumbnail URL', err);
+          }
+        }
+        return out;
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data: images,
-      count: images.length
+      data: enhanced,
+      count: enhanced.length
     });
   } catch (error) {
     console.error('Error in GET /api/home/hero-images:', error);

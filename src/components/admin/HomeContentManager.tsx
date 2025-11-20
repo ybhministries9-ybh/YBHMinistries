@@ -14,6 +14,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 interface HeroImage {
   id: number;
   image_url: string;
+  signedUrl?: string | null;
   display_order: number;
   is_active: boolean;
   created_at: string;
@@ -80,7 +81,7 @@ function SortableImageCard({ image, onDelete, isSelected, onToggleSelect }: {
       {/* Image */}
       <div className="relative aspect-video bg-black">
         <img 
-          src={image.image_url} 
+          src={(image as any).signedThumbUrl || (image as any).signedUrl || image.image_url} 
           alt="Hero image" 
           className="w-full h-full object-cover"
         />
@@ -114,16 +115,7 @@ function SortableImageCard({ image, onDelete, isSelected, onToggleSelect }: {
         </button>
       </div>
 
-      {/* Info Bar */}
-      <div className="p-3 flex items-center justify-between bg-black/30">
-        <div>
-          <p className="text-sm font-medium text-white">Image #{image.display_order}</p>
-          <p className="text-xs text-gray-500">ID: {image.id}</p>
-        </div>
-        <div className="text-xs text-gray-400">
-          {new Date(image.created_at).toLocaleDateString()}
-        </div>
-      </div>
+      {/* Info Bar removed: only show image thumbnail as requested */}
     </div>
   );
 }
@@ -136,6 +128,24 @@ export function HomeContentManager() {
   // Hero Image Upload State
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
+    const [MAX_IMAGE_SIZE] = [2 * 1024 * 1024]; // 2MB
+    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
+    const [filePreviews, setFilePreviews] = useState<string[]>([]);
+
+    // create object URLs for previews and clean up
+    useEffect(() => {
+      // cleanup old previews
+      setFilePreviews(prev => {
+        prev.forEach(u => { try { URL.revokeObjectURL(u); } catch {} });
+        return [];
+      });
+      const urls = imageFiles.map(f => URL.createObjectURL(f));
+      setFilePreviews(urls);
+      return () => {
+        urls.forEach(u => { try { URL.revokeObjectURL(u); } catch {} });
+      };
+    }, [imageFiles]);
   
   // Selection State for bulk delete
   const [selectedImageIds, setSelectedImageIds] = useState<Set<number>>(new Set());
@@ -609,22 +619,76 @@ export function HomeContentManager() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="imageFiles" className="text-white mb-2 block">Image Files (Multiple)</Label>
-              <div className="flex items-stretch bg-[#2E2E2E] border border-[#3a3a3a] rounded-md overflow-hidden">
-                <label htmlFor="imageFiles" className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold">
-                  Choose Files
-                </label>
-                <span className="text-white px-2 flex items-center">:</span>
-                <span className="text-white px-3 flex-1 flex items-center truncate">
-                  {imageFiles.length > 0 ? `${imageFiles.length} file(s) selected` : 'No file chosen'}
-                </span>
-                <Input
-                  id="imageFiles"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => setImageFiles(Array.from(e.target.files || []))}
-                  className="hidden"
-                />
+              <div>
+                <div
+                  className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md ${isDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 bg-black'} text-gray-300 cursor-pointer`}
+                  onClick={() => document.getElementById('imageFiles')?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragActive(true); }}
+                  onDragEnter={(e) => { e.preventDefault(); setIsDragActive(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsDragActive(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragActive(false);
+                    const files = Array.from(e.dataTransfer?.files || []);
+                    if (files.length > 0) {
+                      const images = files.filter(f => ALLOWED_IMAGE_TYPES.includes(f.type) && f.size <= MAX_IMAGE_SIZE);
+                      setImageFiles(images);
+                    }
+                  }}
+                >
+                  <input
+                    id="imageFiles"
+                    type="file"
+                    accept=".jpg,.jpeg,.png"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      const images = files.filter(f => ALLOWED_IMAGE_TYPES.includes(f.type) && f.size <= MAX_IMAGE_SIZE);
+                      setImageFiles(images);
+                    }}
+                    className="hidden"
+                  />
+
+                  <div className="text-center">
+                    <div className="mb-1 font-medium">Click or drag image here to upload</div>
+                    <div className="text-xs text-gray-500">PNG or JPG, max 2MB</div>
+                  </div>
+                </div>
+
+                {/* Previews of selected files */}
+                {imageFiles.length > 0 && (
+                  <div className="mt-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-3">
+                      {imageFiles.map((file, idx) => (
+                        <div key={idx} className="relative bg-black border border-gray-700 rounded overflow-hidden flex flex-col">
+                          {/* Square preview area */}
+                          <div className="w-full aspect-square bg-gray-900 overflow-hidden relative">
+                            {filePreviews[idx] ? (
+                              <img src={filePreviews[idx]} alt={file.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <ImageIcon className="text-gray-500" />
+                              </div>
+                            )}
+
+                            {/* Bottom overlay with filename and delete button */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-2 py-1 flex items-center justify-between">
+                              <div className="text-xs text-white truncate" title={file.name}>{file.name}</div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); const newFiles = [...imageFiles]; newFiles.splice(idx, 1); setImageFiles(newFiles); }}
+                                className="p-1 bg-red-600 hover:bg-red-700 text-white rounded ml-2"
+                                aria-label={`Remove ${file.name}`}
+                                title="Remove"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -654,7 +718,8 @@ export function HomeContentManager() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleSelectAll}
-                  className="px-4 py-2 bg-[#2E2E2E] text-white border border-[#3a3a3a] hover:bg-[#3a3a3a] rounded transition-all cursor-pointer"
+                  className="px-4 py-2 text-black rounded transition-all cursor-pointer"
+                  style={{ backgroundColor: accentGold }}
                 >
                   {selectedImageIds.size === heroImages.length ? 'Deselect All' : 'Select All'}
                 </button>
@@ -683,7 +748,7 @@ export function HomeContentManager() {
                 items={heroImages.map(img => img.id)}
                 strategy={rectSortingStrategy}
               >
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                   {heroImages.map((image) => (
                     <SortableImageCard
                       key={image.id}

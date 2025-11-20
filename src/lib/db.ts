@@ -368,6 +368,7 @@ export interface GalleryItem {
   created_at: string;
   created_by: string;
   updated_at: string;
+  bucket?: string | null;
 }
 
 export interface Story {
@@ -807,6 +808,7 @@ export async function addGalleryItems(
     title?: string;
     date?: string;
     created_by?: string;
+    bucket?: string | null;
   }>,
   defaultCreatedBy?: string
 ): Promise<GalleryItem[]> {
@@ -816,7 +818,7 @@ export async function addGalleryItems(
     for (const item of items) {
       const { rows } = await sql<GalleryItem>`
         INSERT INTO gallery_items (
-          category, media_type, url, title, date, created_by, updated_by
+          category, media_type, url, title, date, created_by, updated_by, bucket
         ) VALUES (
           ${item.category},
           ${item.media_type},
@@ -824,7 +826,8 @@ export async function addGalleryItems(
           ${item.title || 'Untitled'},
           ${item.date || new Date().toISOString().split('T')[0]},
           ${item.created_by || defaultCreatedBy || null},
-          ${item.created_by || defaultCreatedBy || null}
+          ${item.created_by || defaultCreatedBy || null},
+          ${item.bucket || null}
         )
         RETURNING *
       `;
