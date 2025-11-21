@@ -75,8 +75,32 @@ export async function uploadBuffer(key: string, buffer: Buffer, contentType = "a
     ContentType: contentType,
     CacheControl: cacheControl,
   });
-  await s3.send(cmd);
-  return getPublicUrl(key, usedBucket);
+  try {
+    await s3.send(cmd);
+    return getPublicUrl(key, usedBucket);
+  } catch (err: any) {
+    // Only attempt presigned fallback for access denied errors — otherwise rethrow
+    const isAccessDenied =
+      err && (err.name === 'AccessDenied' || err.Code === 'AccessDenied' || err.$metadata?.httpStatusCode === 403 || String(err.message || '').includes('AccessDenied') || String(err.message || '').includes('access denied'));
+
+    if (!isAccessDenied) throw err;
+
+    try {
+      const presigned = await getPresignedPutUrl(key, contentType, 3600, usedBucket);
+      // Ensure we pass a plain ArrayBuffer to fetch (avoid Node Buffer typing issues)
+      const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      const resp = await fetch(presigned, { method: 'PUT', headers: { 'Content-Type': contentType }, body: arrayBuffer as any });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => `status ${resp.status}`);
+        throw new Error('Presigned PUT failed: ' + txt);
+      }
+      return getPublicUrl(key, usedBucket);
+    } catch (presignErr) {
+      console.error('Presigned PUT fallback failed:', presignErr && (presignErr as any).message ? (presignErr as any).message : presignErr);
+      // throw original error to keep root cause in logs
+      throw err;
+    }
+  }
 }
 
 export async function getPresignedPutUrl(key: string, contentType = "application/octet-stream", expiresIn = 3600, bucket?: string) {

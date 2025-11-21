@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink, Clock, Star } from 'lucide-react';
 import { GalleryManager } from './GalleryManager';
-import PresignUploader from './PresignUploader';
 import { ResourceManager } from './ResourceManager';
 import { UserManager } from './UserManager';
 import { HomeContentManager } from './HomeContentManager';
@@ -154,7 +153,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
 
       <div className="container mx-auto px-4 py-6">
 
-        <div className="grid lg:grid-cols-5 gap-6">
+        <div className="grid lg:grid-cols-5 gap-3">
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-[#2E2E2E] rounded-lg shadow-md p-4 space-y-2">
@@ -184,25 +183,25 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
 
           {/* Main Content */}
           <div className="lg:col-span-4">
-            <div className="bg-[#2E2E2E] rounded-lg shadow-md">
-              {activeSection === 'welcome' && <Welcome />}
-              {activeSection === 'home' && <HomeContentManager />}
-              {activeSection === 'about' && <AboutManager />}
-              {activeSection === 'ministries' && <MinistriesManager />}
-              {activeSection === 'gallery' && (
-                <div className="p-4 space-y-4">
-                  <PresignUploader prefix="gallery" />
-                  <GalleryManager />
-                </div>
-              )}
-              {activeSection === 'news' && <NewsManager />}
-              {activeSection === 'resources' && <ResourceManager />}
-              {activeSection === 'stories' && <StoriesManager />}
-              {activeSection === 'donate' && <DonateManager />}
-              {activeSection === 'contacts' && <ContactsManager />}
-              {activeSection === 'menu' && <MenuManager />}
-              {activeSection === 'users' && <UserManager />}
-            </div>
+            {activeSection === 'gallery' ? (
+              <div className="p-4 space-y-4">
+                <GalleryManager />
+              </div>
+            ) : (
+              <div className="bg-[#2E2E2E] rounded-lg shadow-md">
+                {activeSection === 'welcome' && <Welcome />}
+                {activeSection === 'home' && <HomeContentManager />}
+                {activeSection === 'about' && <AboutManager />}
+                {activeSection === 'ministries' && <MinistriesManager />}
+                {activeSection === 'news' && <NewsManager />}
+                {activeSection === 'resources' && <ResourceManager />}
+                {activeSection === 'stories' && <StoriesManager />}
+                {activeSection === 'donate' && <DonateManager />}
+                {activeSection === 'contacts' && <ContactsManager />}
+                {activeSection === 'menu' && <MenuManager />}
+                {activeSection === 'users' && <UserManager />}
+              </div>
+            )}
           </div>
         </div>
       </div>

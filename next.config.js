@@ -15,6 +15,14 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'img.youtube.com',
       },
+      {
+        protocol: 'https',
+        hostname: '**.r2.cloudflarestorage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.r2.dev',
+      },
     ],
   },
   // For handling trailing slashes

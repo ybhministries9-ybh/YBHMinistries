@@ -56,8 +56,6 @@ export async function POST(req: Request) {
         title: title || fileName || key,
         date: new Date().toISOString().split('T')[0],
         created_by: actor,
-        // store bucket so we know where the object lives
-        bucket: bucket,
       }
     ], actor);
 
