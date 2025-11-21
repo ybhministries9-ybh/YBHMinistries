@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Upload, Link as LinkIcon, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,10 +22,11 @@ export function AboutHeroImageManager() {
   const [heroImage, setHeroImage] = useState<AboutHeroImage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageUrl, setImageUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
+  const [isDragActive, setIsDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [uploadMethod, setUploadMethod] = useState<'file' | 'url'>('file');
+  // Only file upload supported here
 
   // Fetch existing hero image
   const fetchHeroImage = useCallback(async () => {
@@ -55,27 +56,43 @@ export function AboutHeroImageManager() {
     };
   }, [previewUrl]);
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processSelectedFile = useCallback((file: File | null) => {
     if (!file) return;
-
-    // Revoke previous preview URL to prevent memory leaks
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl);
-    }
-
+    if (previewUrl && previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
     setImageFile(file);
     const preview = URL.createObjectURL(file);
     setPreviewUrl(preview);
   }, [previewUrl]);
 
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    processSelectedFile(file);
+  }, [processSelectedFile]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    const file = e.dataTransfer?.files?.[0] ?? null;
+    processSelectedFile(file);
+  }, [processSelectedFile]);
+
   const clearFileInput = useCallback(() => {
-    const fileInput = document.getElementById('hero-image-file') as HTMLInputElement;
-    if (fileInput) fileInput.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setImageFile(null);
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl);
-    }
+    if (previewUrl && previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
     setPreviewUrl('');
   }, [previewUrl]);
 
@@ -117,44 +134,7 @@ export function AboutHeroImageManager() {
     }
   }, [imageFile, clearFileInput, fetchHeroImage]);
 
-  const handleUploadUrl = useCallback(async () => {
-    const trimmedUrl = imageUrl.trim();
-    if (!trimmedUrl) {
-      toast.error('Please enter an image URL');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const rawToken = localStorage.getItem('admin_token');
-      let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
-      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const response = await fetch('/api/admin/about/hero-image', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ image_url: trimmedUrl }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success('Hero image URL saved successfully!');
-        setImageUrl('');
-        setPreviewUrl('');
-        await fetchHeroImage();
-      } else {
-        toast.error(result.error || 'Failed to save URL');
-      }
-    } catch (error) {
-      console.error('Error saving hero image URL:', error);
-      toast.error('Failed to save hero image URL');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [imageUrl, fetchHeroImage]);
+  // URL uploads removed — only file uploads supported
 
   const handleDelete = useCallback(async () => {
     if (!heroImage) return;
@@ -190,11 +170,7 @@ export function AboutHeroImageManager() {
     }
   }, [heroImage]);
 
-  const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    setImageUrl(url);
-    setPreviewUrl(url);
-  }, []);
+  // URL upload removed — no handler
 
   return (
     <div className="space-y-6">
@@ -217,25 +193,22 @@ export function AboutHeroImageManager() {
           {heroImage && (
             <div className="bg-[#2E2E2E] rounded-lg p-4 border border-[#3a3a3a]">
               <Label className="text-gray-300 text-sm mb-2 block">Current Hero Image</Label>
-              <div className="relative rounded-lg overflow-hidden bg-black border border-[#3a3a3a] group">
+              <div className="relative rounded-lg overflow-hidden group p-2 inline-block">
                 <img
                   src={heroImage.image_url}
                   alt="About hero"
-                  className="w-full h-auto object-contain"
+                  className="h-60 w-auto object-cover rounded"
                 />
                 <button
                   onClick={() => setDeleteDialogOpen(true)}
                   disabled={isLoading}
-                  className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg transition-all cursor-pointer shadow-lg opacity-0 group-hover:opacity-100"
+                  className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded transition-all cursor-pointer shadow-lg opacity-0 group-hover:opacity-100"
                   style={{ cursor: isLoading ? 'default' : 'pointer' }}
                   title="Delete Image"
                 >
-                  <Trash2 className="h-5 w-5" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mt-2">
-                Last updated: {new Date(heroImage.updated_at).toLocaleString()}
-              </p>
             </div>
           )}
 
@@ -245,163 +218,90 @@ export function AboutHeroImageManager() {
               {heroImage ? 'Update Hero Image' : 'Upload Hero Image'}
             </h4>
 
-            {/* Upload Method Toggle - Tab Design with Underline */}
-            <div className="flex border-b border-[#3a3a3a] mb-6">
-              <button
-                onClick={() => setUploadMethod('file')}
-                className={`flex items-center gap-2 py-3 px-6 transition-all cursor-pointer relative ${
-                  uploadMethod === 'file'
-                    ? 'text-[#FDB813]'
-                    : 'text-gray-400 hover:text-gray-300'
-                }`}
-                style={{ cursor: 'pointer' }}
-              >
-                <Upload className="w-4 h-4" />
-                <span className="font-medium">Upload File</span>
-                {uploadMethod === 'file' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FDB813]" />
-                )}
-              </button>
-              <button
-                onClick={() => setUploadMethod('url')}
-                className={`flex items-center gap-2 py-3 px-6 transition-all cursor-pointer relative ${
-                  uploadMethod === 'url'
-                    ? 'text-[#FDB813]'
-                    : 'text-gray-400 hover:text-gray-300'
-                }`}
-                style={{ cursor: 'pointer' }}
-              >
-                <LinkIcon className="w-4 h-4" />
-                <span className="font-medium">Add URL</span>
-                {uploadMethod === 'url' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FDB813]" />
-                )}
-              </button>
-            </div>
+            {/* File Upload */}
 
-            {/* File Upload Method */}
-            {uploadMethod === 'file' && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="hero-image-file" className="text-gray-300">Select Image File</Label>
-                  <div className="flex items-stretch bg-black border border-[#3a3a3a] rounded-md overflow-hidden">
-                    <label htmlFor="hero-image-file" className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold">
-                      Choose File
-                    </label>
-                    <span className="text-white px-2 flex items-center">:</span>
-                    <span className="text-white px-3 flex-1 flex items-center truncate">
-                      {imageFile ? imageFile.name : 'No file chosen'}
-                    </span>
-                    <Input
-                      id="hero-image-file"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      disabled={isLoading}
-                      className="hidden"
-                    />
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Recommended size: {RECOMMENDED_SIZES}. Supports {SUPPORTED_FORMATS}.
-                  </p>
-                </div>
-
-                {previewUrl && imageFile && (
-                  <div className="space-y-2">
-                    <Label className="text-gray-300 text-sm">Preview</Label>
-                    <div className="rounded-lg overflow-hidden bg-black border border-[#3a3a3a] flex justify-center">
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="max-w-[50%] h-auto object-contain"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <Button
-                  onClick={handleUploadFile}
-                  disabled={!imageFile || isLoading}
-                  className="w-full text-black font-medium hover:opacity-90 cursor-pointer"
-                  style={{ backgroundColor: accentGold, cursor: !imageFile || isLoading ? 'default' : 'pointer' }}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-gray-300">Image Files (Single)</Label>
+                <div
+                  onDragOver={handleDragOver}
+                  onDragEnter={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`w-full min-h-[120px] flex flex-col items-center justify-center gap-2 bg-black border-2 border-dashed border-[#3a3a3a] rounded-md overflow-hidden cursor-pointer px-4 py-6 ${isDragActive ? 'ring-2 ring-[#FDB813]' : ''}`}
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Image
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {/* URL Upload Method */}
-            {uploadMethod === 'url' && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="image-url" className="text-gray-300">Image URL</Label>
-                  <Input
-                    id="image-url"
-                    type="url"
-                    placeholder="https://example.com/hero-image.jpg"
-                    value={imageUrl}
-                    onChange={handleUrlChange}
+                  <input
+                    id="hero-image-file"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
                     disabled={isLoading}
-                    className="bg-black border-[#3a3a3a] text-white placeholder:text-gray-600"
+                    className="hidden"
                   />
-                  <p className="text-sm text-gray-500">
-                    Enter a publicly accessible image URL
-                  </p>
+                  <div className="text-center">
+                    <div className="text-gray-200 font-medium">Click or drag image here to upload</div>
+                    <div className="text-xs text-gray-500 mt-1">PNG or JPG, max 2MB</div>
+                  </div>
                 </div>
+                <p className="text-sm text-gray-500">
+                  Recommended size: {RECOMMENDED_SIZES}. Supports {SUPPORTED_FORMATS}.
+                </p>
 
-                {previewUrl && imageUrl && (
-                  <div className="space-y-2">
-                    <Label className="text-gray-300 text-sm">Preview</Label>
-                    <div className="rounded-lg overflow-hidden bg-black border border-[#3a3a3a] flex justify-center">
+                <div className="pt-2">
+                  <Button
+                    onClick={handleUploadFile}
+                    disabled={!imageFile || isLoading}
+                    className="text-black font-medium hover:opacity-90"
+                    style={{ backgroundColor: accentGold, cursor: !imageFile || isLoading ? 'default' : 'pointer' }}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Image
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {previewUrl && imageFile && (
+                <div className="space-y-2">
+                  <Label className="text-gray-300 text-sm">Preview</Label>
+                  <div className="w-full flex justify-start p-0">
+                    <div className="relative inline-block">
                       <img
                         src={previewUrl}
                         alt="Preview"
-                        className="max-w-[50%] h-auto object-contain"
-                        onError={() => setPreviewUrl('')}
+                        className="h-40 w-auto object-contain rounded"
                       />
+
+                      {/* filename overlay removed per request */}
+
+                      {/* delete overlay button for preview (clears selection) */}
+                      <button
+                        onClick={clearFileInput}
+                        title="Remove selected file"
+                        className="absolute right-0 top-0 -mt-1 -mr-1 w-8 h-8 flex items-center justify-center bg-red-600 hover:bg-red-700 text-white rounded-sm shadow-lg"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                <Button
-                  onClick={handleUploadUrl}
-                  disabled={!imageUrl.trim() || isLoading}
-                  className="w-full text-black font-medium hover:opacity-90 cursor-pointer"
-                  style={{ backgroundColor: accentGold, cursor: !imageUrl.trim() || isLoading ? 'default' : 'pointer' }}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <ImageIcon className="w-4 h-4 mr-2" />
-                      Save Image URL
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
+              
+            </div>
           </div>
 
-          {/* Info Box */}
-          <div className="p-4 bg-[#2E2E2E] border border-[#FDB813] rounded-lg">
-            <h4 className="font-semibold text-[#FDB813] mb-2">Default Fallback Image</h4>
-            <p className="text-sm text-gray-300">
-              If no image is uploaded or if database connection fails, the website will automatically display a default hero image for the About page.
-            </p>
-          </div>
+          {/* Info Box removed per UI update */}
         </div>
       </div>
 

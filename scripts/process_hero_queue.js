@@ -9,7 +9,7 @@ const BASE = process.env.BASE_URL || 'http://localhost:3000';
 async function processOne() {
   const res = await fetch(`${BASE}/api/admin/home/process-hero-image`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
   const j = await res.json();
-  console.log(j);
+  console.debug(j);
 }
 
 (async function() {

@@ -8,9 +8,9 @@ async function post() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  console.log('status', res.status);
+  console.debug('status', res.status);
   const data = await res.json();
-  console.log('body', data);
+  console.debug('body', data);
 }
 
 post().catch(err => { console.error(err); process.exit(1); });

@@ -18,16 +18,21 @@ if (!ACCOUNT_ID || !ACCESS_KEY_ID || !SECRET_ACCESS_KEY || !BUCKET) {
   console.warn("R2 configuration incomplete: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, or R2_BUCKET missing");
 }
 
-const ENDPOINT = `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`;
+const ENDPOINT = ACCOUNT_ID ? `https://${ACCOUNT_ID}.r2.cloudflarestorage.com` : null;
 
-const s3 = new S3Client({
-  region: "auto",
-  endpoint: ENDPOINT,
+// Build S3 client options conditionally so tests/branch builds without R2 creds
+// don't produce invalid endpoints. Operations will fail later if creds are missing,
+// but we avoid producing malformed public URLs like "undefined.r2.cloudflarestorage.com".
+const s3Options: any = {
+  region: 'auto',
   credentials: {
-    accessKeyId: ACCESS_KEY_ID || "",
-    secretAccessKey: SECRET_ACCESS_KEY || "",
+    accessKeyId: ACCESS_KEY_ID || '',
+    secretAccessKey: SECRET_ACCESS_KEY || '',
   },
-});
+};
+if (ENDPOINT) s3Options.endpoint = ENDPOINT;
+
+const s3 = new S3Client(s3Options);
 
 function encodeKey(key: string) {
   // encode each path segment but preserve slashes
@@ -56,6 +61,8 @@ export function getPublicUrl(key: string, bucket?: string) {
   }
 
   const usedBucket = bucket || BUCKET || PRIVATE_BUCKET;
+  // If account endpoint is not configured, return an `r2://` reference instead
+  if (!ENDPOINT) return `r2://${usedBucket}/${safeKey}`;
   return `${ENDPOINT}/${usedBucket}/${safeKey}`;
 }
 
@@ -133,13 +140,23 @@ export function parseKeyFromUrl(url: string): { bucket: string | null; key: stri
     const u = new URL(url);
     const pathname = decodeURIComponent(u.pathname || '');
 
-    // Case 1: cloudflare account endpoint: https://<account>.r2.cloudflarestorage.com/<bucket>/<key>
+    // Case 1: cloudflare account endpoint patterns
+    // - Path-style: https://<account>.r2.cloudflarestorage.com/<bucket>/<key>
+    // - Virtual-hosted style: https://<bucket>.<account>.r2.cloudflarestorage.com/<key>
     if (u.host.includes('.r2.cloudflarestorage.com') || u.host.endsWith('.r2.dev')) {
       const parts = pathname.split('/').filter(Boolean);
+      // Try path-style first
       if (parts.length >= 2) {
         const bucket = parts[0];
         const key = parts.slice(1).join('/');
         return { bucket, key };
+      }
+      // Fallback: attempt to extract bucket from subdomain
+      const hostParts = u.host.split('.');
+      if (hostParts.length >= 4) {
+        const maybeBucket = hostParts[0];
+        const key = pathname.replace(/^\//, '');
+        if (key) return { bucket: maybeBucket, key };
       }
       return { bucket: null, key: null };
     }

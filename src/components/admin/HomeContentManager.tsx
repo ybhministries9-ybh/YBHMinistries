@@ -876,9 +876,6 @@ export function HomeContentManager() {
             </h3>
             
             {/* Video file upload (drag & drop) */}
-            <div className="mb-4 p-2 bg-yellow-900/20 border border-yellow-700/50 rounded text-xs">
-              <span className="text-white"><strong>Note:</strong> Max 500MB. Upload a file (drag & drop supported).</span>
-            </div>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="videoFile" className="text-white mb-2 block text-sm">Video File</Label>
