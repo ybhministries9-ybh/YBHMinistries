@@ -190,7 +190,6 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
               <>
                 <Button onClick={startEdit} className="bg-[#FDB813] hover:bg-[#e5a610] text-black flex items-center gap-2">
                   <Edit2 size={14} />
-                  <span className="text-sm">Edit</span>
                 </Button>
                 <Button onClick={() => setDeleteOpen(true)} className="bg-transparent text-white border border-red-500">
                   <Trash2 size={16} />

@@ -516,11 +516,7 @@ export function EventsManager() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <h3 className="text-white font-semibold text-lg">{event.title}</h3>
-                      {event.published ? (
-                        <span className="px-2 py-1 rounded text-xs bg-green-900 text-green-300">Published</span>
-                      ) : (
-                        <span className="px-3 py-1 rounded text-xs bg-[#FDB813] text-black">Draft</span>
-                      )}
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-green-900 text-green-300">{event.published ? 'Published' : 'Draft'}</span>
                       <span className="px-2 py-1 rounded text-xs bg-[#2E2E2E] text-gray-300">
                         {event.type}
                       </span>
@@ -548,7 +544,7 @@ export function EventsManager() {
                     {!isEditing && (
                       <>
                         <Button
-                          title="Edit event"
+                          title="Edit"
                           onClick={() => {
                             setExpandedId(isExpanded ? null : event.id);
                             if (!isExpanded) setEditingId(event.id);
@@ -562,13 +558,13 @@ export function EventsManager() {
                           open={deleteConfirm === event.id}
                           onOpenChange={(open) => setDeleteConfirm(open ? event.id : null)}
                           onConfirm={() => handleDelete(event.id)}
-                          title={`Delete event?`}
+                          title={`Delete Events?`}
                           description={`Are you sure you want to delete this event${event.title ? ` "${event.title}"` : ''}? This action cannot be undone.`}
                           itemName={event.title}
                           itemType="event"
                         />
                         <Button
-                          title="Delete event"
+                          title="Delete"
                           onClick={() => setDeleteConfirm(event.id)}
                           className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
                         >
@@ -960,7 +956,7 @@ export function EventsManager() {
                     {isEditing && (
                       <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-700">
                         <Button
-                          title="Cancel edits"
+                          title="Cancel"
                           onClick={() => {
                             if (isNew) {
                               setEvents(prev => prev.filter(e => e.id !== event.id));
@@ -974,7 +970,7 @@ export function EventsManager() {
                           Cancel
                         </Button>
                         <Button
-                          title="Save event"
+                          title="Save"
                           onClick={() => onSaveClick(event)}
                           className="bg-[#FDB813] hover:bg-[#e5a711] text-black font-semibold cursor-pointer"
                         >

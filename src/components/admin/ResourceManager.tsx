@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Edit, Book, Video, Music, FileText, ShoppingCart, Youtube, Calendar, Clock, Image as ImageIcon, Upload, X, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
+import { Save, Plus, Trash2, Edit, Book, Video, Music, FileText, ShoppingCart, Youtube, Calendar, Clock, Image as ImageIcon, Upload, X, ChevronDown, ChevronUp, Eye, EyeOff, Edit2 } from 'lucide-react';
 import { fetchYouTubeTitle } from '../../lib/youtube';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -495,8 +495,10 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
     <div className="space-y-4">
       {/* Add Button */}
       <div className="flex justify-between items-center">
-        <div className="text-gray-400">
+        <div className="text-white text-base font-medium">
           Total: <span className="text-[#FDB813] font-bold">{books.length}</span> book(s)
+          {' | '}
+          Published: <span className="text-[#FDB813] font-bold">{books.filter(b => b.published).length}</span>
         </div>
         <Button
           onClick={handleAdd}
@@ -520,7 +522,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
             return (
               <div key={book.id} className="bg-black rounded-lg border border-gray-700">
                 {/* Header */}
-                <div className="p-4 flex items-start justify-between">
+                <div className="p-4 flex items-center justify-between">
                   <div className="flex-1">
                     {isEditing ? (
                       <div>
@@ -546,35 +548,36 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                       <span>by {book.author || 'Unknown Author'}</span>
                       <span className="text-[#FDB813]">₹{book.price}</span>
                       <span>{book.pages} pages</span>
-                      <span className="px-2 py-0.5 bg-[#FDB813] bg-opacity-20 text-black rounded">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 bg-[#FDB813] bg-opacity-20 text-black rounded">
                         {book.language}
                       </span>
                       {/* Published / Draft status badge (header only) */}
-                      {book.published ? (
-                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">Published</span>
-                      ) : (
-                        <span className="ml-2 inline-block text-xs font-semibold px-3 py-1 rounded bg-[#FDB813] text-black">Draft</span>
-                      )}
+                      <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">
+                        {book.published ? 'Published' : 'Draft'}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
+                      title={isExpanded ? 'Collapse' : 'Expand'}
                       onClick={() => setExpandedBook(isExpanded ? null : book.id)}
                       size="sm"
-                      className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600"
+                      className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                     >
                       {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </Button>
                     {isEditing ? (
                       <>
                         <Button
+                          title="Save"
                           onClick={() => handleSave(book.id)}
                           size="sm"
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813]"
                         >
-                          Save
+                          <Save size={16} />
                         </Button>
                         <Button
+                          title="Cancel"
                           onClick={() => {
                             setEditingId(null);
                             // Remove the book if it's empty (newly added)
@@ -583,34 +586,35 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                             }
                           }}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-gray-600 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white"
                         >
-                          <X size={14} className="mr-1" />
-                          Cancel
+                          <X size={14} />
                         </Button>
                       </>
                     ) : (
                       <>
                         <Button
+                          title={book.published ? 'Unpublish' : 'Publish'}
                           onClick={() => togglePublished(book.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600"
-                          title={book.published ? 'Unpublish' : 'Publish'}
+                          className="h-9 w-9 p-2 flex items-center justify-center rrounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
-                          {book.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                          {book.published ? <EyeOff size={14} /> : <Eye size={14} />}
                         </Button>
                         <Button
+                          title="Edit"
+                          aria-label="Edit"
                           onClick={() => setEditingId(book.id)}
                           size="sm"
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
-                          <Edit size={14} />
-                          <span>Edit</span>
+                          <Edit2 size={14} />
                         </Button>
                         <Button
+                          title="Delete"
                           onClick={() => handleDelete(book.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -1066,8 +1070,10 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="text-gray-400">
+        <div className="text-white text-base font-medium">
           Total: <span className="text-[#FDB813] font-bold">{videos.length}</span> video(s)
+          {' | '}
+          Published: <span className="text-[#FDB813] font-bold">{videos.filter(v => v.published).length}</span>
         </div>
         <Button
           onClick={handleAdd}
@@ -1095,7 +1101,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
 
             return (
               <div key={video.id} className="bg-black p-4 rounded-lg border border-gray-700">
-                <div className="flex items-start gap-4">
+                <div className="flex items-center gap-4">
                   <div className="flex-shrink-0">
                     <div className="w-32 h-20 bg-black rounded flex items-center justify-center border border-gray-600">
                       <Youtube size={32} className="text-red-500" />
@@ -1126,9 +1132,12 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
                       <>
                         <div>
                           <h3 className="text-white text-lg mb-1">{video.youtubeTitle || 'Untitled Video'}</h3>
-                            <div className="flex flex-wrap gap-3 text-sm text-gray-400">
-                              {/* artist removed — title is from YouTube metadata */}
-                            </div>
+                          <div className="mt-1">
+                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">{video.published ? 'Published' : 'Draft'}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-sm text-gray-400">
+                            {/* artist removed — title is from YouTube metadata */}
+                          </div>
                         </div>
                       </>
                     )}
@@ -1138,13 +1147,15 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
                     {isEditing ? (
                       <>
                         <Button
+                          title="Save"
                           onClick={() => handleSave(video.id)}
                           size="sm"
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813]"
                         >
-                          Save
+                          <Save size={16} />
                         </Button>
                         <Button
+                          title="Cancel"
                           onClick={() => {
                             setEditingId(null);
                             // Remove the video if it's empty (newly added)
@@ -1153,34 +1164,35 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
                             }
                           }}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-gray-600 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white"
                         >
-                          <X size={14} className="mr-1" />
-                          Cancel
+                          <X size={14} />
                         </Button>
                       </>
                     ) : (
                       <>
                         <Button
+                          title={video.published ? 'Unpublish' : 'Publish'}
                           onClick={() => togglePublishedVideo(video.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-md"
-                          title={video.published ? 'Unpublish' : 'Publish'}
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
-                          {video.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                          {video.published ? <EyeOff size={14} /> : <Eye size={14} />}
                         </Button>
                         <Button
+                          title="Edit"
+                          aria-label="Edit"
                           onClick={() => setEditingId(video.id)}
                           size="sm"
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
-                          <Edit size={14} />
-                          <span>Edit</span>
+                          <Edit2 size={14} />
                         </Button>
                         <Button
+                          title="Delete"
                           onClick={() => handleDelete(video.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -1389,8 +1401,10 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="text-gray-400">
+        <div className="text-white text-base font-medium">
           Total: <span className="text-[#FDB813] font-bold">{sermons.length}</span> sermon(s)
+          {' | '}
+          Published: <span className="text-[#FDB813] font-bold">{sermons.filter(s => s.published).length}</span>
         </div>
         <Button
           onClick={handleAdd}
@@ -1418,7 +1432,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
 
             return (
               <div key={sermon.id} className="bg-black p-4 rounded-lg border border-gray-700">
-                <div className="flex items-start gap-4">
+                <div className="flex items-center gap-4">
                   <div className="flex-shrink-0">
                     <div className="w-32 h-20 bg-black rounded flex items-center justify-center border border-gray-600">
                       <Youtube size={32} className="text-red-500" />
@@ -1455,10 +1469,15 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
                             const hasTitle = !!sermon.youtubeTitle;
                             const isNew = typeof sermon.id === 'string' && sermon.id.startsWith('new-');
                             const placeholder = isNew ? 'Add YouTube URL' : 'Untitled Sermon';
-                            return (
-                              <h3 className={`text-lg mb-1 ${hasTitle ? 'text-white' : 'text-gray-400'}`}>
-                                {hasTitle ? sermon.youtubeTitle : placeholder}
-                              </h3>
+                              return (
+                              <>
+                                <h3 className={`text-lg mb-1 ${hasTitle ? 'text-white' : 'text-gray-400'}`}>
+                                  {hasTitle ? sermon.youtubeTitle : placeholder}
+                                </h3>
+                                <div className="mt-1">
+                                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">{sermon.published ? 'Published' : 'Draft'}</span>
+                                </div>
+                              </>
                             );
                           })()}
                           {/* speaker removed from DB; no label shown */}
@@ -1471,13 +1490,15 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
                     {isEditing ? (
                       <>
                         <Button
+                          title="Save"
                           onClick={() => handleSave(sermon.id)}
                           size="sm"
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813]"
                         >
-                          Save
+                          <Save size={16} />
                         </Button>
                         <Button
+                          title="Cancel"
                           onClick={() => {
                             setEditingId(null);
                             // Remove the sermon if it's empty (newly added)
@@ -1486,34 +1507,35 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
                             }
                           }}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-gray-600 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white"
                         >
-                          <X size={14} className="mr-1" />
-                          Cancel
+                          <X size={14} />
                         </Button>
                       </>
                     ) : (
                       <>
                         <Button
+                          title={sermon.published ? 'Unpublish' : 'Publish'}
                           onClick={() => togglePublishedSermon(sermon.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-md"
-                          title={sermon.published ? 'Unpublish' : 'Publish'}
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
-                          {sermon.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                          {sermon.published ? <EyeOff size={14} /> : <Eye size={14} />}
                         </Button>
                         <Button
+                          title="Edit"
+                          aria-label="Edit"
                           onClick={() => setEditingId(sermon.id)}
                           size="sm"
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
-                          <Edit size={14} />
-                          <span>Edit</span>
+                          <Edit2 size={14} />
                         </Button>
                         <Button
+                          title="Delete"
                           onClick={() => handleDelete(sermon.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -1763,8 +1785,10 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="text-gray-400">
+        <div className="text-white text-base font-medium">
           Total: <span className="text-[#FDB813] font-bold">{studies.length}</span> study(ies)
+          {' | '}
+          Published: <span className="text-[#FDB813] font-bold">{studies.filter(s => s.published).length}</span>
         </div>
         <Button
           onClick={handleAdd}
@@ -1911,7 +1935,10 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
                     ) : (
                       <>
                         <div>
-                          <h3 className="text-white text-lg mb-1">{study.title || 'Untitled Study'}</h3>
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-white text-lg mb-1">{study.title || 'Untitled Study'}</h3>
+                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">{study.published ? 'Published' : 'Draft'}</span>
+                          </div>
                           <div className="flex flex-wrap gap-3 text-sm text-gray-400">
                             <span>by {study.author}</span>
                             <span>{study.pages} pages</span>
@@ -1919,7 +1946,7 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
                               <Calendar size={12} />
                               {formatAdminDate(study.date)}
                             </span>
-                            <span className="px-2 py-0.5 bg-[#FDB813] bg-opacity-20 text-black rounded">
+                            <span className="inline-flex items-center justify-center px-2 py-0.5 bg-[#FDB813] bg-opacity-20 text-black rounded">
                               {study.fileType}
                             </span>
                           </div>
@@ -1932,16 +1959,18 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
                   </div>
 
                     <div className="flex gap-2">
-                      {isEditing ? (
+                    {isEditing ? (
                       <>
                         <Button
+                          title="Save"
                           onClick={() => handleSave(study.id)}
                           size="sm"
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813]"
                         >
-                          Save
+                          <Save size={16} />
                         </Button>
                         <Button
+                          title="Cancel"
                           onClick={async () => {
                             setEditingId(null);
                             // If this is a newly added unsaved study, clean up uploaded blobs (file + thumbnail)
@@ -1972,37 +2001,38 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
                             }
                           }}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-gray-600 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white"
                         >
-                          <X size={14} className="mr-1" />
-                          Cancel
+                          <X size={14} />
                         </Button>
                       </>
                     ) : (
                       <>
-                          <Button
-                            onClick={() => togglePublishedStudy(study.id)}
-                            size="sm"
-                            className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-md"
-                            title={study.published ? 'Unpublish' : 'Publish'}
-                          >
-                            {study.published ? <Eye size={14} /> : <EyeOff size={14} />}
-                          </Button>
-                          <Button
-                            onClick={() => setEditingId(study.id)}
-                            size="sm"
-                            className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2"
-                          >
-                            <Edit size={14} />
-                            <span>Edit</span>
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(study.id)}
-                            size="sm"
-                            className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2"
-                          >
-                            <Trash2 size={14} />
-                          </Button>
+                        <Button
+                          title={study.published ? 'Unpublish' : 'Publish'}
+                          onClick={() => togglePublishedStudy(study.id)}
+                          size="sm"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+                        >
+                          {study.published ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </Button>
+                        <Button
+                          title="Edit"
+                          aria-label="Edit"
+                          onClick={() => setEditingId(study.id)}
+                          size="sm"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+                        >
+                          <Edit2 size={14} />
+                        </Button>
+                        <Button
+                          title="Delete"
+                          onClick={() => handleDelete(study.id)}
+                          size="sm"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
                       </>
                     )}
                   </div>

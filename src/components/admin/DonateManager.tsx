@@ -720,7 +720,6 @@ export function DonateManager(): React.ReactElement {
                           {/* View button removed per design request */}
                         <Button onClick={() => { setExpandedBankId(null); setEditingBankId(String(b.id)); }} className="bg-[#FDB813] text-black flex items-center gap-2">
                           <Edit2 size={14} />
-                          <span>Edit</span>
                         </Button>
                         <Button onClick={() => { setDeleteTarget({ type: 'bank', id: b.id, name: b.account_name }); setDeleteDialogOpen(true); }} className="bg-transparent text-white border border-red-500">
                           <Trash2 size={14} />

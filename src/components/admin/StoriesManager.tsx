@@ -1374,7 +1374,6 @@ export function StoriesManager() {
                           aria-label="Edit"
                         >
                           <Edit2 size={16} />
-                          <span className="text-sm font-medium">Edit</span>
                         </Button>
                         <Button
                           size="sm"

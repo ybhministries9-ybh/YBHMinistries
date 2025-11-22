@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw } from 'lucide-react';
+import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
@@ -538,7 +538,7 @@ export function UserManager() {
                 <RotateCw size={16} />
               </button>
               <button onClick={() => handleEdit(user)} className="p-2 text-gray-300 bg-transparent border border-gray-700 rounded">
-                <Edit size={16} />
+                <Edit2 size={16} />
               </button>
               <button onClick={() => handleDelete(user)} className="p-2 bg-[#2E2E2E] text-[#FDB813] border border-[#FDB813] rounded">
                 <Trash2 size={16} />
@@ -705,7 +705,7 @@ export function UserManager() {
                           aria-label="Edit"
                           title="Edit User"
                         >
-                          <Edit size={16} />
+                          <Edit2 size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(user)}

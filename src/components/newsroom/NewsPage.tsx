@@ -110,6 +110,7 @@ export function NewsPage() {
   const [activeTab, setActiveTab] = useState("events");
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState('list');
   const [selectedReportYear, setSelectedReportYear] = useState(2023);
   const [selectedClassType, setSelectedClassType] = useState('keyboard');
@@ -335,12 +336,14 @@ export function NewsPage() {
             {/* Left Side - Sticky Image and Registration Card */}
             <div className="lg:w-80 flex-shrink-0">
               <div className="lg:sticky lg:top-36 space-y-6">
-                {selectedEvent.imageUrl && (
-                  <img 
-                    src={selectedEvent.imageUrl} 
-                    alt={selectedEvent.title}
-                    className="w-full h-auto rounded-xl"
-                  />
+                {(
+                  // If the stored URL is an R2 reference, wait for resolvedImageUrl.
+                  (selectedEvent.imageUrl && !selectedEvent.imageUrl.startsWith('r2://') && (
+                    <img src={selectedEvent.imageUrl} alt={selectedEvent.title} className="w-full h-auto rounded-xl" />
+                  )) ||
+                  (resolvedImageUrl && (
+                    <img src={resolvedImageUrl} alt={selectedEvent.title} className="w-full h-auto rounded-xl" />
+                  ))
                 )}
                 
                 {/* Registration Card */}
@@ -480,6 +483,43 @@ export function NewsPage() {
       </div>
     );
   }, [selectedEvent, handleContactClick]);
+
+  // Resolve r2:// image references to presigned https URLs for the public event details
+  useEffect(() => {
+    let cancelled = false;
+    async function resolveImage() {
+      setResolvedImageUrl(null);
+      if (!selectedEvent || !selectedEvent.imageUrl) return;
+      const img = selectedEvent.imageUrl;
+      if (img.startsWith('http') || img.startsWith('blob:') || img.startsWith('data:')) {
+        setResolvedImageUrl(img);
+        return;
+      }
+      if (img.startsWith('r2://')) {
+        try {
+          const rest = img.slice('r2://'.length);
+          const parts = rest.split('/').filter(Boolean);
+          const bucket = parts.shift();
+          const key = parts.join('/');
+          const resp = await fetch('/api/r2/presign-get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, expiresIn: 3600 })
+          });
+          if (!resp.ok) return;
+          const json = await resp.json();
+          if (!cancelled && json && json.url) setResolvedImageUrl(json.url);
+        } catch (e) {
+          console.warn('Failed to resolve event image URL', e);
+        }
+      } else {
+        // Fallback: use as-is
+        setResolvedImageUrl(img);
+      }
+    }
+    resolveImage();
+    return () => { cancelled = true; };
+  }, [selectedEvent]);
 
   return (
     <div className="min-h-full w-full bg-black text-white font-sans pt-16 md:pt-34">

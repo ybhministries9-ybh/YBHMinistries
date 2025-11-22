@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { verifySession, getActorName } from '@/lib/sessions';
+import { deleteObject, parseKeyFromUrl, PRIVATE_BUCKET } from '@/lib/r2';
 
 /**
  * GET /api/admin/events
@@ -219,6 +220,24 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // If the imageUrl is changing, attempt to delete the previous R2 object
+    try {
+      const prevRes = await sql`SELECT image_url FROM events WHERE id = ${id}`;
+      const prevUrl = prevRes.rows?.[0]?.image_url;
+      if (prevUrl && prevUrl !== imageUrl) {
+        const parsed = parseKeyFromUrl(prevUrl);
+        if (parsed && parsed.key) {
+          try {
+            await deleteObject(parsed.key, parsed.bucket || PRIVATE_BUCKET);
+          } catch (e) {
+            // Log but don't fail the whole update if delete fails
+            console.warn('Failed to delete previous event image from R2', e);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error checking previous event image for deletion', e);
+    }
     await sql`
       UPDATE events
       SET
@@ -283,6 +302,24 @@ export async function DELETE(request: NextRequest) {
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
     const session = await verifySession(token);
     if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
+    // Attempt to delete the stored image from R2 (if any) before removing DB record
+    try {
+      const prevRes = await sql`SELECT image_url FROM events WHERE id = ${id}`;
+      const prevUrl = prevRes.rows?.[0]?.image_url;
+      if (prevUrl) {
+        const parsed = parseKeyFromUrl(prevUrl);
+        if (parsed && parsed.key) {
+          try {
+            await deleteObject(parsed.key, parsed.bucket || PRIVATE_BUCKET);
+          } catch (e) {
+            console.warn('Failed to delete event image from R2 during event delete', e);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error while attempting to delete event image before DB delete', e);
+    }
 
     await sql`DELETE FROM events WHERE id = ${id}`;
 

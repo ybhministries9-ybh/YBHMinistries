@@ -414,16 +414,12 @@ function ReportsManager() {
                       <span>Total: {totalYearly.total} students</span>
                       <span>National: {totalYearly.indian}</span>
                       <span>International: {totalYearly.nonIndian}</span>
-                      {report.published ? (
-                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">Published</span>
-                      ) : (
-                        <span className="px-3 py-1 rounded text-xs bg-[#FDB813] text-black">Draft</span>
-                      )}
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">{report.published ? 'Published' : 'Draft'}</span>
                     </div>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Button
-                      title={report.published ? 'Unpublish report' : 'Publish report'}
+                      title={report.published ? 'Unpublish' : 'Publish'}
                       onClick={() => togglePublished(report.id)}
                       size="sm"
                       aria-label={report.published ? 'Unpublish report' : 'Publish report'}
@@ -442,7 +438,7 @@ function ReportsManager() {
                     {!isEditing && (
                       <>
                         <Button
-                          title="Edit report"
+                          title="Edit"
                           onClick={() => { setEditingId(report.id); setExpandedReport(report.id); }}
                           size="sm"
                           className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
@@ -450,7 +446,7 @@ function ReportsManager() {
                           <Edit2 size={14} />
                         </Button>
                         <Button
-                          title="Delete report"
+                          title="Delete"
                           onClick={() => handleDelete(report.id)}
                           size="sm"
                           className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
@@ -577,7 +573,7 @@ function ReportsManager() {
                     {isEditing && (
                       <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-700">
                         <Button
-                          title="Cancel edits"
+                          title="Cancel"
                           onClick={() => {
                             // If it's a temp report, remove it from the list and close
                             if (report.id.startsWith('temp-')) {
@@ -597,7 +593,7 @@ function ReportsManager() {
                           Cancel
                         </Button>
                         <Button
-                          title="Save report"
+                          title="Save"
                           onClick={() => handleSave(report.id)}
                           className="bg-[#FDB813] hover:bg-[#e5a711] text-black font-semibold cursor-pointer"
                         >
