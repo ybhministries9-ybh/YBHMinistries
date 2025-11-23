@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
 
       case 'worship':
         result = await sql`
-          SELECT id, youtube_url, created_at
+          SELECT id, youtube_url, title, date_posted, display_order, created_at
           FROM worship
           WHERE published = true
-          ORDER BY created_at DESC
+          ORDER BY date_posted DESC NULLS LAST, created_at DESC
         `;
         break;
 

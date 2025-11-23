@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Edit, Book, Video, Music, FileText, ShoppingCart, Youtube, Calendar, Clock, Image as ImageIcon, Upload, X, ChevronDown, ChevronUp, Eye, EyeOff, Edit2 } from 'lucide-react';
-import { fetchYouTubeTitle } from '../../lib/youtube';
+import { Save, Plus, Trash2, Book, Video, Music, FileText, Youtube, Calendar, Upload, X, Eye, EyeOff, Edit2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { fetchYouTubeTitle, fetchYouTubeMeta, extractYouTubeId } from '../../lib/youtube';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -64,6 +67,19 @@ const pickFirst = (...vals: any[]) => {
   return null;
 };
 
+// Helper to run async work in controlled-size batches to avoid spiky network load
+const runInBatches = async (items: any[], batchSize: number, fn: (item: any) => Promise<any>) : Promise<any[]> => {
+  const results: any[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    // await this batch before starting next to keep concurrency bounded
+    // eslint-disable-next-line no-await-in-loop
+    const res = await Promise.all(batch.map(fn));
+    results.push(...res);
+  }
+  return results;
+};
+
 interface MusicBook {
   id: string;
   title: string;
@@ -83,6 +99,8 @@ interface WorshipVideo {
   youtubeUrl: string;
   published?: boolean;
   youtubeTitle?: string;
+  datePosted?: string | null;
+  displayOrder?: number | null;
 }
 
 interface Sermon {
@@ -881,10 +899,20 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Reorder mode state: when true, user can drag cards and then Save Order to persist
+  const [reorderMode, setReorderMode] = useState(false);
+  const [originalVideosSnapshot, setOriginalVideosSnapshot] = useState<WorshipVideo[] | null>(null);
 
   useEffect(() => {
     fetchVideos();
   }, []);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  
 
   const fetchVideos = async () => {
     try {
@@ -897,26 +925,45 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
       if (!response.ok) throw new Error('Failed to fetch worship videos');
       const data = await response.json();
       
-      // Transform API response to match component interface
+      // Transform API response to match component interface (include display_order)
       const transformedVideos = (data.data || []).map((video: any) => ({
         id: video.id.toString(),
-        // artist removed from DB; will use YouTube metadata when available
+        // Prefer stored title/date_posted from DB; admin will fetch/update metadata when saving
         youtubeUrl: video.youtube_url || '',
         published: video.published === true || video.published === 't' || false,
-        youtubeTitle: ''
+        youtubeTitle: video.title || '',
+        datePosted: video.date_posted || video.created_at || null,
+        displayOrder: typeof video.display_order !== 'undefined' && video.display_order !== null ? Number(video.display_order) : null
       }));
 
-      // Fetch YouTube titles for each video (concurrent)
-      const withTitles = await Promise.all(transformedVideos.map(async (v) => {
+      // Fetch YouTube metadata for items missing title or date (batched to avoid spiky load)
+      const withMeta = await runInBatches(transformedVideos, 6, async (v) => {
         try {
-          const title = await fetchYouTubeTitle(v.youtubeUrl);
-          return { ...v, youtubeTitle: title || '' };
+          if ((v.youtubeTitle && v.youtubeTitle.length > 0) && v.datePosted) return v;
+          const vid = extractYouTubeId(v.youtubeUrl || '');
+          if (!vid) return v;
+          const meta = await fetchYouTubeMeta(vid);
+          return {
+            ...v,
+            youtubeTitle: v.youtubeTitle || meta?.title || '',
+            datePosted: v.datePosted || meta?.publishedAt || null
+          };
         } catch (e) {
           return v;
         }
-      }));
+      });
 
-      setVideos(withTitles);
+      // If displayOrder exists on items, sort by it ascending (lower number = higher in list)
+      withMeta.sort((a, b) => {
+        const aHas = typeof a.displayOrder === 'number' && !isNaN(a.displayOrder);
+        const bHas = typeof b.displayOrder === 'number' && !isNaN(b.displayOrder);
+        if (aHas && bHas) return a.displayOrder - b.displayOrder;
+        if (aHas) return -1;
+        if (bHas) return 1;
+        return 0;
+      });
+
+      setVideos(withMeta);
     } catch (error) {
       console.error('Error fetching worship videos:', error);
       toast.error('Failed to load worship videos');
@@ -924,6 +971,115 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
       setLoading(false);
     }
   };
+
+  // NOTE: Single-call batch save is implemented by `saveOrder()` below.
+
+  // Note: ordering is handled by dnd-kit drag end handler (saves immediately)
+
+  // Sortable video card used by dnd-kit
+  // Build a small helper to get youtube thumbnail for admin preview
+  const getYouTubeThumbnail = (url: string) => {
+    if (!url) return '';
+    try {
+      let videoId = '';
+      if (url.includes('youtube.com/watch?v=')) videoId = url.split('v=')[1]?.split('&')[0];
+      else if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      else if (url.includes('youtube.com/shorts/')) videoId = url.split('shorts/')[1]?.split('?')[0];
+      return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+    } catch (err) {
+      return '';
+    }
+  };
+
+  function SortableVideoCard({ video, sortable }: { video: WorshipVideo; sortable?: boolean }) {
+    let attributes = {} as any;
+    let listeners = {} as any;
+    let setNodeRef: any = undefined;
+    let transform: any = undefined;
+    let transition: any = undefined;
+    let isDragging = false;
+    if (sortable) {
+      const sortableResult = useSortable({ id: video.id });
+      attributes = sortableResult.attributes;
+      listeners = sortableResult.listeners;
+      setNodeRef = sortableResult.setNodeRef;
+      transform = sortableResult.transform;
+      transition = sortableResult.transition;
+      isDragging = sortableResult.isDragging;
+    }
+    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
+
+    const outerRefProps = sortable && setNodeRef ? { ref: setNodeRef } : {};
+
+    return (
+      <div {...outerRefProps} style={style} className={`${!video.published ? 'opacity-70' : ''}`}>
+        <div className="relative bg-black rounded-lg border border-gray-700 overflow-hidden">
+          {/* Drag handle (left edge) - only shown when sortable */}
+          {sortable ? (
+            <div {...attributes} {...listeners} className="absolute left-2 top-2 z-40 cursor-grab active:cursor-grabbing p-1 text-gray-200 bg-black/40 rounded-md hover:text-white">
+              <GripVertical />
+            </div>
+          ) : null}
+
+          {/* Square thumbnail */}
+          <div className="aspect-square bg-[#111111] w-full flex items-center justify-center relative">
+            {getYouTubeThumbnail(video.youtubeUrl) ? (
+              <img src={getYouTubeThumbnail(video.youtubeUrl)} alt={video.youtubeTitle || ''} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-600">No preview</div>
+            )}
+
+            {/* Bottom overlay with title, date and badge (badge on right) */}
+            <div
+              className="absolute left-0 right-0 bottom-0 px-3 py-2 flex items-center justify-between gap-3"
+              style={{ backgroundColor: 'rgba(0,0,0,0.64)', backdropFilter: 'blur(6px)' }}
+            >
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-white truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{video.youtubeTitle || 'Untitled'}</h3>
+                <div className="mt-1 flex items-center gap-2 text-xs text-gray-300">
+                  <Calendar size={12} />
+                  <span>{formatAdminDate(video.datePosted)}</span>
+                </div>
+              </div>
+
+              <div className="flex-shrink-0 ml-3">
+                {video.published ? (
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">Published</span>
+                ) : (
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-gray-700 text-gray-300">Draft</span>
+                )}
+              </div>
+            </div>
+
+            {/* Overlay action buttons top-right */}
+            <div className="absolute top-2 right-2 z-30 flex items-center gap-2">
+              <button
+                title={video.published ? 'Unpublish' : 'Publish'}
+                onClick={() => togglePublishedVideo(video.id)}
+                className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+              >
+                {video.published ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+              <button
+                title="Edit"
+                onClick={() => setEditingId(video.id)}
+                className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+              >
+                <Edit2 size={14} />
+              </button>
+              <button
+                title="Delete"
+                onClick={() => handleDelete(video.id)}
+                className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const togglePublishedVideo = async (id: string) => {
     const video = videos.find(v => v.id === id);
@@ -970,13 +1126,111 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
   };
 
   const handleAdd = () => {
-      const newVideo: WorshipVideo = {
-        id: 'new-' + Date.now().toString(),
-        youtubeUrl: '',
-        youtubeTitle: ''
+    // Show the old-style add form (not a card)
+    setAddingNew(true);
+  };
+
+  // State for adding new worship item via separate form
+  const [addingNew, setAddingNew] = useState(false);
+  const [newYoutubeUrl, setNewYoutubeUrl] = useState('');
+  const [newPublished, setNewPublished] = useState(true);
+
+  const cancelAddNew = () => {
+    setAddingNew(false);
+    setNewYoutubeUrl('');
+    setNewPublished(true);
+    clearFieldErrors('new');
+  };
+
+  const saveNewFromForm = async () => {
+    // Basic validation
+    if (!newYoutubeUrl || newYoutubeUrl.trim().length === 0) {
+      setFieldErrors('new', { youtubeUrl: 'YouTube URL is required' });
+      return;
+    }
+
+    try {
+      const vid = extractYouTubeId(newYoutubeUrl || '');
+      let metaTitle: string | null = null;
+      let metaPublishedAt: string | null = null;
+      if (vid) {
+        try {
+          const meta = await fetchYouTubeMeta(vid);
+          if (meta) {
+            metaTitle = meta.title || null;
+            metaPublishedAt = meta.publishedAt || null;
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      const rawToken = localStorage.getItem('admin_token');
+      let token = '';
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const body: any = {
+        type: 'worship',
+        youtube_url: newYoutubeUrl,
+        title: metaTitle,
+        date_posted: metaPublishedAt,
+        published: newPublished === true
       };
-    setVideos([newVideo, ...videos]);
-    setEditingId(newVideo.id);
+
+      const response = await fetch('/api/admin/resources?type=worship', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) throw new Error('Failed to save new worship video');
+      const result = await response.json();
+      const d = result.data;
+      const saved: WorshipVideo = {
+        id: d.id.toString(),
+        youtubeUrl: newYoutubeUrl,
+        published: d.published === true || d.published === 't' || newPublished,
+        youtubeTitle: d.title || metaTitle || '',
+        datePosted: d.date_posted || metaPublishedAt || null,
+        displayOrder: null
+      };
+
+      // Insert at front and persist display_order
+      const newList = [saved, ...videos.map(v => ({ ...v }))].map((v, i) => ({ ...v, displayOrder: i }));
+      setVideos(newList);
+
+      try {
+        const rawToken2 = localStorage.getItem('admin_token');
+        let token2 = '';
+        if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+        const headers2: Record<string,string> = { 'Content-Type': 'application/json' };
+        if (token2) headers2['Authorization'] = `Bearer ${token2}`;
+
+        const items = newList.filter(v => v.id && !String(v.id).startsWith('new-')).map((v, i) => ({ id: v.id, display_order: i }));
+        if (items.length) {
+          const res = await fetch('/api/admin/resources/order', {
+            method: 'POST',
+            headers: headers2,
+            body: JSON.stringify({ items })
+          });
+          if (!res.ok) throw new Error('Failed to persist display order for new item');
+        }
+      } catch (err) {
+        console.error('Failed to persist order after saving new worship video (form):', err);
+        toast.error('Saved video but failed to update order on server');
+        await fetchVideos();
+      }
+
+      clearFieldErrors('new');
+      setAddingNew(false);
+      setNewYoutubeUrl('');
+      setNewPublished(true);
+      toast.success('Worship video saved');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save worship video');
+    }
   };
 
   const handleUpdate = (id: string, updates: Partial<WorshipVideo>) => {
@@ -1037,10 +1291,28 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const body = {
+      // Try to fetch YouTube metadata (title + publishedAt) to persist with the record
+      let metaTitle: string | null = null;
+      let metaPublishedAt: string | null = null;
+      try {
+        const vid = extractYouTubeId(video.youtubeUrl || '');
+        if (vid) {
+          const meta = await fetchYouTubeMeta(vid);
+          if (meta) {
+            metaTitle = meta.title || null;
+            metaPublishedAt = meta.publishedAt || null;
+          }
+        }
+      } catch (err) {
+        // ignore metadata lookup failures
+      }
+
+      const body: any = {
         type: 'worship',
         ...(isNew ? {} : { id }),
         youtube_url: video.youtubeUrl,
+        title: metaTitle,
+        date_posted: metaPublishedAt,
         published: video.published === true
       };
 
@@ -1055,8 +1327,52 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
       
       const result = await response.json();
       
-      if (isNew) {
-        setVideos(videos.map(v => v.id === id ? { ...v, id: result.data.id.toString() } : v));
+      if (result && result.data) {
+        const d = result.data;
+        const savedId = d.id ? d.id.toString() : null;
+        const savedItem = {
+          ...video,
+          id: savedId || video.id,
+          youtubeTitle: d.title || video.youtubeTitle,
+          datePosted: d.date_posted || video.datePosted,
+          published: d.published === true || d.published === 't' || video.published
+        } as WorshipVideo;
+
+        if (isNew) {
+          // replace the temporary new item and move saved item to the front
+          const withoutNew = videos.filter(v => v.id !== id);
+          const reordered = [savedItem, ...withoutNew.map(v => ({ ...v }))].map((v, i) => ({ ...v, displayOrder: i }));
+          setVideos(reordered);
+
+          // Persist the new display_order for saved items so DB reflects UI order
+          try {
+            const rawToken2 = localStorage.getItem('admin_token');
+            let token2 = '';
+            if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+            const headers2: Record<string,string> = { 'Content-Type': 'application/json' };
+            if (token2) headers2['Authorization'] = `Bearer ${token2}`;
+
+            const items = reordered
+              .filter(v => v.id && !String(v.id).startsWith('new-'))
+              .map((v, i) => ({ id: v.id, display_order: i }));
+
+            if (items.length) {
+              const res = await fetch('/api/admin/resources/order', {
+                method: 'POST',
+                headers: headers2,
+                body: JSON.stringify({ items })
+              });
+              if (!res.ok) throw new Error('Failed to persist display order for new item');
+            }
+          } catch (err) {
+            console.error('Failed to persist order after saving new worship video:', err);
+            toast.error('Saved video but failed to update order on server');
+            // optional: refetch list to ensure UI matches DB
+            await fetchVideos();
+          }
+        } else {
+          setVideos(videos.map((v, idx) => v.id === id ? { ...savedItem, displayOrder: v.displayOrder ?? idx } : v));
+        }
       }
       clearFieldErrors(id);
       setEditingId(null);
@@ -1075,14 +1391,90 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
           {' | '}
           Published: <span className="text-[#FDB813] font-bold">{videos.filter(v => v.published).length}</span>
         </div>
-        <Button
-          onClick={handleAdd}
-          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
-        >
-          <Plus size={16} className="mr-2" />
-          Add Worship Video
-        </Button>
+        <div className="flex items-center gap-3">
+          {!reorderMode ? (
+            <Button
+              onClick={() => { setOriginalVideosSnapshot([...videos]); setReorderMode(true); }}
+              className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+            >
+              <GripVertical size={16} className="mr-2" />
+              Enable Reorder
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button onClick={() => { setVideos(originalVideosSnapshot ?? videos); setOriginalVideosSnapshot(null); setReorderMode(false); }} className="h-9 px-4 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600">
+                <X size={16} className="mr-2" />
+                Cancel</Button>
+              <Button onClick={async () => {
+                // Save order
+                try {
+                  const items = videos.filter(v => v.id && !String(v.id).startsWith('new-')).map((v, i) => ({ id: v.id, display_order: i }));
+                  const rawToken = localStorage.getItem('admin_token');
+                  let token = '';
+                  if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+                  const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+                  if (token) headers['Authorization'] = `Bearer ${token}`;
+                  const res = await fetch('/api/admin/resources/order', { method: 'POST', headers, body: JSON.stringify({ items }) });
+                  if (!res.ok) throw new Error('Failed to save order');
+                  toast.success('Order saved');
+                  setOriginalVideosSnapshot(null);
+                  setReorderMode(false);
+                } catch (err) {
+                  console.error('Failed to save order:', err);
+                  toast.error('Failed to save order');
+                }
+              }} className="h-9 px-4 bg-[#FDB813] hover:bg-[#e5a711] text-black">
+                <Save size={16} className="mr-2" />
+                Save Order</Button>
+            </div>
+          )}
+
+          <Button
+            onClick={handleAdd}
+            className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+          >
+            <Plus size={16} className="mr-2" />
+            Add Worship Video
+          </Button>
+        </div>
       </div>
+
+      {/* Old-style add form (shown when addingNew) */}
+      {addingNew && (
+        <div className="bg-black rounded-lg border border-gray-700 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+            <div className="md:col-span-2">
+              <label className="text-sm text-white mb-1 block">YouTube URL <span className="text-[#FDB813]">*</span></label>
+              <Input
+                value={newYoutubeUrl}
+                onChange={(e) => setNewYoutubeUrl(e.target.value)}
+                placeholder="https://youtu.be/..."
+                className="bg-[#2e2e2e] border-gray-600 text-white"
+                style={{ backgroundColor: '#2e2e2e' }}
+              />
+              {formErrors['new']?.youtubeUrl && (
+                <div className="bg-black text-sm text-red-400 mt-1">{formErrors['new'].youtubeUrl}</div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-3">
+              <div className="flex items-center mr-4">
+                <input type="checkbox" checked={newPublished} onChange={(e) => setNewPublished(e.target.checked)} className="form-checkbox h-4 w-4 text-[#FDB813] border-gray-600 rounded mr-2" />
+                <span className="text-sm text-white">Publish</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button onClick={cancelAddNew} className="h-9 px-4 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600 flex items-center gap-2">
+                  <X size={14} />
+                  Cancel
+                </Button>
+                <Button onClick={saveNewFromForm} className="h-9 px-4 bg-[#FDB813] hover:bg-[#e5a711] text-black flex items-center gap-2">
+                  <Save size={14} />
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
@@ -1096,113 +1488,41 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
         </div>
       ) : (
         <div className="space-y-3">
-          {videos.map((video) => {
-            const isEditing = editingId === video.id;
-
-            return (
-              <div key={video.id} className="bg-black p-4 rounded-lg border border-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-32 h-20 bg-black rounded flex items-center justify-center border border-gray-600">
-                      <Youtube size={32} className="text-red-500" />
-                    </div>
-                  </div>
-
-                  <div className="flex-1 space-y-3">
-                    {isEditing ? (
-                      <>
-                        {/* Title is sourced from YouTube metadata; no artist input in admin */}
-                        <div>
-                          <label className="text-sm text-white mb-1.5 block">YouTube URL</label>
-                          <Input
-                            id={`field-${video.id}-youtubeUrl`}
-                            value={video.youtubeUrl}
-                            onChange={(e) => handleUpdate(video.id, { youtubeUrl: e.target.value })}
-                            placeholder="https://youtu.be/..."
-                            className="bg-black border-gray-600 text-white"
-                            aria-invalid={!!formErrors[video.id]?.youtubeUrl}
-                            aria-describedby={formErrors[video.id]?.youtubeUrl ? `error-${video.id}-youtubeUrl` : undefined}
-                          />
-                          {isEditing && formErrors[video.id]?.youtubeUrl && (
-                            <div id={`error-${video.id}-youtubeUrl`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[video.id].youtubeUrl}</div>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <h3 className="text-white text-lg mb-1">{video.youtubeTitle || 'Untitled Video'}</h3>
-                          <div className="mt-1">
-                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">{video.published ? 'Published' : 'Draft'}</span>
-                          </div>
-                          <div className="flex flex-wrap gap-3 text-sm text-gray-400">
-                            {/* artist removed — title is from YouTube metadata */}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                    <div className="flex gap-2">
-                    {isEditing ? (
-                      <>
-                        <Button
-                          title="Save"
-                          onClick={() => handleSave(video.id)}
-                          size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813]"
-                        >
-                          <Save size={16} />
-                        </Button>
-                        <Button
-                          title="Cancel"
-                          onClick={() => {
-                            setEditingId(null);
-                            // Remove the video if it's empty (newly added)
-                            if (!video.youtubeUrl) {
-                              setVideos(videos.filter(v => v.id !== video.id));
-                            }
-                          }}
-                          size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-gray-600 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white"
-                        >
-                          <X size={14} />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          title={video.published ? 'Unpublish' : 'Publish'}
-                          onClick={() => togglePublishedVideo(video.id)}
-                          size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
-                        >
-                          {video.published ? <EyeOff size={14} /> : <Eye size={14} />}
-                        </Button>
-                        <Button
-                          title="Edit"
-                          aria-label="Edit"
-                          onClick={() => setEditingId(video.id)}
-                          size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
-                        >
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button
-                          title="Delete"
-                          onClick={() => handleDelete(video.id)}
-                          size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
+          {reorderMode ? (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-400">🔧 Reorder mode enabled — drag cards into the desired order, then click <strong>Save Order</strong>.</p>
+                <div className="text-sm text-gray-400">Drag handle on left of each card</div>
               </div>
-            );
-          })}
+
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(event) => {
+                const { active, over } = event;
+                if (!over || active.id === over.id) return;
+                const oldIndex = videos.findIndex(v => v.id === active.id);
+                const newIndex = videos.findIndex(v => v.id === over.id);
+                if (oldIndex === -1 || newIndex === -1) return;
+                const newOrder = arrayMove(videos, oldIndex, newIndex).map((v, i) => ({ ...v, displayOrder: i }));
+                setVideos(newOrder);
+              }}>
+                <SortableContext items={videos.map(v => v.id)} strategy={verticalListSortingStrategy}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {videos.map((video) => (
+                      <SortableVideoCard key={video.id} video={video} sortable={true} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-400">Click "Enable Reorder" to reorder multiple cards and save in one request.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {videos.map((video) => (
+                  <SortableVideoCard key={video.id} video={video} sortable={false} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -1249,14 +1569,14 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
         youtubeTitle: ''
       }));
 
-      const withTitles = await Promise.all(transformedSermons.map(async (s) => {
+      const withTitles = await runInBatches(transformedSermons, 6, async (s) => {
         try {
           const title = await fetchYouTubeTitle(s.youtubeUrl);
           return { ...s, youtubeTitle: title || '' };
         } catch (e) {
           return s;
         }
-      }));
+      });
 
       setSermons(withTitles);
     } catch (error) {
@@ -1411,7 +1731,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
           className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
         >
           <Plus size={16} className="mr-2" />
-          Add Sermon
+          Add Sermon Video
         </Button>
       </div>
 

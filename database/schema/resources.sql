@@ -23,8 +23,11 @@ CREATE TABLE IF NOT EXISTS books (
 -- Worship Songs Table
 CREATE TABLE IF NOT EXISTS worship (
     id SERIAL PRIMARY KEY,
-    -- artist, title, duration and release_date removed; use YouTube metadata at display time
+    -- Persist YouTube metadata (title and date_posted) so site can read from DB
     youtube_url TEXT NOT NULL,
+    title VARCHAR(255),
+    date_posted TIMESTAMP,
+    display_order INTEGER,
     published BOOLEAN DEFAULT false,
     created_by VARCHAR(255),
     updated_by VARCHAR(255),

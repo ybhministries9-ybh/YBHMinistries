@@ -170,37 +170,34 @@ export function ResourcesPage() {
         
         const transformedWorship = (data.data || []).map((video: any) => ({
           id: video.id,
-          title: video.title,
+          // Prefer DB-stored title and date_posted when available
+          title: video.title || '',
           artist: video.artist,
           duration: pickDate(video.duration, video.length, video.duration_seconds, video.duration_str),
-          date: pickDate(video.release_date, video.published_at, video.created_at, video.date, video.uploaded_at),
+          date: pickDate(video.date_posted, video.release_date, video.published_at, video.created_at, video.date, video.uploaded_at),
           youtubeUrl: video.youtube_url,
-          description: video.description
+          description: video.description,
+          // include display_order from DB (may be null)
+          display_order: typeof video.display_order !== 'undefined' && video.display_order !== null ? Number(video.display_order) : null
         }));
 
-        // Augment items with YouTube metadata (publishedAt, duration) and prefer YouTube values when available
-        const augmentedWorship = await Promise.all(transformedWorship.map(async (video) => {
-          try {
-            const vid = extractYouTubeId(video.youtubeUrl);
-            if (!vid) return video;
-            const meta = await fetchYouTubeMeta(vid);
-            if (!meta) return video;
-            // Normalize publishedAt to YYYY-MM-DD so parseLocalDate treats it as local date-only
-            let date = video.date;
-            if (meta.publishedAt) {
-              const parsed = parseLocalDate(meta.publishedAt);
-              if (parsed) date = parsed.toISOString().split('T')[0];
-              else date = String(meta.publishedAt).split('T')[0];
-            }
-            const duration = meta.duration ? parseISO8601Duration(meta.duration) : video.duration;
-            const title = meta.title || video.title || '';
-            return { ...video, date, duration, title };
-          } catch (err) {
-            return video;
-          }
-        }));
+        // Sort by display_order ascending (lowest order -> left). Items without display_order go after ordered items,
+        // and are sorted by date (newest first) as a sensible fallback.
+        transformedWorship.sort((a: any, b: any) => {
+          const aHas = typeof a.display_order === 'number' && !isNaN(a.display_order);
+          const bHas = typeof b.display_order === 'number' && !isNaN(b.display_order);
+          if (aHas && bHas) return a.display_order - b.display_order;
+          if (aHas) return -1; // a comes before b
+          if (bHas) return 1;  // b comes before a
+          // fallback: sort by date descending (newest first)
+          const aTime = a.date ? new Date(a.date).getTime() : 0;
+          const bTime = b.date ? new Date(b.date).getTime() : 0;
+          return bTime - aTime;
+        });
 
-        setResources(prev => ({ ...prev, worship: augmentedWorship }));
+        // Use the DB-provided values only; do not call YouTube API from the public site.
+        // If DB fields are missing, the UI will show blank values.
+        setResources(prev => ({ ...prev, worship: transformedWorship }));
       } catch (error) {
         console.error('Error fetching worship videos:', error);
       } finally {
@@ -816,11 +813,7 @@ export function ResourcesPage() {
                     <div className="px-4 pb-4 pt-2 mt-auto">
                       <div className="flex items-center justify-between text-xs text-white gap-2">
                         <div className="flex items-center">
-                          <Clock size={14} className="mr-1.5 flex-shrink-0" />
-                          <span>{formatDuration(item.duration)}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar size={14} color="#FFFFFF" className="mr-1.5 flex-shrink-0" />
+                          <Calendar size={14} className="mr-1.5 flex-shrink-0" />
                           <span>{formatDate(item.date)}</span>
                         </div>
                       </div>
