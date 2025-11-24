@@ -714,14 +714,14 @@ export function DonateManager(): React.ReactElement {
                         </div>
 
                       <div className="flex items-center gap-2">
-                        <Button onClick={() => toggleVisibleBank(b)} className={`bg-[#2E2E2E] text-white ${!b.visible ? 'opacity-60' : ''}`} title={b.visible ? 'Hide' : 'Show'}>
+                        <Button onClick={() => toggleVisibleBank(b)} className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white ${!b.visible ? 'opacity-60' : ''}`} title={b.visible ? 'Unpublish' : 'Publish'}>
                           {b.visible ? <Eye size={14} /> : <EyeOff size={14} />}
                         </Button>
                           {/* View button removed per design request */}
-                        <Button onClick={() => { setExpandedBankId(null); setEditingBankId(String(b.id)); }} className="bg-[#FDB813] text-black flex items-center gap-2">
+                        <Button onClick={() => { setExpandedBankId(null); setEditingBankId(String(b.id)); }} className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white flex items-center gap-2" title="Edit">
                           <Edit2 size={14} />
                         </Button>
-                        <Button onClick={() => { setDeleteTarget({ type: 'bank', id: b.id, name: b.account_name }); setDeleteDialogOpen(true); }} className="bg-transparent text-white border border-red-500">
+                        <Button onClick={() => { setDeleteTarget({ type: 'bank', id: b.id, name: b.account_name }); setDeleteDialogOpen(true); }} className="bg-transparent rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white" title="Delete">
                           <Trash2 size={14} />
                         </Button>
                       </div>

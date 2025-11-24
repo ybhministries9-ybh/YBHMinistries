@@ -126,20 +126,21 @@ function DatePicker({
       <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className={`w-full justify-start text-left bg-[#2e2e2e] border-gray-600 text-white hover:bg-[#2e2e2e] hover:text-white cursor-pointer ${className || ''}`}
+            className={`w-full justify-start text-left !bg-[#2e2e2e] border-gray-600 text-white hover:bg-[#2e2e2e] hover:text-white cursor-pointer ${className || ''}`}
+            style={{ backgroundColor: '#2e2e2e', color: '#fff' }}
           >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {dateValue ? format(dateValue, 'PPP') : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 bg-[#2e2e2e] border-gray-600" align="start">
+      <PopoverContent className="w-auto p-0 !bg-[#2e2e2e] border-gray-600" align="start" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
         <Calendar
           mode="single"
           selected={dateValue}
           onSelect={handleSelect}
           disabled={(date) => date > today}
           initialFocus
-          className="bg-[#2e2e2e] text-white"
+          className="!bg-[#2e2e2e] text-white"
         />
       </PopoverContent>
     </Popover>
@@ -895,7 +896,10 @@ export function StoriesManager() {
   }), [stories]);
 
   return (
-    <div className="p-6">
+    <div
+      className="p-6"
+      style={{ ['--input-background' as any]: '#2e2e2e', ['--input' as any]: '#2e2e2e' }}
+    >
       <div className="flex items-start justify-between mb-6">
         <div>
           <h2 className="text-3xl font-bold text-white mb-1">Stories Management Page</h2>
@@ -904,14 +908,14 @@ export function StoriesManager() {
         <div className="flex gap-2">
           <Button
             onClick={handleAddTextStory}
-            className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813] cursor-pointer"
+            className="!bg-[#2e2e2e] hover:bg-[#3E3E3E] text-white border border-[#FDB813] cursor-pointer"
           >
             <FileText size={16} className="mr-2" />
             Add Text Story
           </Button>
           <Button
             onClick={handleAddVideoStory}
-            className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813] cursor-pointer"
+            className="!bg-[#2e2e2e] hover:bg-[#3E3E3E] text-white border border-[#FDB813] cursor-pointer"
           >
             <Video size={16} className="mr-2" />
             Add Video Story
@@ -939,12 +943,12 @@ export function StoriesManager() {
       {/* Category Filter */}
       <div className="mb-4">
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-64 bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
+            <SelectTrigger className="w-64 !bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
+            <SelectContent className="!bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
               {CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat} className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
+                <SelectItem key={cat} value={cat} className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
               ))}
             </SelectContent>
         </Select>
@@ -1011,19 +1015,19 @@ export function StoriesManager() {
                     <Input
                       value={filterCategory}
                       readOnly
-                      className="bg-[#2e2e2e] border-gray-600 text-white rounded-lg px-3 py-2 cursor-default"
+                      className="!bg-[#2e2e2e] border-gray-600 text-white rounded-lg px-3 py-2 cursor-default"
                     />
                   ) : (
                     <Select 
                       value={story.category} 
                       onValueChange={(value) => handleUpdate(story.id, 'category', value)}
                     >
-                      <SelectTrigger className="bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
+                      <SelectTrigger className="!bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg">
+                      <SelectContent className="!bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
                         {CATEGORIES.map(cat => (
-                          <SelectItem key={cat} value={cat} className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
+                          <SelectItem key={cat} value={cat} className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1046,7 +1050,7 @@ export function StoriesManager() {
                           value={story.name || ''}
                           onChange={(e) => handleUpdate(story.id, 'name', e.target.value.slice(0, CHAR_LIMITS.name))}
                           placeholder="Full Name"
-                          className={`bg-[#2e2e2e] border-gray-600 text-white ${
+                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
                             validationErrors[story.id]?.name ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.name}
@@ -1061,7 +1065,7 @@ export function StoriesManager() {
                             value={story.email || ''}
                             onChange={(e) => handleUpdate(story.id, 'email', e.target.value.slice(0, CHAR_LIMITS.email))}
                             placeholder="example@domain.com"
-                            className={`bg-[#2e2e2e] border-gray-600 text-white ${
+                            className={`!bg-[#2e2e2e] border-gray-600 text-white ${
                               validationErrors[story.id]?.email ? 'border-red-500' : ''
                             }`}
                             maxLength={CHAR_LIMITS.email}
@@ -1084,7 +1088,7 @@ export function StoriesManager() {
                           value={story.role || ''}
                           onChange={(e) => handleUpdate(story.id, 'role', e.target.value.slice(0, CHAR_LIMITS.role))}
                           placeholder="Role (e.g., Participant, Student)"
-                          className={`bg-[#2e2e2e] border-gray-600 text-white ${
+                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
                             validationErrors[story.id]?.role ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.role}
@@ -1115,7 +1119,7 @@ export function StoriesManager() {
                           value={story.location || ''}
                           onChange={(e) => handleUpdate(story.id, 'location', e.target.value.slice(0, CHAR_LIMITS.location))}
                           placeholder="Location (e.g., Mumbai, India)"
-                          className={`bg-[#2e2e2e] border-gray-600 text-white ${
+                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
                             validationErrors[story.id]?.location ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.location}
@@ -1130,7 +1134,7 @@ export function StoriesManager() {
                     <div className="space-y-2">
                       <Label className="text-gray-300">Profile Image (optional)</Label>
                       <div
-                        className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md border-gray-700 bg-[#2e2e2e] text-gray-300 cursor-pointer"
+                        className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md border-gray-700 !bg-[#2e2e2e] text-gray-300 cursor-pointer"
                         onClick={() => document.getElementById(`file-input-${story.id}`)?.click()}
                         onDragOver={(e) => { e.preventDefault(); }}
                         onDrop={(e) => {
@@ -1174,7 +1178,7 @@ export function StoriesManager() {
                         value={story.text || ''}
                         onChange={(e) => handleUpdate(story.id, 'text', e.target.value.slice(0, CHAR_LIMITS.text))}
                         placeholder="Testimony/Story Text"
-                        className={`bg-[#2e2e2e] border-gray-600 text-white ${
+                        className={`!bg-[#2e2e2e] border-gray-600 text-white ${
                           validationErrors[story.id]?.text ? 'border-red-500' : ''
                         }`}
                         rows={5}
@@ -1196,11 +1200,11 @@ export function StoriesManager() {
                           ({(story.title || '').length}/{CHAR_LIMITS.title})
                         </span>
                       </Label>
-                      <Input
+                        <Input
                         value={story.title || ''}
                         onChange={(e) => handleUpdate(story.id, 'title', e.target.value.slice(0, CHAR_LIMITS.title))}
                         placeholder="Video Title"
-                        className={`bg-[#2e2e2e] border-gray-600 text-white ${
+                        className={`!bg-[#2e2e2e] border-gray-600 text-white ${
                           validationErrors[story.id]?.title ? 'border-red-500' : ''
                         }`}
                         maxLength={CHAR_LIMITS.title}
@@ -1218,7 +1222,7 @@ export function StoriesManager() {
                           value={story.role || ''}
                           onChange={(e) => handleUpdate(story.id, 'role', e.target.value.slice(0, CHAR_LIMITS.role))}
                           placeholder="Role (e.g., Participant, Student)"
-                          className={`bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.role ? 'border-red-500' : ''}`}
+                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.role ? 'border-red-500' : ''}`}
                           maxLength={CHAR_LIMITS.role}
                         />
                         {validationErrors[story.id]?.role && (
@@ -1231,7 +1235,7 @@ export function StoriesManager() {
                           value={story.location || ''}
                           onChange={(e) => handleUpdate(story.id, 'location', e.target.value.slice(0, CHAR_LIMITS.location))}
                           placeholder="Location (e.g., Mumbai, India)"
-                          className={`bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.location ? 'border-red-500' : ''}`}
+                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.location ? 'border-red-500' : ''}`}
                           maxLength={CHAR_LIMITS.location}
                         />
                         {validationErrors[story.id]?.location && (
@@ -1261,7 +1265,7 @@ export function StoriesManager() {
                         value={story.youtubeUrl || ''}
                         onChange={(e) => handleUpdate(story.id, 'youtubeUrl', e.target.value.slice(0, CHAR_LIMITS.youtubeUrl))}
                         placeholder="https://www.youtube.com/watch?v=..."
-                        className={`bg-[#2e2e2e] border-gray-600 text-white ${
+                        className={`!bg-[#2e2e2e] border-gray-600 text-white ${
                           validationErrors[story.id]?.youtubeUrl ? 'border-red-500' : ''
                         }`}
                         maxLength={CHAR_LIMITS.youtubeUrl}
@@ -1284,14 +1288,14 @@ export function StoriesManager() {
                       value={story.status || 'Submitted'} 
                       onValueChange={(value: any) => handleUpdate(story.id, 'status', value)}
                     >
-                        <SelectTrigger className="bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
+                        <SelectTrigger className="!bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg">
-                          <SelectItem value="Submitted" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Submitted</SelectItem>
-                          <SelectItem value="In-Review" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">In-Review</SelectItem>
-                          <SelectItem value="Approved" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Approved</SelectItem>
-                          <SelectItem value="Rejected" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Rejected</SelectItem>
+                        <SelectContent className="!bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
+                          <SelectItem value="Submitted" className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Submitted</SelectItem>
+                          <SelectItem value="In-Review" className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">In-Review</SelectItem>
+                          <SelectItem value="Approved" className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Approved</SelectItem>
+                          <SelectItem value="Rejected" className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Rejected</SelectItem>
                         </SelectContent>
                     </Select>
                   </div>
@@ -1301,18 +1305,18 @@ export function StoriesManager() {
                 {/* Action Buttons - moved to right and add icon on Save */}
                 <div className="flex gap-2 justify-end">
                   <Button
-                    onClick={() => handleSaveStory(story.id)}
-                    className="bg-[#FDB813] hover:bg-[#e5a610] text-black cursor-pointer flex items-center"
-                  >
-                    <Save size={16} className="mr-2" />
-                    Save
-                  </Button>
-                  <Button
                     onClick={() => handleCancel(story.id)}
                     className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 cursor-pointer flex items-center"
                   >
                     <X size={16} className="mr-1" />
                     Cancel
+                  </Button>
+                  <Button
+                    onClick={() => handleSaveStory(story.id)}
+                    className="bg-[#FDB813] hover:bg-[#e5a610] text-black cursor-pointer flex items-center"
+                  >
+                    <Save size={16} className="mr-2" />
+                    Save
                   </Button>
                 </div>
               </div>

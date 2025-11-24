@@ -178,8 +178,8 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
                   // always call toggle handler so manager updates server for existing rows
                   toggleVisibleImmediate(newVal);
                 }}
-                className={`bg-[#2E2E2E] text-white ${ (editing ? !!local.visible : !!u.visible) ? '' : 'opacity-60' }`}
-                title={(editing ? (!!local.visible ? 'Hide' : 'Show') : (u.visible ? 'Hide' : 'Show'))}
+                className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a]  text-white ${ (editing ? !!local.visible : !!u.visible) ? '' : 'opacity-60' }`}
+                title={(editing ? (!!local.visible ? 'Unpublish' : 'Publish') : (u.visible ? 'Unpublish' : 'Publish'))}
                 aria-label="Toggle visible"
               >
                 {(editing ? !!local.visible : !!u.visible) ? <Eye size={16} /> : <EyeOff size={16} />}
@@ -188,10 +188,10 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
 
             {!editing ? (
               <>
-                <Button onClick={startEdit} className="bg-[#FDB813] hover:bg-[#e5a610] text-black flex items-center gap-2">
+                <Button onClick={startEdit} title="Edit" className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a]  text-white flex items-center gap-2">
                   <Edit2 size={14} />
                 </Button>
-                <Button onClick={() => setDeleteOpen(true)} className="bg-transparent text-white border border-red-500">
+                <Button onClick={() => setDeleteOpen(true)} title="Delete" className="bg-transparent rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a]  text-white" >
                   <Trash2 size={16} />
                 </Button>
                 <DeleteConfirmDialog
