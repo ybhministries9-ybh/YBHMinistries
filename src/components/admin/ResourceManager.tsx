@@ -613,7 +613,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           title={book.published ? 'Unpublish' : 'Publish'}
                           onClick={() => togglePublished(book.id)}
                           size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rrounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
                           {book.published ? <EyeOff size={14} /> : <Eye size={14} />}
                         </Button>

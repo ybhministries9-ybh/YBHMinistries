@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Star, Eye, EyeOff } from 'lucide-react';
+import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Star, Eye, EyeOff, Save } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -124,22 +124,22 @@ function DatePicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={`w-full justify-start text-left bg-black border-gray-600 text-white hover:bg-black hover:text-white cursor-pointer ${className || ''}`}
-        >
+          <Button
+            variant="outline"
+            className={`w-full justify-start text-left bg-[#2e2e2e] border-gray-600 text-white hover:bg-[#2e2e2e] hover:text-white cursor-pointer ${className || ''}`}
+          >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {dateValue ? format(dateValue, 'PPP') : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 bg-black border-gray-600" align="start">
+      <PopoverContent className="w-auto p-0 bg-[#2e2e2e] border-gray-600" align="start">
         <Calendar
           mode="single"
           selected={dateValue}
           onSelect={handleSelect}
           disabled={(date) => date > today}
           initialFocus
-          className="bg-black text-white"
+          className="bg-[#2e2e2e] text-white"
         />
       </PopoverContent>
     </Popover>
@@ -763,26 +763,32 @@ export function StoriesManager() {
     setEditingId(null);
   };
 
-  const handleUpdate = (id: string, field: keyof Story, value: any) => {
-    setStories(stories.map(s => s.id === id ? { ...s, [field]: value } : s));
-      // Prevent numbers in name, role, and location fields by stripping digits
-      if (typeof value === 'string' && (field === 'name' || field === 'role' || field === 'location')) {
-        value = value.replace(/\d/g, '');
-      }
-      setStories(stories.map(s => s.id === id ? { ...s, [field]: value } : s));
-    
-    // Clear validation error for this field when user starts typing
-    if (validationErrors[id]) {
-      const newErrors = { ...validationErrors };
-      if (newErrors[id]) {
-        delete newErrors[id][field as keyof ValidationErrors];
-        if (Object.keys(newErrors[id]).length === 0) {
-          delete newErrors[id];
-        }
-        setValidationErrors(newErrors);
-      }
+  const handleUpdate = useCallback((id: string, field: keyof Story, rawValue: any) => {
+    // sanitize value before updating state
+    let value = rawValue;
+    if (typeof value === 'string' && (field === 'name' || field === 'role' || field === 'location')) {
+      value = value.replace(/\d/g, '');
     }
-  };
+
+    // Single state update using functional setter to avoid stale closures
+    setStories(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+
+    // Clear validation error for this field when user starts typing
+    setValidationErrors(prev => {
+      if (!prev[id]) return prev;
+      const copy = { ...prev };
+      if (copy[id]) {
+        const fieldCopy = { ...copy[id] };
+        delete fieldCopy[field as keyof ValidationErrors];
+        if (Object.keys(fieldCopy).length === 0) {
+          delete copy[id];
+        } else {
+          copy[id] = fieldCopy;
+        }
+      }
+      return copy;
+    });
+  }, []);
 
   const handleStatusChange = (id: string, newStatus: 'Submitted' | 'In-Review' | 'Approved' | 'Rejected') => {
     (async () => {
@@ -1005,17 +1011,17 @@ export function StoriesManager() {
                     <Input
                       value={filterCategory}
                       readOnly
-                      className="bg-black border-gray-600 text-white rounded-lg px-3 py-2 cursor-default"
+                      className="bg-[#2e2e2e] border-gray-600 text-white rounded-lg px-3 py-2 cursor-default"
                     />
                   ) : (
                     <Select 
                       value={story.category} 
                       onValueChange={(value) => handleUpdate(story.id, 'category', value)}
                     >
-                      <SelectTrigger className="bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
+                      <SelectTrigger className="bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
+                      <SelectContent className="bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg">
                         {CATEGORIES.map(cat => (
                           <SelectItem key={cat} value={cat} className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
                         ))}
@@ -1040,7 +1046,7 @@ export function StoriesManager() {
                           value={story.name || ''}
                           onChange={(e) => handleUpdate(story.id, 'name', e.target.value.slice(0, CHAR_LIMITS.name))}
                           placeholder="Full Name"
-                          className={`bg-black border-gray-600 text-white ${
+                          className={`bg-[#2e2e2e] border-gray-600 text-white ${
                             validationErrors[story.id]?.name ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.name}
@@ -1055,7 +1061,7 @@ export function StoriesManager() {
                             value={story.email || ''}
                             onChange={(e) => handleUpdate(story.id, 'email', e.target.value.slice(0, CHAR_LIMITS.email))}
                             placeholder="example@domain.com"
-                            className={`bg-black border-gray-600 text-white ${
+                            className={`bg-[#2e2e2e] border-gray-600 text-white ${
                               validationErrors[story.id]?.email ? 'border-red-500' : ''
                             }`}
                             maxLength={CHAR_LIMITS.email}
@@ -1078,7 +1084,7 @@ export function StoriesManager() {
                           value={story.role || ''}
                           onChange={(e) => handleUpdate(story.id, 'role', e.target.value.slice(0, CHAR_LIMITS.role))}
                           placeholder="Role (e.g., Participant, Student)"
-                          className={`bg-black border-gray-600 text-white ${
+                          className={`bg-[#2e2e2e] border-gray-600 text-white ${
                             validationErrors[story.id]?.role ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.role}
@@ -1109,7 +1115,7 @@ export function StoriesManager() {
                           value={story.location || ''}
                           onChange={(e) => handleUpdate(story.id, 'location', e.target.value.slice(0, CHAR_LIMITS.location))}
                           placeholder="Location (e.g., Mumbai, India)"
-                          className={`bg-black border-gray-600 text-white ${
+                          className={`bg-[#2e2e2e] border-gray-600 text-white ${
                             validationErrors[story.id]?.location ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.location}
@@ -1124,7 +1130,7 @@ export function StoriesManager() {
                     <div className="space-y-2">
                       <Label className="text-gray-300">Profile Image (optional)</Label>
                       <div
-                        className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md border-gray-700 bg-black text-gray-300 cursor-pointer"
+                        className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md border-gray-700 bg-[#2e2e2e] text-gray-300 cursor-pointer"
                         onClick={() => document.getElementById(`file-input-${story.id}`)?.click()}
                         onDragOver={(e) => { e.preventDefault(); }}
                         onDrop={(e) => {
@@ -1168,7 +1174,7 @@ export function StoriesManager() {
                         value={story.text || ''}
                         onChange={(e) => handleUpdate(story.id, 'text', e.target.value.slice(0, CHAR_LIMITS.text))}
                         placeholder="Testimony/Story Text"
-                        className={`bg-black border-gray-600 text-white ${
+                        className={`bg-[#2e2e2e] border-gray-600 text-white ${
                           validationErrors[story.id]?.text ? 'border-red-500' : ''
                         }`}
                         rows={5}
@@ -1194,7 +1200,7 @@ export function StoriesManager() {
                         value={story.title || ''}
                         onChange={(e) => handleUpdate(story.id, 'title', e.target.value.slice(0, CHAR_LIMITS.title))}
                         placeholder="Video Title"
-                        className={`bg-black border-gray-600 text-white ${
+                        className={`bg-[#2e2e2e] border-gray-600 text-white ${
                           validationErrors[story.id]?.title ? 'border-red-500' : ''
                         }`}
                         maxLength={CHAR_LIMITS.title}
@@ -1212,7 +1218,7 @@ export function StoriesManager() {
                           value={story.role || ''}
                           onChange={(e) => handleUpdate(story.id, 'role', e.target.value.slice(0, CHAR_LIMITS.role))}
                           placeholder="Role (e.g., Participant, Student)"
-                          className={`bg-black border-gray-600 text-white ${validationErrors[story.id]?.role ? 'border-red-500' : ''}`}
+                          className={`bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.role ? 'border-red-500' : ''}`}
                           maxLength={CHAR_LIMITS.role}
                         />
                         {validationErrors[story.id]?.role && (
@@ -1225,7 +1231,7 @@ export function StoriesManager() {
                           value={story.location || ''}
                           onChange={(e) => handleUpdate(story.id, 'location', e.target.value.slice(0, CHAR_LIMITS.location))}
                           placeholder="Location (e.g., Mumbai, India)"
-                          className={`bg-black border-gray-600 text-white ${validationErrors[story.id]?.location ? 'border-red-500' : ''}`}
+                          className={`bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.location ? 'border-red-500' : ''}`}
                           maxLength={CHAR_LIMITS.location}
                         />
                         {validationErrors[story.id]?.location && (
@@ -1255,7 +1261,7 @@ export function StoriesManager() {
                         value={story.youtubeUrl || ''}
                         onChange={(e) => handleUpdate(story.id, 'youtubeUrl', e.target.value.slice(0, CHAR_LIMITS.youtubeUrl))}
                         placeholder="https://www.youtube.com/watch?v=..."
-                        className={`bg-black border-gray-600 text-white ${
+                        className={`bg-[#2e2e2e] border-gray-600 text-white ${
                           validationErrors[story.id]?.youtubeUrl ? 'border-red-500' : ''
                         }`}
                         maxLength={CHAR_LIMITS.youtubeUrl}
@@ -1278,10 +1284,10 @@ export function StoriesManager() {
                       value={story.status || 'Submitted'} 
                       onValueChange={(value: any) => handleUpdate(story.id, 'status', value)}
                     >
-                        <SelectTrigger className="bg-black text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
+                        <SelectTrigger className="bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-black border-2 border-[#FDB813] rounded-lg">
+                        <SelectContent className="bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg">
                           <SelectItem value="Submitted" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Submitted</SelectItem>
                           <SelectItem value="In-Review" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">In-Review</SelectItem>
                           <SelectItem value="Approved" className="text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Approved</SelectItem>
@@ -1292,17 +1298,18 @@ export function StoriesManager() {
                   {/* Featured checkbox removed per design change */}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2">
+                {/* Action Buttons - moved to right and add icon on Save */}
+                <div className="flex gap-2 justify-end">
                   <Button
                     onClick={() => handleSaveStory(story.id)}
-                    className="bg-[#FDB813] hover:bg-[#e5a610] text-black cursor-pointer"
+                    className="bg-[#FDB813] hover:bg-[#e5a610] text-black cursor-pointer flex items-center"
                   >
+                    <Save size={16} className="mr-2" />
                     Save
                   </Button>
                   <Button
                     onClick={() => handleCancel(story.id)}
-                    className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 cursor-pointer"
+                    className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 cursor-pointer flex items-center"
                   >
                     <X size={16} className="mr-1" />
                     Cancel
@@ -1361,25 +1368,27 @@ export function StoriesManager() {
                         <Button
                           size="sm"
                           onClick={() => toggleVisibility(story)}
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-md transition-colors"
-                          aria-label={story.is_visible ? 'Make invisible' : 'Make visible'}
-                          title={story.is_visible ? 'Make invisible' : 'Make visible'}
+                          className="bg-[#2E2E2E] hover:rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white transition-colors"
+                          aria-label={story.is_visible ? 'Unpublish' : 'Publish'}
+                          title={story.is_visible ? 'Unpublish' : 'Publish'}
                         >
                           {story.is_visible ? <Eye size={18} /> : <EyeOff size={18} />}
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => setEditingId(story.id)}
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813] rounded-md px-3 flex items-center gap-2 transition-colors"
+                          className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white px-3 flex items-center gap-2 transition-colors"
                           aria-label="Edit"
+                          title="Edit"
                         >
                           <Edit2 size={16} />
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleDelete(story.id)}
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-white border border-red-500 rounded-md p-2 transition-colors"
+                          className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white p-2 transition-colors"
                           aria-label="Delete"
+                          title="Delete"
                         >
                           <Trash2 size={16} />
                         </Button>

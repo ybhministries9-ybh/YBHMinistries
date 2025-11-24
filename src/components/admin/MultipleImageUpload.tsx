@@ -353,12 +353,16 @@ export function MultipleImageUpload({
                     className="relative bg-[#2E2E2E] rounded-lg border border-gray-700 overflow-hidden"
                   >
                     {/* Image Preview */}
-                    <div className="aspect-square bg-[#1a1a1a] overflow-hidden">
-                      <img
-                        src={image.preview}
-                        alt="Upload preview"
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="aspect-square bg-[#1a1a1a] overflow-hidden flex items-center justify-center">
+                      {image.preview ? (
+                        <img
+                          src={image.preview}
+                          alt="Upload preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-gray-600 flex items-center justify-center w-full h-full"><ImageIcon size={36} /></div>
+                      )}
                     </div>
 
                     {/* Status Overlay */}
