@@ -219,11 +219,13 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'sermons':
+        // Default published to true for new sermons if caller didn't specify
+        const sermonPublished = typeof data.published === 'boolean' ? data.published : true;
         result = await sql`
           INSERT INTO sermons (
-            youtube_url, published, created_by, updated_by
+            youtube_url, title, date_posted, display_order, published, created_by, updated_by
           ) VALUES (
-            ${data.youtube_url}, ${data.published || false},
+            ${data.youtube_url}, ${data.title || null}, ${data.date_posted || null}, ${data.display_order || null}, ${sermonPublished},
             ${actor2}, ${actor2}
           )
           RETURNING *
@@ -334,9 +336,13 @@ export async function PUT(request: NextRequest) {
         break;
 
       case 'sermons':
+        // Preserve existing title, date_posted and display_order when caller doesn't supply them
         result = await sql`
           UPDATE sermons
           SET youtube_url = ${data.youtube_url},
+              title = COALESCE(${data.title}, title),
+              date_posted = COALESCE(${data.date_posted}, date_posted),
+              display_order = COALESCE(${data.display_order}, display_order),
               published = ${data.published},
               updated_by = ${actor},
               updated_at = CURRENT_TIMESTAMP
