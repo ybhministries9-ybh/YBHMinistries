@@ -9,14 +9,16 @@ async function checkData() {
       WHERE published = true
     `;
     
-    console.log('=== Report Data ===');
-    result.rows.forEach(row => {
-      console.log(`\nYear: ${row.year}, Class: ${row.class_type}`);
-      console.log('Monthly Data:');
-      row.monthly_data.forEach(month => {
-        console.log(`  ${month.month}: indian=${month.indian}, nonIndian=${month.nonIndian}, total=${month.total}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('=== Report Data ===');
+      result.rows.forEach(row => {
+        console.log(`\nYear: ${row.year}, Class: ${row.class_type}`);
+        console.log('Monthly Data:');
+        row.monthly_data.forEach(month => {
+          console.log(`  ${month.month}: indian=${month.indian}, nonIndian=${month.nonIndian}, total=${month.total}`);
+        });
       });
-    });
+    }
   } catch (error) {
     console.error('Error:', error);
   } finally {

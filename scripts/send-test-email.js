@@ -22,7 +22,7 @@ async function main() {
     process.exit(2);
   }
 
-  console.debug('Waiting for dev server at', BASE);
+  if (process.env.NODE_ENV !== 'production') console.debug('Waiting for dev server at', BASE);
   const ready = await waitForServer();
   if (!ready) {
     console.error('Server did not become ready');
@@ -30,7 +30,7 @@ async function main() {
   }
 
   const user = { name: 'Manual Test', email: target, role: 'Viewer' };
-  console.debug('Creating user:', target);
+  if (process.env.NODE_ENV !== 'production') console.debug('Creating user:', target);
   const createRes = await fetch(`${BASE}/api/admin/users`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(user)
   });
@@ -43,7 +43,7 @@ async function main() {
   }
 
   const id = created.data.id;
-  console.debug('User created id', id, '- sending invite');
+  if (process.env.NODE_ENV !== 'production') console.debug('User created id', id, '- sending invite');
 
   const inviteRes = await fetch(`${BASE}/api/admin/users/invite`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
@@ -52,8 +52,10 @@ async function main() {
   let inviteJson;
   try { inviteJson = JSON.parse(inviteBody); } catch (e) { console.error('Invalid JSON from invite:', inviteBody); process.exit(6); }
 
-  console.debug('Invite response:', inviteRes.status, inviteJson);
-  if (inviteJson?.providerResponse) console.debug('Provider response body:', inviteJson.providerResponse);
+  if (process.env.NODE_ENV !== 'production') {
+    console.debug('Invite response:', inviteRes.status, inviteJson);
+    if (inviteJson?.providerResponse) console.debug('Provider response body:', inviteJson.providerResponse);
+  }
   process.exit(0);
 }
 

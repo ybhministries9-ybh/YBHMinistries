@@ -27,7 +27,7 @@ async function inspect() {
       FROM pg_catalog.pg_constraint c
       WHERE conname = 'chk_get_in_touch_email_format'
     `;
-    console.debug('rows', rows);
+    if (process.env.NODE_ENV !== 'production') console.debug('rows', rows);
   } catch (err) {
     console.error('inspect error', err);
   }
