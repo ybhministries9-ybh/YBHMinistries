@@ -605,47 +605,45 @@ export function StoriesPage() {
   // Resolve r2:// thumbnail references to signed URLs for display (cards and modal)
   useEffect(() => {
     let cancelled = false;
-    const resolveR2 = async (s: PublicStory) => {
-      try {
-        if (!s.thumbnail_url) return;
-        if (s.thumbnail_url.startsWith('http://') || s.thumbnail_url.startsWith('https://') || s.thumbnail_url.startsWith('blob:') || s.thumbnail_url.startsWith('data:')) {
-          setPreviewUrls(prev => ({ ...prev, [s.id]: s.thumbnail_url as string }));
-          return;
+
+    const itemsToResolve = publicStories.filter(s => s.thumbnail_url && !previewUrls[s.id]);
+    if (itemsToResolve.length === 0) return;
+
+    (async () => {
+      const resolved: Record<number, string> = {};
+      await Promise.all(itemsToResolve.map(async (s) => {
+        try {
+          const url = s.thumbnail_url;
+          if (!url) return;
+          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+            resolved[s.id] = url as string;
+            return;
+          }
+          if (!url.startsWith('r2://')) return;
+          const rest = url.slice('r2://'.length);
+          const parts = rest.split('/').filter(Boolean);
+          if (parts.length === 0) return;
+          parts.shift();
+          const key = parts.join('/');
+          if (!key) return;
+          const resp = await fetch('/api/r2/presign-get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, expiresIn: 3600 })
+          });
+          if (!resp.ok) return;
+          const json = await resp.json();
+          if (cancelled) return;
+          if (json && json.url) resolved[s.id] = json.url;
+        } catch (e) {
+          // ignore
         }
-        if (!s.thumbnail_url.startsWith('r2://')) return;
-        const rest = s.thumbnail_url.slice('r2://'.length);
-        const parts = rest.split('/').filter(Boolean);
-        // strip bucket
-        if (parts.length === 0) return;
-        parts.shift();
-        const key = parts.join('/');
-        if (!key) return;
-        const resp = await fetch('/api/r2/presign-get', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, expiresIn: 3600 })
-        });
-        if (!resp.ok) return;
-        const json = await resp.json();
-        if (cancelled) return;
-        if (json && json.url) setPreviewUrls(prev => ({ ...prev, [s.id]: json.url }));
-      } catch (e) {
-        // ignore
+      }));
+      if (!cancelled && Object.keys(resolved).length > 0) {
+        setPreviewUrls(prev => ({ ...prev, ...resolved }));
       }
-    };
+    })();
 
-    const pending: Array<Promise<void>> = [];
-    for (const s of publicStories) {
-      if (!s.thumbnail_url) continue;
-      // Skip already resolved or non-r2 URLs
-      if (previewUrls[s.id]) continue;
-      if (s.thumbnail_url.startsWith('r2://') || s.thumbnail_url.startsWith('http://') || s.thumbnail_url.startsWith('https://')) {
-        pending.push(resolveR2(s));
-      }
-    }
-
-    // Fire and forget; we use cancellation flag
-    void Promise.allSettled(pending);
     return () => { cancelled = true; };
   }, [publicStories, previewUrls]);
 
