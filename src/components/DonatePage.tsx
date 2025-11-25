@@ -316,6 +316,12 @@ export function DonatePage() {
                                     className="rounded-xl p-6 flex flex-col items-center"
                                     style={{ backgroundColor: '#373737', boxSizing: 'border-box', width: '100%', maxWidth: 320 }}
                                   >
+                                    {/* UPI label/name displayed above QR code */}
+                                    {u.label && (
+                                      <div className="w-full mb-2">
+                                        <div className="text-base font-semibold text-center" style={{ color: '#FDB813', textTransform: 'uppercase' }}>{u.label.toUpperCase()}</div>
+                                      </div>
+                                    )}
                                     <div className="w-full">
                                       <div className="text-xl font-semibold text-center" style={{ color: '#fff' }}>Scan to Pay</div>
                                     </div>
@@ -329,7 +335,6 @@ export function DonatePage() {
                                         />
                                       </div>
                                     </div>
-
                                     {u.upi_id ? (
                                       <div className="mt-4 w-full">
                                         <div className="text-xs text-gray-300 mb-1 text-center">UPI ID</div>
