@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw, Edit2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { InfoDialog } from './InfoDialog';
 
 interface User {
   id: string;
@@ -24,6 +25,7 @@ type SortDirection = 'asc' | 'desc';
 
 export function UserManager() {
   const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<{ id: string; role: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -37,6 +39,10 @@ export function UserManager() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [resetInfoOpen, setResetInfoOpen] = useState(false);
+  const [resetInfoUser, setResetInfoUser] = useState<User | null>(null);
+  const [createdInfoOpen, setCreatedInfoOpen] = useState(false);
+  const [createdInfoUser, setCreatedInfoUser] = useState<User | null>(null);
 
   // Character limits
   const CHAR_LIMITS = {
@@ -58,7 +64,7 @@ export function UserManager() {
           const mapped = (j.data || []).map((r: any) => ({
             id: String(r.id),
             name: r.name,
-            email: r.email,
+            email: String(r.email || '').toLowerCase(),
             role: r.role,
             status: r.status,
             lastLogin: r.last_login ? new Date(r.last_login).toLocaleString() : 'Never',
@@ -75,6 +81,28 @@ export function UserManager() {
       }
     };
     load();
+  }, []);
+
+  // Load current user info for permission checks
+  useEffect(() => {
+    const loadMe = async () => {
+      try {
+        const rawToken = localStorage.getItem('admin_token');
+        let token = '';
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        const resp = await fetch('/api/admin/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        const j = await resp.json();
+        if (j.success && j.user) {
+          setCurrentUser({ id: String(j.user.id), role: j.user.role });
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (err) {
+        console.error('Failed to load current user', err);
+        setCurrentUser(null);
+      }
+    };
+    loadMe();
   }, []);
 
   const validateForm = (): ValidationErrors => {
@@ -147,7 +175,7 @@ export function UserManager() {
         const updated = {
           id: String(j.data.id),
           name: j.data.name,
-          email: j.data.email,
+          email: String(j.data.email || '').toLowerCase(),
           role: j.data.role,
           status: j.data.status,
           lastLogin: j.data.last_login ? new Date(j.data.last_login).toLocaleString() : 'Never',
@@ -172,7 +200,7 @@ export function UserManager() {
         const created = {
           id: String(j.data.id),
           name: j.data.name,
-          email: j.data.email,
+          email: String(j.data.email || '').toLowerCase(),
           role: j.data.role,
           status: j.data.status,
           lastLogin: j.data.last_login ? new Date(j.data.last_login).toLocaleString() : 'Never',
@@ -182,6 +210,8 @@ export function UserManager() {
         setUsers(u => [created, ...u]);
         // No invite flow — password is set to default and user must reset at first login.
         toast.success('User added successfully');
+        setCreatedInfoUser(created);
+        setCreatedInfoOpen(true);
       }
       resetForm();
     } catch (err) {
@@ -373,7 +403,8 @@ export function UserManager() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#0d0d0d] transition-colors cursor-pointer"
+          className={`flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#0d0d0d] transition-colors cursor-pointer ${currentUser && currentUser.role !== 'Super Admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={!!(currentUser && currentUser.role !== 'Super Admin')}
         >
           <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
             <Plus size={14} className="text-white" />
@@ -528,29 +559,72 @@ export function UserManager() {
               </div>
             </div>
             <div className="mt-3 flex items-center gap-2">
-              <button onClick={() => toggleActive(user)} className={`p-2 rounded ${user.status === 'Active' ? 'bg-[#FDB813] text-black' : 'bg-gray-800 text-gray-300'}`} title={user.status === 'Active' ? 'Deactivate' : 'Activate'}>
-                <Power size={16} />
-              </button>
-              <button onClick={async () => {
-                try {
-                  const rawToken = localStorage.getItem('admin_token');
-                  let token = '';
-                  if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
-                  const resp = await fetch('/api/admin/users/reset', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: user.id }) });
-                  const j = await resp.json();
-                  if (!j.success) { toast.error(j.error || 'Failed to reset password'); return; }
-                  setUsers(u => u.map(x => x.id === user.id ? { ...x, mustReset: false } : x));
-                  toast.success('Password reset to default and must-reset cleared');
-                } catch (err) { console.error(err); toast.error('Failed to reset password'); }
-              }} className="p-2 bg-[#FDB813] text-black rounded">
-                <RotateCw size={16} />
-              </button>
-              <button onClick={() => handleEdit(user)} className="h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors" title="Edit">
-                <Edit2 size={16} />
-              </button>
-              <button onClick={() => handleDelete(user)} className="h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors" title="Delete">
-                <Trash2 size={16} />
-              </button>
+              {(() => {
+                const isSelf = currentUser?.id === user.id;
+                const actorRole = currentUser?.role;
+                const actorIsLimited = actorRole === 'Viewer' || actorRole === 'Content Manager';
+                const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
+                const disableDeactivate = isSelf || disableAllForOtherRoles || (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin');
+                const deactivateTitle = disableDeactivate
+                  ? (isSelf ? 'Cannot deactivate yourself' : (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin' ? 'Cannot deactivate Super Admin' : 'Insufficient privileges'))
+                  : (user.status === 'Active' ? 'Deactivate' : 'Activate');
+                return (
+                  <button onClick={() => { if (disableDeactivate) return; toggleActive(user); }} disabled={disableDeactivate} className={`p-2 rounded ${user.status === 'Active' ? 'bg-[#FDB813] text-black' : 'bg-gray-800 text-gray-300'} ${disableDeactivate ? 'opacity-50 cursor-not-allowed' : ''}`} title={deactivateTitle}>
+                    <Power size={16} />
+                  </button>
+                );
+              })()}
+              {(() => {
+                const isSelf = currentUser?.id === user.id;
+                const actorRole = currentUser?.role;
+                const actorIsLimited = actorRole === 'Viewer' || actorRole === 'Content Manager';
+                const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
+                const disableReset = disableAllForOtherRoles || (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin');
+                return (
+                  <button onClick={async () => {
+                    if (disableReset) return;
+                    try {
+                      const rawToken = localStorage.getItem('admin_token');
+                      let token = '';
+                      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+                      const resp = await fetch('/api/admin/users/reset', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: user.id }) });
+                      const j = await resp.json();
+                      if (!j.success) { toast.error(j.error || 'Failed to set require-reset'); return; }
+                      setUsers(u => u.map(x => x.id === user.id ? { ...x, mustReset: true } : x));
+                      setResetInfoUser(user);
+                      setResetInfoOpen(true);
+                      // also show toast for quick feedback
+                      toast.success('User marked to require password reset on next login');
+                    } catch (err) { console.error(err); toast.error('Failed to reset password'); }
+                  }} disabled={disableReset} title="Require password reset on next login" className={`p-2 bg-[#FDB813] text-black rounded ${disableReset ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <RotateCw size={16} />
+                  </button>
+                );
+              })()}
+              {(() => {
+                const isSelf = currentUser?.id === user.id;
+                const actorRole = currentUser?.role;
+                const actorIsLimited = actorRole === 'Viewer' || actorRole === 'Content Manager';
+                const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
+                const disableEdit = disableAllForOtherRoles || (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin');
+                return (
+                  <button onClick={() => { if (disableEdit) return; handleEdit(user); }} disabled={disableEdit} className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableEdit ? 'opacity-50 cursor-not-allowed' : ''}`} title="Edit">
+                    <Edit2 size={16} />
+                  </button>
+                );
+              })()}
+              {(() => {
+                const isSelf = currentUser?.id === user.id;
+                const actorRole = currentUser?.role;
+                const actorIsLimited = actorRole === 'Viewer' || actorRole === 'Content Manager';
+                const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
+                const disableDelete = disableAllForOtherRoles || (user.role === 'Super Admin') || isSelf;
+                return (
+                  <button onClick={() => { if (disableDelete) return; handleDelete(user); }} disabled={disableDelete} className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableDelete ? 'opacity-50 cursor-not-allowed' : ''}`} title={disableDelete ? (isSelf ? 'Cannot delete yourself' : (user.role === 'Super Admin' ? 'Cannot delete Super Admin' : 'Insufficient privileges')) : 'Delete'}>
+                    <Trash2 size={16} />
+                  </button>
+                );
+              })()}
             </div>
           </div>
         ))}
@@ -673,57 +747,96 @@ export function UserManager() {
                     </td>
                     <td className="px-3 py-4 text-right text-sm">
                       <div className="hidden md:flex items-center justify-end gap-2 flex-wrap">
-                        <button
-                          onClick={() => toggleActive(user)}
-                          className={`px-3 py-2 rounded transition-colors text-sm font-medium ${user.status === 'Active' ? 'bg-[#FDB813] text-black hover:bg-[#e5a711]' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
-                          title={user.status === 'Active' ? 'Deactivate user' : 'Activate user'}
-                        >
-                          {user.status === 'Active' ? 'Deactivate' : 'Activate'}
-                        </button>
-                        {/* Reset password to default and require reset on first login */}
-                        <button
-                          onClick={async () => {
-                            try {
-                              const rawToken = localStorage.getItem('admin_token');
-                              let token = '';
-                              if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
-                              const resp = await fetch('/api/admin/users/reset', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: user.id }) });
-                              const j = await resp.json();
-                              if (!j.success) {
-                                toast.error(j.error || 'Failed to reset password');
-                                return;
-                              }
-                              // optimistic update: password reset to default and clear mustReset flag
-                              setUsers(u => u.map(x => x.id === user.id ? { ...x, mustReset: false } : x));
-                              toast.success('Password reset to default and must-reset cleared');
-                            } catch (err) {
-                              console.error('reset password failed', err);
-                              toast.error('Failed to reset password');
-                            }
-                          }}
-                          className="px-3 py-2 bg-[#FDB813] text-black rounded hover:bg-[#e5a711] transition-colors text-sm font-medium"
-                          title="Reset password to default"
-                        >
-                          Reset Password
-                        </button>
-                        {/* Removed 'Require Reset' toggle — admin can use Reset Password to set default and clear the flag */}
-                        <button
-                          onClick={() => handleEdit(user)}
-                          className="h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors"
-                          aria-label="Edit"
-                          title="Edit User"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user)}
-                          className="h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          aria-label="Delete"
-                          title={user.role === 'Super Admin' ? 'Cannot delete Super Admin' : 'Delete User'}
-                          disabled={user.role === 'Super Admin'}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {(() => {
+                          const isSelf = currentUser?.id === user.id;
+                          const actorRole = currentUser?.role;
+                          const actorIsLimited = actorRole === 'Viewer' || actorRole === 'Content Manager';
+                          const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
+                          const disableDeactivate = isSelf || disableAllForOtherRoles || (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin');
+                          const deactivateTitle = disableDeactivate
+                            ? (isSelf ? 'Cannot deactivate yourself' : (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin' ? 'Cannot deactivate Super Admin' : 'Insufficient privileges'))
+                            : (user.status === 'Active' ? 'Deactivate user' : 'Activate user');
+                          return (
+                            <button
+                              onClick={() => { if (disableDeactivate) return; toggleActive(user); }}
+                              className={`px-3 py-2 rounded transition-colors text-sm font-medium ${user.status === 'Active' ? 'bg-[#FDB813] text-black hover:bg-[#e5a711]' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'} ${disableDeactivate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={deactivateTitle}
+                              disabled={disableDeactivate}
+                            >
+                              {user.status === 'Active' ? 'Deactivate' : 'Activate'}
+                            </button>
+                          );
+                        })()}
+                        {(() => {
+                          const isSelf = currentUser?.id === user.id;
+                          const actorRole = currentUser?.role;
+                          const actorIsLimited = actorRole === 'Viewer' || actorRole === 'Content Manager';
+                          const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
+                          const disableReset = disableAllForOtherRoles || (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin');
+                          return (
+                            <button
+                              onClick={async () => {
+                                if (disableReset) return;
+                                try {
+                                  const rawToken = localStorage.getItem('admin_token');
+                                  let token = '';
+                                  if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+                                  const resp = await fetch('/api/admin/users/reset', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: user.id }) });
+                                  const j = await resp.json();
+                                  if (!j.success) { toast.error(j.error || 'Failed to set require-reset'); return; }
+                                  setUsers(u => u.map(x => x.id === user.id ? { ...x, mustReset: true } : x));
+                                  setResetInfoUser(user);
+                                  setResetInfoOpen(true);
+                                  toast.success('User marked to require password reset on next login');
+                                } catch (err) {
+                                  console.error('reset password failed', err);
+                                  toast.error('Failed to reset password');
+                                }
+                              }}
+                              className={`px-3 py-2 bg-[#FDB813] text-black rounded hover:bg-[#e5a711] transition-colors text-sm font-medium ${disableReset ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title="Require password reset on next login"
+                              disabled={disableReset}
+                            >
+                              Reset Password
+                            </button>
+                          );
+                        })()}
+                        {(() => {
+                          const isSelf = currentUser?.id === user.id;
+                          const actorRole = currentUser?.role;
+                          const actorIsLimited = actorRole === 'Viewer' || actorRole === 'Content Manager';
+                          const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
+                          const disableEdit = disableAllForOtherRoles || (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin');
+                          return (
+                            <button
+                              onClick={() => { if (disableEdit) return; handleEdit(user); }}
+                              className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              aria-label="Edit"
+                              title={disableEdit ? 'Insufficient privileges' : 'Edit User'}
+                              disabled={disableEdit}
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                          );
+                        })()}
+                        {(() => {
+                          const isSelf = currentUser?.id === user.id;
+                          const actorRole = currentUser?.role;
+                          const actorIsLimited = actorRole === 'Viewer' || actorRole === 'Content Manager';
+                          const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
+                          const disableDelete = disableAllForOtherRoles || (user.role === 'Super Admin') || isSelf;
+                          return (
+                            <button
+                              onClick={() => { if (disableDelete) return; handleDelete(user); }}
+                              className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableDelete ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              aria-label="Delete"
+                              title={disableDelete ? (isSelf ? 'Cannot delete yourself' : (user.role === 'Super Admin' ? 'Cannot delete Super Admin' : 'Insufficient privileges')) : 'Delete User'}
+                              disabled={disableDelete}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>
@@ -747,6 +860,24 @@ export function UserManager() {
           userToDelete 
             ? `Are you sure you want to delete user "${userToDelete.name}" (${userToDelete.email})? This action cannot be undone.`
             : 'Are you sure you want to delete this user? This action cannot be undone.'
+        }
+      />
+      <InfoDialog
+        open={resetInfoOpen}
+        onOpenChange={setResetInfoOpen}
+        title={resetInfoUser ? `Password reset for ${resetInfoUser.name}` : 'Password reset'}
+        description={
+          `The password has been reset to 'YbhWelcome@123'. The user will be required to reset this password at next login.`
+        }
+      />
+      <InfoDialog
+        open={createdInfoOpen}
+        onOpenChange={setCreatedInfoOpen}
+        title={createdInfoUser ? `User created: ${createdInfoUser.name}` : 'User created'}
+        description={
+          createdInfoUser
+            ? `The default password for ${createdInfoUser.email} has been set to 'YbhWelcome@123'. The user will be required to reset this password at first login.`
+            : `The default password has been set to 'YbhWelcome@123'. The user will be required to reset this password at first login.`
         }
       />
     </div>

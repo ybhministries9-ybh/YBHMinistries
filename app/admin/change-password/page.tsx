@@ -53,6 +53,9 @@ export default function ChangePasswordPage() {
       try {
         const expiresAt = Date.now() + 60 * 1000; // 1 minute for testing
         localStorage.setItem('admin_token', JSON.stringify({ token: loginJson.access_token, expiresAt }));
+        // Suppress the session-expiring warning for the immediate first login after password reset
+        // Store a short-lived timestamp until which the warning should be suppressed.
+        try { localStorage.setItem('suppress_session_warning_until', String(Date.now() + 15 * 1000)); } catch (e) {}
       } catch (err) {
         try { localStorage.setItem('admin_token', loginJson.access_token); } catch (e) {}
       }
