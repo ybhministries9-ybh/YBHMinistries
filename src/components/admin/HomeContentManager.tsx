@@ -523,7 +523,7 @@ export function HomeContentManager() {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await fetch('/api/admin/upload/thumbnail', {
+    const response = await fetch('/api/admin/upload/thumbnail?dest=home/video/thumbnails/orig', {
       method: 'POST',
       body: formData,
       headers: getAuthHeaders() // FormData upload - include auth

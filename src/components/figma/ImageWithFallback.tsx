@@ -15,6 +15,10 @@ interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElemen
   enableResponsive?: boolean;
   // New: choose a person-icon fallback instead of the image placeholder
   fallbackVariant?: 'image' | 'person';
+  // Optional classes for the person fallback (icon color and background)
+  fallbackIconClassName?: string;
+  fallbackBgClassName?: string;
+  fallbackIconSize?: number;
 }
 
 function _ImageWithFallback({
@@ -25,6 +29,9 @@ function _ImageWithFallback({
   loading = 'lazy',
   enableResponsive = true,
   fallbackVariant = 'image',
+  fallbackIconClassName = undefined,
+  fallbackBgClassName = undefined,
+  fallbackIconSize = undefined,
   ...props
 }: ImageWithFallbackProps) {
   // If caller requests a person fallback and no src is provided, avoid loading
@@ -86,13 +93,15 @@ function _ImageWithFallback({
 
   // If an error occurred or there's no image and the caller requested the
   // person fallback, render the appropriate fallback UI instead of an <img>.
-  if (hasError || (!imgSrc && fallbackVariant === 'person')) {
+    if (hasError || (!imgSrc && fallbackVariant === 'person')) {
     if (fallbackVariant === 'person') {
+      const iconClass = fallbackIconClassName || 'text-gray-500';
+      const bgClass = fallbackBgClassName || 'bg-gray-200';
       return (
-        <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
+        <div className={`flex items-center justify-center ${className}`}>
           <div className="text-center p-4">
-            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-2">
-              <User className="text-gray-500" size={20} />
+            <div className={`w-10 h-10 rounded-full ${bgClass} flex items-center justify-center mx-auto mb-2`}> 
+              <User className={`${iconClass}`} size={fallbackIconSize || 20} />
             </div>
           </div>
         </div>

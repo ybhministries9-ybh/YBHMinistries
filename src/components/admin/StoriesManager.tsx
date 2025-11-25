@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Star, Eye, EyeOff, Save } from 'lucide-react';
+import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Star, Eye, EyeOff, Save, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -48,6 +48,7 @@ interface Story {
   created_at?: string;
   created_by?: string | null;
   thumbnail_url?: string;
+  signedThumbUrl?: string | null;
 }
 
 interface ValidationErrors {
@@ -149,12 +150,17 @@ function DatePicker({
 
 export function StoriesManager() {
   const [stories, setStories] = useState<Story[]>([]);
+  // Track which story's dropzone is active (hovered/dragged) to show accent border
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isDeletingImageId, setIsDeletingImageId] = useState<string | null>(null);
+  // image delete UI: no immediate server-side deletion; deletion occurs on Save
   const [filterCategory, setFilterCategory] = useState<string>(CATEGORIES[0]);
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [filterType, setFilterType] = useState<string>('All');
   const [validationErrors, setValidationErrors] = useState<Record<string, ValidationErrors>>({});
+  const [editingOriginals, setEditingOriginals] = useState<Record<string, Story>>({});
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string; name: string }>({
     open: false,
     id: '',
@@ -288,7 +294,9 @@ export function StoriesManager() {
         email,
         role,
         location,
-        image: row.thumbnail_url || existing?.image || '',
+        image: (row as any).signedThumbUrl || row.thumbnail_url || existing?.image || '',
+        thumbnail_url: row.thumbnail_url || existing?.thumbnail_url || '',
+        signedThumbUrl: (row as any).signedThumbUrl || existing?.signedThumbUrl || null,
         text: row.body || existing?.text || '',
       } as Story;
     }
@@ -299,6 +307,7 @@ export function StoriesManager() {
       title: row.title || existing?.title || '',
       youtubeUrl: row.video_url || existing?.youtubeUrl || '',
       thumbnail_url: row.thumbnail_url || existing?.thumbnail_url || '',
+      signedThumbUrl: (row as any).signedThumbUrl || existing?.signedThumbUrl || null,
       // include role/location for video stories as DB has these columns
       role: row.role || existing?.role || '',
       location: row.location || existing?.location || ''
@@ -440,6 +449,8 @@ export function StoriesManager() {
     reader.readAsDataURL(file);
   }, [stories, validationErrors]);
 
+  // placeholder now — moved lower after handleUpdate to avoid premature reference
+
   const handleSaveStory = (storyId: string) => {
     (async () => {
       const story = stories.find(s => s.id === storyId);
@@ -467,7 +478,7 @@ export function StoriesManager() {
             try {
               const form = new FormData();
               form.append('file', imgFile);
-              const upResp = await fetch('/api/admin/upload/thumbnail', { method: 'POST', headers: getAuthHeaders(), body: form });
+              const upResp = await fetch('/api/admin/upload/thumbnail?dest=stories/text/thumbnails/orig', { method: 'POST', headers: getAuthHeaders(), body: form });
               const upJ = await upResp.json();
               if (upJ && upJ.success) {
                 uploadedThumbnail = upJ.url || upJ.thumbRef || null;
@@ -494,7 +505,7 @@ export function StoriesManager() {
             date: story.date || null,
             media_type: story.type,
             video_url: story.type === 'video' ? story.youtubeUrl || null : null,
-            thumbnail_url: uploadedThumbnail ?? story.image ?? null,
+            thumbnail_url: uploadedThumbnail ?? (story as any).thumbnail_url ?? null,
           };
           const resp = await fetch('/api/admin/stories', { method: 'POST', headers: getAuthHeaders('application/json'), body: JSON.stringify(payload) });
           const j = await resp.json();
@@ -503,6 +514,8 @@ export function StoriesManager() {
             const mapped = mapRowToClient(j.data, story);
             setStories(s => s.map(x => x.id === storyId ? mapped : x));
             toast.success('Story created');
+            // remove snapshot store as we saved
+            setEditingOriginals(prev => { const copy = { ...prev }; delete copy[storyId]; return copy; });
           } else {
             toast.error(j?.error || 'Failed to create story');
             return;
@@ -517,7 +530,7 @@ export function StoriesManager() {
             try {
               const form = new FormData();
               form.append('file', imgFile);
-              const upResp = await fetch('/api/admin/upload/thumbnail', { method: 'POST', headers: getAuthHeaders(), body: form });
+              const upResp = await fetch('/api/admin/upload/thumbnail?dest=stories/text/thumbnails/orig', { method: 'POST', headers: getAuthHeaders(), body: form });
               const upJ = await upResp.json();
               if (upJ && upJ.success) {
                 uploadedThumbnail = upJ.url || upJ.thumbRef || null;
@@ -540,7 +553,7 @@ export function StoriesManager() {
             updates.email = story.email || null;
             updates.body = story.text || null;
             updates.media_type = 'text';
-            updates.thumbnail_url = uploadedThumbnail ?? story.image ?? (story as any).thumbnail_url ?? null;
+            updates.thumbnail_url = uploadedThumbnail ?? (story as any).thumbnail_url ?? null;
             // include date for text stories
             updates.date = story.date || null;
           } else {
@@ -550,7 +563,7 @@ export function StoriesManager() {
             updates.role = story.role || null;
             updates.location = story.location || null;
             updates.media_type = 'video';
-            updates.thumbnail_url = uploadedThumbnail ?? story.image ?? (story as any).thumbnail_url ?? null;
+            updates.thumbnail_url = uploadedThumbnail ?? (story as any).thumbnail_url ?? null;
             // include date for video stories too
             updates.date = story.date || null;
           }
@@ -564,6 +577,8 @@ export function StoriesManager() {
             const mapped = mapRowToClient(j.data, story);
             setStories(s => s.map(x => x.id === story.id ? mapped : x));
             toast.success('Story updated');
+            // remove snapshot store as we saved
+            setEditingOriginals(prev => { const copy = { ...prev }; delete copy[story.id]; return copy; });
           } else {
             toast.error(j?.error || 'Failed to update story');
             return;
@@ -623,6 +638,17 @@ export function StoriesManager() {
     setStories(prev => [newStory, ...prev]);
     setEditingId(newStory.id);
   };
+
+  // When an edit session starts, snapshot the existing row so we can restore on Cancel
+  useEffect(() => {
+    if (!editingId) return;
+    const current = stories.find(s => s.id === editingId);
+    if (!current) return;
+    setEditingOriginals(prev => {
+      if (prev[editingId]) return prev; // already captured
+      return { ...prev, [editingId]: current };
+    });
+  }, [editingId, stories]);
 
   const handleDelete = (id: string) => {
     const story = stories.find(s => s.id === id);
@@ -765,6 +791,13 @@ export function StoriesManager() {
       }
     }
     
+    // Restore original values if we captured a snapshot
+    if (editingOriginals[id]) {
+      const original = editingOriginals[id];
+      setStories(prev => prev.map(s => s.id === id ? original : s));
+      setEditingOriginals(prev => { const copy = { ...prev }; delete copy[id]; return copy; });
+    }
+
     // Clear validation errors
     const newErrors = { ...validationErrors };
     delete newErrors[id];
@@ -798,6 +831,26 @@ export function StoriesManager() {
       return copy;
     });
   }, []);
+
+  const handleDeleteImage = useCallback((id: string) => {
+    const story = stories.find(s => s.id === id);
+    if (!story) return;
+    // For temp story, just clear preview state locally
+    if (String(id).startsWith('temp-')) {
+      handleImageFileChange(id, undefined);
+      handleUpdate(id, 'image', '');
+      handleUpdate(id, 'imageFile' as any, undefined);
+      handleUpdate(id, 'thumbnail_url' as any, null);
+      return;
+    }
+    // For persisted stories: remove preview locally and mark thumbnail for deletion
+    // Do not call server; deletion will be done when Save is clicked
+    handleUpdate(id, 'image', '');
+    handleUpdate(id, 'thumbnail_url' as any, null);
+    toast.success('Image removed from preview. Click Save to confirm deletion.');
+  }, [stories, handleImageFileChange, handleUpdate]);
+
+  // performDeleteImage removed: image deletion is local-only until Save is clicked
 
   const handleStatusChange = (id: string, newStatus: 'Submitted' | 'In-Review' | 'Approved' | 'Rejected') => {
     (async () => {
@@ -1163,7 +1216,7 @@ export function StoriesManager() {
                         role="button"
                         tabIndex={0}
                         aria-label="Upload profile image. Click or drag image to upload"
-                        className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md border-gray-700 !bg-[#2e2e2e] text-gray-300 cursor-pointer"
+                        className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md text-gray-300 cursor-pointer ${dragActiveId === story.id ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 !bg-[#2e2e2e]'}`}
                         onClick={() => document.getElementById(`file-input-${story.id}`)?.click()}
                         onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -1171,11 +1224,16 @@ export function StoriesManager() {
                             document.getElementById(`file-input-${story.id}`)?.click();
                           }
                         }}
-                        onDragOver={(e) => { e.preventDefault(); }}
+                        onDragOver={(e) => { e.preventDefault(); setDragActiveId(story.id); }}
+                        onDragEnter={(e) => { e.preventDefault(); setDragActiveId(story.id); }}
+                        onDragLeave={(e) => { e.preventDefault(); setDragActiveId(prev => prev === story.id ? null : prev); }}
                         onDrop={(e) => {
                           e.preventDefault();
                           const f = e.dataTransfer?.files?.[0];
                           if (f) handleImageFileChange(story.id, f);
+                          // briefly highlight dropzone after drop so user gets visual confirmation
+                          setDragActiveId(story.id);
+                          setTimeout(() => setDragActiveId(prev => prev === story.id ? null : prev), 800);
                         }}
                       >
                         <input
@@ -1195,8 +1253,19 @@ export function StoriesManager() {
                       )}
 
                       {story.image && (
-                        <div className="mt-2">
+                        <div className="mt-2 relative inline-block">
                           <img src={story.image} alt="preview" className="w-24 h-24 object-cover rounded-full border border-gray-700" />
+                          <button
+                            type="button"
+                            aria-label="Delete image"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              handleDeleteImage(story.id);
+                            }}
+                            className="absolute top-0 right-0 p-1 bg-red-600 hover:bg-red-700 rounded-full text-white shadow-lg"
+                          >
+                            {isDeletingImageId === story.id ? <Loader2 className="animate-spin h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1388,7 +1457,6 @@ export function StoriesManager() {
                             {story.status || 'Submitted'}
                           </span>
                           <span className={`${getPublishedBadgeColor(story.is_visible)} ml-2`}>{story.is_visible ? 'Published' : 'Draft'}</span>
-                          <span className={`ml-2 ${getPublishedBadgeColor(story.is_visible)}`}>{story.is_visible ? 'Published' : 'Draft'}</span>
                           {story.featured && (
                             <span className="px-2 py-0.5 bg-yellow-900/30 text-yellow-400 text-xs rounded">
                               Featured
@@ -1495,6 +1563,8 @@ export function StoriesManager() {
         itemType="story"
         itemName={deleteDialog.name}
       />
+
+      {/* Inline image delete: no server call until Save */}
 
       {/* Unsaved-form confirmation modal (use AlertDialog to match delete dialog styling) */}
       <AlertDialog open={unsavedDialog.open} onOpenChange={(open) => setUnsavedDialog({ open, pendingType: open ? unsavedDialog.pendingType : null })}>
