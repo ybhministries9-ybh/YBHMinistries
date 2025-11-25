@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Eye, EyeOff, Edit2, Save, Trash2, X } from 'lucide-react';
+import { accentGold } from '../../utils/theme';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { ImageUpload } from './ImageUpload';
 import { toast } from 'sonner';
@@ -162,12 +163,12 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
   return (
     <div className="bg-black p-2 rounded-lg border border-gray-600">
       <div className="flex items-center justify-between">
-        <div className="flex gap-2 items-center">
-          <div className="font-semibold text-white text-sm">{u.label || 'UPI'}</div>
+          <div className="flex gap-2 items-center">
+          <div className="font-semibold" style={{ color: accentGold, fontSize: '18px' }}>{u.label || 'UPI'}</div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             {/* Visible as icon button */}
             {/* Hide visible toggle while editing a new unsaved UPI row; show elsewhere */}
             {!(editing && String(u.id).startsWith('new-')) && (
@@ -217,7 +218,9 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
 
       {!editing ? (
         <div className="mt-2 flex items-center justify-between">
-          <div className="text-xs text-gray-300">{u.upi_id || u.label}</div>
+          <div className="text-sm">
+            <div className="text-sm text-gray-300">UPI Id: <span className="text-white">{u.upi_id || '-'}</span></div>
+          </div>
           <div className="flex items-center gap-2">
             {/* Visible moved to header */}
           </div>
@@ -226,8 +229,8 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
         <div className="mt-2">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label className="text-sm text-gray-300">Label</Label>
-              <Input value={local.label || ''} onChange={(e) => setLocal({ ...local, label: e.target.value })} placeholder="Label" style={{ backgroundColor: '#2e2e2e' }} className="bg-[#2e2e2e] border-gray-600 text-white text-sm" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} />
+              <Label className="text-sm text-gray-300">Full Name</Label>
+              <Input value={local.label || ''} onChange={(e) => setLocal({ ...local, label: e.target.value })} placeholder="Full Name" style={{ backgroundColor: '#2e2e2e' }} className="bg-[#2e2e2e] border-gray-600 text-white text-sm" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} />
             </div>
             <div>
               <Label className="text-sm text-gray-300">UPI ID</Label>
@@ -242,7 +245,7 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
                     <div className="text-center px-3">
                       <div className="text-sm text-gray-400 mb-1">QR preview</div>
                       <div className="text-xs text-gray-500">Will be generated automatically when you enter a UPI ID.</div>
-                      <div className="text-xs text-gray-500 mt-2">Saved to storage when you click Save.</div>
+                      <div className="text-xs text-gray-500 mt-2">Preview only — QR is not saved to the database when you click Save.</div>
                     </div>
                   )}
                 </div>

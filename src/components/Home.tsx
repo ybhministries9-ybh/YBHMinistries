@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import SmartImage from './SmartImage';
 import { useRouter } from "next/navigation";
-import { Play } from "lucide-react";
+import { Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
@@ -219,6 +219,23 @@ function ImageCarousel({ images, interval = 3000 }) {
           ))}
         </div>
       </div>
+
+      {/* Left / Right navigation buttons */}
+      <button
+        onClick={() => setCurrentIndex((currentIndex - 1 + images.length) % images.length)}
+        aria-label="Previous slide"
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
+      >
+        <ChevronLeft size={20} color="#FDB813" />
+      </button>
+
+      <button
+        onClick={() => setCurrentIndex((currentIndex + 1) % images.length)}
+        aria-label="Next slide"
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
+      >
+        <ChevronRight size={20} color="#FDB813" />
+      </button>
     </div>
   );
 }

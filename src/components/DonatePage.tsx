@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { QrCode, Music, Users, Church, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import QRCode from 'qrcode';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 // Tabs removed — using a two-column layout instead
 import { accentGold } from '../utils/theme';
@@ -13,6 +14,7 @@ export function DonatePage() {
 
   const [upiList, setUpiList] = useState<any[]>([]);
   const [bankList, setBankList] = useState<any[]>([]);
+  const [qrDataMap, setQrDataMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -45,6 +47,49 @@ export function DonatePage() {
 
     load();
   }, []);
+
+  // Generate QR data URLs client-side for UPI entries that do not provide a qr_image_url
+  useEffect(() => {
+    let mounted = true;
+
+    const gen = async () => {
+      try {
+        // Always generate our own QR from the UPI id (do not trust provided qr_image_url values)
+        const itemsToGenerate = upiList.filter((u) => u.upi_id && !qrDataMap[String(u.id)]);
+        if (itemsToGenerate.length === 0) return;
+
+        const pairs = await Promise.all(
+          itemsToGenerate.map(async (u) => {
+            const upiUri = `upi://pay?pa=${encodeURIComponent(u.upi_id)}&pn=${encodeURIComponent('YBH Ministries')}&cu=INR`;
+            try {
+              const dataUrl = await QRCode.toDataURL(upiUri, { width: 300, margin: 1 });
+              return [String(u.id), dataUrl] as const;
+            } catch (e) {
+              console.error('QR generation failed for', u.upi_id, e);
+              return null;
+            }
+          })
+        );
+
+        const newEntries: Record<string, string> = {};
+        for (const p of pairs) {
+          if (p) newEntries[p[0]] = p[1];
+        }
+
+        if (mounted && Object.keys(newEntries).length > 0) {
+          setQrDataMap((prev) => ({ ...prev, ...newEntries }));
+        }
+      } catch (err) {
+        console.error('Failed to generate QR codes', err);
+      }
+    };
+
+    gen();
+
+    return () => {
+      mounted = false;
+    };
+  }, [upiList]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000', color: '#fff' }}>
@@ -107,11 +152,11 @@ export function DonatePage() {
                                   <div className="mb-3">
                                     <div className="text-xs text-gray-300 mb-1">Bank</div>
                                     <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
-                                      <div className="text-sm text-white truncate">{b.bank_name}{b.branch_name ? ` — ${b.branch_name}` : ''}</div>
+                                      <div className="text-sm text-white truncate">{b.bank_name}</div>
                                       <button
                                         onClick={async () => {
                                           try {
-                                            await navigator.clipboard.writeText(String(b.bank_name) + (b.branch_name ? ` — ${b.branch_name}` : ''));
+                                            await navigator.clipboard.writeText(String(b.bank_name));
                                             toast.success('Bank copied');
                                           } catch (e) {
                                             console.error('copy failed', e);
@@ -121,6 +166,31 @@ export function DonatePage() {
                                         aria-label="Copy bank"
                                         className="ml-3 p-1 rounded bg-transparent"
                                         title="Copy bank"
+                                      >
+                                        <Copy size={16} style={{ color: accentGold }} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {b.branch_name ? (
+                                  <div className="mb-3">
+                                    <div className="text-xs text-gray-300 mb-1">Branch</div>
+                                    <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
+                                      <div className="text-sm text-white truncate">{b.branch_name}</div>
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await navigator.clipboard.writeText(String(b.branch_name));
+                                            toast.success('Branch copied');
+                                          } catch (e) {
+                                            console.error('copy failed', e);
+                                            toast.error('Copy failed');
+                                          }
+                                        }}
+                                        aria-label="Copy branch"
+                                        className="ml-3 p-1 rounded bg-transparent"
+                                        title="Copy branch"
                                       >
                                         <Copy size={16} style={{ color: accentGold }} />
                                       </button>
@@ -234,9 +304,10 @@ export function DonatePage() {
                       ) : (
                         <div className="w-full px-6 pb-6 flex flex-col items-center">
                           {upiList.map((u, idx) => {
-                            const qrSrc = u.qr_image_url || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=${encodeURIComponent(
-                              u.upi_id
-                            )}&pn=${encodeURIComponent('YBH Ministries')}&cu=INR`;
+                            // Prefer our generated data URL so the QR encodes the UPI deep-link reliably.
+                            const providedUrl = u.qr_image_url;
+                            const isVercelBlob = typeof providedUrl === 'string' && /vercel|blob\.vercel-storage/.test(providedUrl);
+                            const qrSrc = qrDataMap[String(u.id)] || (!isVercelBlob && providedUrl) || undefined;
 
                             return (
                               <div key={u.id} className="w-full flex flex-col items-center my-6">

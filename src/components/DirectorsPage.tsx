@@ -879,6 +879,9 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: strin
             <p className="text-white">
               {t('vijaya.aboutSection.paragraph3')}
             </p>
+            <p className="text-white">
+              {t('vijaya.aboutSection.paragraph4')}
+            </p>
           </div>
           
           <div className="mx-4 md:mx-0">

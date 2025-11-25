@@ -182,12 +182,9 @@ export function DonateManager(): React.ReactElement {
   // Save a single UPI row (used for per-row Save). Returns the saved row or null on failure.
   const saveSingleUpi = async (u: UpiItem) : Promise<any | null> => {
     try {
-      const isDataUrl = typeof u.qr_image_url === 'string' && u.qr_image_url.startsWith('data:image');
-
+      // Always persist only label and upi_id (QR preview is for display only and should not be saved)
       if (String(u.id).startsWith('new-')) {
-        // Create record; if QR is a data URL, don't include it in create payload (upload later)
         const createPayload: any = { label: u.label, upi_id: u.upi_id, visible: typeof u.visible === 'boolean' ? u.visible : true, sort_order: u.sort_order || 0 };
-        if (!isDataUrl) createPayload.qr_image_url = u.qr_image_url || null;
 
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
@@ -199,64 +196,21 @@ export function DonateManager(): React.ReactElement {
           return null;
         }
         const newRow = j.data;
-
-        // If QR was a data URL, upload it now and fetch updated row
-        if (isDataUrl) {
-          const rawToken2 = localStorage.getItem('admin_token');
-          let token2 = '';
-          if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
-          const upResp = await fetch('/api/admin/donations/upload-qr', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token2}` }, body: JSON.stringify({ id: newRow.id, dataUrl: u.qr_image_url }) });
-          const upj = await upResp.json();
-          if (!upj.success) {
-            toast.error('Failed to upload QR image');
-            return newRow;
-          }
-          // upj.row has the updated DB row
-          const savedRow = upj.row || { ...newRow, qr_image_url: upj.url };
-          toast.success(`UPI saved${savedRow.label ? `: ${savedRow.label}` : ''}`);
-          return savedRow;
-        }
         toast.success(`UPI saved${newRow.label ? `: ${newRow.label}` : ''}`);
         return newRow;
       } else {
-        // Existing row
-        if (isDataUrl) {
-          const rawToken3 = localStorage.getItem('admin_token');
-          let token3 = '';
-          if (rawToken3) try { token3 = JSON.parse(rawToken3).token || rawToken3 } catch (e) { token3 = rawToken3 }
-          const upResp = await fetch('/api/admin/donations/upload-qr', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token3}` }, body: JSON.stringify({ id: u.id, dataUrl: u.qr_image_url }) });
-          const upj = await upResp.json();
-          if (!upj.success) {
-            toast.error('Failed to upload QR image');
-            return null;
-          }
-          // ensure metadata (label/upi_id) is persisted
-          const payload = { label: u.label, upi_id: u.upi_id, qr_image_url: upj.url || (upj.row && upj.row.qr_image_url) || null, visible: !!u.visible, sort_order: u.sort_order || 0 };
-          const rawToken4 = localStorage.getItem('admin_token');
-          let token4 = '';
-          if (rawToken4) try { token4 = JSON.parse(rawToken4).token || rawToken4 } catch (e) { token4 = rawToken4 }
-          const putResp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token4}` }, body: JSON.stringify(payload) });
-          const putJ = await putResp.json();
-          if (!putJ.success) {
-            toast.error('Failed to save UPI metadata');
-            return null;
-          }
-          toast.success(`UPI saved${putJ.data.label ? `: ${putJ.data.label}` : ''}`);
-          return putJ.data;
-        } else {
-          const payload = { label: u.label, upi_id: u.upi_id, qr_image_url: u.qr_image_url, visible: !!u.visible, sort_order: u.sort_order || 0 };
-          const rawToken5 = localStorage.getItem('admin_token');
-          let token5 = '';
-          if (rawToken5) try { token5 = JSON.parse(rawToken5).token || rawToken5 } catch (e) { token5 = rawToken5 }
-          const putResp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token5}` }, body: JSON.stringify(payload) });
-          const putJ = await putResp.json();
-          if (!putJ.success) {
-            toast.error('Failed to update UPI');
-            return null;
-          }
-          toast.success(`UPI saved${putJ.data.label ? `: ${putJ.data.label}` : ''}`);
-          return putJ.data;
+        const payload = { label: u.label, upi_id: u.upi_id, visible: !!u.visible, sort_order: u.sort_order || 0 };
+        const rawToken5 = localStorage.getItem('admin_token');
+        let token5 = '';
+        if (rawToken5) try { token5 = JSON.parse(rawToken5).token || rawToken5 } catch (e) { token5 = rawToken5 }
+        const putResp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token5}` }, body: JSON.stringify(payload) });
+        const putJ = await putResp.json();
+        if (!putJ.success) {
+          toast.error('Failed to update UPI');
+          return null;
         }
+        toast.success(`UPI saved${putJ.data.label ? `: ${putJ.data.label}` : ''}`);
+        return putJ.data;
       }
     } catch (err) {
       console.error('saveSingleUpi failed', err);
