@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { QrCode, Save, Edit2, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { QrCode, Save, Edit2, Eye, EyeOff, Trash2, X, Plus } from 'lucide-react';
 import { DonateUpiRow } from './DonateUpiRow';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -7,6 +7,7 @@ import { Label } from '../ui/label';
 import { accentGold } from '../../utils/theme';
 import { toast } from 'sonner';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { DiscardConfirmDialog } from './DiscardConfirmDialog';
 
 type UpiItem = {
   id: string | number;
@@ -41,6 +42,7 @@ export function DonateManager(): React.ReactElement {
   const [startEditId, setStartEditId] = useState<string | null>(null);
   const [editingBankId, setEditingBankId] = useState<string | null>(null);
   const [expandedBankId, setExpandedBankId] = useState<string | null>(null);
+  const [discardDialog, setDiscardDialog] = useState<null | 'upi' | 'bank'>(null);
 
   const doRemove = async (type: 'upi' | 'bank', id: string | number) => {
     try {
@@ -107,6 +109,24 @@ export function DonateManager(): React.ReactElement {
     setUpiList((s) => [{ id, label: '', upi_id: '', qr_image_url: null, visible: true, sort_order: 0 }, ...s]);
     // request the new row to open in edit mode
     setStartEditId(id);
+  };
+
+  const handleAddNewUpi = () => {
+    const hasUnsaved = upiList.some(x => String(x.id).startsWith('new-'));
+    if (hasUnsaved) {
+      setDiscardDialog('upi');
+      return;
+    }
+    addNewUpi();
+  };
+
+  const handleAddNewBank = () => {
+    const hasUnsaved = bankList.some(x => String(x.id).startsWith('new-'));
+    if (hasUnsaved) {
+      setDiscardDialog('bank');
+      return;
+    }
+    addNewBank();
   };
 
   const removeUpi = async (id: string | number) => {
@@ -483,7 +503,7 @@ export function DonateManager(): React.ReactElement {
       </div>
 
       <section className="mb-6">
-        <div className="bg-[#2E2E2E] p-4 rounded border border-gray-700">
+        <div className="bg-[#2E2E2E] p-4 rounded-lg border border-gray-700">
           <div className="flex items-center gap-2 mb-4">
             <QrCode className="text-[#FDB813]" size={18} />
             <h3 className="text-white">UPI / QR Codes</h3>
@@ -491,7 +511,10 @@ export function DonateManager(): React.ReactElement {
 
           <div className="mb-3 flex justify-between items-center">
             <div className="text-white font-medium">UPI Entries</div>
-            <Button onClick={addNewUpi} className="bg-[#FDB813] hover:bg-[#e5a610] text-black">Add UPI</Button>
+            <Button onClick={handleAddNewUpi} className="flex items-center gap-2 px-3 py-2 rounded-md border-2 border-[#FDB813] bg-[#111] text-white hover:bg-[#0f0f0f]">
+              <Plus size={14} />
+              <span className="font-medium">Add UPI</span>
+            </Button>
           </div>
 
           <div className="space-y-3">
@@ -550,14 +573,17 @@ export function DonateManager(): React.ReactElement {
       </section>
 
       <section>
-        <div className="bg-[#2E2E2E] p-4 rounded border border-gray-700">
+        <div className="bg-[#2E2E2E] p-4 rounded-lg border border-gray-700">
           <div className="flex items-center gap-2 mb-4">
             <h3 className="text-white">Bank Accounts</h3>
           </div>
 
           <div className="mb-3 flex justify-between items-center">
             <div className="text-white font-medium">Bank Entries</div>
-            <Button onClick={addNewBank} className="bg-[#FDB813] hover:bg-[#e5a610] text-black">Add Bank</Button>
+            <Button onClick={handleAddNewBank} className="flex items-center gap-2 px-3 py-2 rounded-md border-2 border-[#FDB813] bg-[#111] text-white hover:bg-[#0f0f0f]">
+              <Plus size={14} />
+              <span className="font-medium">Add Bank</span>
+            </Button>
           </div>
 
           <div className="space-y-3">
@@ -565,7 +591,7 @@ export function DonateManager(): React.ReactElement {
               <div className="text-gray-400">No bank accounts yet.</div>
             ) : (
               bankList.map((b) => (
-                <div key={b.id} className="bg-black p-3 rounded border border-gray-600">
+                <div key={b.id} className="bg-black p-3 rounded-lg border border-gray-600">
                   {/* If this is a new row or currently being edited, show the edit form */}
                   {String(b.id).startsWith('new-') || editingBankId === String(b.id) ? (
                     <>
@@ -582,7 +608,8 @@ export function DonateManager(): React.ReactElement {
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className="bg-black border-gray-600 text-white"
+                            style={{ backgroundColor: '#2e2e2e' }}
+                            className="bg-[#2e2e2e] border-gray-600 text-white"
                           />
                         </div>
                         <div>
@@ -597,7 +624,8 @@ export function DonateManager(): React.ReactElement {
                               const sanitized = String(e.target.value).replace(/[^0-9]/g, '');
                               setBankList((s) => s.map(x => x.id === b.id ? { ...x, account_number: sanitized } : x));
                             }}
-                            className="bg-black border-gray-600 text-white"
+                            style={{ backgroundColor: '#2e2e2e' }}
+                            className="bg-[#2e2e2e] border-gray-600 text-white"
                           />
                         </div>
                         <div>
@@ -612,7 +640,8 @@ export function DonateManager(): React.ReactElement {
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className="bg-black border-gray-600 text-white"
+                            style={{ backgroundColor: '#2e2e2e' }}
+                            className="bg-[#2e2e2e] border-gray-600 text-white"
                           />
                         </div>
                       </div>
@@ -630,7 +659,8 @@ export function DonateManager(): React.ReactElement {
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className="bg-black border-gray-600 text-white"
+                            style={{ backgroundColor: '#2e2e2e' }}
+                            className="bg-[#2e2e2e] border-gray-600 text-white"
                           />
                         </div>
                         <div>
@@ -640,7 +670,8 @@ export function DonateManager(): React.ReactElement {
                             maxLength={50}
                             value={b.ifsc_code || ''}
                             onChange={(e) => setBankList((s) => s.map(x => x.id === b.id ? { ...x, ifsc_code: e.target.value } : x))}
-                            className="bg-black border-gray-600 text-white"
+                            style={{ backgroundColor: '#2e2e2e' }}
+                            className="bg-[#2e2e2e] border-gray-600 text-white"
                           />
                         </div>
                         <div>
@@ -650,7 +681,8 @@ export function DonateManager(): React.ReactElement {
                             maxLength={100}
                             value={b.swift_code || ''}
                             onChange={(e) => setBankList((s) => s.map(x => x.id === b.id ? { ...x, swift_code: e.target.value } : x))}
-                            className="bg-black border-gray-600 text-white"
+                            style={{ backgroundColor: '#2e2e2e' }}
+                            className="bg-[#2e2e2e] border-gray-600 text-white"
                           />
                         </div>
                       </div>
@@ -665,7 +697,8 @@ export function DonateManager(): React.ReactElement {
                             onChange={(e) => setBankList((s) => s.map(x => x.id === b.id ? { ...x, upi_id: e.target.value } : x))}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className="bg-black border-gray-600 text-white"
+                            style={{ backgroundColor: '#2e2e2e' }}
+                            className="bg-[#2e2e2e] border-gray-600 text-white"
                           />
                         </div>
                         <div className="flex items-center">
@@ -675,7 +708,18 @@ export function DonateManager(): React.ReactElement {
                         <div />
                       </div>
 
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex justify-end gap-2 mt-3">
+                        <Button
+                          onClick={() => {
+                            if (String(b.id).startsWith('new-')) setBankList((s) => s.filter(x => x.id !== b.id));
+                            else setEditingBankId(null);
+                          }}
+                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white  flex items-center gap-2 px-3 py-2 rounded-md"
+                        >
+                          <X size={14} />
+                          <span className="text-sm">Cancel</span>
+                        </Button>
+
                         <Button
                           onClick={async () => {
                             const saved = await saveSingleBank(b);
@@ -684,13 +728,11 @@ export function DonateManager(): React.ReactElement {
                               setEditingBankId(null);
                             }
                           }}
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black"
-                        >Save</Button>
-
-                        <Button onClick={() => {
-                          if (String(b.id).startsWith('new-')) setBankList((s) => s.filter(x => x.id !== b.id));
-                          else setEditingBankId(null);
-                        }} className="bg-transparent text-white border border-gray-600">Cancel</Button>
+                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black flex items-center gap-2 px-3 py-2 rounded-md"
+                        >
+                          <Save size={14} />
+                          <span className="text-sm">Save</span>
+                        </Button>
                       </div>
                     </>
                   ) : (
@@ -753,6 +795,23 @@ export function DonateManager(): React.ReactElement {
           ? `Are you sure you want to delete the bank ${deleteTarget?.name ? `"${deleteTarget.name}"` : ''}? This action cannot be undone.`
           : `Are you sure you want to delete the UPI entry ${deleteTarget?.name ? `"${deleteTarget.name}"` : ''}? This action cannot be undone.`
         }
+      />
+
+      <DiscardConfirmDialog
+        open={discardDialog !== null}
+        onOpenChange={(open) => { if (!open) setDiscardDialog(null); }}
+        onConfirm={() => {
+          if (discardDialog === 'upi') {
+            setUpiList((s) => s.filter(x => !String(x.id).startsWith('new-')));
+            setTimeout(() => addNewUpi(), 50);
+          } else if (discardDialog === 'bank') {
+            setBankList((s) => s.filter(x => !String(x.id).startsWith('new-')));
+            setTimeout(() => addNewBank(), 50);
+          }
+          setDiscardDialog(null);
+        }}
+        title={discardDialog === 'bank' ? 'Discard unsaved Bank?' : 'Discard unsaved UPI?'}
+        description={discardDialog === 'bank' ? 'You have an unsaved Bank form open. Discard it and open a new one?' : 'You have an unsaved UPI form open. Discard it and open a new one?'}
       />
 
     </div>
