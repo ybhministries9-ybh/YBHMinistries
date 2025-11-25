@@ -9,7 +9,8 @@ async function checkData() {
       WHERE published = true
     `;
     
-    if (process.env.NODE_ENV !== 'production') {
+    // Debug output: enabled when DEBUG env var is set (e.g. DEBUG=1)
+    if (process.env.DEBUG) {
       console.log('=== Report Data ===');
       result.rows.forEach(row => {
         console.log(`\nYear: ${row.year}, Class: ${row.class_type}`);
