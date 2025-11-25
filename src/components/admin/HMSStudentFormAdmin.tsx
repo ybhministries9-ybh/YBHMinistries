@@ -90,6 +90,9 @@ export function HMSStudentFormAdmin({
     defaultValues: mergedDefaults as any
   });
 
+  // helper to display '-' when a watched value is empty or missing
+  const display = (v: any) => (v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0) ? '-' : v);
+
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [programLevels, setProgramLevels] = useState<string[]>(() => (mergedDefaults.programApplyingFor as string[]) || []);
   const [instruments, setInstruments] = useState<string[]>(() => (mergedDefaults.instrumentSpecialization as string[]) || []);
@@ -225,7 +228,7 @@ export function HMSStudentFormAdmin({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
         
         {/* 1. Personal Information */}
-        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
+        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg border border-gray-700">
           <h3 className="text-2xl text-white font-normal mb-2">
             {t('studentForm.sections.personalInfo')}
           </h3>
@@ -247,8 +250,8 @@ export function HMSStudentFormAdmin({
                     message: t('studentForm.validation.fullNamePattern') 
                   }
                 })}
+                value={display(watch('fullName'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.fullName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
-                placeholder={t('studentForm.placeholders.fullName')}
                 maxLength={100}
                 readOnly
               />
@@ -281,12 +284,12 @@ export function HMSStudentFormAdmin({
                     }
                   }}
                   render={({ field }) => (
-                    <DatePicker
+                      <DatePicker
                       selected={field.value instanceof Date ? field.value : (typeof field.value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(field.value) ? new Date(field.value) : null)}
                       onChange={(d: Date | null) => field.onChange(d)}
                       dateFormat="dd-MM-yyyy"
                       maxDate={new Date()}
-                      placeholderText={t('studentForm.placeholders.dateOfBirth')}
+                      placeholderText={display(field.value) === '-' ? '-' : t('studentForm.placeholders.dateOfBirth')}
                       className={`w-full px-4 py-2 bg-black rounded border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                       showPopperArrow={false}
                       disabled
@@ -331,8 +334,8 @@ export function HMSStudentFormAdmin({
                   minLength: { value: 5, message: t('studentForm.validation.addressMin') },
                   maxLength: { value: 200, message: t('studentForm.validation.addressMax') }
                 })}
+                value={display(watch('address'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.address ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
-                placeholder={t('studentForm.placeholders.address')}
                 maxLength={200}
                 readOnly
               />
@@ -352,8 +355,8 @@ export function HMSStudentFormAdmin({
                   required: t('studentForm.validation.cityStateZipRequired'),
                   maxLength: { value: 100, message: t('studentForm.validation.cityStateZipMax') }
                 })}
+                value={display(watch('cityStateZip'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.cityStateZip ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
-                placeholder={t('studentForm.placeholders.cityStateZip')}
                 maxLength={100}
                 readOnly
               />
@@ -378,9 +381,9 @@ export function HMSStudentFormAdmin({
                     message: t('studentForm.validation.phonePattern') 
                   }
                 })}
+                value={display(watch('phoneNumber'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={15}
-                placeholder={t('studentForm.placeholders.phone')}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
                   setValue('phoneNumber', cleaned, { shouldValidate: true, shouldDirty: true });
@@ -407,9 +410,9 @@ export function HMSStudentFormAdmin({
                     message: t('studentForm.validation.emailPattern') 
                   }
                 })}
+                value={display(watch('emailId'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.emailId ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={100}
-                placeholder={t('studentForm.placeholders.email')}
                 readOnly
               />
               {errors.emailId && (
@@ -427,8 +430,8 @@ export function HMSStudentFormAdmin({
                 {...register('parentGuardianName', {
                   maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
                 })}
+                value={display(watch('parentGuardianName'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
-                placeholder={t('studentForm.placeholders.parentGuardianName')}
                 maxLength={100}
                 readOnly
               />
@@ -452,9 +455,9 @@ export function HMSStudentFormAdmin({
                     message: t('studentForm.validation.phonePattern')
                   }
                 })}
+                value={display(watch('parentGuardianContact'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={15}
-                placeholder={t('studentForm.placeholders.parentGuardianContact')}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
                   setValue('parentGuardianContact', cleaned, { shouldValidate: true, shouldDirty: true });
@@ -469,7 +472,7 @@ export function HMSStudentFormAdmin({
         </section>
 
         {/* 2. Course Information */}
-        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
+        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg border border-gray-700">
           <h3 className="text-2xl text-white font-normal mb-2">
             {t('studentForm.sections.courseInfo')}
           </h3>
@@ -542,7 +545,7 @@ export function HMSStudentFormAdmin({
                       {...register('instrumentOther', {
                         maxLength: { value: 50, message: t('studentForm.validation.instrumentOtherMax') }
                       })}
-                      placeholder={t('studentForm.placeholders.instrumentOther')}
+                      value={display(watch('instrumentOther'))}
                       className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32"
                       maxLength={50}
                       readOnly
@@ -610,7 +613,7 @@ export function HMSStudentFormAdmin({
         </section>
 
         {/* 3. Course Type / Certification Options */}
-        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
+        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg border border-gray-700">
           <h3 className="text-2xl text-white font-normal mb-2">
             {t('studentForm.sections.courseType')}
           </h3>
@@ -639,7 +642,7 @@ export function HMSStudentFormAdmin({
         </section>
 
         {/* 4. Music Background */}
-        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
+        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg border border-gray-700">
           <h3 className="text-2xl text-white font-normal mb-2">
             {t('studentForm.sections.musicBackground')}
           </h3>
@@ -660,6 +663,7 @@ export function HMSStudentFormAdmin({
                   min: { value: 0, message: t('studentForm.validation.yearsMin') },
                   max: { value: 100, message: t('studentForm.validation.yearsMax') }
                 })}
+                value={display(watch('yearsOfExperience'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 min={0}
                 max={100}
@@ -687,8 +691,8 @@ export function HMSStudentFormAdmin({
                 {...register('previousTraining', {
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
+                value={display(watch('previousTraining'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.previousTraining ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
-                placeholder={t('studentForm.placeholders.previousTraining')}
                 maxLength={200}
                 readOnly
               />
@@ -707,8 +711,8 @@ export function HMSStudentFormAdmin({
                 {...register('musicExamCertifications', {
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
+                value={display(watch('musicExamCertifications'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.musicExamCertifications ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
-                placeholder={t('studentForm.placeholders.musicExamCertifications')}
                 maxLength={200}
                 readOnly
               />
@@ -757,7 +761,7 @@ export function HMSStudentFormAdmin({
                       {...register('performanceOther', {
                         maxLength: { value: 100, message: t('studentForm.validation.performanceOtherMax') }
                       })}
-                      placeholder={t('studentForm.placeholders.performanceOther')}
+                      value={display(watch('performanceOther'))}
                       className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32"
                       maxLength={100}
                       readOnly
@@ -775,7 +779,7 @@ export function HMSStudentFormAdmin({
         </section>
 
         {/* 5. Goals & Interests */}
-        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
+        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg border border-gray-700">
           <h3 className="text-2xl text-white font-normal mb-2">
             {t('studentForm.sections.goalsInterests')}
           </h3>
@@ -791,9 +795,9 @@ export function HMSStudentFormAdmin({
                 maxLength: { value: 1000, message: t('studentForm.validation.goalsMax') }
               })}
               rows={4}
+              value={display(watch('goals'))}
               className={`w-full px-4 py-2 bg-black rounded border ${errors.goals ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] resize-none`}
               maxLength={1000}
-              placeholder={t('studentForm.fields.goalsPlaceholder')}
               readOnly
             />
             {errors.goals && (
@@ -803,7 +807,7 @@ export function HMSStudentFormAdmin({
         </section>
 
         {/* 6. Volunteer Opportunity */}
-        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
+        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg border border-gray-700">
           <h3 className="text-2xl text-white font-normal mb-2">
             {t('studentForm.sections.volunteer')}
           </h3>
@@ -873,7 +877,7 @@ export function HMSStudentFormAdmin({
         </section>
 
         {/* 7. Emergency Contact */}
-        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
+        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg border border-gray-700">
           <h3 className="text-2xl text-white font-normal mb-2">
             {t('studentForm.sections.emergencyContact')}
           </h3>
@@ -892,8 +896,8 @@ export function HMSStudentFormAdmin({
                   minLength: { value: 2, message: t('studentForm.validation.emergencyNameMin') },
                   maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
                 })}
+                value={display(watch('emergencyName'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
-                placeholder={t('studentForm.placeholders.emergencyName')}
                 maxLength={100}
                 readOnly
               />
@@ -913,8 +917,8 @@ export function HMSStudentFormAdmin({
                   required: t('studentForm.validation.emergencyRelationshipRequired'),
                   maxLength: { value: 50, message: t('studentForm.validation.relationshipMax') }
                 })}
+                value={display(watch('emergencyRelationship'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
-                placeholder={t('studentForm.placeholders.emergencyRelationship')}
                 maxLength={50}
                 readOnly
               />
@@ -939,9 +943,9 @@ export function HMSStudentFormAdmin({
                     message: t('studentForm.validation.phonePattern') 
                   }
                 })}
+                value={display(watch('emergencyContact'))}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={15}
-                placeholder={t('studentForm.placeholders.emergencyContact')}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
                   setValue('emergencyContact', cleaned, { shouldValidate: true, shouldDirty: true });
