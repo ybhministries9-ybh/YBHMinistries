@@ -908,17 +908,21 @@ export function StoriesManager() {
         <div className="flex gap-2">
           <Button
             onClick={handleAddTextStory}
-            className="!bg-[#2e2e2e] hover:bg-[#3E3E3E] text-white border border-[#FDB813] cursor-pointer"
+            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#0d0d0d] transition-colors cursor-pointer"
           >
-            <FileText size={16} className="mr-2" />
-            Add Text Story
+            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
+              <Plus size={14} className="text-white" />
+            </span>
+            <span className="font-medium">Add Text Story</span>
           </Button>
           <Button
             onClick={handleAddVideoStory}
-            className="!bg-[#2e2e2e] hover:bg-[#3E3E3E] text-white border border-[#FDB813] cursor-pointer"
+            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#0d0d0d] transition-colors cursor-pointer"
           >
-            <Video size={16} className="mr-2" />
-            Add Video Story
+            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
+              <Plus size={14} className="text-white" />
+            </span>
+            <span className="font-medium">Add Video Story</span>
           </Button>
         </div>
       </div>

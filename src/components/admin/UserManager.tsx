@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw, Edit2 } from 'lucide-react';
+import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw, Edit2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
@@ -373,10 +373,12 @@ export function UserManager() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] text-black rounded-lg hover:bg-[#e5a711] transition-colors cursor-pointer"
+          className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#0d0d0d] transition-colors cursor-pointer"
         >
-          <Plus size={16} />
-          Add User
+          <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
+            <Plus size={14} className="text-white" />
+          </span>
+          <span className="font-medium">Add User</span>
         </button>
       </div>
 
@@ -405,7 +407,8 @@ export function UserManager() {
                   value={formData.name}
                   onChange={(e) => handleFieldChange('name', e.target.value.slice(0, CHAR_LIMITS.name))}
                   placeholder="Enter full name"
-                  className={`w-full px-3 py-2 bg-black border ${
+                  style={{ backgroundColor: '#2e2e2e' }}
+                  className={`w-full px-3 py-2 !bg-[#2e2e2e] border ${
                     validationErrors.name ? 'border-red-500' : 'border-gray-600'
                   } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent selection:bg-[#FDB813] selection:text-black`}
                   maxLength={CHAR_LIMITS.name}
@@ -428,7 +431,8 @@ export function UserManager() {
                   value={formData.email}
                   onChange={(e) => handleFieldChange('email', e.target.value.slice(0, CHAR_LIMITS.email))}
                   placeholder="user@example.com"
-                  className={`w-full px-3 py-2 bg-black border ${
+                  style={{ backgroundColor: '#2e2e2e' }}
+                  className={`w-full px-3 py-2 !bg-[#2e2e2e] border ${
                     validationErrors.email ? 'border-red-500' : 'border-gray-600'
                   } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent selection:bg-[#FDB813] selection:text-black`}
                   maxLength={CHAR_LIMITS.email}
@@ -448,7 +452,8 @@ export function UserManager() {
                 <select
                   value={formData.role}
                   onChange={(e) => handleFieldChange('role', e.target.value)}
-                  className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent"
+                  style={{ backgroundColor: '#2e2e2e' }}
+                  className="w-full px-3 py-2 !bg-[#2e2e2e] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent"
                 >
                   <option value="Super Admin">Super Admin</option>
                   <option value="Content Manager">Content Manager</option>
@@ -467,7 +472,8 @@ export function UserManager() {
                 <select
                   value={formData.status}
                   onChange={(e) => handleFieldChange('status', e.target.value)}
-                  className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent"
+                  style={{ backgroundColor: '#2e2e2e' }}
+                  className="w-full px-3 py-2 !bg-[#2e2e2e] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
@@ -478,19 +484,21 @@ export function UserManager() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#FDB813] text-black rounded-lg hover:bg-[#e5a711] transition-colors cursor-pointer"
-              >
-                {editingUser ? 'Update' : 'Add'} User
-              </button>
+            <div className="flex gap-3 pt-2 justify-end">
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-lg transition-colors cursor-pointer"
+                className="px-4 py-2 bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600 rounded-lg transition-colors cursor-pointer flex items-center gap-2"
               >
+                <X size={14} />
                 Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-[#FDB813] text-black rounded-lg hover:bg-[#e5a711] transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <Save size={14} />
+                {editingUser ? 'Update' : 'Add User'}
               </button>
             </div>
           </form>
@@ -537,10 +545,10 @@ export function UserManager() {
               }} className="p-2 bg-[#FDB813] text-black rounded">
                 <RotateCw size={16} />
               </button>
-              <button onClick={() => handleEdit(user)} className="p-2 text-gray-300 bg-transparent border border-gray-700 rounded">
+              <button onClick={() => handleEdit(user)} className="h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors" title="Edit">
                 <Edit2 size={16} />
               </button>
-              <button onClick={() => handleDelete(user)} className="p-2 bg-[#2E2E2E] text-[#FDB813] border border-[#FDB813] rounded">
+              <button onClick={() => handleDelete(user)} className="h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors" title="Delete">
                 <Trash2 size={16} />
               </button>
             </div>
@@ -554,7 +562,7 @@ export function UserManager() {
             <thead className="bg-[#2E2E2E] border-b border-gray-700">
               <tr>
                 <th 
-                  className="w-[26%] px-4 py-3 text-left text-xs text-gray-400 uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
+                  className="w-[26%] px-4 py-3 text-left text-xs text-white uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center gap-2">
@@ -563,7 +571,7 @@ export function UserManager() {
                   </div>
                 </th>
                 <th 
-                  className="w-[16%] px-3 py-3 text-left text-xs text-gray-400 uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
+                  className="w-[16%] px-3 py-3 text-left text-xs text-white uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
                   onClick={() => handleSort('role')}
                 >
                   <div className="flex items-center gap-2">
@@ -572,7 +580,7 @@ export function UserManager() {
                   </div>
                 </th>
                 <th 
-                  className="w-[12%] px-3 py-3 text-left text-xs text-gray-400 uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
+                  className="w-[12%] px-3 py-3 text-left text-xs text-white uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
                   onClick={() => handleSort('status')}
                 >
                   <div className="flex items-center gap-2">
@@ -581,7 +589,7 @@ export function UserManager() {
                   </div>
                 </th>
                 <th 
-                  className="w-[18%] px-3 py-3 text-left text-xs text-gray-400 uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
+                  className="w-[18%] px-3 py-3 text-left text-xs text-white uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
                   onClick={() => handleSort('lastLogin')}
                 >
                   <div className="flex items-center gap-2">
@@ -590,7 +598,7 @@ export function UserManager() {
                   </div>
                 </th>
                 <th 
-                  className="w-[12%] px-3 py-3 text-left text-xs text-gray-400 uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
+                  className="w-[12%] px-3 py-3 text-left text-xs text-white uppercase tracking-wider cursor-pointer hover:text-[#FDB813] transition-colors"
                   onClick={() => handleSort('createdAt')}
                 >
                   <div className="flex items-center gap-2">
@@ -598,7 +606,7 @@ export function UserManager() {
                     <SortIcon column="createdAt" />
                   </div>
                 </th>
-                <th className="w-[16%] px-3 py-3 text-right text-xs text-gray-400 uppercase tracking-wider">
+                <th className="w-[16%] px-3 py-3 text-right text-xs text-white uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -616,7 +624,7 @@ export function UserManager() {
                     <td className="px-4 py-4">
                       <div className="flex items-center min-w-0">
                         <div className="flex-shrink-0 h-10 w-10 bg-purple-900/30 rounded-full flex items-center justify-center">
-                          <User size={20} className="text-purple-400" />
+                          <User size={20} className="text-white" />
                         </div>
                         <div className="ml-3 min-w-0 flex-1">
                           <div className="text-sm text-white truncate">{user.name}</div>
@@ -639,7 +647,7 @@ export function UserManager() {
                         {user.status}
                       </span>
                     </td>
-                    <td className="px-3 py-4 text-sm text-gray-400">
+                    <td className="px-3 py-4 text-sm text-white">
                       <div className="flex items-start gap-1">
                         <Clock size={14} className="flex-shrink-0 mt-0.5" />
                         <div className="flex flex-col leading-tight">
@@ -656,7 +664,7 @@ export function UserManager() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-4 text-sm text-gray-400">
+                    <td className="px-3 py-4 text-sm text-white">
                       {new Date(user.createdAt).toLocaleDateString('en-US', { 
                         month: 'numeric',
                         day: 'numeric',
@@ -701,7 +709,7 @@ export function UserManager() {
                         {/* Removed 'Require Reset' toggle — admin can use Reset Password to set default and clear the flag */}
                         <button
                           onClick={() => handleEdit(user)}
-                          className="p-2 text-gray-300 bg-transparent border border-gray-700 hover:bg-gray-800 rounded transition-colors"
+                          className="h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors"
                           aria-label="Edit"
                           title="Edit User"
                         >
@@ -709,7 +717,7 @@ export function UserManager() {
                         </button>
                         <button
                           onClick={() => handleDelete(user)}
-                          className="p-2 bg-[#2E2E2E] text-[#FDB813] hover:bg-[#1a1a1a] border border-[#FDB813] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           aria-label="Delete"
                           title={user.role === 'Super Admin' ? 'Cannot delete Super Admin' : 'Delete User'}
                           disabled={user.role === 'Super Admin'}
