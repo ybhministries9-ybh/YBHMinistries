@@ -12,6 +12,7 @@ import { HallelBibleCollege } from './HallelBibleCollege';
 import { HMSSummerTraining } from './HMSSummerTraining';
 import { HallelChurch } from './HallelChurch';
 import { ScrollToTop } from '../ScrollToTop';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // Map slug to component
 const COMPONENT_MAP: Record<string, React.ComponentType> = {
@@ -58,33 +59,40 @@ export function MinistriesPage() {
   const [ministries, setMinistries] = useState<Ministry[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const fetchActiveMinistries = useCallback(async () => {
-    try {
-      const response = await fetch('/api/ministries');
-      if (!response.ok) {
-        throw new Error('Failed to fetch ministries');
+  // Fetch ministries and set initial tab from URL or default
+  useEffect(() => {
+    async function fetchAndSetTab() {
+      try {
+        const response = await fetch('/api/ministries');
+        const data = await response.ok ? await response.json() : [];
+        const sortedMinistries = sortMinistries(data);
+        setMinistries(sortedMinistries);
+        let tab = searchParams.get('tab') || "";
+        if (tab && sortedMinistries.some(m => m.slug === tab)) {
+          setActiveTab(tab);
+        } else if (sortedMinistries.length > 0) {
+          setActiveTab(sortedMinistries[0].slug);
+        }
+      } catch (error) {
+        setMinistries([]);
+      } finally {
+        setLoading(false);
       }
-      
-      const data = await response.json();
-      // API already filters by is_active, no need to filter again
-      const sortedMinistries = sortMinistries(data);
-      
-      setMinistries(sortedMinistries);
-      // Set first ministry as default tab
-      if (sortedMinistries.length > 0) {
-        setActiveTab(sortedMinistries[0].slug);
-      }
-    } catch (error) {
-      console.error('Error fetching ministries:', error);
-    } finally {
-      setLoading(false);
     }
+    fetchAndSetTab();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Listen for tab query param changes and update activeTab
   useEffect(() => {
-    fetchActiveMinistries();
-  }, [fetchActiveMinistries]);
+    const tab = searchParams.get('tab') || "";
+    if (tab && ministries.some(m => m.slug === tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams, ministries]);
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
