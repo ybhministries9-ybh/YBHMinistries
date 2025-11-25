@@ -696,10 +696,12 @@ export default {
     paragraph2: "Through social programs we serve the vulnerable and share God’s love. We proclaim the Gospel among unreached communities and disciple those who are rescued to become faithful followers of Jesus Christ. Our members support one another’s spiritual, financial, and social growth.",
     activitiesTitle: "Church Activities",
     activity1Name: "Sunday Worship Service",
-    activity1Time: "Evening 6:00 – 8:00",
+      activity1Time: "6:00 – 8:00",
     activity2Name: "Fasting Prayer",
-    activity2Time: "Every Friday, Evening 7:00 – 8:00",
-    activityNote: "All times are local"
+      activity2Time: "7:00 – 8:00",
+    activityNote: "All times are local",
+    activity1Subtitle: "Join us for praise, worship, and the Word of God",
+    activity2Subtitle: "A time of spiritual renewal and intercession"
   },
   
   common: {
