@@ -11,23 +11,25 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#1e40af',
     icons: [
       {
-        src: '/icon.png',
+        // Use the Next.js OG image routes (server-generated) instead of a missing static png
+        src: '/icon',
         sizes: '32x32',
         type: 'image/png',
       },
       {
-        src: '/apple-icon.png',
+        // Apple touch icon: point to the 192 route which renders a larger icon
+        src: '/icon-192',
         sizes: '180x180',
         type: 'image/png',
       },
       {
-        src: '/icon-192.png',
+        src: '/icon-192',
         sizes: '192x192',
         type: 'image/png',
         purpose: 'maskable',
       },
       {
-        src: '/icon-512.png',
+        src: '/icon-512',
         sizes: '512x512',
         type: 'image/png',
       },

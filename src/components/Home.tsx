@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
+import SmartImage from './SmartImage';
 import { useRouter } from "next/navigation";
 import { Play } from "lucide-react";
 import { accentGold } from "../utils/theme";
@@ -8,6 +9,8 @@ import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 import { EventScrollBanner } from './EventScrollBanner';
 import { getUpcomingEvents, Event } from '../utils/eventsData';
+
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 
 // ImageWithFallback component for handling image loading errors
 function ImageWithFallback(props) {
@@ -228,7 +231,7 @@ export function Home() {
   const [isLoading, setIsLoading] = useState(true);
   
   // Default image when no images are in database
-  const defaultHeroImage = "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/home/hero/default.jpg";
+  const defaultHeroImage = `${R2_BASE}/home/hero/default.jpg`;
 
   // Fetch hero images and events from API
   useEffect(() => {
@@ -238,8 +241,8 @@ export function Home() {
         const result = await response.json();
         
         if (result.success && result.data && result.data.length > 0) {
-          const imageUrls = result.data.map((img: any) => img.image_url);
-          setHeroImages(imageUrls);
+          const imageUrls = result.data.map((img: any) => img.signedUrl || img.image_url || img.url).filter(Boolean) as string[];
+          setHeroImages(imageUrls.length > 0 ? imageUrls : [defaultHeroImage]);
         } else {
           // Use default image if no images in database
           setHeroImages([defaultHeroImage]);
@@ -264,22 +267,22 @@ export function Home() {
 
   const awardImages = [
     {
-      src: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/guiness.png",
+      src: `${R2_BASE}/logo/awards/guiness.png`,
       alt: "Guinness World Records Award",
       year: 2024
     },
     {
-      src: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/Asian%20book%20of%20records.png",
+      src: `${R2_BASE}/logo/awards/Asian%20book%20of%20records.png`,
       alt: "Asian Book of Records Award",
       year: 2024
     },
     {
-      src: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/ingenious.png",
+      src: `${R2_BASE}/logo/awards/ingenious.png`,
       alt: "Ingenious Charm World Records Award",
       year: 2024
     },
     {
-      src: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Home/awards/Star%20book%20of%20records%20-%20final.png",
+      src: `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`,
       alt: "International Star Book of Records Award",
       year: 2023
     }

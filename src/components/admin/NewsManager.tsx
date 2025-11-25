@@ -1,9 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Calendar, BarChart3, ChevronUp, ChevronDown, X, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Edit2, Calendar, BarChart3, ChevronUp, ChevronDown, X, Eye, EyeOff, Save } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  DialogOverlay,
+} from '../ui/dialog';
 import { toast } from 'sonner';
 import { EventsManager } from './EventsManager';
 
@@ -80,6 +89,8 @@ function ReportsManager() {
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<string | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Fetch reports from API
   const fetchReports = async () => {
@@ -114,27 +125,34 @@ function ReportsManager() {
   }, []);
 
   const handleAdd = () => {
+    // If there is already a temporary (unsaved) report open, show confirmation
+    const hasTemp = reports.some(r => r.id.startsWith('temp-'));
+    if (hasTemp) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+
     // Create a temporary new report in local state for editing
     const tempId = `temp-${Date.now()}`;
     const newReport: YearlyReport = {
       id: tempId,
       year: new Date().getFullYear(),
       classType: 'keyboard',
-      published: false,
+      published: true,
       data: [
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
       ].map(month => ({ month, indian: 0, nonIndian: 0, total: 0 }))
     };
     
-    setReports([newReport, ...reports]);
+    setReports(prev => [newReport, ...prev]);
     setEditingId(tempId);
     setExpandedReport(tempId);
   };
 
   const handleUpdate = (id: string, updates: Partial<YearlyReport>) => {
     // Update local state immediately for responsive UI
-    setReports(reports.map(r => r.id === id ? { ...r, ...updates } : r));
+    setReports(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
   };
 
   const handleUpdateMonth = (reportId: string, monthIndex: number, field: keyof EnrollmentMonth, value: number) => {
@@ -172,7 +190,7 @@ function ReportsManager() {
         const result = await response.json();
 
         if (result.success) {
-          setReports(reports.filter(r => r.id !== reportToDelete));
+          setReports(prev => prev.filter(r => r.id !== reportToDelete));
           toast.success('Report deleted successfully');
         } else {
           toast.error(result.error || 'Failed to delete report');
@@ -191,6 +209,14 @@ function ReportsManager() {
     try {
       const report = reports.find(r => r.id === id);
       if (!report) return;
+
+      // Validate year before saving
+      const yearVal = Number(report.year);
+      if (!Number.isInteger(yearVal) || yearVal < 1900 || String(yearVal).length > 4) {
+        setValidationErrors(prev => ({ ...prev, [id]: 'Year must be a number ≥ 1900 and at most 4 digits' }));
+        toast.error('Please fix validation errors before saving');
+        return;
+      }
 
       // Check if this is a new report (temporary ID)
       const isNewReport = id.startsWith('temp-');
@@ -311,17 +337,53 @@ function ReportsManager() {
     <div className="space-y-4">
       {/* Add Button */}
       <div className="flex justify-between items-center">
-        <div className="text-gray-400">
+        <div className="text-white text-base font-medium">
           Total: <span className="text-[#FDB813] font-bold">{reports.length}</span> report(s)
+          {' | '}
+          Published: <span className="text-[#FDB813] font-bold">{reports.filter(r => r.published).length}</span>
         </div>
         <Button
           onClick={handleAdd}
+          title="Add a new report"
           className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
         >
           <Plus size={16} className="mr-2" />
           Add Report
         </Button>
       </div>
+
+      {/* Discard confirmation dialog shown when attempting to open a new form while a temp exists */}
+      <Dialog open={showDiscardConfirm} onOpenChange={(open) => setShowDiscardConfirm(open)}>
+        <DialogOverlay />
+        <DialogContent hideClose className="bg-[#2E2E2E] text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Save draft?</DialogTitle>
+          </DialogHeader>
+          <DialogDescription className="mb-6 text-gray-300">You have an unsaved report open.</DialogDescription>
+          <DialogFooter>
+            <Button onClick={() => setShowDiscardConfirm(false)} className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-700 px-4 py-2 rounded-md">Cancel</Button>
+            <Button onClick={() => {
+              // remove any temp reports and then create a new one
+              setReports(prev => prev.filter(r => !r.id.startsWith('temp-')));
+              const tempId = `temp-${Date.now()}`;
+              const newReport: YearlyReport = {
+                id: tempId,
+                year: new Date().getFullYear(),
+                classType: 'keyboard',
+                published: true,
+                data: [
+                  'January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'
+                ].map(month => ({ month, indian: 0, nonIndian: 0, total: 0 }))
+              };
+              setReports(prev => [newReport, ...prev]);
+              setExpandedReport(tempId);
+              setEditingId(tempId);
+              setShowDiscardConfirm(false);
+            }} className="bg-[#FDB813] hover:bg-[#e5a711] text-black px-4 py-2 rounded-md">Discard</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Reports List */}
       {reports.length === 0 ? (
@@ -343,7 +405,7 @@ function ReportsManager() {
             return (
               <div key={report.id} className="bg-black rounded-lg border border-gray-700">
                 {/* Header */}
-                <div className="p-4 flex items-start justify-between">
+                <div className="p-4 flex items-center justify-between">
                   <div className="flex-1">
                     <h3 className="text-white text-lg mb-1">
                       {report.year} - {getClassTypeName(report.classType)}
@@ -352,70 +414,42 @@ function ReportsManager() {
                       <span>Total: {totalYearly.total} students</span>
                       <span>National: {totalYearly.indian}</span>
                       <span>International: {totalYearly.nonIndian}</span>
-                      {report.published ? (
-                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">Published</span>
-                      ) : (
-                        <span className="px-3 py-1 rounded text-xs bg-[#FDB813] text-black">Draft</span>
-                      )}
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">{report.published ? 'Published' : 'Draft'}</span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <Button
+                      title={report.published ? 'Unpublish' : 'Publish'}
                       onClick={() => togglePublished(report.id)}
                       size="sm"
                       aria-label={report.published ? 'Unpublish report' : 'Publish report'}
-                      className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600"
+                      className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
                     >
-                      {report.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                      {report.published ? <EyeOff size={14} /> : <Eye size={14} />}
                     </Button>
                     <Button
+                      title={isExpanded ? 'Collapse' : 'Expand'}
                       onClick={() => setExpandedReport(isExpanded ? null : report.id)}
                       size="sm"
-                      className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white border border-gray-600"
+                      className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
                     >
                       {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </Button>
-                    {isEditing ? (
+                    {!isEditing && (
                       <>
                         <Button
-                          onClick={() => handleSave(report.id)}
+                          title="Edit"
+                          onClick={() => { setEditingId(report.id); setExpandedReport(report.id); }}
                           size="sm"
-                          className="bg-[#FDB813] hover:bg-[#e5a610] text-black"
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            // If it's a temp report, remove it from the list
-                            if (report.id.startsWith('temp-')) {
-                              setReports(reports.filter(r => r.id !== report.id));
-                              setExpandedReport(null);
-                            } else {
-                              // For existing reports, refresh from database to restore original values
-                              fetchReports();
-                            }
-                            setEditingId(null);
-                          }}
-                          size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600"
-                        >
-                          <X size={14} className="mr-1" />
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={() => setEditingId(report.id)}
-                          size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#1a1a1a] text-[#FDB813] border border-[#FDB813]"
+                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
                         >
                           <Edit2 size={14} />
                         </Button>
                         <Button
+                          title="Delete"
                           onClick={() => handleDelete(report.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-red-900 text-red-500 border border-red-500"
+                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -429,29 +463,38 @@ function ReportsManager() {
                   <div className="px-4 pb-4 space-y-4 border-t border-gray-700 pt-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-white mb-1 block">Year</label>
+                        <label className="text-sm text-white mb-1 block">Year <span className="text-[#FDB813]">*</span></label>
                         <Input
-                          type="number"
-                          min="1900"
-                          max="2100"
-                          value={report.year}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={report.year ? String(report.year) : ''}
                           onChange={(e) => {
-                            const value = e.target.value === '' ? '' : parseInt(e.target.value);
-                            if (value === '' || (typeof value === 'number' && value >= 1900)) {
-                              handleUpdate(report.id, { year: value === '' ? new Date().getFullYear() : value });
+                            const onlyDigits = e.target.value.replace(/\D+/g, '');
+                            const num = onlyDigits === '' ? 0 : parseInt(onlyDigits, 10);
+                            handleUpdate(report.id, { year: num });
+
+                            // validation: min 1900 and max 4 digits
+                            if (onlyDigits.length > 4) {
+                              setValidationErrors(prev => ({ ...prev, [report.id]: 'Year must be at most 4 digits' }));
+                            } else if (onlyDigits !== '' && num < 1900) {
+                              setValidationErrors(prev => ({ ...prev, [report.id]: 'Year must be ≥ 1900' }));
+                            } else {
+                              setValidationErrors(prev => { const c = { ...prev }; delete c[report.id]; return c; });
                             }
                           }}
-                          placeholder="2024"
-                          className="bg-black border-gray-600 text-white"
+                          placeholder="YYYY"
+                          className="bg-[#2E2E2E] border-gray-600 text-white"
                           disabled={!isEditing}
                         />
+                        <div className="text-xs mt-1">{validationErrors[report.id] ? <span className="text-red-400">{validationErrors[report.id]}</span> : <span>&nbsp;</span>}</div>
                       </div>
                       <div>
                         <label className="text-sm text-white mb-1 block">Class Type</label>
                         <select
                           value={report.classType}
                           onChange={(e) => handleUpdate(report.id, { classType: e.target.value as any })}
-                          className="w-full bg-black border border-gray-600 rounded-md px-3 py-2 text-white"
+                          className="w-full bg-[#2E2E2E] border border-gray-600 rounded-md px-3 py-2 text-white"
                           disabled={!isEditing}
                         >
                           <option value="keyboard">Keyboard</option>
@@ -488,7 +531,7 @@ function ReportsManager() {
                                         handleUpdateMonth(report.id, index, 'indian', value === '' ? 0 : parseInt(value));
                                       }
                                     }}
-                                    className="bg-black border-gray-600 text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    className="bg-[#2E2E2E] border-gray-600 text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     disabled={!isEditing}
                                     placeholder="0"
                                   />
@@ -503,7 +546,7 @@ function ReportsManager() {
                                         handleUpdateMonth(report.id, index, 'nonIndian', value === '' ? 0 : parseInt(value));
                                       }
                                     }}
-                                    className="bg-black border-gray-600 text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    className="bg-[#2E2E2E] border-gray-600 text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     disabled={!isEditing}
                                     placeholder="0"
                                   />
@@ -524,17 +567,41 @@ function ReportsManager() {
                       </div>
                     </div>
 
-                    {/* Published Toggle */}
-                    <div className="flex items-center gap-2 border-t border-gray-700 pt-4">
-                      <input
-                        type="checkbox"
-                        checked={report.published}
-                        onChange={(e) => handleUpdate(report.id, { published: e.target.checked })}
-                        className="w-4 h-4"
-                        disabled={!isEditing}
-                      />
-                      <label className="text-white">Published (visible on website)</label>
-                    </div>
+                    {/* Published is controlled via the action buttons in the header */}
+
+                    {/* Actions: Save/Cancel placed at bottom-right of expanded form when editing */}
+                    {isEditing && (
+                      <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-700">
+                        <Button
+                          title="Cancel"
+                          onClick={() => {
+                            // If it's a temp report, remove it from the list and close
+                            if (report.id.startsWith('temp-')) {
+                              setReports(prev => prev.filter(r => r.id !== report.id));
+                              setExpandedReport(null);
+                            } else {
+                              // For existing reports, refresh from database to restore original values
+                              fetchReports();
+                              // Close the expanded form without saving
+                              setExpandedReport(null);
+                            }
+                            setEditingId(null);
+                          }}
+                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
+                        >
+                          <X size={14} className="mr-1" />
+                          Cancel
+                        </Button>
+                        <Button
+                          title="Save"
+                          onClick={() => handleSave(report.id)}
+                          className="bg-[#FDB813] hover:bg-[#e5a711] text-black font-semibold cursor-pointer"
+                        >
+                          <Save size={16} className="mr-2" />
+                          Save Report
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

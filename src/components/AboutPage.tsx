@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import Image from 'next/image';
 import { motion } from "motion/react";
 import {
   Heart,
@@ -12,8 +13,9 @@ import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 
-// Default fallback image URL
-const FALLBACK_HERO_IMAGE = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/defaults/about-default.jpg';
+// Default fallback image URL (derived from env; leave blank if not provided)
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+const FALLBACK_HERO_IMAGE = `${R2_BASE}/defaults/about-default.jpg`;
 
 // Tab configuration
 const TAB_CONFIG = [
@@ -21,10 +23,17 @@ const TAB_CONFIG = [
   { key: "coreValues", labelKey: "tabs.coreValues" }
 ] as const;
 
-export function AboutPage() {
+interface Props {
+  initialHeroImageUrl?: string;
+  initialHeroBlur?: string;
+}
+
+export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
   const { t } = useTranslation('about');
   const [activeTab, setActiveTab] = useState<string>("vision");
-  const [heroImageUrl, setHeroImageUrl] = useState<string>(FALLBACK_HERO_IMAGE);
+  // Use server-provided initial URL when available to avoid client-side image swap/flicker
+  const [heroImageUrl, setHeroImageUrl] = useState<string | undefined>(initialHeroImageUrl || undefined);
+  const [isImgLoaded, setIsImgLoaded] = useState<boolean>(false);
 
   // Fetch hero image on component mount
   useEffect(() => {
@@ -34,7 +43,10 @@ export function AboutPage() {
         const result = await response.json();
         
         if (result.success && result.data?.image_url) {
-          setHeroImageUrl(result.data.image_url);
+          // Only update if the server-provided URL differs to avoid visible swapping
+          if (result.data.image_url && result.data.image_url !== heroImageUrl) {
+            setHeroImageUrl(result.data.image_url);
+          }
         }
       } catch (error) {
         console.error('Error fetching about hero image:', error);
@@ -80,20 +92,26 @@ export function AboutPage() {
       style={{ backgroundColor: primaryBackground }}
     >
       {/* Hero Image */}
-      <div className="relative w-full h-screen md:h-auto overflow-hidden md:overflow-visible md:pt-20">
-        <img
-          src={heroImageUrl}
-          alt={t('hero.title')}
-          className="absolute inset-0 md:relative w-full h-full md:h-auto object-cover md:object-contain"
-          style={{ display: "block", objectPosition: "center center" }}
-          onError={(e) => {
-            // Fallback to default image if the hero image fails to load
-            const target = e.target as HTMLImageElement;
-            if (target.src !== FALLBACK_HERO_IMAGE) {
-              target.src = FALLBACK_HERO_IMAGE;
-            }
-          }}
-        />
+      <div className="relative w-full h-screen overflow-hidden md:pt-20" style={{ backgroundColor: '#000' }}>
+        {heroImageUrl ? (
+          <div className="absolute inset-0 w-full h-full"> 
+            <Image
+              src={heroImageUrl}
+              alt={t('hero.title')}
+              fill
+              className={`object-cover transition-opacity duration-500 ease-out ${isImgLoaded ? 'opacity-100' : 'opacity-0'}`}
+              style={{ objectPosition: 'center center' }}
+              placeholder={initialHeroBlur ? 'blur' : 'empty'}
+              blurDataURL={initialHeroBlur}
+              onLoad={() => setIsImgLoaded(true)}
+              unoptimized={true}
+              priority={true}
+            />
+          </div>
+        ) : (
+          // No hero image provided — show a stable background block to avoid layout shift
+          <div className="absolute inset-0" style={{ backgroundColor: '#000' }} aria-hidden />
+        )}
       </div>
 
       {/* Tabs - Centered with padding */}

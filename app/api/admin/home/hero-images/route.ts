@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put, del } from '@vercel/blob';
+import { del } from '@vercel/blob';
+import { uploadBuffer, getPublicUrl, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl } from '@/lib/r2';
 import { createHeroImage, updateHeroImage, deleteHeroImage, deleteHeroImages, reorderHeroImages, getActiveHeroImages } from '@/lib/db';
 import { sql } from '@vercel/postgres';
 import { verifySession, getActorName } from '@/lib/sessions';
+import processHeroImageById from '@/lib/imageProcessor';
 
 /**
  * GET /api/admin/home/hero-images
@@ -10,14 +12,29 @@ import { verifySession, getActorName } from '@/lib/sessions';
  */
 export async function GET(request: NextRequest) {
   try {
-    // For admin, we want to fetch ALL images, not just active ones
-    // Modify the query to get all images
-    const images = await getActiveHeroImages(); // TODO: Create getAllHeroImages() for admin
-    
+    // For admin, we want to fetch images for management. Include presigned URLs so the admin UI can preview private objects.
+    const images = await getActiveHeroImages(); // TODO: Create getAllHeroImages() for admin if needed
+
+    const enhanced = await Promise.all(images.map(async (img: any) => {
+      const image_url = img.image_url || img.url || '';
+      const parsed = parseKeyFromUrl(image_url);
+      if (parsed && parsed.key) {
+        try {
+          const bucket = parsed.bucket || PRIVATE_BUCKET;
+          const signedUrl = await getPresignedGetUrl(parsed.key, 3600, bucket || undefined);
+          return { ...img, signedUrl };
+        } catch (err) {
+          console.error('Failed to create presigned URL for admin image preview', parsed, err);
+          return { ...img };
+        }
+      }
+      return { ...img };
+    }));
+
     return NextResponse.json({
       success: true,
-      data: images,
-      count: images.length,
+      data: enhanced,
+      count: enhanced.length,
     });
   } catch (error: any) {
     console.error('Error fetching hero images:', error);
@@ -61,18 +78,39 @@ export async function POST(request: NextRequest) {
     const uploadedImages = [];
 
     for (const file of files) {
-      // Upload to Vercel Blob
-      const blob = await put(`home/hero/${Date.now()}-${file.name}`, file, {
-        access: 'public',
-        addRandomSuffix: true,
-      });
+      // Upload to Cloudflare R2 using server-side helper
+      const originalName = file.name || `upload-${Date.now()}`;
+      const sanitized = originalName.replace(/[^a-zA-Z0-9.\-_/]/g, '_');
+      const key = `home/hero/${Date.now()}-${sanitized}`;
 
-      // Save to database
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      // upload original immediately into the configured PRIVATE_BUCKET
+      await uploadBuffer(key, buffer, file.type || 'application/octet-stream', PRIVATE_BUCKET);
+      const storageRef = `r2://${PRIVATE_BUCKET}/${key}`;
+
+      // Save to database using internal r2:// reference (thumbnail/medium will be added later)
       const heroImage = await createHeroImage(
-        blob.url,
+        storageRef,
         undefined,
         createdBy
       );
+
+      // Enqueue processing: create a queue entry to generate thumbnail/medium asynchronously
+      try {
+        const insertSql = `INSERT INTO image_processing_queue (hero_image_id, r2_bucket, r2_key, status) VALUES ($1, $2, $3, 'pending')`;
+        await sql.query(insertSql, [heroImage.id, PRIVATE_BUCKET, key]);
+      } catch (qerr) {
+        console.error('Failed to enqueue image processing for', heroImage.id, qerr);
+      }
+
+      // Try to process immediately (best-effort) so thumbnails are available for admin instantly.
+      try {
+        await processHeroImageById(heroImage.id);
+      } catch (procErr) {
+        // Log and continue; background processor or manual script can pick it up later
+        console.error('Immediate processing failed for', heroImage.id, procErr);
+      }
 
       uploadedImages.push(heroImage);
     }
@@ -162,11 +200,18 @@ export async function DELETE(request: NextRequest) {
         );
       }
 
-      // Fetch blob URLs before deleting from database
+      // Fetch image, thumbnail, and medium URLs before deleting from database
       const placeholders = imageIds.map((_, i) => `$${i + 1}`).join(', ');
-      const query = `SELECT image_url FROM home_hero_images WHERE id IN (${placeholders})`;
+      const query = `SELECT id, image_url, thumbnail_url, medium_url FROM home_hero_images WHERE id IN (${placeholders})`;
       const result = await sql.query(query, imageIds);
-      const blobUrls = result.rows.map((row: any) => row.image_url);
+      const rows = result.rows;
+
+      const blobUrls = rows.map((row: any) => ({
+        id: row.id,
+        image_url: row.image_url,
+        thumbnail_url: row.thumbnail_url,
+        medium_url: row.medium_url,
+      }));
 
       // verify session for delete
       const auth = request.headers.get('authorization') || '';
@@ -176,18 +221,36 @@ export async function DELETE(request: NextRequest) {
 
       // Delete from database
       await deleteHeroImages(imageIds);
+      // Also remove any queued processing entries for these hero images
+      try {
+        const delPlaceholders = imageIds.map((_, i) => `$${i + 1}`).join(', ');
+        await sql.query(`DELETE FROM image_processing_queue WHERE hero_image_id IN (${delPlaceholders})`, imageIds);
+      } catch (queueDelErr) {
+        console.error('Failed to delete queue rows for hero images', imageIds, queueDelErr);
+      }
 
       // Delete from Vercel Blob storage (parallel for better performance)
-      const blobDeletions = blobUrls
-        .filter(url => url && url.includes('blob.vercel-storage.com'))
-        .map(url => 
-          del(url).catch(blobError => {
-            console.error(`Failed to delete blob: ${url}`, blobError);
-            return null; // Don't fail the whole operation
-          })
-        );
-      
-      await Promise.all(blobDeletions);
+      // Delete storage objects for original, thumbnail and medium
+      const deletions = blobUrls.flatMap((row) => {
+        const urls = [row.image_url, row.thumbnail_url, row.medium_url].filter(Boolean);
+        return urls.map(async (url: string) => {
+          try {
+            if (url.includes('blob.vercel-storage.com')) {
+              return del(url).catch(err => { console.error('Failed deleting vercel blob', url, err); return null; });
+            }
+            const parsed = parseKeyFromUrl(url);
+            if (parsed && parsed.key) {
+              return deleteObject(parsed.key, parsed.bucket || undefined).catch(err => { console.error('Failed deleting r2 object', parsed, err); return null; });
+            }
+            return null;
+          } catch (err) {
+            console.error('Error deleting media url', url, err);
+            return null;
+          }
+        });
+      });
+
+      await Promise.all(deletions);
 
       return NextResponse.json({
         success: true,
@@ -199,9 +262,12 @@ export async function DELETE(request: NextRequest) {
     if (id) {
       const imageId = parseInt(id);
       
-      // Fetch blob URL before deleting from database
-      const { rows } = await sql`SELECT image_url FROM home_hero_images WHERE id = ${imageId}`;
-      const blobUrl = rows[0]?.image_url;
+      // Fetch image, thumbnail, and medium URLs before deleting from database
+      const { rows } = await sql`SELECT id, image_url, thumbnail_url, medium_url FROM home_hero_images WHERE id = ${imageId}`;
+      const row = rows[0] || {};
+      const blobUrl = row.image_url;
+      const thumbUrl = row.thumbnail_url;
+      const mediumUrl = row.medium_url;
 
       // verify session for delete
       const auth = request.headers.get('authorization') || '';
@@ -211,14 +277,26 @@ export async function DELETE(request: NextRequest) {
 
       // Delete from database
       await deleteHeroImage(imageId);
+      // Delete any queue rows for this hero
+      try {
+        await sql`DELETE FROM image_processing_queue WHERE hero_image_id = ${imageId}`;
+      } catch (qe) {
+        console.error('Failed to delete queue rows for hero', imageId, qe);
+      }
 
-      // Delete from Vercel Blob storage
-      if (blobUrl && blobUrl.includes('blob.vercel-storage.com')) {
+      // Delete from storage: handle Vercel blobs and R2 URLs
+      // Delete all known URLs (original, thumbnail, medium)
+      const urlsToDelete = [blobUrl, thumbUrl, mediumUrl].filter(Boolean);
+      for (const url of urlsToDelete) {
         try {
-          await del(blobUrl);
-        } catch (blobError) {
-          console.error(`Failed to delete blob: ${blobUrl}`, blobError);
-          // Don't fail the whole operation if blob deletion fails
+          if (url.includes('blob.vercel-storage.com')) {
+            await del(url).catch(err => console.error('Failed deleting vercel blob', url, err));
+          } else {
+            const parsed = parseKeyFromUrl(url);
+            if (parsed && parsed.key) await deleteObject(parsed.key, parsed.bucket || undefined).catch(err => console.error('Failed deleting r2 object', parsed, err));
+          }
+        } catch (err) {
+          console.error('Failed deleting media during single delete', url, err);
         }
       }
 

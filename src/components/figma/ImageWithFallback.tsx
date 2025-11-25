@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, memo } from 'react';
-import Image from 'next/image';
+// Use native <img> here to avoid `fill`-related next/image warnings when the
+// parent element does not have an explicit height. We generate a responsive
+// `srcSet` where possible for Vercel Blob URLs.
 import { ImageOff, User } from 'lucide-react';
 
 interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -113,21 +115,20 @@ function _ImageWithFallback({
       {isLoading && (
         <div className={`absolute inset-0 bg-gray-200 animate-pulse ${className}`} />
       )}
-      
+
       {/* Actual image - only render when we have a non-empty src */}
       {imgSrc ? (
-        // Use Next.js Image for optimized loading. We use `fill` so the parent
-        // container's size (set via className) controls layout. `onLoadingComplete`
-        // doesn't provide error info, so we use `onError` for fallback handling.
-        <div className={`w-full h-full relative ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
-          <Image
-            src={imgSrc}
-            alt={alt}
-            fill
-            className={`object-cover ${className}`}
-            onError={handleError}
-            onLoadingComplete={handleLoad}
+        <div className={`w-full h-full ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+          <img
+            src={responsiveSizes ? responsiveSizes.medium : imgSrc}
+            srcSet={responsiveSizes ? `${responsiveSizes.small} 400w, ${responsiveSizes.medium} 800w, ${responsiveSizes.large} 1600w` : undefined}
             sizes={responsiveSizes ? '(max-width: 640px) 400px, (max-width: 1024px) 800px, 1600px' : undefined}
+            alt={alt}
+            className={`object-cover w-full h-full ${className}`}
+            onError={handleError}
+            onLoad={handleLoad}
+            loading={loading}
+            decoding="async"
           />
         </div>
       ) : null}

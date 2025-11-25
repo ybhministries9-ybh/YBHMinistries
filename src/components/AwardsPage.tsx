@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { navigate } from "../utils/navigate";
 import { useTranslation } from 'react-i18next';
 
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+
 function ImageWithFallback(props) {
   const [didError, setDidError] = useState(false)
   const { src, alt, style, className, ...rest } = props
@@ -70,7 +72,7 @@ export function AwardsPage() {
     {
       id: "guinness",
       name: t('records.guinness.name'),
-      image: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Guinness/1.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: `${R2_BASE}/Gallery/Guinness/1.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
       award: t('records.guinness.award'),
       year: t('records.guinness.year'),
       participants: t('records.guinness.participants'),
@@ -81,7 +83,7 @@ export function AwardsPage() {
     {
       id: "ingenious",
       name: t('records.ingenious.name'),
-      image: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Ingenious%20Charm/17.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: `${R2_BASE}/Gallery/Ingenious%20Charm/17.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
       award: t('records.ingenious.award'),
       year: t('records.ingenious.year'),
       participants: t('records.ingenious.participants'),
@@ -92,7 +94,7 @@ export function AwardsPage() {
     {
       id: "asian",
       name: t('records.asian.name'),
-      image: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asian%20Book/17.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: `${R2_BASE}/Gallery/Asian%20Book/17.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
       award: t('records.asian.award'),
       year: t('records.asian.year'),
       participants: t('records.asian.participants'),
@@ -103,7 +105,7 @@ export function AwardsPage() {
     {
       id: "international",
       name: t('records.international.name'),
-      image: "https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asian%20Book/17.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: `${R2_BASE}/Gallery/Asian%20Book/17.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
       award: t('records.international.award'),
       year: t('records.international.year'),
       participants: t('records.international.participants'),

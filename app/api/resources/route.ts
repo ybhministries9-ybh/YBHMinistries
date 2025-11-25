@@ -33,20 +33,110 @@ export async function GET(request: NextRequest) {
 
       case 'worship':
         result = await sql`
-          SELECT id, youtube_url, created_at
+          SELECT id, youtube_url, title, date_posted, display_order, created_at
           FROM worship
           WHERE published = true
-          ORDER BY created_at DESC
+          ORDER BY date_posted DESC NULLS LAST, created_at DESC
         `;
         break;
 
       case 'sermons':
-        result = await sql`
-          SELECT id, youtube_url, created_at
-          FROM sermons
-          WHERE published = true
-          ORDER BY created_at DESC
-        `;
+        // Some deploys/databases may not have migrations applied that add
+        // `title`, `date_posted` or `thumbnail_url` to `sermons`. Detect
+        // whether the `title` column exists and run a compatible query to
+        // avoid SQL errors (500) when those columns are missing.
+        try {
+          // Check for the presence of the three optional columns we want to use
+          const colCheck = await sql`
+            SELECT
+              EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'sermons' AND column_name = 'title') AS has_title,
+              EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'sermons' AND column_name = 'date_posted') AS has_date_posted,
+              EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'sermons' AND column_name = 'thumbnail_url') AS has_thumbnail_url,
+              EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'sermons' AND column_name = 'display_order') AS has_display_order
+          `;
+
+          const row = colCheck.rows?.[0] || {};
+          const hasTitle = !!row.has_title;
+          const hasDatePosted = !!row.has_date_posted;
+          const hasThumbnail = !!row.has_thumbnail_url;
+          const hasDisplayOrder = !!row.has_display_order;
+
+          // Select the richest available set of columns without referencing missing ones
+          // If the DB has a `display_order` column, prefer ordering by it
+          if (hasDisplayOrder) {
+            // include display_order in selects where available
+            if (hasTitle && hasDatePosted && hasThumbnail) {
+              result = await sql`
+                SELECT id, youtube_url, title, date_posted, thumbnail_url, display_order, created_at
+                FROM sermons
+                WHERE published = true
+                ORDER BY display_order ASC NULLS LAST, date_posted DESC NULLS LAST, created_at DESC
+              `;
+            } else if (hasTitle && hasDatePosted) {
+              result = await sql`
+                SELECT id, youtube_url, title, date_posted, display_order, created_at
+                FROM sermons
+                WHERE published = true
+                ORDER BY display_order ASC NULLS LAST, date_posted DESC NULLS LAST, created_at DESC
+              `;
+            } else if (hasTitle) {
+              result = await sql`
+                SELECT id, youtube_url, title, display_order, created_at
+                FROM sermons
+                WHERE published = true
+                ORDER BY display_order ASC NULLS LAST, created_at DESC
+              `;
+            } else {
+              result = await sql`
+                SELECT id, youtube_url, display_order, created_at
+                FROM sermons
+                WHERE published = true
+                ORDER BY display_order ASC NULLS LAST, created_at DESC
+              `;
+            }
+          } else {
+            // No display_order column — fall back to date-based ordering as before
+            if (hasTitle && hasDatePosted && hasThumbnail) {
+              result = await sql`
+                SELECT id, youtube_url, title, date_posted, thumbnail_url, created_at
+                FROM sermons
+                WHERE published = true
+                ORDER BY date_posted DESC NULLS LAST, created_at DESC
+              `;
+            } else if (hasTitle && hasDatePosted) {
+              result = await sql`
+                SELECT id, youtube_url, title, date_posted, created_at
+                FROM sermons
+                WHERE published = true
+                ORDER BY date_posted DESC NULLS LAST, created_at DESC
+              `;
+            } else if (hasTitle) {
+              result = await sql`
+                SELECT id, youtube_url, title, created_at
+                FROM sermons
+                WHERE published = true
+                ORDER BY created_at DESC
+              `;
+            } else {
+              // Legacy fallback
+              result = await sql`
+                SELECT id, youtube_url, created_at
+                FROM sermons
+                WHERE published = true
+                ORDER BY created_at DESC
+              `;
+            }
+          }
+        } catch (colErr) {
+          // If anything goes wrong checking columns, fall back to the safe query
+          console.error('Could not verify sermons columns, using safe fallback.', colErr);
+          result = await sql`
+            SELECT id, youtube_url, created_at
+            FROM sermons
+            WHERE published = true
+            ORDER BY created_at DESC
+          `;
+        }
         break;
 
       case 'bibleStudies':

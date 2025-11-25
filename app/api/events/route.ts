@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { parseKeyFromUrl, getPresignedGetUrl } from '@/lib/r2';
 
 /**
  * GET /api/events
@@ -57,6 +58,26 @@ export async function GET(request: NextRequest) {
         registrationFee: row.registrationFee
       }
     }));
+
+    // Resolve any R2 references to presigned HTTPS URLs so browsers can load them
+    for (const ev of events) {
+      try {
+        if (typeof ev.imageUrl === 'string' && ev.imageUrl.startsWith('r2://')) {
+          const parsed = parseKeyFromUrl(ev.imageUrl);
+          if (parsed && parsed.key) {
+            try {
+              const presigned = await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || undefined);
+              ev.imageUrl = presigned;
+            } catch (e) {
+              // leave original imageUrl if presign fails
+              console.warn('presign get failed for event image', e);
+            }
+          }
+        }
+      } catch (e) {
+        // ignore per-event errors
+      }
+    }
 
     return NextResponse.json({
       success: true,

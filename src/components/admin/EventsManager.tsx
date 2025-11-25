@@ -1,9 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, Edit2, Calendar, X, ChevronDown, ChevronUp, Save, Loader2, Eye, EyeOff } from 'lucide-react';
+import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+  DialogOverlay,
+} from '../ui/dialog';
 
 interface Event {
   id: string;
@@ -29,11 +40,28 @@ interface Event {
 }
 
 export function EventsManager() {
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  // Validation state: map eventId -> field -> error message
+  const [validationErrors, setValidationErrors] = useState<Record<string, Record<string, string>>>({});
+
+  // Character limits
+  const LIMITS = {
+    title: 100,
+    location: 100,
+    time: 50,
+    capacity: 20,
+    description: 200,
+    extendedDescription: 2000,
+    speaker: 100,
+    bringItem: 200,
+    registrationDescription: 500,
+  } as const;
 
   // Fetch events from API
   useEffect(() => {
@@ -64,33 +92,41 @@ export function EventsManager() {
   };
 
   const handleAdd = () => {
-    const newEvent: Event = {
-      id: `temp-${Date.now()}`,
-      title: '',
-      date: '',
-      time: '',
-      location: '',
-      type: 'conference',
-      description: '',
-      extendedDescription: '',
-      capacity: '',
-      imageUrl: '',
-      speakers: [],
-      whatToBring: [],
-      registration: {
-        enabled: false,
+    const hasTemp = events.some(e => e.id.startsWith('temp-'));
+    if (hasTemp) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+
+    const createNew = () => {
+      const newEvent: Event = {
+        id: `temp-${Date.now()}`,
+        title: '',
+        date: '',
+        time: '',
+        location: '',
+        type: 'conference',
         description: '',
-        nationalFee: 0,
-        internationalFee: 0,
-        registrationFee: 0
-      },
-      // Default new events to published (visible) to match UI expectation
-      published: true
+        extendedDescription: '',
+        capacity: '',
+        imageUrl: '',
+        speakers: [],
+        whatToBring: [],
+        registration: {
+          enabled: false,
+          description: '',
+          nationalFee: 0,
+          internationalFee: 0,
+          registrationFee: 0
+        },
+        published: true
+      };
+      setEvents(prev => [newEvent, ...prev]);
+      setExpandedId(newEvent.id);
+      setEditingId(newEvent.id);
     };
-    
-    setEvents([newEvent, ...events]);
-    setExpandedId(newEvent.id);
-    setEditingId(newEvent.id);
+
+    createNew();
   };
 
   const handleSave = async (event: Event) => {
@@ -101,13 +137,37 @@ export function EventsManager() {
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
       if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      // If a file was selected for this event, upload it first and replace imageUrl
+      let imageUrlToUse = event.imageUrl || '';
+      const selectedFile = selectedFilesRef.current.get(event.id);
+      if (selectedFile) {
+        const fd = new FormData();
+        fd.append('file', selectedFile, selectedFile.name);
+        const uploadHeaders: Record<string,string> = {};
+        if (token) uploadHeaders['Authorization'] = `Bearer ${token}`;
+        const uploadResp = await fetch('/api/admin/upload/event-image', {
+          method: 'POST',
+          headers: uploadHeaders,
+          body: fd
+        });
+        const uploadResult = await uploadResp.json();
+        if (uploadResult.success && uploadResult.url) {
+          imageUrlToUse = uploadResult.url;
+        } else {
+          toast.error('Failed to upload event image');
+          return;
+        }
+      }
+
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const body = { ...event, imageUrl: imageUrlToUse };
 
       const response = await fetch(url, {
         method,
         headers,
-        body: JSON.stringify(event)
+        body: JSON.stringify(body)
       });
 
       const result = await response.json();
@@ -115,6 +175,8 @@ export function EventsManager() {
       if (result.success) {
         toast.success(isNew ? 'Event created successfully' : 'Event updated successfully');
         setEditingId(null);
+        // If we uploaded a file for this event, clear the selected file reference
+        if (selectedFile) selectedFilesRef.current.delete(event.id);
         fetchEvents(); // Refresh the list
       } else {
         toast.error(result.error || 'Failed to save event');
@@ -125,11 +187,64 @@ export function EventsManager() {
     }
   };
 
+  const validateEvent = (event: Event) => {
+    const errors: Record<string, string> = {};
+    if (!event.title || !event.title.trim()) errors.title = 'Title is required';
+    else if (event.title.length > LIMITS.title) errors.title = `Title must be ≤ ${LIMITS.title} characters`;
+
+    if (!event.date) errors.date = 'Date is required';
+    if (!event.time || !event.time.trim()) errors.time = 'Time is required';
+    else if (event.time.length > LIMITS.time) errors.time = `Time must be ≤ ${LIMITS.time} characters`;
+
+    if (!event.location || !event.location.trim()) errors.location = 'Location is required';
+    else if (event.location.length > LIMITS.location) errors.location = `Location must be ≤ ${LIMITS.location} characters`;
+
+    if (!event.capacity || !String(event.capacity).trim()) errors.capacity = 'Capacity is required';
+    else if (String(event.capacity).length > LIMITS.capacity) errors.capacity = `Capacity must be ≤ ${LIMITS.capacity} characters`;
+
+    if (!event.description || !event.description.trim()) errors.description = 'Short description is required';
+    else if (event.description.length > LIMITS.description) errors.description = `Short description must be ≤ ${LIMITS.description} characters`;
+
+    if (!event.extendedDescription || !event.extendedDescription.trim()) errors.extendedDescription = 'Extended description is required';
+    else if (event.extendedDescription.length > LIMITS.extendedDescription) errors.extendedDescription = `Extended description must be ≤ ${LIMITS.extendedDescription} characters`;
+
+    // speakers
+    for (let i = 0; i < event.speakers.length; i++) {
+      const s = event.speakers[i] || '';
+      if (s.length > LIMITS.speaker) errors[`speakers.${i}`] = `Speaker must be ≤ ${LIMITS.speaker} characters`;
+    }
+
+    // whatToBring
+    for (let i = 0; i < event.whatToBring.length; i++) {
+      const it = event.whatToBring[i] || '';
+      if (it.length > LIMITS.bringItem) errors[`whatToBring.${i}`] = `Item must be ≤ ${LIMITS.bringItem} characters`;
+    }
+
+    // registration description
+    if (event.registration?.description && event.registration.description.length > LIMITS.registrationDescription) {
+      errors.registrationDescription = `Registration description must be ≤ ${LIMITS.registrationDescription} characters`;
+    }
+
+    return errors;
+  };
+
+  const onSaveClick = async (event: Event) => {
+    const errors = validateEvent(event);
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(prev => ({ ...prev, [event.id]: errors }));
+      toast.error('Please fix validation errors before saving');
+      return;
+    }
+    // clear validation for this event
+    setValidationErrors(prev => { const c = { ...prev }; delete c[event.id]; return c; });
+    await handleSave(event);
+  };
+
   const handleDelete = async (id: string) => {
     try {
       // If it's a temporary (unsaved) event, just remove from state
       if (id.startsWith('temp-')) {
-        setEvents(events.filter(e => e.id !== id));
+        setEvents(prev => prev.filter(e => e.id !== id));
         setDeleteConfirm(null);
         toast.success('Event removed');
         return;
@@ -146,8 +261,8 @@ export function EventsManager() {
 
       const result = await response.json();
       
-      if (result.success) {
-        setEvents(events.filter(e => e.id !== id));
+        if (result.success) {
+        setEvents(prev => prev.filter(e => e.id !== id));
         setDeleteConfirm(null);
         toast.success('Event deleted successfully');
       } else {
@@ -160,7 +275,7 @@ export function EventsManager() {
   };
 
   const handleUpdate = (id: string, updates: Partial<Event>) => {
-    setEvents(events.map(event => 
+    setEvents(prev => prev.map(event => 
       event.id === id ? { ...event, ...updates } : event
     ));
   };
@@ -201,6 +316,115 @@ export function EventsManager() {
     }
   };
 
+  // Manage object URLs created for image previews so we can revoke them later
+  const generatedUrlsRef = useRef<Set<string>>(new Set());
+  // Track the selected File objects per-event so we can upload them when saving
+  const selectedFilesRef = useRef<Map<string, File>>(new Map());
+  // Local map of resolved preview URLs (handles blob:, https and presigned r2 URLs)
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+
+  const handleImageFileSelect = (eventId: string, file?: File | null) => {
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+    // Revoke previous object URL if we created it
+    try {
+      if (ev.imageUrl && ev.imageUrl.startsWith('blob:') && generatedUrlsRef.current.has(ev.imageUrl)) {
+        URL.revokeObjectURL(ev.imageUrl);
+        generatedUrlsRef.current.delete(ev.imageUrl);
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    if (!file) {
+      // Remove selected file if any
+      selectedFilesRef.current.delete(eventId);
+      handleUpdate(eventId, { imageUrl: '' });
+      return;
+    }
+
+    // Save the File reference for later upload and create an object URL for preview
+    selectedFilesRef.current.set(eventId, file);
+    const url = URL.createObjectURL(file);
+    generatedUrlsRef.current.add(url);
+    handleUpdate(eventId, { imageUrl: url });
+  };
+
+  // Cleanup generated object URLs on unmount
+  useEffect(() => {
+    return () => {
+      for (const u of generatedUrlsRef.current) {
+        try { URL.revokeObjectURL(u); } catch (e) {}
+      }
+      generatedUrlsRef.current.clear();
+    };
+  }, []);
+
+  // Resolve preview URLs for events that reference R2 (r2://...) or already have http/blob URLs
+  useEffect(() => {
+    let canceled = false;
+
+    async function resolveForEvent(ev: Event) {
+      if (!ev.imageUrl) {
+        setPreviewUrls(prev => {
+          if (!prev[ev.id]) return prev;
+          const copy = { ...prev };
+          delete copy[ev.id];
+          return copy;
+        });
+        return;
+      }
+
+      // If it's an object URL or http(s) already, use it directly
+      if (ev.imageUrl.startsWith('blob:') || ev.imageUrl.startsWith('http') || ev.imageUrl.startsWith('data:')) {
+        setPreviewUrls(prev => ({ ...prev, [ev.id]: ev.imageUrl }));
+        return;
+      }
+
+      // Handle r2://bucket/key references
+      if (ev.imageUrl.startsWith('r2://')) {
+        try {
+          const rest = ev.imageUrl.slice('r2://'.length);
+          const parts = rest.split('/').filter(Boolean);
+          // bucket is parts[0], key is rest
+          const bucket = parts.shift();
+          const key = parts.join('/');
+          if (!key) return;
+          const resp = await fetch('/api/r2/presign-get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, expiresIn: 3600 })
+          });
+          if (!resp.ok) return;
+          const json = await resp.json();
+          if (canceled) return;
+          if (json && json.url) {
+            setPreviewUrls(prev => ({ ...prev, [ev.id]: json.url }));
+          }
+        } catch (e) {
+          // ignore
+        }
+        return;
+      }
+
+      // Fallback: try to use event.imageUrl directly
+      setPreviewUrls(prev => ({ ...prev, [ev.id]: ev.imageUrl }));
+    }
+
+    for (const ev of events) {
+      // Only resolve if not already present or changed
+      if (!ev.imageUrl && previewUrls[ev.id]) {
+        // will be removed by resolveForEvent
+        resolveForEvent(ev);
+      } else if (ev.imageUrl && previewUrls[ev.id] !== ev.imageUrl && !(ev.imageUrl.startsWith('r2://') && previewUrls[ev.id])) {
+        // if ev.imageUrl is r2:// and we already have a presigned url, skip
+        resolveForEvent(ev);
+      }
+    }
+
+    return () => { canceled = true; };
+  }, [events]);
+
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center">
@@ -210,27 +434,61 @@ export function EventsManager() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold text-white">Events Management</h2>
-        <p className="text-gray-400 text-sm mt-1">
-          Manage upcoming events, conferences, and classes
-        </p>
-      </div>
+    <div className="space-y-4">
+      {/* Discard confirmation dialog shown when attempting to open a new form while a temp exists */}
+      <Dialog open={showDiscardConfirm} onOpenChange={(open) => setShowDiscardConfirm(open)}>
+        <DialogOverlay />
+          <DialogContent hideClose className="bg-[#2E2E2E] text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl">Save draft?</DialogTitle>
+            </DialogHeader>
+            <DialogDescription className="mb-6 text-gray-300">You have an unsaved event open.</DialogDescription>
+            <DialogFooter>
+              <Button onClick={() => setShowDiscardConfirm(false)} className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-700 px-4 py-2 rounded-md">Cancel</Button>
+              <Button onClick={() => {
+              // cleanup temp events and then create a fresh one
+              const tempEvents = events.filter(e => e.id.startsWith('temp-'));
+              for (const te of tempEvents) {
+                try {
+                  if (te.imageUrl && te.imageUrl.startsWith('blob:') && generatedUrlsRef.current.has(te.imageUrl)) {
+                    URL.revokeObjectURL(te.imageUrl);
+                    generatedUrlsRef.current.delete(te.imageUrl);
+                  }
+                } catch (e) {}
+                try { selectedFilesRef.current.delete(te.id); } catch (e) {}
+              }
+              setEvents(prev => prev.filter(e => !e.id.startsWith('temp-')));
+              // create new
+              const newEvent: Event = {
+                id: `temp-${Date.now()}`,
+                title: '', date: '', time: '', location: '', type: 'conference',
+                description: '', extendedDescription: '', capacity: '', imageUrl: '',
+                speakers: [], whatToBring: [], registration: { enabled: false, description: '', nationalFee: 0, internationalFee: 0, registrationFee: 0 },
+                published: true
+              };
+              setEvents(prev => [newEvent, ...prev]);
+              setExpandedId(newEvent.id);
+              setEditingId(newEvent.id);
+                setShowDiscardConfirm(false);
+              }} className="bg-[#FDB813] hover:bg-[#e5a711] text-black px-4 py-2 rounded-md">Discard</Button>
+          </DialogFooter>
+          </DialogContent>
+      </Dialog>
+      {/* Header removed as requested */}
 
       {/* Stats and Add Button */}
-      <div className="flex items-center justify-between bg-black p-4 rounded-lg">
-        <div className="text-white text-sm">
-          Total: <span className="text-[#FDB813] font-bold">{events.length}</span> event(s)
+      <div className="flex items-center justify-between rounded-lg bg-transparent">
+        <div className="text-white text-base font-medium">
+          Total: <span className="text-[#FDB813] font-bold">{events.length}</span> Event(s)
           {' | '}
           Published: <span className="text-[#FDB813] font-bold">{events.filter(e => e.published).length}</span>
         </div>
         <Button
+          title="Add a new event"
           onClick={handleAdd}
-          className="bg-[#FDB813] hover:bg-[#e5a711] text-black font-semibold cursor-pointer"
+          className="bg-[#2E2E2E] text-white border border-[#FDB813] hover:bg-[#2b2b2b] px-4 py-2 rounded-md font-semibold flex items-center gap-2"
         >
-          <Plus size={16} className="mr-2" />
+          <Plus size={16} className="text-white mr-2" />
           Add Event
         </Button>
       </div>
@@ -258,11 +516,7 @@ export function EventsManager() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <h3 className="text-white font-semibold text-lg">{event.title}</h3>
-                      {event.published ? (
-                        <span className="px-2 py-1 rounded text-xs bg-green-900 text-green-300">Published</span>
-                      ) : (
-                        <span className="px-3 py-1 rounded text-xs bg-[#FDB813] text-black">Draft</span>
-                      )}
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-green-900 text-green-300">{event.published ? 'Published' : 'Draft'}</span>
                       <span className="px-2 py-1 rounded text-xs bg-[#2E2E2E] text-gray-300">
                         {event.type}
                       </span>
@@ -274,61 +528,50 @@ export function EventsManager() {
 
                   <div className="flex items-center gap-2">
                     <Button
+                      title={event.published ? 'Unpublish event' : 'Publish event'}
                       onClick={() => togglePublished(event)}
-                      className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
-                      size="sm"
-                      title={event.published ? 'Unpublish' : 'Publish'}
+                      className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
                     >
                       {event.published ? <EyeOff size={16} /> : <Eye size={16} />}
                     </Button>
-                    
                     <Button
-                      onClick={() => {
-                        setExpandedId(isExpanded ? null : event.id);
-                        if (!isExpanded) setEditingId(event.id);
-                      }}
-                      className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
-                      size="sm"
-                    >
-                      <Edit2 size={16} className="mr-1" />
-                      Edit
-                    </Button>
-
-                    {deleteConfirm === event.id ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-400 text-sm">Delete?</span>
-                        <Button
-                          onClick={() => handleDelete(event.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white cursor-pointer"
-                          size="sm"
-                        >
-                          Yes
-                        </Button>
-                        <Button
-                          onClick={() => setDeleteConfirm(null)}
-                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
-                          size="sm"
-                        >
-                          No
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        onClick={() => setDeleteConfirm(event.id)}
-                        className="bg-[#2E2E2E] hover:bg-red-600 text-white cursor-pointer"
-                        size="sm"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    )}
-
-                    <Button
+                      title={isExpanded ? 'Collapse' : 'Expand'}
                       onClick={() => setExpandedId(isExpanded ? null : event.id)}
-                      className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
-                      size="sm"
+                      className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
                     >
                       {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </Button>
+                    {!isEditing && (
+                      <>
+                        <Button
+                          title="Edit"
+                          onClick={() => {
+                            setExpandedId(isExpanded ? null : event.id);
+                            if (!isExpanded) setEditingId(event.id);
+                          }}
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
+                        >
+                          <Edit2 size={16}  />
+                        </Button>
+
+                        <DeleteConfirmDialog
+                          open={deleteConfirm === event.id}
+                          onOpenChange={(open) => setDeleteConfirm(open ? event.id : null)}
+                          onConfirm={() => handleDelete(event.id)}
+                          title={`Delete Events?`}
+                          description={`Are you sure you want to delete this event${event.title ? ` "${event.title}"` : ''}? This action cannot be undone.`}
+                          itemName={event.title}
+                          itemType="event"
+                        />
+                        <Button
+                          title="Delete"
+                          onClick={() => setDeleteConfirm(event.id)}
+                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -338,18 +581,23 @@ export function EventsManager() {
                     {/* Basic Info */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-white mb-1 block">Event Title</label>
+                        <label className="text-sm text-white mb-1 block">Event Title <span className="text-[#FDB813]">*</span></label>
                         <Input
                           value={event.title}
                           onChange={(e) => handleUpdate(event.id, { title: e.target.value })}
                           placeholder="Enter event title"
                           className="bg-[#2E2E2E] border-gray-600 text-white"
                           disabled={!isEditing}
+                          maxLength={LIMITS.title}
                         />
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="text-xs text-gray-400">{(validationErrors[event.id]?.title) ? <span className="text-red-400">{validationErrors[event.id].title}</span> : <span>&nbsp;</span>}</div>
+                          <div className="text-xs text-gray-400">{event.title.length}/{LIMITS.title}</div>
+                        </div>
                       </div>
 
                       <div>
-                        <label className="text-sm text-white mb-1 block">Event Type</label>
+                        <label className="text-sm text-white mb-1 block">Event Type <span className="text-[#FDB813]">*</span></label>
                         <select
                           value={event.type}
                           onChange={(e) => handleUpdate(event.id, { type: e.target.value as any })}
@@ -365,7 +613,7 @@ export function EventsManager() {
 
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <label className="text-sm text-white mb-1 block">Date</label>
+                        <label className="text-sm text-white mb-1 block">Date <span className="text-[#FDB813]">*</span></label>
                         <Input
                           type="date"
                           value={event.date}
@@ -374,42 +622,58 @@ export function EventsManager() {
                           className="bg-[#2E2E2E] border-gray-600 text-white"
                           disabled={!isEditing}
                         />
+                        <div className="text-xs mt-1">{validationErrors[event.id]?.date ? <span className="text-red-400">{validationErrors[event.id].date}</span> : <span>&nbsp;</span>}</div>
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Time</label>
+                        <label className="text-sm text-white mb-1 block">Time <span className="text-[#FDB813]">*</span></label>
                         <Input
                           value={event.time}
                           onChange={(e) => handleUpdate(event.id, { time: e.target.value })}
                           placeholder="10:00 AM - 5:00 PM"
                           className="bg-[#2E2E2E] border-gray-600 text-white"
                           disabled={!isEditing}
+                          maxLength={LIMITS.time}
                         />
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="text-xs text-gray-400">{validationErrors[event.id]?.time ? <span className="text-red-400">{validationErrors[event.id].time}</span> : <span>&nbsp;</span>}</div>
+                          <div className="text-xs text-gray-400">{event.time.length}/{LIMITS.time}</div>
+                        </div>
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Location</label>
+                        <label className="text-sm text-white mb-1 block">Location <span className="text-[#FDB813]">*</span></label>
                         <Input
                           value={event.location}
                           onChange={(e) => handleUpdate(event.id, { location: e.target.value })}
                           placeholder="City, Country"
                           className="bg-[#2E2E2E] border-gray-600 text-white"
                           disabled={!isEditing}
+                          maxLength={LIMITS.location}
                         />
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="text-xs text-gray-400">{validationErrors[event.id]?.location ? <span className="text-red-400">{validationErrors[event.id].location}</span> : <span>&nbsp;</span>}</div>
+                          <div className="text-xs text-gray-400">{event.location.length}/{LIMITS.location}</div>
+                        </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Capacity</label>
+                      <label className="text-sm text-white mb-1 block">Capacity <span className="text-[#FDB813]">*</span></label>
                       <Input
                         value={event.capacity}
                         onChange={(e) => handleUpdate(event.id, { capacity: e.target.value })}
                         placeholder="e.g., 100 or 'Unlimited'"
                         className="bg-[#2E2E2E] border-gray-600 text-white"
                         disabled={!isEditing}
+                        maxLength={LIMITS.capacity}
                       />
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="text-xs text-gray-400">{validationErrors[event.id]?.capacity ? <span className="text-red-400">{validationErrors[event.id].capacity}</span> : <span>&nbsp;</span>}</div>
+                        <div className="text-xs text-gray-400">{String(event.capacity).length}/{LIMITS.capacity}</div>
+                      </div>
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Short Description</label>
+                      <label className="text-sm text-white mb-1 block">Short Description <span className="text-[#FDB813]">*</span></label>
                       <Textarea
                         value={event.description}
                         onChange={(e) => handleUpdate(event.id, { description: e.target.value })}
@@ -417,11 +681,16 @@ export function EventsManager() {
                         className="bg-[#2E2E2E] border-gray-600 text-white"
                         rows={2}
                         disabled={!isEditing}
+                        maxLength={LIMITS.description}
                       />
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="text-xs text-gray-400">{validationErrors[event.id]?.description ? <span className="text-red-400">{validationErrors[event.id].description}</span> : <span>&nbsp;</span>}</div>
+                        <div className="text-xs text-gray-400">{event.description.length}/{LIMITS.description}</div>
+                      </div>
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Extended Description</label>
+                      <label className="text-sm text-white mb-1 block">Extended Description <span className="text-[#FDB813]">*</span></label>
                       <Textarea
                         value={event.extendedDescription}
                         onChange={(e) => handleUpdate(event.id, { extendedDescription: e.target.value })}
@@ -429,27 +698,61 @@ export function EventsManager() {
                         className="bg-[#2E2E2E] border-gray-600 text-white"
                         rows={4}
                         disabled={!isEditing}
+                        maxLength={LIMITS.extendedDescription}
                       />
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="text-xs text-gray-400">{validationErrors[event.id]?.extendedDescription ? <span className="text-red-400">{validationErrors[event.id].extendedDescription}</span> : <span>&nbsp;</span>}</div>
+                        <div className="text-xs text-gray-400">{event.extendedDescription.length}/{LIMITS.extendedDescription}</div>
+                      </div>
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Event Image URL</label>
-                      <Input
-                        value={event.imageUrl}
-                        onChange={(e) => handleUpdate(event.id, { imageUrl: e.target.value })}
-                        placeholder="https://example.com/image.jpg"
-                        className="bg-[#2E2E2E] border-gray-600 text-white"
-                        disabled={!isEditing}
-                      />
-                      {event.imageUrl && (
-                        <img 
-                          src={event.imageUrl} 
-                          alt="Event preview" 
-                          className="mt-2 max-w-xs rounded border border-gray-600"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
+                      <label className="text-sm text-white mb-1 block">Event Image</label>
+                      <div
+                        id={`drop-area-${event.id}`}
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverId(event.id); }}
+                        onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverId(event.id); }}
+                        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (dragOverId === event.id) setDragOverId(null); }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!isEditing) return;
+                          const f = e.dataTransfer?.files?.[0];
+                          if (f && f.type.startsWith('image/')) {
+                            handleImageFileSelect(event.id, f);
+                          }
+                          // clear highlight after drop
+                          if (dragOverId === event.id) setDragOverId(null);
+                        }}
+                        onClick={() => {
+                          if (!isEditing) return;
+                          const input = document.getElementById(`file-input-${event.id}`) as HTMLInputElement | null;
+                          input?.click();
+                        }}
+                        className={`w-full h-40 rounded-md bg-[#1a1a1a] flex items-center justify-center cursor-pointer ${dragOverId === event.id ? 'border border-[#FDB813] ring-2 ring-[#FDB813]/30' : 'border border-gray-600'} ${!isEditing ? 'opacity-60 pointer-events-none' : ''}`}
+                      >
+                        <input id={`file-input-${event.id}`} type="file" accept="image/*" className="hidden" onChange={(e) => {
+                          if (!isEditing) return;
+                          const f = e.target.files?.[0];
+                          if (f) handleImageFileSelect(event.id, f);
+                        }} />
+
+                        {previewUrls[event.id] ? (
+                          <img src={previewUrls[event.id]} alt="preview" className="max-h-full max-w-full object-contain" onError={(ev) => { (ev.target as HTMLImageElement).style.display = 'none'; }} />
+                        ) : event.imageUrl ? (
+                          <img src={event.imageUrl} alt="preview" className="max-h-full max-w-full object-contain" onError={(ev) => { (ev.target as HTMLImageElement).style.display = 'none'; }} />
+                        ) : (
+                          <div className="text-center text-gray-400">
+                            <div className="mb-1">Click or drag & drop an image here</div>
+                            <div className="text-xs">PNG / JPG — single image</div>
+                          </div>
+                        )}
+                      </div>
+                      {isEditing && event.imageUrl && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <Button size="sm" onClick={() => handleImageFileSelect(event.id, null)} className="bg-red-600 hover:bg-red-700 text-white">Remove Image</Button>
+                          <span className="text-gray-400 text-sm">Current image shown above</span>
+                        </div>
                       )}
                     </div>
 
@@ -476,8 +779,13 @@ export function EventsManager() {
                               onChange={(e) => updateArrayItem(event.id, 'speakers', index, e.target.value)}
                               placeholder="Speaker name"
                               className="bg-[#2E2E2E] border-gray-600 text-white"
+                              maxLength={LIMITS.speaker}
                               disabled={!isEditing}
                             />
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs text-gray-400">{validationErrors[event.id]?.[`speakers.${index}`] ? <span className="text-red-400">{validationErrors[event.id][`speakers.${index}`]}</span> : <span>&nbsp;</span>}</div>
+                              <div className="text-xs text-gray-400">{speaker.length}/{LIMITS.speaker}</div>
+                            </div>
                             {isEditing && (
                               <Button
                                 onClick={() => removeArrayItem(event.id, 'speakers', index)}
@@ -517,9 +825,14 @@ export function EventsManager() {
                               value={item}
                               onChange={(e) => updateArrayItem(event.id, 'whatToBring', index, e.target.value)}
                               placeholder="Item to bring"
-                              className="bg-[#2E2E2E] border-gray-600 text-white"
+                                className="bg-[#2E2E2E] border-gray-600 text-white"
+                                maxLength={LIMITS.bringItem}
                               disabled={!isEditing}
                             />
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs text-gray-400">{validationErrors[event.id]?.[`whatToBring.${index}`] ? <span className="text-red-400">{validationErrors[event.id][`whatToBring.${index}`]}</span> : <span>&nbsp;</span>}</div>
+                                <div className="text-xs text-gray-400">{item.length}/{LIMITS.bringItem}</div>
+                              </div>
                             {isEditing && (
                               <Button
                                 onClick={() => removeArrayItem(event.id, 'whatToBring', index)}
@@ -565,18 +878,31 @@ export function EventsManager() {
                               className="bg-[#2E2E2E] border-gray-600 text-white"
                               rows={2}
                               disabled={!isEditing}
+                              maxLength={LIMITS.registrationDescription}
                             />
+                            <div className="flex items-center justify-between mt-1">
+                              <div className="text-xs text-gray-400">{validationErrors[event.id]?.registrationDescription ? <span className="text-red-400">{validationErrors[event.id].registrationDescription}</span> : <span>&nbsp;</span>}</div>
+                              <div className="text-xs text-gray-400">{(event.registration.description || '').length}/{LIMITS.registrationDescription}</div>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-3 gap-4">
                             <div>
                               <label className="text-sm text-white mb-1 block">National Fee (₹)</label>
                               <Input
-                                type="number"
-                                value={event.registration.nationalFee || ''}
-                                onChange={(e) => handleUpdate(event.id, {
-                                  registration: { ...event.registration, nationalFee: parseInt(e.target.value) || 0 }
-                                })}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                placeholder="0"
+                                value={event.registration.nationalFee ?? ''}
+                                onChange={(e) => {
+                                  const onlyDigits = e.target.value.replace(/\D+/g, '');
+                                  handleUpdate(event.id, { registration: { ...event.registration, nationalFee: parseInt(onlyDigits) || 0 } });
+                                }}
+                                onPaste={(e) => {
+                                  const paste = (e.clipboardData || (window as any).clipboardData).getData('text');
+                                  if (/\D/.test(paste)) e.preventDefault();
+                                }}
                                 className="bg-[#2E2E2E] border-gray-600 text-white"
                                 disabled={!isEditing}
                               />
@@ -584,11 +910,19 @@ export function EventsManager() {
                             <div>
                               <label className="text-sm text-white mb-1 block">International Fee (₹)</label>
                               <Input
-                                type="number"
-                                value={event.registration.internationalFee || ''}
-                                onChange={(e) => handleUpdate(event.id, {
-                                  registration: { ...event.registration, internationalFee: parseInt(e.target.value) || 0 }
-                                })}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                placeholder="0"
+                                value={event.registration.internationalFee ?? ''}
+                                onChange={(e) => {
+                                  const onlyDigits = e.target.value.replace(/\D+/g, '');
+                                  handleUpdate(event.id, { registration: { ...event.registration, internationalFee: parseInt(onlyDigits) || 0 } });
+                                }}
+                                onPaste={(e) => {
+                                  const paste = (e.clipboardData || (window as any).clipboardData).getData('text');
+                                  if (/\D/.test(paste)) e.preventDefault();
+                                }}
                                 className="bg-[#2E2E2E] border-gray-600 text-white"
                                 disabled={!isEditing}
                               />
@@ -596,11 +930,19 @@ export function EventsManager() {
                             <div>
                               <label className="text-sm text-white mb-1 block">Registration Fee (₹)</label>
                               <Input
-                                type="number"
-                                value={event.registration.registrationFee || ''}
-                                onChange={(e) => handleUpdate(event.id, {
-                                  registration: { ...event.registration, registrationFee: parseInt(e.target.value) || 0 }
-                                })}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                placeholder="0"
+                                value={event.registration.registrationFee ?? ''}
+                                onChange={(e) => {
+                                  const onlyDigits = e.target.value.replace(/\D+/g, '');
+                                  handleUpdate(event.id, { registration: { ...event.registration, registrationFee: parseInt(onlyDigits) || 0 } });
+                                }}
+                                onPaste={(e) => {
+                                  const paste = (e.clipboardData || (window as any).clipboardData).getData('text');
+                                  if (/\D/.test(paste)) e.preventDefault();
+                                }}
                                 className="bg-[#2E2E2E] border-gray-600 text-white"
                                 disabled={!isEditing}
                               />
@@ -614,19 +956,22 @@ export function EventsManager() {
                     {isEditing && (
                       <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-700">
                         <Button
+                          title="Cancel"
                           onClick={() => {
                             if (isNew) {
-                              setEvents(events.filter(e => e.id !== event.id));
+                              setEvents(prev => prev.filter(e => e.id !== event.id));
                             }
                             setEditingId(null);
                             setExpandedId(null);
                           }}
                           className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
                         >
+                          <X size={16} className="mr-2" />
                           Cancel
                         </Button>
                         <Button
-                          onClick={() => handleSave(event)}
+                          title="Save"
+                          onClick={() => onSaveClick(event)}
                           className="bg-[#FDB813] hover:bg-[#e5a711] text-black font-semibold cursor-pointer"
                         >
                           <Save size={16} className="mr-2" />

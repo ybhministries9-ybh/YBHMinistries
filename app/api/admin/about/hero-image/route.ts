@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put, del } from '@vercel/blob';
 import { getActiveAboutHeroImage, upsertAboutHeroImage, deleteAboutHeroImage } from '@/lib/db';
 import { sql } from '@vercel/postgres';
 import { verifySession, getActorName } from '@/lib/sessions';
+import { uploadBuffer, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
+import { del } from '@vercel/blob';
 
 /**
  * GET /api/admin/about/hero-image
@@ -11,11 +12,43 @@ import { verifySession, getActorName } from '@/lib/sessions';
 export async function GET(request: NextRequest) {
   try {
     const heroImage = await getActiveAboutHeroImage();
-    
-    return NextResponse.json({
-      success: true,
-      data: heroImage,
-    });
+    if (!heroImage) {
+      return NextResponse.json({ success: true, data: null });
+    }
+
+    // presign R2 URLs for admin preview. If presign fails, fall back to a public URL
+    // via `getPublicUrl()` (if configured). This avoids returning `r2://` URLs
+    // to the browser which cause unknown URL scheme errors.
+    const toPresigned = async (val?: string | null) => {
+      if (!val) return null;
+      if (val.startsWith('http://') || val.startsWith('https://')) return val;
+      const parsed = parseKeyFromUrl(val);
+      if (parsed?.key) {
+        try {
+          const head = await headObject(parsed.key, parsed.bucket || PRIVATE_BUCKET);
+          if (!head) return null;
+          const presigned = await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || PRIVATE_BUCKET);
+          return presigned;
+        } catch (e) {
+          console.warn('headObject/presign failed for', val, e);
+          // Try a public URL base (NEXT_PUBLIC_R2_PUBLIC_URL) if available
+          try {
+            const pub = getPublicUrl(parsed.key, parsed.bucket || PRIVATE_BUCKET);
+            // If getPublicUrl returns an r2:// reference then treat as unavailable
+            if (pub && !pub.startsWith('r2://')) return pub;
+          } catch (err) {
+            // ignore
+          }
+          return null;
+        }
+      }
+      return null;
+    };
+
+    const presigned = await toPresigned(heroImage.image_url as string | null);
+    if (presigned) heroImage.image_url = presigned as any;
+
+    return NextResponse.json({ success: true, data: heroImage });
   } catch (error) {
     console.error('Error fetching about hero image:', error);
     return NextResponse.json(
@@ -54,24 +87,29 @@ export async function POST(request: NextRequest) {
       // Get existing image for cleanup
       const existingImage = await getActiveAboutHeroImage();
 
-      // Upload to Vercel Blob
-      const blob = await put(`about/hero/${Date.now()}-${file.name}`, file, {
-        access: 'public',
-        addRandomSuffix: true,
-      });
+      // Upload to R2 (private) and get a reference URL
+      const sanitized = file.name ? file.name.replace(/[^a-zA-Z0-9.\-_/]/g, '_') : `hero-${Date.now()}`;
+      const key = `about/hero/${Date.now()}-${sanitized}`;
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer as ArrayBuffer);
+      await uploadBuffer(key, buffer, file.type || 'application/octet-stream', PRIVATE_BUCKET);
+      const publicUrl = `r2://${PRIVATE_BUCKET}/${key}`;
 
-      // Delete old image blob if exists
-      if (existingImage?.image_url && existingImage.image_url.includes('blob.vercel-storage.com')) {
-        try {
-          await del(existingImage.image_url);
-        } catch (blobError) {
-          console.error(`Failed to delete old image blob: ${existingImage.image_url}`, blobError);
+      // Delete old image from Vercel Blob or R2 if exists
+      if (existingImage?.image_url) {
+        if (existingImage.image_url.includes('blob.vercel-storage.com')) {
+          try { await del(existingImage.image_url); } catch (e) { console.error(`Failed to delete old image blob: ${existingImage.image_url}`, e); }
+        } else {
+          const parsed = parseKeyFromUrl(existingImage.image_url);
+          if (parsed?.key) {
+            try { await deleteObject(parsed.key, parsed.bucket || undefined); } catch (e) { console.error('Failed to delete old image in R2', parsed, e); }
+          }
         }
       }
 
-      // Save to database
+      // Save to database (store r2:// reference)
       const heroImage = await upsertAboutHeroImage(
-        blob.url,
+        publicUrl,
         createdBy || undefined
       );
 
@@ -103,14 +141,15 @@ export async function POST(request: NextRequest) {
       // Get existing image for cleanup
       const existingImage = await getActiveAboutHeroImage();
 
-      // Delete old image blob if it's different and from blob storage
-      if (existingImage?.image_url && 
-          existingImage.image_url !== image_url && 
-          existingImage.image_url.includes('blob.vercel-storage.com')) {
-        try {
-          await del(existingImage.image_url);
-        } catch (blobError) {
-          console.error(`Failed to delete old image blob: ${existingImage.image_url}`, blobError);
+      // Delete old image from Vercel Blob or R2 if it's different
+      if (existingImage?.image_url && existingImage.image_url !== image_url) {
+        if (existingImage.image_url.includes('blob.vercel-storage.com')) {
+          try { await del(existingImage.image_url); } catch (e) { console.error(`Failed to delete old image blob: ${existingImage.image_url}`, e); }
+        } else {
+          const parsed = parseKeyFromUrl(existingImage.image_url);
+          if (parsed?.key) {
+            try { await deleteObject(parsed.key, parsed.bucket || undefined); } catch (e) { console.error('Failed to delete old image in R2', parsed, e); }
+          }
         }
       }
 
@@ -171,13 +210,15 @@ export async function DELETE(request: NextRequest) {
     // Delete from database
     await deleteAboutHeroImage(imageId);
 
-    // Delete from Vercel Blob storage
-    if (imageUrl && imageUrl.includes('blob.vercel-storage.com')) {
-      try {
-        await del(imageUrl);
-      } catch (blobError) {
-        console.error(`Failed to delete image blob: ${imageUrl}`, blobError);
-        // Don't fail the whole operation if blob deletion fails
+    // Delete from Vercel Blob or R2
+    if (imageUrl) {
+      if (imageUrl.includes('blob.vercel-storage.com')) {
+        try { await del(imageUrl); } catch (blobError) { console.error(`Failed to delete image blob: ${imageUrl}`, blobError); }
+      } else {
+        const parsed = parseKeyFromUrl(imageUrl);
+        if (parsed?.key) {
+          try { await deleteObject(parsed.key, parsed.bucket || undefined); } catch (r2err) { console.error('Failed to delete image from R2', parsed, r2err); }
+        }
       }
     }
 

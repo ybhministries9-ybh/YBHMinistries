@@ -368,6 +368,8 @@ export interface GalleryItem {
   created_at: string;
   created_by: string;
   updated_at: string;
+  thumbnail_url?: string | null;
+  medium_url?: string | null;
 }
 
 export interface Story {
@@ -504,24 +506,7 @@ export async function createGetInTouch(payload: {
   createdBy?: string | null;
 }) {
   try {
-    // Diagnostic: log payload shape to help debug server-side 500 errors
-    try {
-      if (process.env.NODE_ENV !== 'production') {
-        try {
-          console.debug('createGetInTouch payload:', {
-            name: payload.name?.slice(0, 100),
-            email: payload.email,
-            phone: payload.phone,
-            messageLen: payload.message ? payload.message.length : 0,
-            location: payload.location,
-          });
-        } catch (logErr) {
-          console.debug('Failed to stringify createGetInTouch payload for logging', logErr);
-        }
-      }
-    } catch (e) {
-      // swallow logging errors to avoid breaking DB flow
-    }
+    // No debug logging here to avoid leaking data in logs.
     const { rows } = await sql`
       INSERT INTO get_in_touch (
         name, email, phone, message, location, user_agent, status, created_by, updated_by
@@ -807,6 +792,8 @@ export async function addGalleryItems(
     title?: string;
     date?: string;
     created_by?: string;
+    thumbnail_url?: string | null;
+    medium_url?: string | null;
   }>,
   defaultCreatedBy?: string
 ): Promise<GalleryItem[]> {
@@ -816,7 +803,7 @@ export async function addGalleryItems(
     for (const item of items) {
       const { rows } = await sql<GalleryItem>`
         INSERT INTO gallery_items (
-          category, media_type, url, title, date, created_by, updated_by
+          category, media_type, url, title, date, created_by, updated_by, thumbnail_url, medium_url
         ) VALUES (
           ${item.category},
           ${item.media_type},
@@ -824,7 +811,9 @@ export async function addGalleryItems(
           ${item.title || 'Untitled'},
           ${item.date || new Date().toISOString().split('T')[0]},
           ${item.created_by || defaultCreatedBy || null},
-          ${item.created_by || defaultCreatedBy || null}
+          ${item.created_by || defaultCreatedBy || null},
+          ${item.thumbnail_url || null},
+          ${item.medium_url || null}
         )
         RETURNING *
       `;

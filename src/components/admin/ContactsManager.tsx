@@ -221,7 +221,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
         {/* Tabs: left aligned under title */}
         <nav className="mt-5">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 border-b border-gray-700">
             <button
               onClick={() => { setActiveTab('hms'); setPage(1); }}
               className={`flex items-center gap-2 transition-colors text-base ${activeTab === 'hms' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
@@ -257,7 +257,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             <div>Loading...</div>
           ) : (
             <div className="md:overflow-x-auto md:-mx-2 md:mx-0">
-              <div className="w-full bg-[#1f1f1f] rounded-lg p-2 md:p-3 border border-[#2b2b2b]">
+              <div className="w-full bg-[#1f1f1f] rounded-lg p-2 md:p-3 border border-gray-700">
                 {/* Desktop/table view (md and up) */}
                 <div className="hidden md:block">
                   <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
@@ -297,7 +297,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 {/* Mobile/card view (below md) */}
                 <div className="md:hidden space-y-3 mt-2">
                   {sortedStudents.map((s) => (
-                    <div key={s.id} className="bg-[#232323] rounded-md p-3 border border-[#2b2b2b]">
+                    <div key={s.id} className="bg-[#232323] rounded-md p-3 border border-gray-700">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
@@ -346,7 +346,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             <div>Loading...</div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="w-full bg-[#1f1f1f] rounded-lg p-2 md:p-3 border border-[#2b2b2b]">
+              <div className="w-full bg-[#1f1f1f] rounded-lg p-2 md:p-3 border border-gray-700">
                 <div className="hidden md:block">
                   <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
                     <thead>
@@ -378,7 +378,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
                 <div className="md:hidden space-y-3 mt-2">
                   {contacts.map((c: any) => (
-                    <div key={c.id} className="bg-[#232323] rounded-md p-3 border border-[#2b2b2b]">
+                    <div key={c.id} className="bg-[#232323] rounded-md p-3 border border-gray-700">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">

@@ -22,9 +22,49 @@ export async function GET(request: NextRequest) {
     }
     
     // Separate images and videos
-    const images = items
+    const imagesRaw = items
       .filter(item => item.media_type === 'image')
-      .map(item => ({ id: item.id, url: item.url }));
+      .map(item => ({ id: item.id, url: item.url, thumbnail_url: item.thumbnail_url || null, medium_url: item.medium_url || null }));
+
+    // Convert any r2:// or R2 URLs into short-lived HTTPS presigned URLs so the public site can load private objects.
+    let images = imagesRaw;
+    try {
+      const { parseKeyFromUrl, getPresignedGetUrl } = await import('@/lib/r2');
+      images = await Promise.all(imagesRaw.map(async (it) => {
+        const out = { ...it } as any;
+        try {
+          if (out.thumbnail_url && out.thumbnail_url.startsWith('r2://')) {
+            const parsed = parseKeyFromUrl(out.thumbnail_url);
+            if (parsed?.key) out.thumbnail_url = await getPresignedGetUrl(parsed.key, 300, parsed.bucket || undefined);
+          } else if (out.thumbnail_url && (out.thumbnail_url.includes('.r2.cloudflarestorage.com') || out.thumbnail_url.includes('.r2.dev'))) {
+            const parsed = parseKeyFromUrl(out.thumbnail_url);
+            if (parsed?.key) out.thumbnail_url = await getPresignedGetUrl(parsed.key, 300, parsed.bucket || undefined);
+          }
+
+          if (out.medium_url && out.medium_url.startsWith('r2://')) {
+            const parsed2 = parseKeyFromUrl(out.medium_url);
+            if (parsed2?.key) out.medium_url = await getPresignedGetUrl(parsed2.key, 300, parsed2.bucket || undefined);
+          } else if (out.medium_url && (out.medium_url.includes('.r2.cloudflarestorage.com') || out.medium_url.includes('.r2.dev'))) {
+            const parsed2 = parseKeyFromUrl(out.medium_url);
+            if (parsed2?.key) out.medium_url = await getPresignedGetUrl(parsed2.key, 300, parsed2.bucket || undefined);
+          }
+
+          if (out.url && out.url.startsWith('r2://')) {
+            const parsed3 = parseKeyFromUrl(out.url);
+            if (parsed3?.key) out.url = await getPresignedGetUrl(parsed3.key, 300, parsed3.bucket || undefined);
+          } else if (out.url && (out.url.includes('.r2.cloudflarestorage.com') || out.url.includes('.r2.dev'))) {
+            const parsed3 = parseKeyFromUrl(out.url);
+            if (parsed3?.key) out.url = await getPresignedGetUrl(parsed3.key, 300, parsed3.bucket || undefined);
+          }
+        } catch (e) {
+          // ignore presign failures and return raw URL
+        }
+        return out;
+      }));
+    } catch (e) {
+      // If r2 utilities are not available, fall back to raw values
+      images = imagesRaw;
+    }
     
     const videos = items
       .filter(item => item.media_type === 'video')

@@ -86,6 +86,8 @@ export async function sendInviteEmail(to: string, name: string | null, link: str
 
   // Development fallback: log invite link so devs can copy it instead of sending real email.
   console.warn('SENDGRID_API_KEY not configured — logging invite link to console (development).');
-  console.log(`Invite email (dev): to=${to}\nSubject=${subject}\n\n${plain}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.debug(`Invite email (dev): to=${to}\nSubject=${subject}\n\n${plain}`);
+  }
   return { success: true, dev: true };
 }

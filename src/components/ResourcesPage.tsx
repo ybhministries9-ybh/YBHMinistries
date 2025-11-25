@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ShoppingCart, Play, Download, FileText, ExternalLink, Plus, Minus, X, Youtube, Calendar, Clock } from "lucide-react";
+import { ShoppingCart, Play, Download, ExternalLink, Plus, Minus, X, Youtube, Calendar } from "lucide-react";
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
-import { extractYouTubeId, fetchYouTubeMeta, parseISO8601Duration } from '../lib/youtube';
 
 // Utility function to extract YouTube thumbnail from video URL
 function getYouTubeThumbnail(url: string): string {
@@ -32,7 +31,7 @@ export function ResourcesPage() {
   const getInitialTab = () => {
     if (typeof window === 'undefined') return 'books';
     const hash = window.location.hash.replace('#', '');
-    if (hash === 'worship' || hash === 'sermons' || hash === 'bibleStudies') {
+    if (hash === 'worship' || hash === 'sermons') {
       return hash;
     }
     return 'books';
@@ -45,8 +44,7 @@ export function ResourcesPage() {
   const [cartAnimation, setCartAnimation] = useState(false);
   const [visibleRows, setVisibleRows] = useState({
     worship: 2,
-    sermons: 2,
-    bibleStudies: 2
+    sermons: 2
   });
   const [selectedImage, setSelectedImage] = useState(0);
   const cartRef = useRef<HTMLDivElement | null>(null);
@@ -55,7 +53,7 @@ export function ResourcesPage() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'worship' || hash === 'sermons' || hash === 'bibleStudies') {
+      if (hash === 'worship' || hash === 'sermons') {
         setActiveTab(hash);
       }
     };
@@ -117,14 +115,12 @@ export function ResourcesPage() {
   const [resources, setResources] = useState({
     books: [],
     worship: [],
-    sermons: [],
-    bibleStudies: []
+    sermons: []
   });
   const [loading, setLoading] = useState({
     books: true,
     worship: true,
-    sermons: true,
-    bibleStudies: true
+    sermons: true
   });
 
   // Fetch books
@@ -170,37 +166,34 @@ export function ResourcesPage() {
         
         const transformedWorship = (data.data || []).map((video: any) => ({
           id: video.id,
-          title: video.title,
+          // Prefer DB-stored title and date_posted when available
+          title: video.title || '',
           artist: video.artist,
           duration: pickDate(video.duration, video.length, video.duration_seconds, video.duration_str),
-          date: pickDate(video.release_date, video.published_at, video.created_at, video.date, video.uploaded_at),
+          date: pickDate(video.date_posted, video.release_date, video.published_at, video.created_at, video.date, video.uploaded_at),
           youtubeUrl: video.youtube_url,
-          description: video.description
+          description: video.description,
+          // include display_order from DB (may be null)
+          display_order: typeof video.display_order !== 'undefined' && video.display_order !== null ? Number(video.display_order) : null
         }));
 
-        // Augment items with YouTube metadata (publishedAt, duration) and prefer YouTube values when available
-        const augmentedWorship = await Promise.all(transformedWorship.map(async (video) => {
-          try {
-            const vid = extractYouTubeId(video.youtubeUrl);
-            if (!vid) return video;
-            const meta = await fetchYouTubeMeta(vid);
-            if (!meta) return video;
-            // Normalize publishedAt to YYYY-MM-DD so parseLocalDate treats it as local date-only
-            let date = video.date;
-            if (meta.publishedAt) {
-              const parsed = parseLocalDate(meta.publishedAt);
-              if (parsed) date = parsed.toISOString().split('T')[0];
-              else date = String(meta.publishedAt).split('T')[0];
-            }
-            const duration = meta.duration ? parseISO8601Duration(meta.duration) : video.duration;
-            const title = meta.title || video.title || '';
-            return { ...video, date, duration, title };
-          } catch (err) {
-            return video;
-          }
-        }));
+        // Sort by display_order ascending (lowest order -> left). Items without display_order go after ordered items,
+        // and are sorted by date (newest first) as a sensible fallback.
+        transformedWorship.sort((a: any, b: any) => {
+          const aHas = typeof a.display_order === 'number' && !isNaN(a.display_order);
+          const bHas = typeof b.display_order === 'number' && !isNaN(b.display_order);
+          if (aHas && bHas) return a.display_order - b.display_order;
+          if (aHas) return -1; // a comes before b
+          if (bHas) return 1;  // b comes before a
+          // fallback: sort by date descending (newest first)
+          const aTime = a.date ? new Date(a.date).getTime() : 0;
+          const bTime = b.date ? new Date(b.date).getTime() : 0;
+          return bTime - aTime;
+        });
 
-        setResources(prev => ({ ...prev, worship: augmentedWorship }));
+        // Use the DB-provided values only; do not call YouTube API from the public site.
+        // If DB fields are missing, the UI will show blank values.
+        setResources(prev => ({ ...prev, worship: transformedWorship }));
       } catch (error) {
         console.error('Error fetching worship videos:', error);
       } finally {
@@ -218,46 +211,39 @@ export function ResourcesPage() {
         if (!response.ok) throw new Error('Failed to fetch sermons');
         const data = await response.json();
         
+        // Response received; map fields defensively (no debug logging here)
         const transformedSermons = (data.data || []).map((sermon: any) => ({
           id: sermon.id,
-          title: sermon.title,
+          // Prefer DB-stored title (server should persist YouTube title into `title`)
+          // Be defensive: some backends may use `youtube_title` or `title`
+          title: sermon.title || sermon.youtube_title || sermon.youtubeTitle || '',
+          // Duration kept for compatibility but site will not rely on YouTube API
           duration: pickDate(sermon.duration, sermon.length, sermon.duration_seconds, sermon.duration_str),
-          date: pickDate(sermon.sermon_date, sermon.date, sermon.published_at, sermon.created_at),
+          // Prefer `date_posted` (new column) then fallbacks
+          date: pickDate(sermon.date_posted, sermon.sermon_date, sermon.date, sermon.published_at, sermon.created_at),
           thumbnailUrl: sermon.thumbnail_url,
           youtubeUrl: sermon.youtube_url,
-          description: sermon.description
+          description: sermon.description,
+          // include display_order when provided by API (may be null)
+          display_order: typeof sermon.display_order !== 'undefined' && sermon.display_order !== null ? Number(sermon.display_order) : null
         }));
 
-        const augmentedSermons = await Promise.all(transformedSermons.map(async (sermon) => {
-          try {
-            const vid = extractYouTubeId(sermon.youtubeUrl);
-            if (!vid) return sermon;
-            const meta = await fetchYouTubeMeta(vid);
-            if (!meta) return sermon;
+        // Sort by display_order ascending (lowest order -> left). Items without display_order go after ordered items,
+        // and are sorted by date (newest first) as a sensible fallback.
+        transformedSermons.sort((a: any, b: any) => {
+          const aHas = typeof a.display_order === 'number' && !isNaN(a.display_order);
+          const bHas = typeof b.display_order === 'number' && !isNaN(b.display_order);
+          if (aHas && bHas) return a.display_order - b.display_order;
+          if (aHas) return -1;
+          if (bHas) return 1;
+          const aTime = a.date ? new Date(a.date).getTime() : 0;
+          const bTime = b.date ? new Date(b.date).getTime() : 0;
+          return bTime - aTime;
+        });
 
-            // Prefer YouTube metadata for both date, duration and title when available
-            let newDate = sermon.date;
-            let newDuration = sermon.duration;
-
-            if (meta.publishedAt) {
-              const parsed = parseLocalDate(meta.publishedAt);
-              if (parsed) newDate = parsed.toISOString().split('T')[0];
-              else newDate = String(meta.publishedAt).split('T')[0];
-            }
-
-            if (meta.duration) {
-              newDuration = parseISO8601Duration(meta.duration);
-            }
-
-            const newTitle = meta.title || sermon.title || '';
-
-            return { ...sermon, date: newDate, duration: newDuration, title: newTitle };
-          } catch (err) {
-            return sermon;
-          }
-        }));
-
-        setResources(prev => ({ ...prev, sermons: augmentedSermons }));
+        setResources(prev => ({ ...prev, sermons: transformedSermons }));
+        // Use DB-provided values only; do not call YouTube API from the public site.
+        // If DB fields are missing, the UI will show blank values.
       } catch (error) {
         console.error('Error fetching sermons:', error);
       } finally {
@@ -268,41 +254,13 @@ export function ResourcesPage() {
   }, []);
 
   // Fetch Bible studies
-  useEffect(() => {
-    const fetchBibleStudies = async () => {
-      try {
-        const response = await fetch('/api/resources?type=bibleStudies');
-        if (!response.ok) throw new Error('Failed to fetch Bible studies');
-        const data = await response.json();
-        
-        const transformedStudies = (data.data || []).map((study: any) => ({
-          id: study.id,
-          title: study.title,
-          author: study.author,
-          pages: study.pages,
-          date: pickDate(study.study_date, study.publish_date, study.published_at, study.created_at, study.date),
-          fileType: study.file_type,
-          fileUrl: study.file_url,
-          thumbnailUrl: study.thumbnail_url,
-          description: study.description
-        }));
-        
-        setResources(prev => ({ ...prev, bibleStudies: transformedStudies }));
-      } catch (error) {
-        console.error('Error fetching Bible studies:', error);
-      } finally {
-        setLoading(prev => ({ ...prev, bibleStudies: false }));
-      }
-    };
-    fetchBibleStudies();
-  }, []);
+  // Bible Studies section removed — no client fetch required
 
   // Only use resources from the database/API
   const displayResources = {
     books: resources.books,
     worship: resources.worship,
-    sermons: resources.sermons,
-    bibleStudies: resources.bibleStudies
+    sermons: resources.sermons
   };
 
   const addToCart = (book) => {
@@ -345,13 +303,22 @@ export function ResourcesPage() {
 
   const getVisibleItems = (items, section) => {
     const rowSize = 4;
-    // Sort items by date in descending order (latest first) for sermons sections only
+    // For sermons, prefer explicit display_order when present; fallback to date
     if (section === 'sermons') {
-      const sortedItems = [...items].sort((a, b) => {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      const copy = [...items];
+      copy.sort((a, b) => {
+        const aHas = typeof a.display_order === 'number' && !isNaN(a.display_order);
+        const bHas = typeof b.display_order === 'number' && !isNaN(b.display_order);
+        if (aHas && bHas) return a.display_order - b.display_order;
+        if (aHas) return -1;
+        if (bHas) return 1;
+        const aTime = a.date ? new Date(a.date).getTime() : 0;
+        const bTime = b.date ? new Date(b.date).getTime() : 0;
+        return bTime - aTime;
       });
-      return sortedItems.slice(0, visibleRows[section] * rowSize);
+      return copy.slice(0, visibleRows[section] * rowSize);
     }
+
     return items.slice(0, visibleRows[section] * rowSize);
   };
 
@@ -377,42 +344,7 @@ export function ResourcesPage() {
     }
   };
 
-  // Format duration to add minutes
-  const formatDuration = (duration) => {
-    if (!duration && duration !== 0) return '';
-    try {
-      const s = String(duration).trim();
-      if (!s) return '';
-      // If the string already contains 'min' (case-insensitive), normalize to a single trailing ' min'
-      if (/min/i.test(s)) {
-        const withoutMin = s.replace(/\s*min\s*$/i, '').trim();
-        return `${withoutMin} min`;
-      }
-
-      if (s.indexOf(':') >= 0) {
-        const parts = s.split(':');
-        const minutes = parts[0];
-        const seconds = parts[1] || '00';
-        return `${minutes}:${seconds} min`;
-      }
-
-      // If duration given as total seconds or minutes
-      if (/^\d+$/.test(s)) {
-        const num = Number(s);
-        // treat numbers > 59 as seconds
-        if (num > 59) {
-          const mins = Math.floor(num / 60);
-          const secs = num % 60;
-          return `${mins}:${String(secs).padStart(2, '0')} min`;
-        }
-        return `${num}:00 min`;
-      }
-
-      return s + ' min';
-    } catch (err) {
-      return '';
-    }
-  };
+  
 
   // Pick first available date-like field from a list of possible properties
   const pickDate = (...vals) => {
@@ -440,10 +372,15 @@ export function ResourcesPage() {
         return new Date(y, m - 1, d);
       }
 
-      // If numeric timestamp
-      if (/^\d+$/.test(s)) return new Date(Number(s));
+      // If numeric timestamp: detect seconds vs milliseconds
+      if (/^\d+$/.test(s)) {
+        const n = Number(s);
+        // If looks like seconds (10 digits) convert to ms
+        if (s.length <= 10) return new Date(n * 1000);
+        return new Date(n);
+      }
 
-      // Fallback to Date constructor
+      // Fallback to Date constructor (handles ISO strings)
       const dt = new Date(s);
       if (!isNaN(dt.getTime())) return dt;
     } catch (err) {
@@ -471,7 +408,7 @@ export function ResourcesPage() {
         {/* Tabs */}
         <div className="mb-12">
           <div className="flex flex-wrap justify-center gap-3">
-            {["books", "worship", "sermons", "bibleStudies"].map((tab) => {
+            {["books", "worship", "sermons"].map((tab) => {
               const isActive = activeTab === tab;
               return (
                 <button
@@ -816,11 +753,7 @@ export function ResourcesPage() {
                     <div className="px-4 pb-4 pt-2 mt-auto">
                       <div className="flex items-center justify-between text-xs text-white gap-2">
                         <div className="flex items-center">
-                          <Clock size={14} className="mr-1.5 flex-shrink-0" />
-                          <span>{formatDuration(item.duration)}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar size={14} color="#FFFFFF" className="mr-1.5 flex-shrink-0" />
+                          <Calendar size={14} className="mr-1.5 flex-shrink-0" />
                           <span>{formatDate(item.date)}</span>
                         </div>
                       </div>
@@ -885,15 +818,9 @@ export function ResourcesPage() {
                       </h3>
                     </div>
                     <div className="px-4 pb-4 pt-2 mt-auto">
-                      <div className="flex items-center justify-between text-xs text-white gap-2">
-                        <div className="flex items-center">
-                          <Clock size={14} className="mr-1.5 flex-shrink-0" />
-                          <span>{formatDuration(sermon.duration)}</span>
-                        </div>
-                        <div className="flex items-center text-xs text-white">
-                          <Calendar size={14} color="#FFFFFF" className="mr-1.5 flex-shrink-0" />
-                          <span>{formatDate(sermon.date)}</span>
-                        </div>
+                      <div className="flex items-center text-xs text-white gap-2">
+                        <Calendar size={14} color="#FFFFFF" className="mr-1.5 flex-shrink-0" />
+                        <span>{formatDate(sermon.date)}</span>
                       </div>
                     </div>
                   </div>
@@ -917,91 +844,7 @@ export function ResourcesPage() {
           </div>
         )}
 
-        {/* Bible Studies Tab Content */}
-        {activeTab === "bibleStudies" && (
-          <div>
-            {loading.bibleStudies ? (
-              <div className="text-center py-12">
-                <p className="text-white text-lg">Loading Bible studies...</p>
-              </div>
-            ) : displayResources.bibleStudies.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-white text-lg">No Bible studies available yet.</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {getVisibleItems(displayResources.bibleStudies, "bibleStudies").map((study) => (
-                <div key={study.id} className="bg-[#2E2E2E] rounded-lg overflow-hidden shadow-lg hover:scale-102 hover:shadow-2xl transition-all duration-300 ease-in-out flex flex-col h-full border-2 border-transparent hover:border-[#FDB813]">
-                  <div className="h-48 overflow-hidden relative">
-                    <ImageWithFallback
-                      src={study.thumbnailUrl}
-                      alt={study.title}
-                      className="w-full h-full object-cover"
-                    />
-                    {/* PDF badge overlay */}
-                    <div className="absolute top-0 right-0 bg-[#FDB813] px-3 py-1 rounded-bl-lg font-bold shadow-md flex items-center" style={{ color: '#000000' }}>
-                      <FileText size={14} className="mr-1" /> PDF
-                    </div>
-                  </div>
-                  <div className="p-4 flex flex-col flex-grow">
-                    <h3 className="text-lg font-bold mb-1 text-white">{study.title}</h3>
-                    <p className="text-white text-sm mb-2">{study.author}</p>
-                    <p className="text-sm text-white mb-4 flex-grow">{study.description}</p>
-                    
-                    {/* Metadata row (pages and date) shown side by side */}
-                    <div className="flex justify-between items-center text-xs text-white mb-4">
-                      <div className="flex items-center">
-                        <FileText size={14} className="mr-1.5 flex-shrink-0" />
-                        <span>{study.pages} pages</span>
-                      </div>
-                        <div className="flex items-center">
-                        <Calendar size={14} color="#FFFFFF" className="mr-1.5 flex-shrink-0" />
-                        <span>{formatDate(study.date)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex space-x-5 justify-center">
-                      <a 
-                        href={study.fileUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center flex-1 px-3 py-2 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 text-sm font-bold"
-                        style={{ cursor: 'pointer', color: '#000000' }}
-                      >
-                        <ExternalLink size={14} className="mr-1" /> Open
-                      </a>
-                      <a 
-                        href={study.fileUrl} 
-                        download
-                        className="flex items-center justify-center flex-1 px-3 py-2 border border-[#FDB813] text-[#FDB813] rounded hover:bg-[#FDB813] transition-all duration-200 text-sm font-bold"
-                        style={{ cursor: 'pointer' }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#000000'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#FDB813'}
-                      >
-                        <Download size={14} className="mr-1" /> Download
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ))}
-                </div>
-                
-                {displayResources.bibleStudies.length > getVisibleItems(displayResources.bibleStudies, "bibleStudies").length && (
-                  <div className="mt-8 text-center">
-                    <button 
-                      className="px-6 py-3 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 font-bold"
-                      onClick={() => loadMore("bibleStudies")}
-                      style={{ cursor: 'pointer', color: '#000000' }}
-                    >
-                      {t('buttons.loadMore')}
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
+        {/* Bible Studies section removed */}
       </div>
     </div>
   );

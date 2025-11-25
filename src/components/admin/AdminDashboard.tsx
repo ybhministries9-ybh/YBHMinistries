@@ -16,7 +16,8 @@ import { MenuManager } from './MenuManager';
 import { Welcome } from './Welcome';
 import { AdminScrollToTop } from './AdminScrollToTop';
 
-const logoImage = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg';
+const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+const logoImage = `${R2_BASE}/logo/ybh.png`;
 
 interface AdminDashboardProps {
   token: string;
@@ -109,7 +110,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
           <div className="flex items-center justify-between flex-wrap">
             <div className="flex items-center gap-4 min-w-0">
               <img 
-                src="https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/logo/YBH.jpg" 
+                src={logoImage} 
                 alt="YBH Ministries" 
                 className="h-12 w-auto object-contain" 
               />
@@ -152,7 +153,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
 
       <div className="container mx-auto px-4 py-6">
 
-        <div className="grid lg:grid-cols-5 gap-6">
+        <div className="grid lg:grid-cols-5 gap-3">
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-[#2E2E2E] rounded-lg shadow-md p-4 space-y-2">
@@ -182,20 +183,25 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
 
           {/* Main Content */}
           <div className="lg:col-span-4">
-            <div className="bg-[#2E2E2E] rounded-lg shadow-md">
-              {activeSection === 'welcome' && <Welcome />}
-              {activeSection === 'home' && <HomeContentManager />}
-              {activeSection === 'about' && <AboutManager />}
-              {activeSection === 'ministries' && <MinistriesManager />}
-              {activeSection === 'gallery' && <GalleryManager />}
-              {activeSection === 'news' && <NewsManager />}
-              {activeSection === 'resources' && <ResourceManager />}
-              {activeSection === 'stories' && <StoriesManager />}
-              {activeSection === 'donate' && <DonateManager />}
-              {activeSection === 'contacts' && <ContactsManager />}
-              {activeSection === 'menu' && <MenuManager />}
-              {activeSection === 'users' && <UserManager />}
-            </div>
+            {activeSection === 'gallery' ? (
+              <div className="p-4 space-y-4">
+                <GalleryManager />
+              </div>
+            ) : (
+              <div className="bg-[#2E2E2E] rounded-lg shadow-md">
+                {activeSection === 'welcome' && <Welcome />}
+                {activeSection === 'home' && <HomeContentManager />}
+                {activeSection === 'about' && <AboutManager />}
+                {activeSection === 'ministries' && <MinistriesManager />}
+                {activeSection === 'news' && <NewsManager />}
+                {activeSection === 'resources' && <ResourceManager />}
+                {activeSection === 'stories' && <StoriesManager />}
+                {activeSection === 'donate' && <DonateManager />}
+                {activeSection === 'contacts' && <ContactsManager />}
+                {activeSection === 'menu' && <MenuManager />}
+                {activeSection === 'users' && <UserManager />}
+              </div>
+            )}
           </div>
         </div>
       </div>

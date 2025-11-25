@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { del, put } from '@vercel/blob';
+import { del } from '@vercel/blob';
 import { sql } from '@vercel/postgres';
 import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { parseKeyFromUrl, deleteObject } from '@/lib/r2';
 
 /**
  * PUT /api/admin/home/video/thumbnail
@@ -48,12 +49,15 @@ export async function PUT(request: NextRequest) {
       WHERE id = ${videoId}
     `;
 
-    // Delete old thumbnail from blob storage if it exists
-    if (oldThumbnailUrl && oldThumbnailUrl.includes('blob.vercel-storage.com')) {
-      try {
-        await del(oldThumbnailUrl);
-      } catch (blobError) {
-        console.error(`Failed to delete old thumbnail: ${oldThumbnailUrl}`, blobError);
+    // Delete old thumbnail from blob storage or R2 if it exists
+    if (oldThumbnailUrl) {
+      if (oldThumbnailUrl.includes('blob.vercel-storage.com')) {
+        try { await del(oldThumbnailUrl); } catch (blobError) { console.error(`Failed to delete old thumbnail: ${oldThumbnailUrl}`, blobError); }
+      } else {
+        const parsed = parseKeyFromUrl(oldThumbnailUrl);
+        if (parsed?.key) {
+          try { await deleteObject(parsed.key, parsed.bucket || undefined); } catch (r2err) { console.error('Failed to delete old thumbnail in R2', parsed, r2err); }
+        }
       }
     }
 
@@ -106,12 +110,15 @@ export async function DELETE(request: NextRequest) {
       WHERE id = ${videoId}
     `;
 
-    // Delete thumbnail from blob storage
-    if (thumbnailUrl && thumbnailUrl.includes('blob.vercel-storage.com')) {
-      try {
-        await del(thumbnailUrl);
-      } catch (blobError) {
-        console.error(`Failed to delete thumbnail blob: ${thumbnailUrl}`, blobError);
+    // Delete thumbnail from blob storage or R2
+    if (thumbnailUrl) {
+      if (thumbnailUrl.includes('blob.vercel-storage.com')) {
+        try { await del(thumbnailUrl); } catch (blobError) { console.error(`Failed to delete thumbnail blob: ${thumbnailUrl}`, blobError); }
+      } else {
+        const parsed = parseKeyFromUrl(thumbnailUrl);
+        if (parsed?.key) {
+          try { await deleteObject(parsed.key, parsed.bucket || undefined); } catch (r2err) { console.error('Failed to delete R2 thumbnail', parsed, r2err); }
+        }
       }
     }
 

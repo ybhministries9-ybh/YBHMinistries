@@ -8,6 +8,7 @@ import {
   deleteGalleryItems 
 } from '@/lib/db';
 import { getActorName, verifySession } from '@/lib/sessions';
+import { extractYouTubeId } from '@/lib/youtube';
 
 /**
  * GET /api/admin/gallery
@@ -30,11 +31,50 @@ export async function GET(request: NextRequest) {
       items = await getAllGalleryItems();
     }
     
-    return NextResponse.json({
-      success: true,
-      data: items,
-      count: items.length,
-    });
+    // For admin responses, convert any r2:// references into presigned GET URLs so the admin UI can display thumbnails
+    try {
+      const { parseKeyFromUrl, getPresignedGetUrl } = await import('@/lib/r2');
+      const enhanced = await Promise.all(items.map(async (it: any) => {
+        if (it.media_type === 'image') {
+          try {
+            if (it.thumbnail_url && it.thumbnail_url.startsWith('r2://')) {
+              const parsed = parseKeyFromUrl(it.thumbnail_url);
+              if (parsed && parsed.key) {
+                const pres = await getPresignedGetUrl(parsed.key, 300, parsed.bucket || undefined);
+                it.thumbnail_url = pres;
+              }
+            }
+            if (it.medium_url && it.medium_url.startsWith('r2://')) {
+              const parsed2 = parseKeyFromUrl(it.medium_url);
+              if (parsed2 && parsed2.key) {
+                const pres2 = await getPresignedGetUrl(parsed2.key, 300, parsed2.bucket || undefined);
+                it.medium_url = pres2;
+              }
+            }
+            // Also convert original url if stored as r2://
+            if (it.url && it.url.startsWith('r2://')) {
+              const parsed3 = parseKeyFromUrl(it.url);
+              if (parsed3 && parsed3.key) {
+                const pres3 = await getPresignedGetUrl(parsed3.key, 300, parsed3.bucket || undefined);
+                it.url = pres3;
+              }
+            }
+          } catch (e) {
+            // ignore presign errors for specific items
+          }
+        }
+        return it;
+      }));
+
+      return NextResponse.json({
+        success: true,
+        data: enhanced,
+        count: enhanced.length,
+      });
+    } catch (err) {
+      // If r2 utilities fail, fallback to returning raw items
+      return NextResponse.json({ success: true, data: items, count: items.length });
+    }
   } catch (error: any) {
     console.error('Error fetching gallery items:', error);
     const errorMessage = error?.message || 'Failed to fetch gallery items';
@@ -92,18 +132,39 @@ export async function POST(request: NextRequest) {
 
       const uploadedItems = [];
 
-      for (const file of files) {
-        // Upload to Vercel Blob
-        const blob = await put(`gallery/${category}/${Date.now()}-${file.name}`, file, {
-          access: 'public',
-          addRandomSuffix: true,
-        });
+      // We'll upload originals + variants to R2 private bucket
+      const { uploadBuffer, PRIVATE_BUCKET } = await import('@/lib/r2');
+      const { processBufferToVariants } = await import('@/lib/imageProcessor');
 
-        uploadedItems.push({
-          category,
-          media_type: 'image' as const,
-          url: blob.url,
-        });
+      const targetBucket = process.env.R2_PRIVATE_BUCKET || process.env.R2_BUCKET || 'ybh-pstore';
+
+      for (const file of files) {
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const timestamp = Date.now();
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+          const baseKey = `gallery/${category}/${timestamp}-${safeName}`;
+
+          // upload original
+          const originalKey = `${baseKey}/original-${safeName}`;
+          await uploadBuffer(originalKey, buffer, file.type || 'application/octet-stream', targetBucket, 'private');
+          const originalRef = `r2://${targetBucket}/${originalKey}`;
+
+          // create variants (thumb + medium) and upload
+          const { thumbRef, mediumRef } = await processBufferToVariants(buffer, `gallery/${category}/${timestamp}`, targetBucket);
+
+          uploadedItems.push({
+            category,
+            media_type: 'image' as const,
+            url: originalRef,
+            thumbnail_url: thumbRef,
+            medium_url: mediumRef,
+          });
+        } catch (e) {
+          console.error('Error processing upload for file', file.name, e);
+          // continue with next file
+        }
       }
 
       // Save to database
@@ -136,14 +197,86 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // For any video items, fetch YouTube metadata (title + published date) server-side
+    const itemErrors: Array<{ index: number; message: string }> = [];
+    try {
+      const ytKey = process.env.YOUTUBE_API_KEY;
+      if (ytKey) {
+        for (let idx = 0; idx < body.items.length; idx++) {
+          const item = body.items[idx];
+          if (item.media_type === 'video') {
+            try {
+              const vid = extractYouTubeId(item.url) || String(item.url || '').trim();
+              if (!vid) {
+                itemErrors.push({ index: idx, message: 'Invalid YouTube URL' });
+                continue;
+              }
+              const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(vid)}&key=${encodeURIComponent(ytKey)}`;
+              const r = await fetch(url);
+              if (!r.ok) {
+                const txt = await r.text().catch(() => 'YouTube API error');
+                itemErrors.push({ index: idx, message: `YouTube API error: ${r.status} ${txt}` });
+                continue;
+              }
+              const j = await r.json();
+              const it = j.items?.[0];
+              if (!it || !it.snippet) {
+                itemErrors.push({ index: idx, message: 'YouTube video not found' });
+                continue;
+              }
+              item.title = it.snippet.title || item.title;
+              if (it.snippet.publishedAt) item.date = it.snippet.publishedAt.split('T')[0];
+            } catch (e) {
+              itemErrors.push({ index: idx, message: 'Failed to fetch YouTube metadata' });
+            }
+          }
+        }
+      } else {
+        // No API key - can't fetch metadata
+        for (let idx = 0; idx < body.items.length; idx++) {
+          const item = body.items[idx];
+          if (item.media_type === 'video') {
+            itemErrors.push({ index: idx, message: 'Server missing YOUTUBE_API_KEY; metadata not fetched' });
+          }
+        }
+      }
+    } catch (err) {
+      // ignore overall metadata fetch errors, but record a generic error for video items
+      for (let idx = 0; idx < body.items.length; idx++) {
+        const item = body.items[idx];
+        if (item.media_type === 'video') {
+          itemErrors.push({ index: idx, message: 'Unexpected error fetching YouTube metadata' });
+        }
+      }
+    }
+
+    // Build list of items to save: skip video items that had metadata errors
+    const toSave: typeof body.items = [];
+    for (let idx = 0; idx < body.items.length; idx++) {
+      const it = body.items[idx];
+      if (it.media_type === 'video') {
+        // if there was an error for this index, skip saving
+        if (itemErrors.find(e => e.index === idx)) continue;
+        toSave.push(it);
+      } else {
+        toSave.push(it);
+      }
+    }
+
+    if (toSave.length === 0) {
+      // Nothing valid to save
+      return NextResponse.json({ success: false, error: 'No valid items to save', errors: itemErrors }, { status: 400 });
+    }
+
     // resolve actor for created_by (server-side)
     const actor = await getActorName(token);
-    const items = await addGalleryItems(body.items, actor);
+    const saved = await addGalleryItems(toSave, actor);
 
     return NextResponse.json({
       success: true,
-      data: items,
-      count: items.length
+      data: saved,
+      count: saved.length,
+      errors: itemErrors
     });
   } catch (error) {
     console.error('Error in POST /api/admin/gallery:', error);
@@ -228,22 +361,67 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Fetch items to check if they are blob URLs and need deletion
+    // Fetch items to check if they are stored in R2 (or other storage) and need deletion
     const { sql } = await import('@vercel/postgres');
     const placeholders = itemIds.map((_, i) => `$${i + 1}`).join(',');
     const { rows } = await sql.query(
-      `SELECT id, url, media_type FROM gallery_items WHERE id IN (${placeholders})`,
+      `SELECT id, url, media_type, thumbnail_url, medium_url FROM gallery_items WHERE id IN (${placeholders})`,
       itemIds
     );
 
-    // Delete blob storage files for images (not for YouTube videos)
+    // Delete storage files for images (original + variants)
+    // Use R2 utilities when possible; fall back to Vercel Blob `del` for blob URLs.
+    const { parseKeyFromUrl, deleteObject } = await import('@/lib/r2');
+
     for (const item of rows) {
-      if (item.media_type === 'image' && item.url.includes('blob.vercel-storage.com')) {
+      if (item.media_type !== 'image') continue;
+
+      const urlsToDelete = new Set<string>();
+      if (item.url) urlsToDelete.add(item.url);
+      if (item.thumbnail_url) urlsToDelete.add(item.thumbnail_url);
+      if (item.medium_url) urlsToDelete.add(item.medium_url);
+
+      for (const u of Array.from(urlsToDelete)) {
         try {
-          await del(item.url);
+          if (!u) continue;
+
+          // If stored as r2://bucket/key or public R2 URL, try parsing and deleting via R2 SDK
+          if (u.startsWith('r2://') || u.includes('.r2.cloudflarestorage.com') || u.includes('.r2.dev')) {
+            const parsed = parseKeyFromUrl(u);
+            if (parsed && parsed.key) {
+              try {
+                await deleteObject(parsed.key, parsed.bucket || undefined);
+                continue; // deleted
+              } catch (err) {
+                console.warn(`R2 delete failed for ${u}:`, err);
+                // fall through to other checks
+              }
+            }
+          }
+
+          // If it's a Vercel blob URL, use del
+          if (typeof u === 'string' && u.includes('blob.vercel-storage.com')) {
+            try {
+              await del(u);
+              continue;
+            } catch (err) {
+              console.warn(`Vercel blob delete failed for ${u}:`, err);
+            }
+          }
+
+          // As a last resort, attempt a signed URL fetch DELETE if it looks like an HTTP URL (best-effort)
+          try {
+            if (u.startsWith('http')) {
+              await fetch(u, { method: 'DELETE' }).then(r => {
+                if (!r.ok) throw new Error(`HTTP DELETE failed: ${r.status}`);
+              });
+            }
+          } catch (err) {
+            console.warn(`Failed to delete via HTTP for ${u}:`, err);
+          }
         } catch (error) {
-          console.warn(`Failed to delete blob for item ${item.id}:`, error);
-          // Continue with database deletion even if blob deletion fails
+          console.warn(`Failed to delete storage for item ${item.id} url=${u}:`, error);
+          // Continue with next URL/item
         }
       }
     }

@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
 
     const data = await request.json();
     const actor = await getActorName(token);
+    // normalize email to lowercase for storage
+    if (data.email) data.email = String(data.email).toLowerCase();
     if (!data || !data.name || !data.email) return NextResponse.json({ success: false, error: 'name & email required' }, { status: 400 });
 
     // Check duplicate email
@@ -76,10 +78,26 @@ export async function PUT(request: NextRequest) {
     const data = await request.json();
     const actor = await getActorName(token);
 
-    // If updating email, ensure uniqueness
+    // Resolve actor role to enforce permissions
+    const actorUser = await sql`SELECT id, role FROM users WHERE id = ${session.user_id} LIMIT 1`;
+    const actorRole = actorUser.rows.length ? actorUser.rows[0].role : null;
+    const actorId = actorUser.rows.length ? String(actorUser.rows[0].id) : null;
+
+    // If updating email, ensure uniqueness (emails stored lowercase)
     if (data.email) {
+      data.email = String(data.email).toLowerCase();
       const dup = await sql`SELECT id FROM users WHERE email = ${data.email} AND id <> ${id} LIMIT 1`;
       if (dup.rows.length) return NextResponse.json({ success: false, error: 'Email already in use' }, { status: 409 });
+    }
+
+    // Non-super admins may only update their own profile and may not change role/status
+    if (actorRole !== 'Super Admin') {
+      if (id !== actorId) {
+        return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      }
+      if (data.role || data.status) {
+        return NextResponse.json({ success: false, error: 'Insufficient privileges to change role or status' }, { status: 403 });
+      }
     }
 
     const result = await sql`
@@ -117,6 +135,11 @@ export async function DELETE(request: NextRequest) {
     // Prevent deleting Super Admins by role check (optional): ensure caller knows
     const select = await sql`SELECT role FROM users WHERE id = ${id}`;
     if (!select.rows.length) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
+    // Prevent deleting yourself
+    if (String(session.user_id) === String(id)) {
+      return NextResponse.json({ success: false, error: 'Cannot delete yourself' }, { status: 403 });
+    }
+
     if (select.rows[0].role === 'Super Admin') {
       return NextResponse.json({ success: false, error: 'Cannot delete Super Admin' }, { status: 403 });
     }

@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Upload, Plus, Trash2, Video as VideoIcon, Image as ImageIcon, Calendar, Loader2 } from 'lucide-react';
+import { extractYouTubeId } from '../../lib/youtube';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { toast } from 'sonner';
@@ -16,6 +17,8 @@ interface GalleryItem {
   created_at: string;
   created_by: string;
   updated_at: string;
+  thumbnail_url?: string | null;
+  medium_url?: string | null;
 }
 
 const CATEGORIES = [
@@ -91,7 +94,8 @@ function getYouTubeThumbnail(url: string): string | null {
 function MediaCard({ item, onDelete, isSelected, onToggleSelect }: MediaCardProps) {
   const renderMedia = () => {
     if (item.media_type === 'image') {
-      return <img src={item.url} alt={item.title} className="w-full h-full object-cover" />;
+      const src = (item as any).thumbnail_url || (item as any).medium_url || item.url;
+      return <img src={src} alt={item.title} className="w-full h-full object-cover" />;
     } else {
       // For videos, try to show YouTube thumbnail
       const thumbnail = getYouTubeThumbnail(item.url);
@@ -195,12 +199,45 @@ export function GalleryManager() {
   const [uploadCategory, setUploadCategory] = useState('asian-records');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ isOpen: false, current: 0, total: 0 });
-  const [deleteProgress, setDeleteProgress] = useState({ isOpen: false, message: '' });
+  const [deleteProgress, setDeleteProgress] = useState({ isOpen: false, message: '', current: 0, total: 0 });
+  // Drag/drop helpers
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    // create object URLs for previews
+    const urls = mediaFiles.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [mediaFiles]);
+
+  const removeSelectedFile = useCallback((index: number) => {
+    const newFiles = [...mediaFiles];
+    newFiles.splice(index, 1);
+    setMediaFiles(newFiles);
+  }, [mediaFiles]);
+
+  
   
   // Video entries with individual titles and dates
-  const [videoEntries, setVideoEntries] = useState<Array<{ url: string; title: string; date: string }>>([
-    { url: '', title: '', date: '' }
+  const [videoEntries, setVideoEntries] = useState<Array<{ url: string }>>([
+    { url: '' }
   ]);
+  const [videoErrors, setVideoErrors] = useState<Record<number, string>>({});
+
+  const canUpload = useMemo(() => {
+    if (isUploading) return false;
+    if (uploadType === 'file') return mediaFiles.length > 0;
+
+    // uploadType === 'url' -> ensure at least one entry with url and each url looks like youtube
+    const validEntries = videoEntries.filter(e => e.url && e.url.trim());
+    if (validEntries.length === 0) return false;
+    // require each entered url to parse to a YouTube id
+    return validEntries.every(e => !!extractYouTubeId(e.url));
+  }, [isUploading, uploadType, mediaFiles.length, videoEntries]);
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -311,17 +348,7 @@ export function GalleryManager() {
         return;
       }
 
-      // Check if all valid entries have title and date
-      for (let i = 0; i < validEntries.length; i++) {
-        if (!validEntries[i].title.trim()) {
-          toast.error(`Please enter a title for video ${i + 1}`);
-          return;
-        }
-        if (!validEntries[i].date) {
-          toast.error(`Please select a date for video ${i + 1}`);
-          return;
-        }
-      }
+      // Title and date are fetched server-side; client-side only requires URL
     }
 
     setIsUploading(true);
@@ -387,16 +414,14 @@ export function GalleryManager() {
         }
       } else {
         // Upload videos
-        const validEntries = videoEntries.filter(entry => entry.url.trim());
+        const validEntries = videoEntries.filter(entry => entry.url && entry.url.trim());
         setUploadProgress({ isOpen: true, current: 0, total: validEntries.length });
 
-        // Create items from video entries
+        // Create items from video entries (title/date will be fetched server-side)
         const items = validEntries.map((entry) => ({
           category: uploadCategory,
           media_type: 'video',
-          url: entry.url.trim(),
-          title: entry.title.trim(),
-          date: formatDateToDisplay(entry.date)
+          url: entry.url.trim()
         }));
 
         const response = await fetch('/api/admin/gallery', {
@@ -409,9 +434,22 @@ export function GalleryManager() {
 
         if (result.success) {
           toast.success(result.message || `Uploaded ${result.data?.length || 0} video(s) successfully`);
-          setVideoEntries([{ url: '', title: '', date: '' }]);
+          // If server returned per-item errors, show them inline. Otherwise clear entries.
+          if (result.errors && Array.isArray(result.errors) && result.errors.length > 0) {
+            const map: Record<number,string> = {};
+            result.errors.forEach((e: any) => { if (typeof e.index === 'number') map[e.index] = e.message || 'Error'; });
+            setVideoErrors(map);
+          } else {
+            setVideoEntries([{ url: '' }]);
+            setVideoErrors({});
+          }
           await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
         } else {
+          if (result.errors && Array.isArray(result.errors) && result.errors.length > 0) {
+            const map: Record<number,string> = {};
+            result.errors.forEach((e: any) => { if (typeof e.index === 'number') map[e.index] = e.message || 'Error'; });
+            setVideoErrors(map);
+          }
           toast.error(result.error || 'Failed to upload videos');
         }
       }
@@ -545,29 +583,43 @@ export function GalleryManager() {
       type: 'danger',
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
-        setDeleteProgress({ isOpen: true, message: `Deleting ${selectedImageIds.length} image(s)...` });
+        setDeleteProgress({ isOpen: true, message: `Deleting ${selectedImageIds.length} image(s)...`, current: 0, total: selectedImageIds.length });
         try {
-          const ids = selectedImageIds.join(',');
-          const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-          });
-          const result = await response.json();
+          const ids = [...selectedImageIds];
+          let deletedCount = 0;
+          const succeeded: number[] = [];
+          for (let i = 0; i < ids.length; i++) {
+            const id = ids[i];
+            try {
+              const response = await fetch(`/api/admin/gallery?id=${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+              });
+              const result = await response.json();
+              if (result.success) {
+                deletedCount++;
+                succeeded.push(id);
+              }
+            } catch (err) {
+              // continue on per-item errors
+            }
+            setDeleteProgress(prev => ({ ...prev, current: i + 1 }));
+          }
 
-          if (result.success) {
-            toast.success(result.message || 'Images deleted successfully');
+          if (deletedCount > 0) {
+            toast.success(`Deleted ${deletedCount} of ${ids.length} image(s) successfully`);
             const newSelection = new Set(selectedIds);
-            selectedImageIds.forEach(id => newSelection.delete(id));
+            succeeded.forEach(id => newSelection.delete(id));
             setSelectedIds(newSelection);
             await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
           } else {
-            toast.error(result.error || 'Failed to delete images');
+            toast.error('Failed to delete images');
           }
         } catch (error) {
           console.error('Error deleting images:', error);
           toast.error('Error deleting images');
         } finally {
-          setDeleteProgress({ isOpen: false, message: '' });
+          setDeleteProgress({ isOpen: false, message: '', current: 0, total: 0 });
         }
       }
     });
@@ -586,30 +638,44 @@ export function GalleryManager() {
       type: 'danger',
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
-        setDeleteProgress({ isOpen: true, message: `Deleting ${selectedVideoIds.length} video(s)...` });
+        setDeleteProgress({ isOpen: true, message: `Deleting ${selectedVideoIds.length} video(s)...`, current: 0, total: selectedVideoIds.length });
         
         try {
-          const ids = selectedVideoIds.join(',');
-          const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-          });
-          const result = await response.json();
+          const ids = [...selectedVideoIds];
+          let deletedCount = 0;
+          const succeeded: number[] = [];
+          for (let i = 0; i < ids.length; i++) {
+            const id = ids[i];
+            try {
+              const response = await fetch(`/api/admin/gallery?id=${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+              });
+              const result = await response.json();
+              if (result.success) {
+                deletedCount++;
+                succeeded.push(id);
+              }
+            } catch (err) {
+              // continue on per-item errors
+            }
+            setDeleteProgress(prev => ({ ...prev, current: i + 1 }));
+          }
 
-          if (result.success) {
-            toast.success(result.message || 'Videos deleted successfully');
+          if (deletedCount > 0) {
+            toast.success(`Deleted ${deletedCount} of ${ids.length} video(s) successfully`);
             const newSelection = new Set(selectedIds);
-            selectedVideoIds.forEach(id => newSelection.delete(id));
+            succeeded.forEach(id => newSelection.delete(id));
             setSelectedIds(newSelection);
             await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
           } else {
-            toast.error(result.error || 'Failed to delete videos');
+            toast.error('Failed to delete videos');
           }
         } catch (error) {
           console.error('Error deleting videos:', error);
           toast.error('Error deleting videos');
         } finally {
-          setDeleteProgress({ isOpen: false, message: '' });
+          setDeleteProgress({ isOpen: false, message: '', current: 0, total: 0 });
         }
       }
     });
@@ -630,7 +696,6 @@ export function GalleryManager() {
         <h1 className="text-3xl font-bold text-white">Gallery Manager</h1>
         <p className="text-gray-400 text-sm mt-1">Manage images and videos for the gallery page</p>
       </div>
-
       {/* Upload Section */}
       <div className="bg-[#2E2E2E] rounded-lg p-6 border border-[#3a3a3a]">
         <div className="flex items-center gap-2 mb-6">
@@ -692,25 +757,34 @@ export function GalleryManager() {
                 <Label htmlFor="mediaFiles" className="text-white mb-2 block">
                   Media Files (Images) *
                 </Label>
-                <div className="flex items-stretch bg-[#2E2E2E] border border-[#3a3a3a] rounded-md overflow-hidden">
-                  <label
-                    htmlFor="mediaFiles"
-                    className="bg-[#FDB813] text-black px-4 py-2 cursor-pointer hover:bg-[#e5a610] transition-colors whitespace-nowrap flex items-center font-semibold"
-                  >
-                    Choose Files
-                  </label>
-                  <span className="text-white px-2 flex items-center">:</span>
-                  <span className="text-white px-3 flex-1 flex items-center truncate">
-                    {mediaFiles.length > 0 ? `${mediaFiles.length} file(s) selected` : 'No files chosen'}
-                  </span>
-                  <Input
+                <div
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(true); }}
+                  onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragActive(false);
+                    const files = Array.from(e.dataTransfer?.files || []);
+                    if (files.length > 0) setMediaFiles(files.filter(f => f.type.startsWith('image/')));
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`w-full min-h-[120px] flex flex-col items-center justify-center gap-2 bg-black border-2 border-dashed border-[#2E2E2E] rounded-md overflow-hidden cursor-pointer px-4 py-6 ${isDragActive ? 'border-dashed border-[#FDB813]' : ''}`}
+                >
+                  <input
                     id="mediaFiles"
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(e) => setMediaFiles(Array.from(e.target.files || []))}
+                    onChange={(e) => setMediaFiles(Array.from(e.target.files || []).filter(f => f.type.startsWith('image/')))}
                     className="hidden"
                   />
+                  {/* Removed compact 'Choose Files : No files chosen' row per request. */}
+                  <div className="text-center">
+                    <div className="text-gray-200 font-medium">Click or drag images here to upload</div>
+                    <div className="text-xs text-gray-500 mt-1">PNG or JPG, multiple files supported</div>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -738,42 +812,23 @@ export function GalleryManager() {
                           const newEntries = [...videoEntries];
                           newEntries[index].url = e.target.value;
                           setVideoEntries(newEntries);
+                          // clear server-side error for this entry when user edits
+                          setVideoErrors(prev => { const copy = { ...prev }; delete copy[index]; return copy; });
                         }}
                         placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
                         className="bg-[#2E2E2E] text-white border-[#3a3a3a] focus:ring-[#FDB813] font-mono text-sm"
                       />
-                    </div>
-                    <div>
-                      <Label className="text-white text-sm mb-1 block">Title *</Label>
-                      <Input
-                        type="text"
-                        value={entry.title}
-                        onChange={(e) => {
-                          const newEntries = [...videoEntries];
-                          newEntries[index].title = e.target.value;
-                          setVideoEntries(newEntries);
-                        }}
-                        placeholder="Enter video title"
-                        className="bg-[#2E2E2E] text-white border-[#3a3a3a] focus:ring-[#FDB813]"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-white text-sm mb-1 block">Date *</Label>
-                      <Input
-                        type="date"
-                        value={entry.date}
-                        onChange={(e) => {
-                          const newEntries = [...videoEntries];
-                          newEntries[index].date = e.target.value;
-                          setVideoEntries(newEntries);
-                        }}
-                        className="bg-[#2E2E2E] text-white border-[#3a3a3a] focus:ring-[#FDB813]"
-                      />
+                      {entry.url && !extractYouTubeId(entry.url) && (
+                        <p className="text-xs text-red-400 mt-1">Please enter a valid YouTube URL</p>
+                      )}
+                      {videoErrors[index] && (
+                        <p className="text-xs text-red-400 mt-1">{videoErrors[index]}</p>
+                      )}
                     </div>
                   </div>
                 ))}
                 <button
-                  onClick={() => setVideoEntries([...videoEntries, { url: '', title: '', date: '' }])}
+                  onClick={() => setVideoEntries([...videoEntries, { url: '' }])}
                   className="px-4 py-2 bg-[#2E2E2E] text-white border border-[#3a3a3a] hover:bg-[#3a3a3a] rounded transition-all cursor-pointer flex items-center gap-2 text-sm"
                 >
                   <Plus className="h-4 w-4" />
@@ -783,9 +838,32 @@ export function GalleryManager() {
             )}
 
             {/* Upload Button */}
+            {/* Selected file previews */}
+            {uploadType === 'file' && mediaFiles.length > 0 && (
+              <div className="mb-4">
+                <div className="flex flex-wrap items-start gap-2">
+                  {previews.map((p, i) => (
+                    <div key={i} className="relative rounded overflow-hidden border border-[#3a3a3a] h-20 w-20 group">
+                      <img src={p} alt={mediaFiles[i]?.name || `preview-${i}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeSelectedFile(i); }}
+                        title="Remove"
+                        className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                        aria-label={`Remove ${mediaFiles[i]?.name || `preview-${i}`}`}>
+                        <div className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2">
+                          <Trash2 className="h-4 w-4" />
+                        </div>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleUpload}
-              disabled={isUploading}
+              disabled={!canUpload}
+              aria-disabled={!canUpload}
               className="px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center gap-2"
               style={{ backgroundColor: accentGold }}
             >
@@ -946,7 +1024,7 @@ export function GalleryManager() {
 
       {/* Upload Progress Modal */}
       {uploadProgress.isOpen && (
-        <div className="fixed inset-0 bg-[#1a1a1a] flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-[#00000080] backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-[#2E2E2E] rounded-lg p-8 max-w-md w-full mx-4 border-2 border-[#FDB813] shadow-2xl">
             <div className="flex flex-col items-center">
               <Loader2 className="h-12 w-12 animate-spin mb-4" style={{ color: accentGold }} />
@@ -972,13 +1050,17 @@ export function GalleryManager() {
 
       {/* Delete Progress Modal */}
       {deleteProgress.isOpen && (
-        <div className="fixed inset-0 bg-[#1a1a1a] flex items-center justify-center z-50">
-          <div className="bg-[#2E2E2E] rounded-lg p-8 max-w-md w-full mx-4 border-2 border-red-600 shadow-2xl">
+        <div className="fixed inset-0 bg-[#00000080] backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[#2E2E2E] rounded-lg p-8 max-w-md w-full mx-4 border-2 shadow-2xl" style={{ borderColor: accentGold }}>
             <div className="flex flex-col items-center">
               <Loader2 className="h-12 w-12 animate-spin mb-4 text-red-500" />
               <h3 className="text-xl font-bold text-white mb-2">Deleting Items</h3>
-              <p className="text-gray-400 text-sm mb-4 text-center">{deleteProgress.message}</p>
-              <p className="text-gray-500 text-xs">Please wait...</p>
+              {deleteProgress.total > 0 ? (
+                <p className="text-sm text-gray-300 mb-4">{deleteProgress.current} of {deleteProgress.total} deleted</p>
+              ) : (
+                <p className="text-gray-400 text-sm mb-4 text-center">{deleteProgress.message}</p>
+              )}
+            
             </div>
           </div>
         </div>

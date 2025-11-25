@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Eye, EyeOff, Edit2, Save, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Edit2, Save, Trash2, X } from 'lucide-react';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { ImageUpload } from './ImageUpload';
 import { toast } from 'sonner';
@@ -178,8 +178,8 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
                   // always call toggle handler so manager updates server for existing rows
                   toggleVisibleImmediate(newVal);
                 }}
-                className={`bg-[#2E2E2E] text-white ${ (editing ? !!local.visible : !!u.visible) ? '' : 'opacity-60' }`}
-                title={(editing ? (!!local.visible ? 'Hide' : 'Show') : (u.visible ? 'Hide' : 'Show'))}
+                className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a]  text-white ${ (editing ? !!local.visible : !!u.visible) ? '' : 'opacity-60' }`}
+                title={(editing ? (!!local.visible ? 'Unpublish' : 'Publish') : (u.visible ? 'Unpublish' : 'Publish'))}
                 aria-label="Toggle visible"
               >
                 {(editing ? !!local.visible : !!u.visible) ? <Eye size={16} /> : <EyeOff size={16} />}
@@ -188,11 +188,10 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
 
             {!editing ? (
               <>
-                <Button onClick={startEdit} className="bg-[#FDB813] hover:bg-[#e5a610] text-black flex items-center gap-2">
+                <Button onClick={startEdit} title="Edit" className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a]  text-white flex items-center gap-2">
                   <Edit2 size={14} />
-                  <span className="text-sm">Edit</span>
                 </Button>
-                <Button onClick={() => setDeleteOpen(true)} className="bg-transparent text-white border border-red-500">
+                <Button onClick={() => setDeleteOpen(true)} title="Delete" className="bg-transparent rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a]  text-white" >
                   <Trash2 size={16} />
                 </Button>
                 <DeleteConfirmDialog
@@ -211,15 +210,7 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
                   itemType="UPI"
                 />
               </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button onClick={saveEdit} className="bg-[#FDB813] hover:bg-[#e5a610] text-black flex items-center gap-2">
-                  <Save size={14} />
-                  <span className="text-sm">Save</span>
-                </Button>
-                <Button onClick={cancelEdit} className="bg-transparent text-white border border-gray-600">Cancel</Button>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -236,11 +227,11 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Label className="text-sm text-gray-300">Label</Label>
-              <Input value={local.label || ''} onChange={(e) => setLocal({ ...local, label: e.target.value })} placeholder="Label" className="bg-black border-gray-600 text-white text-sm" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} />
+              <Input value={local.label || ''} onChange={(e) => setLocal({ ...local, label: e.target.value })} placeholder="Label" style={{ backgroundColor: '#2e2e2e' }} className="bg-[#2e2e2e] border-gray-600 text-white text-sm" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} />
             </div>
             <div>
               <Label className="text-sm text-gray-300">UPI ID</Label>
-              <Input value={local.upi_id || ''} onChange={(e) => setLocal({ ...local, upi_id: e.target.value })} placeholder="example@bank" className="bg-black border-gray-600 text-white text-sm" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} />
+              <Input value={local.upi_id || ''} onChange={(e) => setLocal({ ...local, upi_id: e.target.value })} placeholder="example@bank" style={{ backgroundColor: '#2e2e2e' }} className="bg-[#2e2e2e] border-gray-600 text-white text-sm" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} />
             </div>
               <div className="flex flex-col items-center">
                 <div className="w-40 h-40 bg-gray-900 border-2 border-dashed border-gray-700 rounded flex items-center justify-center">
@@ -259,6 +250,19 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
           </div>
 
           {/* bottom Visible checkbox removed; control moved to header */}
+
+          {/* Move Save/Cancel to bottom of the edit form and swap order (Cancel then Save) */}
+          <div className="flex justify-end gap-2 mt-3">
+            <Button onClick={cancelEdit} className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white flex items-center gap-2 px-3 py-2 rounded-md">
+              <X size={14} />
+              <span className="text-sm">Cancel</span>
+            </Button>
+
+            <Button onClick={saveEdit} className="bg-[#FDB813] hover:bg-[#e5a711] text-black font-semibold flex items-center gap-2 px-3 py-2 rounded-md">
+              <Save size={14} />
+              <span className="text-sm">Save</span>
+            </Button>
+          </div>
         </div>
       )}
     </div>

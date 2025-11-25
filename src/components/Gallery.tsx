@@ -9,7 +9,10 @@ import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 
 interface GalleryImage {
-  url: string;
+  id?: number | string;
+  url: string; // original / full-size URL
+  thumbnail_url?: string | null;
+  medium_url?: string | null;
 }
 
 interface Video {
@@ -60,22 +63,35 @@ function getYouTubeThumbnail(url: string): string {
 
 function parseVideoDate(dateStr: string): Date {
   if (!dateStr) return new Date(0);
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return new Date(0);
-  const day = parseInt(parts[0]);
-  const monthStr = parts[1];
-  const year = parseInt(parts[2]);
-  const monthMap: Record<string, number> = {
-    Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
-    Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
-  };
-  const month = monthMap[monthStr];
-  if (month === undefined) return new Date(0);
-  return new Date(year, month, day);
+  // Accept formats: YYYY-MM-DD, DD-Mon-YYYY (e.g. 21-Nov-2025), ISO strings
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map((s) => parseInt(s, 10));
+    return new Date(y, (m || 1) - 1, d || 1);
+  }
+  // DD-Mon-YYYY
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const monthStr = parts[1];
+    const year = parseInt(parts[2], 10);
+    const monthMap: Record<string, number> = {
+      Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+      Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
+    };
+    const month = monthMap[monthStr];
+    if (month === undefined) return new Date(0);
+    return new Date(year, month, day);
+  }
+  // Try Date parse as fallback
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) return parsed;
+  return new Date(0);
 }
 
 function formatVideoDate(dateStr: string): string {
   const date = parseVideoDate(dateStr);
+  if (date.getTime() === 0) return '';
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const month = monthNames[date.getMonth()];
   const day = String(date.getDate()).padStart(2, "0");
@@ -115,7 +131,7 @@ const ImageCard = memo(({ image, index, title, onClick, eager = false }: {
   eager?: boolean;
 }) => (
   <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={onClick}>
-    <ImageWithFallback src={image.url} alt={`${title} ${index + 1}`} className="w-full h-auto object-cover hover:scale-105 transition-transform duration-300" loading={eager ? "eager" : "lazy"} enableResponsive={false} />
+    <ImageWithFallback src={image.thumbnail_url || image.medium_url || image.url} alt={`${title} ${index + 1}`} className="w-full h-auto object-cover hover:scale-105 transition-transform duration-300" loading={eager ? "eager" : "lazy"} enableResponsive={false} />
   </div>
 ));
 ImageCard.displayName = "ImageCard";
@@ -167,18 +183,25 @@ export function Gallery() {
       setLoading(true);
       setError(null);
       try {
-        const categoriesData: Record<string, { images: GalleryImage[]; videos: Video[] }> = {};
-        for (const tab of TAB_CONFIG) {
-          const response = await fetch(`/api/gallery?category=${tab.key}`);
-          const data = await response.json();
-          categoriesData[tab.key] = data.success ? { images: data.data.images || [], videos: data.data.videos || [] } : { images: [], videos: [] };
-        }
+        // Fetch all category data in parallel to reduce total load time
+        const promises = TAB_CONFIG.map(async (tab) => {
+          try {
+            const res = await fetch(`/api/gallery?category=${tab.key}`);
+            const data = await res.json();
+            return { key: tab.key, data: data.success ? { images: data.data.images || [], videos: data.data.videos || [] } : { images: [], videos: [] } };
+          } catch (e) {
+            return { key: tab.key, data: { images: [], videos: [] } };
+          }
+        });
+
+        const results = await Promise.all(promises);
         const imagesMap: Record<string, GalleryImage[]> = {};
         const videosMap: Record<string, Video[]> = {};
-        Object.entries(categoriesData).forEach(([key, value]) => {
-          imagesMap[key] = value.images;
-          videosMap[key] = value.videos;
-        });
+        for (const r of results) {
+          imagesMap[r.key] = r.data.images;
+          videosMap[r.key] = r.data.videos;
+        }
+
         setGalleryImages(imagesMap);
         setGalleryVideos(videosMap);
       } catch (err) {

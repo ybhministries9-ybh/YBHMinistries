@@ -10,6 +10,22 @@ export function SessionWarning({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     let interval: any;
     function tick() {
+      // Respect a short-lived suppression flag set after first-time password reset login
+      try {
+        const suppress = localStorage.getItem('suppress_session_warning_until');
+        if (suppress) {
+          const until = Number(suppress || 0) || 0;
+          if (Date.now() < until) {
+            setVisible(false);
+            setRemainingMs(null);
+            return;
+          } else {
+            // expired — remove the key
+            try { localStorage.removeItem('suppress_session_warning_until'); } catch (e) {}
+          }
+        }
+      } catch (e) {}
+
       const raw = localStorage.getItem('admin_token');
       if (!raw) {
         setVisible(false);

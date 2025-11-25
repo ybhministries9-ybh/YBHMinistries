@@ -16,11 +16,31 @@ export async function POST(request: NextRequest) {
     const id = data?.id || null;
     if (!id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
 
+    // Resolve actor role and id to enforce permissions
+    const actorRes = await sql`SELECT id, role FROM users WHERE id = ${session.user_id} LIMIT 1`;
+    const actor = actorRes.rows.length ? actorRes.rows[0] : null;
+    const actorRole = actor ? actor.role : null;
+    const actorId = actor ? String(actor.id) : null;
+
+    // If the actor is Viewer or Content Manager they may only operate on themselves
+    if ((actorRole === 'Viewer' || actorRole === 'Content Manager') && String(id) !== actorId) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Prevent non-super admins from modifying Super Admins
+    const targetRes = await sql`SELECT id, role FROM users WHERE id = ${id} LIMIT 1`;
+    if (!targetRes.rows.length) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
+    const targetRole = targetRes.rows[0].role;
+    if (targetRole === 'Super Admin' && actorRole !== 'Super Admin') {
+      return NextResponse.json({ success: false, error: 'Cannot modify Super Admin' }, { status: 403 });
+    }
+
+    // Set password to default and require reset on next login
     const DEFAULT_PASSWORD = process.env.DEFAULT_USER_PASSWORD || 'YbhWelcome@123';
     const passwordHash = hashPassword(DEFAULT_PASSWORD);
 
     const result = await sql`
-      UPDATE users SET password_hash = ${passwordHash}, must_reset_password = false, updated_at = CURRENT_TIMESTAMP
+      UPDATE users SET password_hash = ${passwordHash}, must_reset_password = true, updated_at = CURRENT_TIMESTAMP, updated_by = ${actorId}
       WHERE id = ${id}
       RETURNING *
     `;

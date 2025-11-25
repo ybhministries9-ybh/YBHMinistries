@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import HMSStudentForm from './HMSStudentFormAdmin';
+import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 
 function getAuthHeader() {
   try {
@@ -169,35 +171,35 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
 
         <div className="mb-6 text-center px-2">
           <h2 className="text-2xl font-bold">Contact #{r.id}</h2>
-          <div className="text-sm text-gray-300 mt-1">View the Get In Touch submission details.</div>
+          <div className="text-sm text-gray-300 mt-1">View the Get-In-Touch submission details.</div>
         </div>
 
         <div className="max-w-6xl mx-auto px-2">
-          <div className="bg-[#2e2e2e] rounded-lg p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 w-full">
+          <div className="bg-[#2e2e2e] rounded-lg p-6 border border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 w-full">
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Name</h3>
-                <div className="text-white font-medium break-all whitespace-normal w-full">{r.name || '-'}</div>
+                <input disabled value={r.name || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Email</h3>
-                <div className="text-white font-medium break-all whitespace-normal w-full">{r.email || '-'}</div>
+                <input disabled value={r.email || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Phone</h3>
-                <div className="text-white font-medium break-all whitespace-normal w-full">{r.phone || '-'}</div>
+                <input disabled value={r.phone || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Location</h3>
-                <div className="text-white font-medium break-all whitespace-normal w-full">{r.location || '-'}</div>
+                <input disabled value={r.location || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
               </div>
               <div className="md:col-span-2 min-w-0">
                 <h3 className="text-sm text-gray-300">Message</h3>
-                <div className="text-white whitespace-pre-wrap mt-2 break-words max-w-full">{r.message || '-'}</div>
+                <textarea disabled value={r.message || '-'} rows={4} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600 resize-none" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Submitted</h3>
-                <div className="text-white">{(r.created_at || '').split('T')[0]}</div>
+                <input disabled value={(r.created_at || '').split('T')[0]} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
               </div>
             </div>
           </div>
@@ -218,7 +220,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
       {/* Centered title and subtitle */}
       <div className="mb-6 text-center px-2">
         <h2 className="text-2xl font-bold">Enrollment #{record.id}</h2>
-        <div className="text-sm text-gray-300 mt-1">View and edit the enrollment.</div>
+        <div className="text-sm text-gray-300 mt-1">View the enrollment details.</div>
       </div>
 
       <div>

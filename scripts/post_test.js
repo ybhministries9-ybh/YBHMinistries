@@ -8,9 +8,9 @@ async function post() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  console.log('status', res.status);
+  if (process.env.NODE_ENV !== 'production') console.debug('status', res.status);
   const data = await res.json();
-  console.log('body', data);
+  if (process.env.NODE_ENV !== 'production') console.debug('body', data);
 }
 
 post().catch(err => { console.error(err); process.exit(1); });

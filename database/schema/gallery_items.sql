@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS gallery_items (
     media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('image', 'video')), -- Type of media
     url TEXT NOT NULL, -- URL for image or YouTube video
     title TEXT, -- Title for videos, optional for images
+    bucket VARCHAR(255), -- Storage bucket name (e.g. ybh-store or ybh-pstore)
     date VARCHAR(50), -- Date in format DD-MMM-YYYY for videos
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
