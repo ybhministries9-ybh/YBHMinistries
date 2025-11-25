@@ -16,23 +16,8 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '32x32',
         type: 'image/png',
       },
-      {
-        // Apple touch icon: point to the 192 route which renders a larger icon
-        src: '/icon-192',
-        sizes: '180x180',
-        type: 'image/png',
-      },
-      {
-        src: '/icon-192',
-        sizes: '192x192',
-        type: 'image/png',
-        purpose: 'maskable',
-      },
-      {
-        src: '/icon-512',
-        sizes: '512x512',
-        type: 'image/png',
-      },
+      // Removed explicit references to `/icon-192` to avoid 404s; use `/icon` and `/icon-512` instead.
+      // Removed `/icon-512` to avoid 404s from missing route; keep `/icon` (32x32) for favicons.
     ],
     categories: ['education', 'lifestyle', 'music'],
     orientation: 'portrait-primary',
