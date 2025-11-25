@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect, memo, lazy, Suspense } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect, memo } from "react";
 import { motion } from "motion/react";
-import { ChevronDown, ChevronUp, User, MapPin, Play, X, Quote, Maximize, Minimize, Calendar } from "lucide-react";
+import { MapPin, Play, X, Quote, Maximize, Minimize, Calendar } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from 'sonner';
@@ -94,7 +94,7 @@ const TAB_CONFIG = [
 
 
 // Testimonial Modal Component - Memoized for performance
-const TestimonialModal = memo(({ 
+  const TestimonialModal = memo(({ 
   testimonial, 
   isOpen, 
   onClose 
@@ -148,21 +148,24 @@ const TestimonialModal = memo(({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
       <motion.div 
         ref={modalRef}
-        className={`bg-[#2E2E2E] rounded-lg ${isFullscreen ? 'w-full h-full max-h-full' : 'max-w-3xl w-full max-h-[90vh]'} overflow-auto`}
+        className={`bg-[#2E2E2E] rounded-lg ${isFullscreen ? 'w-full h-full max-h-full' : 'max-w-3xl w-full max-h-[90vh]'} overflow-auto`} 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.3 }}
       >
         <div className={`${isFullscreen ? 'p-6 md:p-10' : 'p-6 md:p-8'}`}>
-          <div className="flex justify-between items-start mb-6">
+          <div className="flex justify-between items-center mb-6">
             <div className="flex">
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden mr-4 flex-shrink-0">
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden mr-4 flex-shrink-0">
                 <ImageWithFallback 
                   src={testimonial.image} 
                   alt={testimonial.name} 
                   className="w-full h-full object-cover"
                   fallbackVariant="person"
+                  fallbackIconClassName="text-white"
+                  fallbackBgClassName="bg-[#1f1f1f]"
+                    fallbackIconSize={40}
                 />
               </div>
               <div className="text-left">
@@ -246,13 +249,16 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
         className="bg-[#2E2E2E] p-6 rounded-lg shadow-lg hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-[#FDB813] flex flex-col justify-between h-full" 
         onClick={handleOpenModal}
       >
-        <div className="flex items-start mb-4">
-            <div className="w-12 h-12 rounded-full overflow-hidden mr-4 flex-shrink-0">
+        <div className="flex items-center mb-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden mr-4 flex-shrink-0">
             <ImageWithFallback 
               src={testimonial.image} 
               alt={testimonial.name} 
               className="w-full h-full object-cover"
               fallbackVariant="person"
+              fallbackIconClassName="text-white"
+              fallbackBgClassName="bg-[#1f1f1f]"
+                  fallbackIconSize={40}
             />
           </div>
           <div className="text-left">
@@ -557,6 +563,7 @@ export function StoriesPage() {
   // default tab (server-safe). We will read URL hash on the client and update.
   const [activeTab, setActiveTab] = useState<string>('guinness');
   const [publicStories, setPublicStories] = useState<PublicStory[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({});
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
@@ -594,6 +601,51 @@ export function StoriesPage() {
     void fetchStories();
     return () => { mounted = false; };
   }, []);
+
+  // Resolve r2:// thumbnail references to signed URLs for display (cards and modal)
+  useEffect(() => {
+    let cancelled = false;
+
+    const itemsToResolve = publicStories.filter(s => s.thumbnail_url && !previewUrls[s.id]);
+    if (itemsToResolve.length === 0) return;
+
+    (async () => {
+      const resolved: Record<number, string> = {};
+      await Promise.all(itemsToResolve.map(async (s) => {
+        try {
+          const url = s.thumbnail_url;
+          if (!url) return;
+          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+            resolved[s.id] = url as string;
+            return;
+          }
+          if (!url.startsWith('r2://')) return;
+          const rest = url.slice('r2://'.length);
+          const parts = rest.split('/').filter(Boolean);
+          if (parts.length === 0) return;
+          parts.shift();
+          const key = parts.join('/');
+          if (!key) return;
+          const resp = await fetch('/api/r2/presign-get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, expiresIn: 3600 })
+          });
+          if (!resp.ok) return;
+          const json = await resp.json();
+          if (cancelled) return;
+          if (json && json.url) resolved[s.id] = json.url;
+        } catch (e) {
+          // ignore
+        }
+      }));
+      if (!cancelled && Object.keys(resolved).length > 0) {
+        setPreviewUrls(prev => ({ ...prev, ...resolved }));
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [publicStories, previewUrls]);
 
   // helper: extract YouTube id from url or return the string if it's already an id
   const extractYouTubeId = useCallback((url?: string | null) => {
@@ -653,11 +705,12 @@ export function StoriesPage() {
         // Use the story `location` field as the displayed location
         location: s.location || '',
         category: s.category || '',
-        image: s.thumbnail_url || null,
+        // Prefer resolved previewUrls from r2 presign, fallback to thumbnail_url (signed or raw)
+        image: (previewUrls && previewUrls[s.id]) || s.thumbnail_url || null,
         text: s.body || '',
         email: s.email || undefined
       }));
-  }, [publicStories]);
+  }, [publicStories, previewUrls]);
 
   const mappedPublicVideos = useMemo(() => {
     return publicStories

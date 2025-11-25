@@ -183,6 +183,20 @@ export function UserManager() {
         } as User;
         setUsers(u => u.map(x => x.id === editingUser.id ? updated : x));
         toast.success('User updated successfully');
+        // If current user updated their own profile, dispatch an event so headers can update
+        if (currentUser?.id === String(updated.id)) {
+          const payload = { id: updated.id, name: updated.name, role: updated.role };
+          try {
+            // dispatch custom event
+            window.dispatchEvent(new CustomEvent('admin-user-updated', { detail: payload }));
+          } catch (e) {}
+          try {
+            // also trigger a storage event for other tabs
+            localStorage.setItem('admin_user_updated', JSON.stringify({ ...payload, ts: Date.now() }));
+            // remove quickly to avoid persistent value
+            localStorage.removeItem('admin_user_updated');
+          } catch (e) {}
+        }
       } else {
         const rawToken = localStorage.getItem('admin_token');
         let token = '';

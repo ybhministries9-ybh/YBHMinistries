@@ -216,7 +216,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   return (
     <div className="p-6 pr-6 md:pr-0 text-white">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold">Contact Management Page</h2>
+        <h2 className="text-3xl font-bold">Contact Management</h2>
         <div className="text-sm text-gray-300 mt-1">View and manage contact submissions and enrollments from visitors and applicants.</div>
 
         {/* Tabs: left aligned under title */}

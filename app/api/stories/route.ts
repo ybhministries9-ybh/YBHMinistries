@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getVisibleApprovedStories } from '@/lib/db';
+import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
 
 function sanitizeString(input: any, maxLength = 2000) {
   if (!input && input !== 0) return null;
@@ -17,7 +18,27 @@ export async function GET() {
   try {
     // Use targeted DB query to fetch only public-facing stories.
     const stories = await getVisibleApprovedStories();
-    return NextResponse.json({ success: true, data: stories });
+    // convert thumbnail_url (r2:// refs) to signed URLs or public URLs for client display
+    const enhanced = await Promise.all(stories.map(async (s: any) => {
+      if (!s?.thumbnail_url) return s;
+      const raw = s.thumbnail_url;
+      if (raw.startsWith('http://') || raw.startsWith('https://')) return { ...s, thumbnail_url: raw };
+      const parsed = parseKeyFromUrl(raw);
+      if (!parsed?.key) return { ...s };
+      try {
+        const head = await headObject(parsed.key, parsed.bucket || undefined);
+        if (!head) return { ...s };
+        const url = await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || undefined);
+        return { ...s, thumbnail_url: url };
+      } catch (e) {
+        try {
+          const pub = getPublicUrl(parsed.key, parsed.bucket || undefined);
+          if (pub && !pub.startsWith('r2://')) return { ...s, thumbnail_url: pub };
+        } catch (err) {}
+        return { ...s };
+      }
+    }));
+    return NextResponse.json({ success: true, data: enhanced });
   } catch (err) {
     console.error('GET /api/stories error', err);
     return NextResponse.json({ success: false, error: 'Failed to fetch stories' }, { status: 500 });

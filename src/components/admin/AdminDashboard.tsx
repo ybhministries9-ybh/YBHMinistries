@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink, Clock, Star } from 'lucide-react';
+import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink, Clock, Star, BookOpen, Mail } from 'lucide-react';
 import { GalleryManager } from './GalleryManager';
 import { ResourceManager } from './ResourceManager';
 import { UserManager } from './UserManager';
@@ -31,6 +31,15 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
   // default to Welcome page; allow parent to request an initial section via prop
   const [activeSection, setActiveSection] = useState<Section>((initialSection as Section) || 'welcome');
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
+    const [userName, setUserName] = useState<string>('');
+    const [userRole, setUserRole] = useState<string>('');
+    const capitalizeName = (n: string) =>
+      n?.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    const truncateWithEllipsis = (s: string, max = 20) => {
+      if (!s) return '';
+      if (s.length <= max) return s;
+      return s.slice(0, max) + '...';
+    };
 
   useEffect(() => {
     let mounted = true;
@@ -87,6 +96,69 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
     window.location.href = '/';
   };
 
+  // Fetch current user details when token changes
+  useEffect(() => {
+    let mounted = true;
+    async function fetchUser() {
+      if (!token) return;
+      try {
+        const resp = await fetch('/api/admin/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+        const j = await resp.json();
+        if (j?.success && j.user && mounted) {
+          setUserName(j.user.name || '');
+          setUserRole(j.user.role || '');
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    fetchUser();
+    return () => { mounted = false; };
+  }, [token]);
+
+  // Listen for admin user updates (cross-tab and same-tab)
+  useEffect(() => {
+    const onUserUpdated = (e: any) => {
+      try {
+        const d = e?.detail || null;
+        if (d?.name) setUserName(d.name || '');
+        if (d?.role) setUserRole(d.role || '');
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'admin_user_updated') return;
+      try {
+        const val = e.newValue ? JSON.parse(e.newValue) : null;
+        if (val?.name) setUserName(val.name);
+        if (val?.role) setUserRole(val.role);
+      } catch (err) {}
+    };
+
+    window.addEventListener('admin-user-updated', onUserUpdated as EventListener);
+    window.addEventListener('storage', onStorage as EventListener);
+    return () => {
+      window.removeEventListener('admin-user-updated', onUserUpdated as EventListener);
+      window.removeEventListener('storage', onStorage as EventListener);
+    };
+  }, []);
+
+  // Listen for 'admin-navigate' events to change the active admin section from within UI cards
+  useEffect(() => {
+    const onNavigate = (e: any) => {
+      try {
+        const section = e?.detail?.section;
+        if (section) setActiveSection(section);
+      } catch (err) {
+        // ignore
+      }
+    };
+    window.addEventListener('admin-navigate', onNavigate as EventListener);
+    return () => window.removeEventListener('admin-navigate', onNavigate as EventListener);
+  }, []);
+
   const menuItems = [
     { id: 'welcome' as Section, label: 'Welcome', icon: Star },
     { id: 'home' as Section, label: 'Home', icon: Home },
@@ -95,9 +167,9 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
     { id: 'gallery' as Section, label: 'Gallery', icon: Image },
     { id: 'news' as Section, label: 'News', icon: Newspaper },
     { id: 'resources' as Section, label: 'Resources', icon: FileText },
-    { id: 'stories' as Section, label: 'Stories', icon: MessageCircle },
+    { id: 'stories' as Section, label: 'Stories', icon: BookOpen },
     { id: 'donate' as Section, label: 'Donate', icon: DollarSign },
-    { id: 'contacts' as Section, label: 'Contacts', icon: MessageCircle },
+    { id: 'contacts' as Section, label: 'Contacts', icon: Mail },
     { id: 'users' as Section, label: 'Users', icon: Users },
     { id: 'menu' as Section, label: 'Menu', icon: Menu, hidden: true }, // UI-hidden but code retained
   ];
@@ -107,8 +179,8 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
       {/* Header */}
       <header className="bg-[#2E2E2E] text-white shadow-lg">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between flex-wrap">
-            <div className="flex items-center gap-4 min-w-0">
+          <div className="flex flex-col items-center lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col items-center gap-2 min-w-0 lg:flex-row lg:items-center">
               <img 
                 src={logoImage} 
                 alt="YBH Ministries" 
@@ -117,9 +189,20 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
               <div>
                 <h1 className="text-2xl md:text-3xl truncate">Admin Portal</h1>
                 <p className="text-sm text-gray-300 truncate">Yeshua Beth Hallel Ministries</p>
+                {/* Mobile-only: show logged-in user's name and role below title */}
+                {userName && (
+                  <div className="block md:hidden mt-1">
+                    <div className="text-sm text-gray-200 font-semibold truncate" style={{ textTransform: 'capitalize' }}>
+                      {truncateWithEllipsis(capitalizeName(userName), 20)}
+                    </div>
+                    {userRole && (
+                      <div className="text-xs text-gray-400">{'(' + userRole.toUpperCase() + ')'}</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-2 md:mt-0">
+            <div className="flex items-center gap-2 mt-2 md:mt-0 justify-center lg:justify-end">
               {/* Session remaining badge - keep beside the site button */}
               {remainingMs != null && (
                 <div aria-live="polite" className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#2E2E2E] border border-[#FDB813] text-[#FDB813] text-sm font-medium mr-2">
@@ -146,6 +229,13 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
                 <LogOut size={20} />
                 <span className="hidden sm:inline">Logout</span>
               </button>
+              {/* Display logged in user's name and role if available */}
+              {userName && (
+                <div className="hidden md:flex flex-col items-end px-3 py-1 rounded bg-transparent text-gray-200 text-sm font-medium">
+                  <span className="font-semibold truncate" style={{ textTransform: 'capitalize' }}>{truncateWithEllipsis(capitalizeName(userName), 20)}</span>
+                  {userRole && <span className="text-xs text-gray-400">{'(' + userRole.toUpperCase() + ')'}</span>}
+                </div>
+              )}
             </div>
           </div>
         </div>

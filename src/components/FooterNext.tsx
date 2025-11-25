@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, Twitter, Languages } from 'lucide-react';
+import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, Languages } from 'lucide-react';
 import SmartImage from './SmartImage';
 
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
@@ -10,7 +10,6 @@ const ybhLogo = `${R2_BASE}/logo/ybh.png`;
 const guinnessWorldRecords = `${R2_BASE}/logo/awards/guiness.png`;
 const asianBookOfRecords = `${R2_BASE}/logo/awards/Asian%20book%20of%20records.png`;
 const ingeniousWorldRecords = `${R2_BASE}/logo/awards/ingenious.png`;
-// Try multiple local filename variants (some builds used a "- final" suffix or different casing)
 const internationalStarBookOfRecords = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
 const internationalStarBookOfRecordsFinal = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
 
@@ -22,38 +21,38 @@ export function FooterNext() {
   };
 
   return (
-    <footer className="bg-black text-gray-300">
+    <footer className="bg-black text-gray-300" role="contentinfo">
       {/* Dark Gray Line Separator - Full Width */}
       <div className="w-full h-0.5" style={{ backgroundColor: '#333333' }}></div>
-      
       {/* Main Footer Content */}
       <div className="container mx-auto px-4 pt-8 pb-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-8 mb-8">
           {/* Site Title Column */}
-          <div>
+          <div itemScope itemType="https://schema.org/Organization">
             <div className="flex items-center gap-3 mb-3">
               <img 
                 src={ybhLogo} 
                 alt="YBH Logo" 
                 className="h-12 w-12 object-contain"
+                itemProp="logo"
               />
-              <h3 className="text-white">{t('footer.siteTitle')}</h3>
+              <h3 className="text-white" itemProp="name">{t('footer.siteTitle')}</h3>
             </div>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-gray-400 mb-4" itemProp="description">
               {t('footer.about.description')}
             </p>
             <div className="space-y-2 text-sm">
               <div className="flex items-start gap-2">
                 <MapPin size={16} className="mt-1 flex-shrink-0 text-gray-400" />
-                <span>{t('footer.contact.address')}</span>
+                <span itemProp="address">{t('footer.contact.address')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone size={16} className="flex-shrink-0 text-gray-400" />
-                <span>{t('footer.contact.phone')}</span>
+                <span itemProp="telephone">{t('footer.contact.phone')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail size={16} className="flex-shrink-0 text-gray-400" />
-                <a href={`mailto:${t('footer.contact.email')}`} className="hover:text-white transition-colors">
+                <a href={`mailto:${t('footer.contact.email')}`} className="hover:text-white transition-colors" itemProp="email">
                   {t('footer.contact.email')}
                 </a>
               </div>
@@ -61,94 +60,45 @@ export function FooterNext() {
           </div>
 
           {/* Quick Links Column */}
-          <div>
-            <h3 className="text-white mb-4">{t('footer.quickLinks.title')}</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/about" className="hover:text-white transition-colors">
-                  {t('footer.quickLinks.about')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/ministries" className="hover:text-white transition-colors">
-                  {t('footer.quickLinks.ministries')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/news" className="hover:text-white transition-colors">
-                  {t('footer.quickLinks.news')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-white transition-colors">
-                  Contact
-                </Link>
-              </li>
-              <li>
-                <Link href="/donate" className="hover:text-white transition-colors">
-                  Donate
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <nav aria-label="Quick Links" className="flex flex-col justify-center h-full">
+            <h3 className="text-white mb-4 text-left">Quick Links</h3>
+            <div className="grid grid-cols-2 gap-x-8">
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+                <li><Link href="/about" className="hover:text-white transition-colors">About</Link></li>
+                <li><Link href="/ministries" className="hover:text-white transition-colors">Ministries</Link></li>
+                <li><Link href="/gallery" className="hover:text-white transition-colors">Gallery</Link></li>
+                <li><Link href="/news" className="hover:text-white transition-colors">News</Link></li>
+              </ul>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/awards" className="hover:text-white transition-colors">Awards</Link></li>
+                <li><Link href="/resources" className="hover:text-white transition-colors">Resources</Link></li>
+                <li><Link href="/directors" className="hover:text-white transition-colors">Directors</Link></li>
+                <li><Link href="/stories" className="hover:text-white transition-colors">Stories</Link></li>
+                <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+                <li><Link href="/donate" className="hover:text-white transition-colors">Donate</Link></li>
+              </ul>
+            </div>
+          </nav>
 
           {/* Ministries Column */}
-          <div>
+          <nav aria-label="Ministries" className="flex flex-col justify-center h-full">
             <h3 className="text-white mb-4">Ministries</h3>
             <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/ministries" className="hover:text-white transition-colors">
-                  Children's Ministry
-                </Link>
-              </li>
-              <li>
-                <Link href="/ministries" className="hover:text-white transition-colors">
-                  Youth Ministry
-                </Link>
-              </li>
-              <li>
-                <Link href="/ministries" className="hover:text-white transition-colors">
-                  Women's Fellowship
-                </Link>
-              </li>
-              <li>
-                <Link href="/ministries" className="hover:text-white transition-colors">
-                  Men's Group
-                </Link>
-              </li>
-              <li>
-                <Link href="/ministries" className="hover:text-white transition-colors">
-                  Senior Ministry
-                </Link>
-              </li>
-              <li>
-                <Link href="/ministries" className="hover:text-white transition-colors">
-                  Music Ministry
-                </Link>
-              </li>
+              <li><Link href="/ministries?tab=hallel-music-school" className="hover:text-white transition-colors">Hallel Music School</Link></li>
+              <li><Link href="/ministries?tab=hallel-bible-college" className="hover:text-white transition-colors">Hallel Bible College</Link></li>
+              <li><Link href="/ministries?tab=hallel-bible-school" className="hover:text-white transition-colors">Hallel Bible School</Link></li>
+              <li><Link href="/ministries?tab=hallel-conferences" className="hover:text-white transition-colors">Hallel Conferences</Link></li>
+              <li><Link href="/ministries?tab=hallel-worship-day" className="hover:text-white transition-colors">Hallel Worship Day</Link></li>
+              <li><Link href="/ministries?tab=hallel-music-school-summer-training" className="hover:text-white transition-colors">HMS Summer Training</Link></li>
+              <li><Link href="/ministries?tab=hallel-church" className="hover:text-white transition-colors">Hallel Church</Link></li>
             </ul>
-          </div>
+          </nav>
 
-          {/* Stay Connected Column */}
-          <div>
-            <h3 className="text-white mb-4">Connect With Us</h3>
-            <p className="text-sm text-gray-400 mb-4">
-              Stay updated with our latest news and events
-            </p>
-            <div className="flex gap-2 mb-6">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gray-500"
-              />
-              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
-                <Mail size={18} />
-              </button>
-            </div>
-
-            {/* Follow Us */}
+          {/* Follow Us Column - far right */}
+          <div className="flex flex-col items-end justify-center h-full">
             <h4 className="text-white mb-3">Follow Us</h4>
-            <div className="flex gap-3">
+            <div className="flex gap-3 mb-6 justify-end">
               <a
                 href="https://www.facebook.com/profile.php?id=100089579084304"
                 target="_blank"
@@ -175,15 +125,6 @@ export function FooterNext() {
                 aria-label="YouTube"
               >
                 <Youtube size={18} />
-              </a>
-              <a
-                href="https://twitter.com/ybhministries"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 bg-gray-800 hover:bg-purple-600 rounded-lg flex items-center justify-center transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter size={18} />
               </a>
             </div>
           </div>
@@ -229,7 +170,6 @@ export function FooterNext() {
             <div className="text-gray-400">
               © {new Date().getFullYear()} {t('footer.siteTitle')}. {t('footer.copyright')}
             </div>
-            
             {/* Center - Language Switcher */}
             <div className="flex items-center gap-2">
               <Languages size={16} className="text-gray-400" />
@@ -258,7 +198,6 @@ export function FooterNext() {
                 </button>
               </div>
             </div>
-
             <div className="flex flex-wrap gap-4 text-gray-400">
               <Link href="/privacy-policy" className="hover:text-white transition-colors">
                 Privacy Policy
@@ -269,7 +208,6 @@ export function FooterNext() {
               <Link href="/accessibility" className="hover:text-white transition-colors">
                 Accessibility
               </Link>
-              {/* Admin link removed from footer for public site */}
             </div>
           </div>
         </div>

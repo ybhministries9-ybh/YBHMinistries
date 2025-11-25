@@ -6,7 +6,7 @@ export function AboutManager() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-white">About Page Manager</h2>
+          <h2 className="text-3xl font-bold text-white">About Management</h2>
           <p className="text-gray-400 text-sm mt-1">
             Manage the hero image for the About page
           </p>

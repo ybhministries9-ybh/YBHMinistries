@@ -19,7 +19,14 @@ export async function POST(request: NextRequest) {
 
     // Upload original to private R2 bucket and return a single reference
     const sanitized = file.name.replace(/[^a-zA-Z0-9.\-_/]/g, '_');
-    const origKey = `home/video/thumbnails/orig/${Date.now()}-${sanitized}`;
+    // allow callers to pass a destination path as a query param ?dest=stories/text/thumbnails/orig
+    const { searchParams } = new URL(request.url);
+    let dest = String(searchParams.get('dest') || '').trim();
+    // sanitize dest: remove leading/trailing slashes, disallow traversal/absolute, and remove unsafe characters
+    dest = dest.replace(/^\/+|\/+$/g, '').replace(/\.\./g, '_').replace(/[^a-zA-Z0-9._\-\/]/g, '_');
+    const defaultDest = `home/video/thumbnails/orig`;
+    const folder = dest.length > 0 ? dest : defaultDest;
+    const origKey = `${folder}/${Date.now()}-${sanitized}`;
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer as ArrayBuffer);
     // Upload original, verify it exists (one retry on failure)
