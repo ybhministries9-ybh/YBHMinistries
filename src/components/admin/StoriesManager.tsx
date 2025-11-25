@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Star, Eye, EyeOff, Save } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -198,12 +198,20 @@ export function StoriesManager() {
       }
       else toast.error(j?.error || 'Failed to fetch stories');
     } catch (err) {
-      console.error('Error fetching stories', err);
+      logDevError('Error fetching stories', err);
       toast.error('Failed to fetch stories');
     }
   };
 
   useEffect(() => { void fetchStories(); }, []);
+
+  // Helper to log errors in development only (keeps console tidy in production)
+  const logDevError = (...args: any[]) => {
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.error(...args);
+    }
+  };
 
   // Keep any new (temp) story's category in sync with the top-level category selector
   useEffect(() => {
@@ -468,7 +476,7 @@ export function StoriesManager() {
                 return;
               }
             } catch (err) {
-              console.error('Upload error', err);
+              logDevError('Upload error', err);
               toast.error('Failed to upload image');
               return;
             }
@@ -518,7 +526,7 @@ export function StoriesManager() {
                 return;
               }
             } catch (err) {
-              console.error('Upload error', err);
+              logDevError('Upload error', err);
               toast.error('Failed to upload image');
               return;
             }
@@ -563,7 +571,7 @@ export function StoriesManager() {
         }
         setEditingId(null);
       } catch (err) {
-        console.error('Save story error', err);
+        logDevError('Save story error', err);
         toast.error('Failed to save story');
       }
     })();
@@ -590,7 +598,7 @@ export function StoriesManager() {
       status: 'Submitted',
       featured: false
     };
-    setStories([newStory, ...stories]);
+    setStories(prev => [newStory, ...prev]);
     setEditingId(newStory.id);
   };
 
@@ -612,7 +620,7 @@ export function StoriesManager() {
       status: 'Submitted',
       featured: false
     };
-    setStories([newStory, ...stories]);
+    setStories(prev => [newStory, ...prev]);
     setEditingId(newStory.id);
   };
 
@@ -643,7 +651,7 @@ export function StoriesManager() {
           toast.error(j?.error || 'Failed to delete');
         }
       } catch (err) {
-        console.error('Delete story error', err);
+        logDevError('Delete story error', err);
         toast.error('Failed to delete');
       } finally {
         setDeleteDialog({ open: false, id: '', name: '' });
@@ -659,7 +667,7 @@ export function StoriesManager() {
         localStorage.setItem(`story_draft_${current.id}`, JSON.stringify(current));
         toast.success('Draft saved');
       } catch (e) {
-        console.error('Failed to save draft', e);
+        logDevError('Failed to save draft', e);
         toast.error('Failed to save draft');
       }
     }
@@ -749,11 +757,11 @@ export function StoriesManager() {
     // If it's a new story (empty fields), delete it
     if (story) {
       if (String(story.id).startsWith('temp-')) {
-        setStories(stories.filter(s => s.id !== id));
+        setStories(prev => prev.filter(s => s.id !== id));
       } else if (story.type === 'text' && !story.name && !story.role && !story.location && !story.text) {
-        setStories(stories.filter(s => s.id !== id));
+        setStories(prev => prev.filter(s => s.id !== id));
       } else if (story.type === 'video' && !story.title && !story.youtubeUrl) {
-        setStories(stories.filter(s => s.id !== id));
+        setStories(prev => prev.filter(s => s.id !== id));
       }
     }
     
@@ -806,7 +814,7 @@ export function StoriesManager() {
           toast.error(j?.error || 'Failed to update status');
         }
       } catch (err) {
-        console.error('Status update error', err);
+        logDevError('Status update error', err);
         toast.error('Failed to update status');
       }
     })();
@@ -825,7 +833,7 @@ export function StoriesManager() {
           toast.error(j?.error || 'Failed to update visibility');
         }
       } catch (err) {
-        console.error('Visibility toggle error', err);
+        logDevError('Visibility toggle error', err);
         toast.error('Failed to update visibility');
       }
     })();
@@ -839,6 +847,12 @@ export function StoriesManager() {
       'Rejected': 'bg-red-900/30 text-red-400 border-red-700',
     };
     return colors[status || 'Submitted'] || colors['Submitted'];
+  };
+
+  const getPublishedBadgeColor = (isVisible?: boolean) => {
+    // Always return a tailwind class set string for the published/draft badge
+    if (isVisible) return 'px-2 py-0.5 text-xs rounded border bg-green-900/30 text-green-400 border-green-700';
+    return 'px-2 py-0.5 text-xs rounded border bg-gray-800/30 text-gray-300 border-gray-700';
   };
 
   // Format date for display in cards (e.g., "Nov 17, 2025")
@@ -884,6 +898,8 @@ export function StoriesManager() {
       total: items.length,
       text: items.filter(s => s.type === 'text').length,
       video: items.filter(s => s.type === 'video').length,
+      published: items.filter(s => s.is_visible).length,
+      draft: items.filter(s => !s.is_visible).length,
     };
   }, [stories, filterCategory]);
 
@@ -902,7 +918,7 @@ export function StoriesManager() {
     >
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-white mb-1">Stories Management Page</h2>
+          <h2 className="text-3xl font-bold text-white mb-1">Stories Management</h2>
           <p className="text-sm text-gray-400">Review and approve testimonies from your community</p>
         </div>
         <div className="flex gap-2">
@@ -956,6 +972,11 @@ export function StoriesManager() {
               ))}
             </SelectContent>
         </Select>
+        <div className="mt-2 text-white text-base font-medium">
+          Total: <span className="text-[#FDB813]">{countsInCategory.total}</span> story(s)
+          <span className="mx-2">|</span>
+          Published: <span className="text-[#FDB813]">{countsInCategory.published}</span>
+        </div>
       </div>
 
       {/* Type Filter (show counts for selected category) */}
@@ -1010,6 +1031,7 @@ export function StoriesManager() {
                       Video Story
                     </span>
                   )}
+                  <span className={`${getPublishedBadgeColor(story.is_visible)} ml-2`}>{story.is_visible ? 'Published' : 'Draft'}</span>
                 </div>
 
                 {/* Category (for new stories the category is taken from the top filter; existing stories remain editable) */}
@@ -1138,8 +1160,17 @@ export function StoriesManager() {
                     <div className="space-y-2">
                       <Label className="text-gray-300">Profile Image (optional)</Label>
                       <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Upload profile image. Click or drag image to upload"
                         className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md border-gray-700 !bg-[#2e2e2e] text-gray-300 cursor-pointer"
                         onClick={() => document.getElementById(`file-input-${story.id}`)?.click()}
+                        onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            document.getElementById(`file-input-${story.id}`)?.click();
+                          }
+                        }}
                         onDragOver={(e) => { e.preventDefault(); }}
                         onDrop={(e) => {
                           e.preventDefault();
@@ -1356,6 +1387,8 @@ export function StoriesManager() {
                           <span className={`px-2 py-0.5 text-xs rounded border ${getStatusColor(story.status)}`}>
                             {story.status || 'Submitted'}
                           </span>
+                          <span className={`${getPublishedBadgeColor(story.is_visible)} ml-2`}>{story.is_visible ? 'Published' : 'Draft'}</span>
+                          <span className={`ml-2 ${getPublishedBadgeColor(story.is_visible)}`}>{story.is_visible ? 'Published' : 'Draft'}</span>
                           {story.featured && (
                             <span className="px-2 py-0.5 bg-yellow-900/30 text-yellow-400 text-xs rounded">
                               Featured

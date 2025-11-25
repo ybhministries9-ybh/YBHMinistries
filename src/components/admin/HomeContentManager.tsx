@@ -620,10 +620,10 @@ export function HomeContentManager() {
   }
 
   return (
-    <div className="space-y-8 p-6 bg-black min-h-screen">
+    <div className="space-y-8 bg-black min-h-screen">
       {/* Page Title */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white">Home Page Manager</h1>
+        <h1 className="text-3xl font-bold text-white">Home Management</h1>
         <p className="text-gray-400 text-sm mt-1">Manage hero images and video for the home page</p>
       </div>
 

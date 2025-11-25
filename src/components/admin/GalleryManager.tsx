@@ -690,10 +690,10 @@ export function GalleryManager() {
   }
 
   return (
-    <div className="space-y-8 p-6 bg-black min-h-screen">
+    <div className="space-y-8 bg-black min-h-screen">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white">Gallery Manager</h1>
+        <h1 className="text-3xl font-bold text-white">Gallery Management</h1>
         <p className="text-gray-400 text-sm mt-1">Manage images and videos for the gallery page</p>
       </div>
       {/* Upload Section */}
