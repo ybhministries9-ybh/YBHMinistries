@@ -656,7 +656,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                     <div className="flex justify-center mt-8">
                       <button 
                         onClick={() => {
-                          window.dispatchEvent(new CustomEvent('navigate', { detail: { path: '/ministries/hms' } }));
+                          // Navigate to Ministries page and select Hallel Music School tab
+                          window.location.href = '/ministries?tab=hallel-music-school';
                         }}
                         className="px-8 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer inline-flex items-center gap-2"
                         style={{ backgroundColor: accentColor }}
@@ -714,60 +715,56 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
             {augustineTab === 'teaching' && (
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="p-6 rounded-lg bg-[#2E2E2E]">
-                  <h3 className="mb-4 text-xl font-semibold text-white">Shofar Instruction</h3>
-                  <div className="p-4 mb-6 rounded-lg bg-black">
-                    <p className="text-white">
-                      Pastor Augustine is one of the few instructors in India teaching the biblical instrument "Shofar", and has become a leading voice in reviving its spiritual and prophetic significance within worship culture.
-                    </p>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-start">
-                      <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
-                          <path d="M20 4v16" />
-                        </svg>
+                      <h3 className="mb-4 text-xl font-semibold text-white">{t('augustine.teachingSection.shofarTitle')}</h3>
+                      <div className="p-4 mb-6 rounded-lg bg-black">
+                        <p className="text-white">{t('augustine.teachingSection.shofarDesc')}</p>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-white">Biblical Foundations</h4>
-                        <p className="text-sm text-white">Teaching the historical and biblical significance of the Shofar</p>
-                      </div>
-                    </div>
+                      <div className="space-y-4">
+                        <div className="flex items-start">
+                          <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
+                              <path d="M20 4v16" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-white">{t('augustine.teachingSection.shofarPoint1.title')}</h4>
+                            <p className="text-sm text-white">{t('augustine.teachingSection.shofarPoint1.desc')}</p>
+                          </div>
+                        </div>
                     
-                    <div className="flex items-start">
-                      <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
-                          <path d="M20 4v16" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-white">Technique & Practice</h4>
-                        <p className="text-sm text-white">Practical instruction on playing techniques and sound production</p>
-                      </div>
-                    </div>
+                        <div className="flex items-start">
+                          <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
+                              <path d="M20 4v16" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-white">{t('augustine.teachingSection.shofarPoint2.title')}</h4>
+                            <p className="text-sm text-white">{t('augustine.teachingSection.shofarPoint2.desc')}</p>
+                          </div>
+                        </div>
                     
-                    <div className="flex items-start">
-                      <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
-                          <path d="M20 4v16" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-white">Prophetic Application</h4>
-                        <p className="text-sm text-white">Understanding the prophetic dimension of Shofar in worship</p>
+                        <div className="flex items-start">
+                          <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
+                              <path d="M20 4v16" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-white">{t('augustine.teachingSection.shofarPoint3.title')}</h4>
+                            <p className="text-sm text-white">{t('augustine.teachingSection.shofarPoint3.desc')}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
                 
                 <div className="p-6 rounded-lg bg-[#2E2E2E]">
-                  <h3 className="mb-4 text-xl font-semibold text-white">Bible Teaching</h3>
+                  <h3 className="mb-4 text-xl font-semibold text-white">{t('augustine.teachingSection.bibleTitle')}</h3>
                   <div className="p-4 mb-6 rounded-lg bg-black">
-                    <p className="text-white">
-                      Through his teaching, music, and leadership, Pastor Augustine is raising disciples, training songwriters, and equipping worship leaders to carry the flame of revival and worship into every corner of the nation.
-                    </p>
+                    <p className="text-white">{t('augustine.teachingSection.bibleDesc')}</p>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-start">
@@ -775,8 +772,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                         <BookOpen className="w-5 h-5 text-black" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-white">Worship Theology</h4>
-                        <p className="text-sm text-white">Teaching biblical principles of worship and praise</p>
+                        <h4 className="font-medium text-white">{t('augustine.teachingSection.biblePoint1.title')}</h4>
+                        <p className="text-sm text-white">{t('augustine.teachingSection.biblePoint1.desc')}</p>
                       </div>
                     </div>
                     
@@ -785,8 +782,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                         <BookOpen className="w-5 h-5 text-black" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-white">Discipleship</h4>
-                        <p className="text-sm text-white">Mentoring and discipling the next generation of ministry leaders</p>
+                        <h4 className="font-medium text-white">{t('augustine.teachingSection.biblePoint2.title')}</h4>
+                        <p className="text-sm text-white">{t('augustine.teachingSection.biblePoint2.desc')}</p>
                       </div>
                     </div>
                     
@@ -795,8 +792,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                         <BookOpen className="w-5 h-5 text-black" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-white">Songwriting</h4>
-                        <p className="text-sm text-white">Training and equipping indigenous worship songwriters</p>
+                        <h4 className="font-medium text-white">{t('augustine.teachingSection.biblePoint3.title')}</h4>
+                        <p className="text-sm text-white">{t('augustine.teachingSection.biblePoint3.desc')}</p>
                       </div>
                     </div>
                   </div>
