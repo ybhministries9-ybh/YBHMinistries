@@ -246,7 +246,7 @@ export function HMSPage({
               {
                 title: t('hmsPage.approach.items.workshops.title'),
                 description: t('hmsPage.approach.items.workshops.description'),
-                image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
+                image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
               },
               {
                 title: t('hmsPage.approach.items.practical.title'),
@@ -366,6 +366,7 @@ export function HMSPage({
               {t('hmsPage.join.guinness.description')}
             </p>
             <button 
+              onClick={() => router.push('/news?section=upcoming-events')}
               className="px-6 py-3 rounded-full font-medium bg-transparent cursor-pointer transition-all duration-300 hover:text-black"
               style={{ transition: 'all 0.3s ease', border: '1px solid #FDB813' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FDB813'}

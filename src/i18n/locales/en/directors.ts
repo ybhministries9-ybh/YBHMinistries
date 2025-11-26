@@ -72,7 +72,7 @@ export default {
     },
     
     ministriesVisionSection: {
-      title: "Ministries & Vision",
+      title: "Ministries",
       ybhm: {
         title: "Yeshua Beth Hallel Ministries",
         badge: "YBHM",
@@ -121,6 +121,19 @@ export default {
       internationalRecognition: "International Recognition",
       multipleRecords: "Multiple World Records",
       globalImpact: "Global Impact"
+    },
+    teachingSection: {
+      shofarTitle: "Shofar Instruction",
+      shofarDesc: "Pastor Augustine is one of the few instructors in India teaching the biblical instrument \"Shofar\", and has become a leading voice in reviving its spiritual and prophetic significance within worship culture.",
+      shofarPoint1: { title: "Biblical Foundations", desc: "Teaching the historical and biblical significance of the Shofar" },
+      shofarPoint2: { title: "Technique & Practice", desc: "Practical instruction on playing techniques and sound production" },
+      shofarPoint3: { title: "Prophetic Application", desc: "Understanding the prophetic dimension of Shofar in worship" },
+
+      bibleTitle: "Bible Teaching",
+      bibleDesc: "Through his teaching, music, and leadership, Pastor Augustine is raising disciples, training songwriters, and equipping worship leaders to carry the flame of revival and worship into every corner of the nation.",
+      biblePoint1: { title: "Worship Theology", desc: "Teaching biblical principles of worship and praise" },
+      biblePoint2: { title: "Discipleship", desc: "Mentoring and discipling the next generation of ministry leaders" },
+      biblePoint3: { title: "Song Writing", desc: "Training and equipping indigenous worship songwriters" }
     },
     
     achievements: {

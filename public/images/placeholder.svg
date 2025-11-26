@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 64 64" role="img" aria-label="placeholder">
+  <title>Placeholder</title>
+  <rect width="64" height="64" rx="8" fill="#0f172a" />
+  <g transform="translate(8 8)" fill="none" fill-rule="evenodd">
+    <circle cx="24" cy="12" r="12" fill="#e6e7e9" />
+    <path d="M0 44c0-10.493 9.626-19 24-19s24 8.507 24 19v3H0v-3z" fill="#e6e7e9"/>
+  </g>
+</svg>

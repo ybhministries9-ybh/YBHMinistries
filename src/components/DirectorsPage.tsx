@@ -11,16 +11,20 @@ const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 const separatorImage = `${R2_BASE}/separator.png`;
 
 // Hero image URL
-const HERO_IMAGE_URL = `${R2_BASE}/Founder/Augustine/1.JPG`;
+const HERO_IMAGE_URL = `${R2_BASE}/directors/Augustine.JPG`;
 
 // Image URLs for preloading
 const IMAGE_URLS = {
   augustine: HERO_IMAGE_URL,
-  vijaya: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=540&h=585&fit=crop&crop=faces",
-  charles: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=540&h=585&fit=crop&crop=faces",
-  nancy: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=540&h=585&fit=crop&crop=faces",
+  vijaya: `${R2_BASE}/directors/Vijaya.JPG`,
+  charles: `${R2_BASE}/directors/Charlie.JPG`,
+  nancy: `${R2_BASE}/directors/Nancy.JPG`,
   hms: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
 };
+
+// Signed URLs fetched from server for R2 private/public objects. Keys are same
+// as IMAGE_URLS keys. If a signed URL isn't available we'll fall back to the
+// original IMAGE_URLS value.
 
 // Memoized Image Component with lazy loading
 const OptimizedImage = memo(({ src, alt, className, priority = false }: { src: string; alt: string; className: string; priority?: boolean }) => {
@@ -55,32 +59,85 @@ export function DirectorsPage() {
   
   const accentColor = "#FDB813";
 
-  // Preload current tab image
+  // Signed URLs returned by server for R2 objects. Keyed by the same keys used
+  // in `IMAGE_URLS` (e.g. 'augustine', 'vijaya'). We prefetch presigned GET
+  // URLs on mount so tab switches are fast.
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
   useEffect(() => {
-    const currentImage = IMAGE_URLS[activeTab as keyof typeof IMAGE_URLS];
+    let cancelled = false;
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    async function resolveAll() {
+      const entries = Object.entries(IMAGE_URLS) as [string, string][];
+      const out: Record<string, string> = {};
+      await Promise.all(entries.map(async ([k, v]) => {
+        try {
+          if (!v || typeof v !== 'string') { out[k] = String(v); return; }
+          // If it's an external URL and not hosted under our R2 base, skip presign
+          if (v.startsWith('http') && R2_BASE && !v.startsWith(R2_BASE)) { out[k] = v; return; }
+
+          // Determine object key to request presign for
+          let key = v;
+          if (v.startsWith(R2_BASE)) {
+            // strip base (possible trailing slash)
+            key = v.replace(new RegExp('^' + escapeRegex(R2_BASE) + '/?'), '');
+          } else if (v.startsWith('r2://')) {
+            key = v.slice('r2://'.length);
+            // if r2://bucket/key, remove bucket
+            const parts = key.split('/').filter(Boolean);
+            if (parts.length > 1) key = parts.slice(1).join('/');
+          }
+
+          // If key still looks like an absolute URL, don't presign
+          if (!key || key.startsWith('http')) { out[k] = v; return; }
+
+          const resp = await fetch('/api/r2/presign-get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key })
+          });
+          if (!resp.ok) { out[k] = v; return; }
+          const j = await resp.json();
+          out[k] = j.url || v;
+        } catch (err) {
+          out[k] = v;
+        }
+      }));
+
+      if (!cancelled) setSignedUrls(out);
+    }
+
+    resolveAll();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Preload current tab image (prefer signed URL when available)
+  useEffect(() => {
+    const currentImage = signedUrls[activeTab as keyof typeof IMAGE_URLS] || IMAGE_URLS[activeTab as keyof typeof IMAGE_URLS];
     if (currentImage) {
       const img = new Image();
       img.src = currentImage;
       img.onload = () => setImagePreloaded(true);
-      
+
       // Preload link for faster loading
       const link = document.createElement('link');
       link.rel = 'preload';
       link.as = 'image';
       link.href = currentImage;
       document.head.appendChild(link);
-      
+
       return () => {
         if (document.head.contains(link)) {
           document.head.removeChild(link);
         }
       };
     }
-  }, [activeTab]);
+  }, [activeTab, signedUrls]);
 
-  // Preload next tab image on tab hover
+  // Preload next tab image on tab hover (prefer signed URL when available)
   const handleTabHover = (tabKey: string) => {
-    const nextImage = IMAGE_URLS[tabKey as keyof typeof IMAGE_URLS];
+    const nextImage = signedUrls[tabKey as keyof typeof IMAGE_URLS] || IMAGE_URLS[tabKey as keyof typeof IMAGE_URLS];
     if (nextImage) {
       const img = new Image();
       img.src = nextImage;
@@ -149,22 +206,23 @@ export function DirectorsPage() {
               setAugustineTab={setAugustineTab}
               imagePreloaded={imagePreloaded}
               t={t}
+              signedUrls={signedUrls}
             />
           )}
 
           {/* Vijaya Tab */}
           {activeTab === "vijaya" && (
-            <VijayaTab accentColor={accentColor} imagePreloaded={imagePreloaded} t={t} />
+            <VijayaTab accentColor={accentColor} imagePreloaded={imagePreloaded} t={t} signedUrls={signedUrls} />
           )}
 
           {/* Charles Tab */}
           {activeTab === "charles" && (
-            <CharlesTab accentColor={accentColor} imagePreloaded={imagePreloaded} t={t} />
+            <CharlesTab accentColor={accentColor} imagePreloaded={imagePreloaded} t={t} signedUrls={signedUrls} />
           )}
 
           {/* Nancy Tab */}
           {activeTab === "nancy" && (
-            <NancyTab accentColor={accentColor} imagePreloaded={imagePreloaded} t={t} />
+            <NancyTab accentColor={accentColor} imagePreloaded={imagePreloaded} t={t} signedUrls={signedUrls} />
           )}
         </div>
       </div>
@@ -173,12 +231,13 @@ export function DirectorsPage() {
 }
 
 // Memoized Augustine Tab Component
-const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePreloaded, t }: { 
+const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePreloaded, t, signedUrls }: { 
   accentColor: string; 
   augustineTab: string; 
   setAugustineTab: (tab: string) => void;
   imagePreloaded: boolean;
   t: any;
+  signedUrls: Record<string, string>;
 }) => {
   return (
     <div>
@@ -257,14 +316,13 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
               >
                 {t('augustine.buttons.getInTouch')}
               </button>
-              <a 
-                href="/resources#worship" 
-                className="px-6 py-3 border rounded-md shadow-sm hover:shadow transition-all duration-300 font-bold"
-                style={{ borderColor: accentColor, color: accentColor }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.dispatchEvent(new CustomEvent('navigate', { detail: { path: '/resources#worship' } }));
+              <button 
+                onClick={() => {
+                  // Resources page reads the tab from the URL hash (e.g. #worship)
+                  window.location.href = '/resources#worship';
                 }}
+                className="px-6 py-3 border rounded-md shadow-sm hover:shadow transition-all duration-300 font-bold cursor-pointer"
+                style={{ borderColor: accentColor, color: accentColor }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = accentColor;
                   e.currentTarget.style.color = '#000';
@@ -275,14 +333,14 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                 }}
               >
                 {t('augustine.buttons.worshipSongs')}
-              </a>
+              </button>
             </div>
           </div>
           <div className="order-1 md:order-2 mb-8 md:mb-0 md:w-[35%] md:ml-auto md:mr-16 px-4 md:px-0">
             <div className="relative rounded-xl shadow-lg max-h-[438px] overflow-hidden">
               {!imagePreloaded && <Skeleton className="w-full h-full absolute inset-0" />}
               <OptimizedImage
-                src={HERO_IMAGE_URL}
+                src={signedUrls?.augustine || HERO_IMAGE_URL}
                 alt="Pastor Augustine Dandingi"
                 className="object-cover w-full h-auto rounded-xl"
                 priority={true}
@@ -466,7 +524,45 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                   </div>
                 </div>
 
-                {/* HMS Card - Redesigned with image */}
+                {/* HMS Card removed from Ministries; moved into Hallel tab */}
+
+                {/* Crusade Worship Leadership - Card with stats */}
+                <div className="overflow-hidden rounded-xl bg-[#2E2E2E]">
+                  <div className="flex flex-col gap-6 p-4 md:p-6 md:grid md:grid-cols-3">
+                    <div className="md:col-span-2">
+                      <h3 className="mb-3 text-2xl font-bold text-white">{t('augustine.ministriesVisionSection.crusadeWorship.title')}</h3>
+                      <div className="flex items-center mb-3 text-white">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        <span className="text-sm">{t('augustine.ministriesVisionSection.crusadeWorship.location')}</span>
+                      </div>
+                      <p className="text-white">
+                        {t('augustine.ministriesVisionSection.crusadeWorship.description')}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-1 md:col-span-1">
+                      <div className="flex flex-col items-center justify-center p-4 text-center rounded-lg bg-black">
+                        <div className="flex items-center justify-center w-14 h-14 mb-3 rounded-full" style={{ backgroundColor: accentColor }}>
+                          <Mic className="w-7 h-7 text-black" />
+                        </div>
+                        <p className="mb-1 font-bold text-white text-xl">100K+</p>
+                        <p className="text-xs text-white leading-tight">{t('augustine.ministriesVisionSection.crusadeWorship.worshipAttendees')}</p>
+                      </div>
+                      <div className="flex flex-col items-center justify-center p-4 text-center rounded-lg bg-black">
+                        <div className="flex items-center justify-center w-14 h-14 mb-3 rounded-full" style={{ backgroundColor: accentColor }}>
+                          <Music className="w-7 h-7 text-black" />
+                        </div>
+                        <p className="mb-1 font-bold text-white text-xl">50+</p>
+                        <p className="text-xs text-white leading-tight">{t('augustine.ministriesVisionSection.crusadeWorship.crusadeEvents')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {augustineTab === 'hallel' && (
+              <div>
+                {/* HMS Card - moved here from Ministries and placed at top of Hallel tab */}
                 <div className="mb-10 overflow-hidden rounded-xl bg-[#2E2E2E]">
                   <div className="grid gap-0 overflow-hidden rounded-lg md:grid-cols-5">
                     <div className="p-6 md:col-span-3">
@@ -505,42 +601,6 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                   </div>
                 </div>
 
-                {/* Crusade Worship Leadership - Card with stats */}
-                <div className="overflow-hidden rounded-xl bg-[#2E2E2E]">
-                  <div className="flex flex-col gap-6 p-4 md:p-6 md:grid md:grid-cols-3">
-                    <div className="md:col-span-2">
-                      <h3 className="mb-3 text-2xl font-bold text-white">{t('augustine.ministriesVisionSection.crusadeWorship.title')}</h3>
-                      <div className="flex items-center mb-3 text-white">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        <span className="text-sm">{t('augustine.ministriesVisionSection.crusadeWorship.location')}</span>
-                      </div>
-                      <p className="text-white">
-                        {t('augustine.ministriesVisionSection.crusadeWorship.description')}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-1 md:col-span-1">
-                      <div className="flex flex-col items-center justify-center p-4 text-center rounded-lg bg-black">
-                        <div className="flex items-center justify-center w-14 h-14 mb-3 rounded-full" style={{ backgroundColor: accentColor }}>
-                          <Mic className="w-7 h-7 text-black" />
-                        </div>
-                        <p className="mb-1 font-bold text-white text-xl">100K+</p>
-                        <p className="text-xs text-white leading-tight">{t('augustine.ministriesVisionSection.crusadeWorship.worshipAttendees')}</p>
-                      </div>
-                      <div className="flex flex-col items-center justify-center p-4 text-center rounded-lg bg-black">
-                        <div className="flex items-center justify-center w-14 h-14 mb-3 rounded-full" style={{ backgroundColor: accentColor }}>
-                          <Music className="w-7 h-7 text-black" />
-                        </div>
-                        <p className="mb-1 font-bold text-white text-xl">50+</p>
-                        <p className="text-xs text-white leading-tight">{t('augustine.ministriesVisionSection.crusadeWorship.crusadeEvents')}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {augustineTab === 'hallel' && (
-              <div>
                 <div className="max-w-4xl mx-auto px-4 md:px-6">
                   <div className="p-8 rounded-lg bg-[#2E2E2E]">
                     <h3 className="mb-4 text-2xl font-semibold text-white">{t('augustine.hallelTab.visionTitle')}</h3>
@@ -596,7 +656,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                     <div className="flex justify-center mt-8">
                       <button 
                         onClick={() => {
-                          window.dispatchEvent(new CustomEvent('navigate', { detail: { path: '/ministries/hms' } }));
+                          // Navigate to Ministries page and select Hallel Music School tab
+                          window.location.href = '/ministries?tab=hallel-music-school';
                         }}
                         className="px-8 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer inline-flex items-center gap-2"
                         style={{ backgroundColor: accentColor }}
@@ -654,60 +715,56 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
             {augustineTab === 'teaching' && (
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="p-6 rounded-lg bg-[#2E2E2E]">
-                  <h3 className="mb-4 text-xl font-semibold text-white">Shofar Instruction</h3>
-                  <div className="p-4 mb-6 rounded-lg bg-black">
-                    <p className="text-white">
-                      Pastor Augustine is one of the few instructors in India teaching the biblical instrument "Shofar", and has become a leading voice in reviving its spiritual and prophetic significance within worship culture.
-                    </p>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-start">
-                      <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
-                          <path d="M20 4v16" />
-                        </svg>
+                      <h3 className="mb-4 text-xl font-semibold text-white">{t('augustine.teachingSection.shofarTitle')}</h3>
+                      <div className="p-4 mb-6 rounded-lg bg-black">
+                        <p className="text-white">{t('augustine.teachingSection.shofarDesc')}</p>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-white">Biblical Foundations</h4>
-                        <p className="text-sm text-white">Teaching the historical and biblical significance of the Shofar</p>
-                      </div>
-                    </div>
+                      <div className="space-y-4">
+                        <div className="flex items-start">
+                          <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
+                              <path d="M20 4v16" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-white">{t('augustine.teachingSection.shofarPoint1.title')}</h4>
+                            <p className="text-sm text-white">{t('augustine.teachingSection.shofarPoint1.desc')}</p>
+                          </div>
+                        </div>
                     
-                    <div className="flex items-start">
-                      <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
-                          <path d="M20 4v16" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-white">Technique & Practice</h4>
-                        <p className="text-sm text-white">Practical instruction on playing techniques and sound production</p>
-                      </div>
-                    </div>
+                        <div className="flex items-start">
+                          <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
+                              <path d="M20 4v16" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-white">{t('augustine.teachingSection.shofarPoint2.title')}</h4>
+                            <p className="text-sm text-white">{t('augustine.teachingSection.shofarPoint2.desc')}</p>
+                          </div>
+                        </div>
                     
-                    <div className="flex items-start">
-                      <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
-                          <path d="M20 4v16" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-white">Prophetic Application</h4>
-                        <p className="text-sm text-white">Understanding the prophetic dimension of Shofar in worship</p>
+                        <div className="flex items-start">
+                          <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 mt-1 mr-4 rounded-full" style={{ backgroundColor: accentColor }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
+                              <path d="M20 4v16" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-white">{t('augustine.teachingSection.shofarPoint3.title')}</h4>
+                            <p className="text-sm text-white">{t('augustine.teachingSection.shofarPoint3.desc')}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
                 
                 <div className="p-6 rounded-lg bg-[#2E2E2E]">
-                  <h3 className="mb-4 text-xl font-semibold text-white">Bible Teaching</h3>
+                  <h3 className="mb-4 text-xl font-semibold text-white">{t('augustine.teachingSection.bibleTitle')}</h3>
                   <div className="p-4 mb-6 rounded-lg bg-black">
-                    <p className="text-white">
-                      Through his teaching, music, and leadership, Pastor Augustine is raising disciples, training songwriters, and equipping worship leaders to carry the flame of revival and worship into every corner of the nation.
-                    </p>
+                    <p className="text-white">{t('augustine.teachingSection.bibleDesc')}</p>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-start">
@@ -715,8 +772,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                         <BookOpen className="w-5 h-5 text-black" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-white">Worship Theology</h4>
-                        <p className="text-sm text-white">Teaching biblical principles of worship and praise</p>
+                        <h4 className="font-medium text-white">{t('augustine.teachingSection.biblePoint1.title')}</h4>
+                        <p className="text-sm text-white">{t('augustine.teachingSection.biblePoint1.desc')}</p>
                       </div>
                     </div>
                     
@@ -725,8 +782,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                         <BookOpen className="w-5 h-5 text-black" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-white">Discipleship</h4>
-                        <p className="text-sm text-white">Mentoring and discipling the next generation of ministry leaders</p>
+                        <h4 className="font-medium text-white">{t('augustine.teachingSection.biblePoint2.title')}</h4>
+                        <p className="text-sm text-white">{t('augustine.teachingSection.biblePoint2.desc')}</p>
                       </div>
                     </div>
                     
@@ -735,8 +792,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                         <BookOpen className="w-5 h-5 text-black" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-white">Songwriting</h4>
-                        <p className="text-sm text-white">Training and equipping indigenous worship songwriters</p>
+                        <h4 className="font-medium text-white">{t('augustine.teachingSection.biblePoint3.title')}</h4>
+                        <p className="text-sm text-white">{t('augustine.teachingSection.biblePoint3.desc')}</p>
                       </div>
                     </div>
                   </div>
@@ -760,7 +817,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
 AugustineTab.displayName = 'AugustineTab';
 
 // Memoized Vijaya Tab Component
-const VijayaTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: string; imagePreloaded: boolean; t: any }) => {
+const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentColor: string; imagePreloaded: boolean; t: any; signedUrls: Record<string,string> }) => {
   return (
     <div>
       {/* Hero Section */}
@@ -845,7 +902,7 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: strin
             <div className="relative rounded-xl shadow-lg max-h-[438px] overflow-hidden">
               {!imagePreloaded && <Skeleton className="w-full h-full absolute inset-0" />}
               <OptimizedImage
-                src={IMAGE_URLS.vijaya}
+                src={signedUrls?.vijaya || IMAGE_URLS.vijaya}
                 alt="Ps. Vijaya Kumari Dandingi"
                 className="object-cover w-full h-auto rounded-xl"
               />
@@ -950,7 +1007,7 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: strin
 VijayaTab.displayName = 'VijayaTab';
 
 // Memoized Charles Tab Component
-const CharlesTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: string; imagePreloaded: boolean; t: any }) => {
+const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentColor: string; imagePreloaded: boolean; t: any; signedUrls: Record<string,string> }) => {
   return (
     <div>
       {/* Hero Section */}
@@ -1023,7 +1080,7 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: stri
             <div className="relative rounded-xl shadow-lg max-h-[438px] overflow-hidden">
               {!imagePreloaded && <Skeleton className="w-full h-full absolute inset-0" />}
               <OptimizedImage
-                src={IMAGE_URLS.charles}
+                src={signedUrls?.charles || IMAGE_URLS.charles}
                 alt="Charles Aaron Benedict"
                 className="object-cover w-full h-auto rounded-xl"
               />
@@ -1121,7 +1178,7 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: stri
 CharlesTab.displayName = 'CharlesTab';
 
 // Memoized Nancy Tab Component
-const NancyTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: string; imagePreloaded: boolean; t: any }) => {
+const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentColor: string; imagePreloaded: boolean; t: any; signedUrls: Record<string,string> }) => {
   return (
     <div>
       {/* Hero Section */}
@@ -1194,7 +1251,7 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t }: { accentColor: string
             <div className="relative rounded-xl shadow-lg max-h-[438px] overflow-hidden">
               {!imagePreloaded && <Skeleton className="w-full h-full absolute inset-0" />}
               <OptimizedImage
-                src={IMAGE_URLS.nancy}
+                src={signedUrls?.nancy || IMAGE_URLS.nancy}
                 alt="Nancy Ophir Augustina"
                 className="object-cover w-full h-auto rounded-xl"
               />

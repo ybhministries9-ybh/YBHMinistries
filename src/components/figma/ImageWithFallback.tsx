@@ -24,7 +24,9 @@ interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElemen
 function _ImageWithFallback({
   src,
   alt,
-  fallbackSrc = '/images/placeholder.jpg',
+  // Use a local SVG placeholder by default (lightweight, scalable).
+  // Created `public/images/placeholder.svg` and prefer it here to avoid 404s.
+  fallbackSrc = '/images/placeholder.svg',
   className = '',
   loading = 'lazy',
   enableResponsive = true,

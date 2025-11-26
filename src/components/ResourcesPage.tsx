@@ -27,17 +27,10 @@ function getYouTubeThumbnail(url: string): string {
 export function ResourcesPage() {
   const { t } = useTranslation('resources');
   
-  // Check for hash parameter to set initial tab
-  const getInitialTab = () => {
-    if (typeof window === 'undefined') return 'books';
-    const hash = window.location.hash.replace('#', '');
-    if (hash === 'worship' || hash === 'sermons') {
-      return hash;
-    }
-    return 'books';
-  };
-
-  const [activeTab, setActiveTab] = useState(getInitialTab());
+  // Initialize active tab to a stable server-friendly default ('books').
+  // Resolve the real initial tab (from `location.hash`) on the client inside
+  // a `useEffect` to avoid server/client markup mismatches during hydration.
+  const [activeTab, setActiveTab] = useState('books');
   const [cartItems, setCartItems] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
@@ -57,6 +50,13 @@ export function ResourcesPage() {
         setActiveTab(hash);
       }
     };
+
+    // Run once on mount to set initial tab from the location hash (client-only)
+    try {
+      handleHashChange();
+    } catch (e) {
+      // ignore if window is not available
+    }
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
