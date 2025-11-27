@@ -204,7 +204,7 @@ export default {
       paragraph3: "This aligns with the broader vision of the Hallel Conferences and Hallel Bible College — to raise up a generation that blends worship, Word, and mission."
     },
     whoCanJoin: {
-      title: "Who Can Join",
+      title: "Who Can Join?",
       categories: [
         {
           title: "Youth and Young Adults",

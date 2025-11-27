@@ -73,6 +73,10 @@ export function HallelChurch() {
             <p className="text-xl md:text-2xl lg:text-3xl text-white">
               {t('hallelChurchPage.tagline')}
             </p>
+            <div className="mt-8 text-lg md:text-xl leading-8 prose prose-invert text-center max-w-3xl mx-auto px-3 md:px-10 lg:px-16">
+              <p className="">{t('hallelChurchPage.paragraph1')}</p>
+              <p className="mt-3">{t('hallelChurchPage.paragraph2')}</p>
+            </div>
           </div>
         </div>
       </section>
@@ -81,14 +85,10 @@ export function HallelChurch() {
       <section className="bg-[#2E2E2E] py-16 px-4 md:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center">
-            <h2 className="text-3xl mb-2" tabIndex={0}>{t('hallelChurchPage.aboutTitle', 'About Hallel Church')}</h2>
-            <div className="w-24 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: '#FDB813' }}></div>
+            {/* About heading intentionally removed */}
           </div>
           <div className="text-center">
-            <article lang={lang.startsWith('te') ? 'te' : 'en'} className="prose prose-invert text-base leading-7 mx-auto max-w-prose text-center" itemScope itemType="https://schema.org/Article">
-              <p>{t('hallelChurchPage.paragraph1')}</p>
-              <p>{t('hallelChurchPage.paragraph2')}</p>
-            </article>
+            {/* About heading removed per design — paragraphs moved to hero */}
           </div>
         </div>
 
@@ -108,8 +108,10 @@ export function HallelChurch() {
         <br /><br />
         <ThemedSectionTitle 
           title={t('hallelChurchPage.activitiesTitle', 'Church Activities')}
-          subtitle={lang.startsWith('te') ? t('hallelChurchPage.activitiesSubtitle') : 'Join us in worship, prayer, and fellowship throughout the week'}
         />
+        <p className="text-lg text-gray-400 text-center mb-6">
+          {lang.startsWith('te') ? t('hallelChurchPage.activitiesSubtitle') : 'Join us in worship, prayer, and fellowship throughout the week'}
+        </p>
 
         {/* Activities Grid */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-8">

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 
 export function HMSSummerTraining() {
@@ -52,12 +53,9 @@ export function HMSSummerTraining() {
                 {t('hmsSummerTrainingPage.intro2After')}
               </p>
             </div>
-            <button 
-              onClick={() => scrollToSection("join")}
-              className="bg-[#FDB813] text-black px-8 py-3 rounded-md font-medium hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105 cursor-pointer"
-            >
+            <Link href="/contact?tab=student-form" className="bg-[#FDB813] text-black px-10 py-3 rounded-full font-medium hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105 cursor-pointer inline-block shadow-lg">
               {t('hmsSummerTrainingPage.heroButton')}
-            </button>
+            </Link>
           </motion.div>
         </div>
       </section>
@@ -165,12 +163,9 @@ export function HMSSummerTraining() {
             </div>
             
             <div className="text-center">
-              <button 
-                onClick={() => scrollToSection("join")}
-                className="bg-[#FDB813] text-black px-8 py-3 rounded-md font-medium hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105 cursor-pointer"
-              >
+              <Link href="/contact?tab=student-form" className="bg-[#FDB813] text-black px-10 py-3 rounded-full font-medium hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105 cursor-pointer inline-block shadow-lg">
                 {t('hmsSummerTrainingPage.experience.button')}
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -258,9 +253,9 @@ export function HMSSummerTraining() {
                 {t('hmsSummerTrainingPage.callToAction.verse')}
               </p>
             </div>
-            <button className="bg-[#FDB813] text-black px-10 py-4 rounded-md font-semibold text-lg hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105 cursor-pointer">
+            <Link href="/contact?tab=student-form" className="bg-[#FDB813] text-black px-10 py-4 rounded-full font-semibold text-lg hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105 cursor-pointer inline-block shadow-lg">
               {t('hmsSummerTrainingPage.callToAction.button')}
-            </button>
+            </Link>
           </div>
         </div>
       </section>

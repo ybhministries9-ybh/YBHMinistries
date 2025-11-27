@@ -1,13 +1,12 @@
 "use client";
 
 import React from "react";
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
 
 export function HallelWorshipDay() {
   const { t } = useTranslation('ministries');
-  const router = useRouter();
   
   return (
     <div className="font-sans text-white bg-black">
@@ -232,13 +231,12 @@ export function HallelWorshipDay() {
           <blockquote className="text-xl italic max-w-3xl mx-auto">
             {t('hallelWorshipDayPage.finalCall.verse')}
           </blockquote>
-          <button
-            type="button"
-            onClick={() => router.push('/contact?tab=student-form')}
-            className="mt-10 bg-[#FDB813] hover:bg-opacity-80 text-black font-semibold py-3 px-8 rounded-md transition duration-300 transform hover:scale-105 cursor-pointer"
+          <Link
+            href="/contact?tab=student-form"
+            className="mt-10 bg-[#FDB813] text-black px-10 py-3 rounded-full font-semibold text-lg hover:bg-opacity-80 transition-all duration-300 cursor-pointer hover:scale-105 inline-block shadow-lg inline-flex items-center justify-center"
           >
             {t('hallelWorshipDayPage.finalCall.button')}
-          </button>
+          </Link>
         </div>
       </section>
     </div>

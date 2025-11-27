@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from 'next/link';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
 
@@ -183,9 +184,9 @@ export function HallelBibleCollege() {
           <p className="mb-12 text-lg">
             {t('hallelBibleCollegePage.callToAction.paragraph4')}
           </p>
-          <button className="bg-[#FDB813] text-black px-8 py-4 rounded-md font-semibold text-lg hover:bg-opacity-80 transition-all duration-300 cursor-pointer hover:scale-105">
+          <Link href="/contact?tab=student-form" className="bg-[#FDB813] text-black px-10 py-3 rounded-full font-semibold text-lg hover:bg-opacity-80 transition-all duration-300 cursor-pointer hover:scale-105 inline-block shadow-lg inline-flex items-center justify-center">
             {t('hallelBibleCollegePage.callToAction.button')}
-          </button>
+          </Link>
         </div>
       </section>
     </div>
