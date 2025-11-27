@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { navigate } from "../utils/navigate";
 import { useTranslation } from 'react-i18next';
 
@@ -115,6 +115,60 @@ export function AwardsPage() {
     }
   ];
 
+  // Signed URLs returned by server for R2 objects. Keyed by record id.
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    async function resolveAll() {
+      const out: Record<string, string> = {};
+      await Promise.all(recordBooks.map(async (rec) => {
+        try {
+          const v = rec.image;
+          if (!v || typeof v !== 'string') { out[rec.id] = String(v); return; }
+          // If it's an external URL and not hosted under our R2 base, skip presign
+          if (v.startsWith('http') && R2_BASE && !v.startsWith(R2_BASE)) { out[rec.id] = v; return; }
+
+          // Determine object key to request presign for
+          let key = v;
+          if (v.startsWith(R2_BASE)) {
+            key = v.replace(new RegExp('^' + escapeRegex(R2_BASE) + '/?'), '');
+          } else if (v.startsWith('r2://')) {
+            key = v.slice('r2://'.length);
+            const parts = key.split('/').filter(Boolean);
+            if (parts.length > 1) key = parts.slice(1).join('/');
+          }
+
+          // Remove query string or hash if present (presign expects object key only)
+          key = key.split('?')[0].split('#')[0];
+          // Trim leading slashes
+          key = key.replace(/^\/+/, '');
+
+          if (!key || key.startsWith('http')) { out[rec.id] = v; return; }
+
+          const resp = await fetch('/api/r2/presign-get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key })
+          });
+          if (!resp.ok) { out[rec.id] = v; return; }
+          const j = await resp.json();
+          out[rec.id] = j.url || v;
+        } catch (err) {
+          out[rec.id] = rec.image;
+        }
+      }));
+
+      if (!cancelled) setSignedUrls(out);
+    }
+
+    resolveAll();
+    return () => { cancelled = true; };
+  }, []);
+
   const ActionButtons = ({ id }) => (
     <div className="flex flex-wrap md:flex-nowrap gap-3 mt-6">
       <button
@@ -162,7 +216,7 @@ export function AwardsPage() {
               <div className="w-full md:w-[34%] lg:w-[36%] px-4 md:px-0">
                 <div className="relative rounded-lg overflow-hidden shadow-2xl mb-6">
                   <ImageWithFallback
-                    src={record.image}
+                    src={signedUrls[record.id] || record.image}
                     alt={record.name}
                     className="w-full h-auto object-cover aspect-[4/3]"
                   />
