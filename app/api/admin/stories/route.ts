@@ -66,6 +66,10 @@ export async function POST(request: NextRequest) {
       video_url: body.video_url || null,
       thumbnail_url: body.thumbnail_url || null,
       date: body.date || null,
+      // include status/visibility/featured if provided by UI (defaults handled in createStory)
+      status: body.status || undefined,
+      is_visible: typeof body.is_visible === 'boolean' ? body.is_visible : undefined,
+      featured: typeof body.featured === 'boolean' ? body.featured : undefined,
       createdBy: actor || null,
     });
 

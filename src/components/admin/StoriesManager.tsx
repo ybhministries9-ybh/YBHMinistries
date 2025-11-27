@@ -451,21 +451,23 @@ export function StoriesManager() {
 
   // placeholder now — moved lower after handleUpdate to avoid premature reference
 
-  const handleSaveStory = (storyId: string) => {
+  const handleSaveStory = (storyOrId: string | Story) => {
     (async () => {
-      const story = stories.find(s => s.id === storyId);
+      // Prefer the story object passed from the rendered closure to avoid
+      // potential React state update ordering races (select change -> save click).
+      const story = typeof storyOrId === 'string' ? stories.find(s => s.id === storyOrId) : storyOrId;
       if (!story) return;
 
       const errors = validateStory(story);
       if (Object.keys(errors).length > 0) {
-        setValidationErrors({ ...validationErrors, [storyId]: errors });
+        setValidationErrors({ ...validationErrors, [story.id]: errors });
         toast.error('Please fix the validation errors');
         return;
       }
 
       // Clear validation errors for this story
       const newErrors = { ...validationErrors };
-      delete newErrors[storyId];
+      delete newErrors[story.id];
       setValidationErrors(newErrors);
 
       try {
@@ -506,16 +508,20 @@ export function StoriesManager() {
             media_type: story.type,
             video_url: story.type === 'video' ? story.youtubeUrl || null : null,
             thumbnail_url: uploadedThumbnail ?? (story as any).thumbnail_url ?? null,
+            // include status/visibility/featured from UI so non-default values are persisted
+            status: story.status || 'Submitted',
+            is_visible: typeof story.is_visible !== 'undefined' ? story.is_visible : true,
+            featured: typeof story.featured !== 'undefined' ? story.featured : false,
           };
           const resp = await fetch('/api/admin/stories', { method: 'POST', headers: getAuthHeaders('application/json'), body: JSON.stringify(payload) });
           const j = await resp.json();
           if (j && j.success) {
             // replace temp id with returned story mapped to client shape
             const mapped = mapRowToClient(j.data, story);
-            setStories(s => s.map(x => x.id === storyId ? mapped : x));
+            setStories(s => s.map(x => x.id === story.id ? mapped : x));
             toast.success('Story created');
             // remove snapshot store as we saved
-            setEditingOriginals(prev => { const copy = { ...prev }; delete copy[storyId]; return copy; });
+            setEditingOriginals(prev => { const copy = { ...prev }; delete copy[story.id]; return copy; });
           } else {
             toast.error(j?.error || 'Failed to create story');
             return;
@@ -567,9 +573,10 @@ export function StoriesManager() {
             // include date for video stories too
             updates.date = story.date || null;
           }
-          // include visible/status if present in UI
+          // include visible/status/featured if present in UI
           if (typeof story.is_visible !== 'undefined') updates.is_visible = story.is_visible;
-          if (story.status) updates.status = story.status;
+          if (typeof story.featured !== 'undefined') updates.featured = story.featured;
+          if (typeof story.status !== 'undefined') updates.status = story.status;
 
           const resp = await fetch('/api/admin/stories', { method: 'PUT', headers: getAuthHeaders('application/json'), body: JSON.stringify(updates) });
           const j = await resp.json();
@@ -1416,7 +1423,7 @@ export function StoriesManager() {
                     Cancel
                   </Button>
                   <Button
-                    onClick={() => handleSaveStory(story.id)}
+                      onClick={() => handleSaveStory(story)}
                     className="bg-[#FDB813] hover:bg-[#e5a610] text-black cursor-pointer flex items-center"
                   >
                     <Save size={16} className="mr-2" />
