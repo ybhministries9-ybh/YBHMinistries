@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from 'next/link';
 import { Music, Heart, MessageCircle, Users, Globe, Star, Calendar, Mic2, BookOpen, RefreshCcw } from "lucide-react";
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
@@ -231,14 +232,13 @@ export function HallelConferences() {
             {t('hallelConferencesPage.callToAction.paragraph2')}
           </p>
           
-          <a
-            href="#" // Replace with real link when available
-            role="button"
-            className="bg-[#FDB813] text-black font-semibold py-4 px-10 rounded-md hover:bg-opacity-90 transition-colors text-lg inline-flex items-center gap-2 mx-auto cursor-pointer"
+          <Link
+            href="/contact?tab=student-form"
+            className="bg-[#FDB813] text-black font-semibold py-3 px-10 rounded-full hover:bg-opacity-90 transition-colors text-lg inline-flex items-center gap-2 mx-auto cursor-pointer shadow-lg"
           >
             <Calendar className="w-5 h-5" />
             {t('hallelConferencesPage.callToAction.button')}
-          </a>
+          </Link>
         </div>
       </section>
     </div>
