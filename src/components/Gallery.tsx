@@ -204,6 +204,25 @@ export function Gallery() {
 
         setGalleryImages(imagesMap);
         setGalleryVideos(videosMap);
+
+        // If the page was opened with view=videos but this tab has no videos,
+        // fall back to the photos view and update the URL so the gallery shows images.
+        try {
+          if (typeof window !== 'undefined') {
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const requestedView = hashParams.get('view') || initialView || 'photos';
+            const requestedTab = hashParams.get('tab') || initialTab || 'guinness-events';
+            const hasVideos = (videosMap[requestedTab] || []).length > 0;
+            if (requestedView === 'videos' && !hasVideos) {
+              setActiveView('photos');
+              // update URL hash to reflect fallback to photos without reloading
+              hashParams.set('view', 'photos');
+              window.history.replaceState(null, '', `#${hashParams.toString()}`);
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
       } catch (err) {
         console.error('Error fetching gallery data:', err);
         setError('Failed to load gallery. Please try again later.');
