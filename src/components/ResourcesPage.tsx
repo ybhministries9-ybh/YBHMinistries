@@ -766,9 +766,9 @@ export function ResourcesPage() {
                 {displayResources.worship.length > getVisibleItems(displayResources.worship, "worship").length && (
                   <div className="mt-8 text-center">
                     <button 
-                      className="px-6 py-3 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 font-bold"
+                      className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
                       onClick={() => loadMore("worship")}
-                      style={{ cursor: 'pointer', color: '#000000' }}
+                      style={{ cursor: 'pointer' }}
                     >
                       {t('buttons.loadMore')}
                     </button>
@@ -831,9 +831,9 @@ export function ResourcesPage() {
                 {displayResources.sermons.length > getVisibleItems(displayResources.sermons, "sermons").length && (
                   <div className="mt-8 text-center">
                     <button 
-                      className="px-6 py-3 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 font-bold"
+                      className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
                       onClick={() => loadMore("sermons")}
-                      style={{ cursor: 'pointer', color: '#000000' }}
+                      style={{ cursor: 'pointer' }}
                     >
                       {t('buttons.loadMore')}
                     </button>

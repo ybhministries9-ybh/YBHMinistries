@@ -39,7 +39,7 @@ export default {
       title: "పిల్లల వేసవి శిక్షణ"
     }
   },
-  loadMore: "మరిన్ని లోడ్ చేయండి",
+  loadMore: "మరిన్ని లోడ్ చేయండి...",
   videoGallery: "వీడియో గ్యాలరీ",
   loadMoreVideos: "మరిన్ని వీడియోలు లోడ్ చేయండి",
   videos: {

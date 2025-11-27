@@ -234,7 +234,7 @@ export function HallelConferences() {
           
           <Link
             href="/contact?tab=student-form"
-            className="bg-[#FDB813] text-black font-semibold py-3 px-10 rounded-full hover:bg-opacity-90 transition-colors text-lg inline-flex items-center gap-2 mx-auto cursor-pointer shadow-lg"
+            className="bg-[#FDB813] text-black font-semibold py-3 px-10 rounded-full text-lg inline-flex items-center gap-2 mx-auto cursor-pointer shadow-lg transition-all duration-300 hover:opacity-90 hover:scale-105"
           >
             <Calendar className="w-5 h-5" />
             {t('hallelConferencesPage.callToAction.button')}

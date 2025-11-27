@@ -3,3 +3,16 @@ body {
   padding: 0;
   box-sizing: border-box;
 }
+
+/* Make all buttons inside the Home page render as pills */
+.home-pill-buttons button,
+.home-pill-buttons a,
+.home-pill-buttons [data-slot="button"] {
+  border-radius: 9999px !important;
+}
+
+/* Ensure inline elements styled as buttons also get pill shape */
+.home-pill-buttons .inline-block,
+.home-pill-buttons .inline-flex {
+  border-radius: 9999px !important;
+}

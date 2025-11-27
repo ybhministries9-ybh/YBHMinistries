@@ -119,7 +119,7 @@ export function HMSPage({
               <button 
                 onClick={() => scrollToSection('approach')}
                 className="px-6 md:px-8 py-2.5 md:py-3 rounded-full font-medium bg-transparent cursor-pointer transition-all duration-300 hover:text-black"
-                style={{ transition: 'all 0.3s ease', border: '1px solid #FDB813' }}
+                style={{ transition: 'all 0.3s ease', border: '2px solid #FDB813' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FDB813'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
@@ -128,7 +128,7 @@ export function HMSPage({
               <button 
                 onClick={() => window.open('https://www.youtube.com/@HallelMusicSchool', '_blank')}
                 className="px-6 md:px-8 py-2.5 md:py-3 rounded-full font-medium bg-transparent cursor-pointer transition-all duration-300 hover:text-black flex items-center gap-2"
-                style={{ transition: 'all 0.3s ease', border: '1px solid #FDB813' }}
+                style={{ transition: 'all 0.3s ease', border: '2px solid #FDB813' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FDB813'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
@@ -337,7 +337,7 @@ export function HMSPage({
                 {t('hmsPage.join.online.description')}
               </p>
               <button 
-                className="flex items-center gap-2 px-6 py-3 rounded-full font-medium cursor-pointer transition-all duration-300 hover:opacity-90 hover:scale-105"
+                className="flex items-center gap-2 px-6 py-3 rounded-full font-medium shadow-lg cursor-pointer transition-all duration-300 hover:opacity-90 hover:scale-105"
                 style={{ backgroundColor: ctaButtonColor, color: 'black' }}
                 onClick={() => router.push('/contact?tab=student-form')}
               >
@@ -368,7 +368,7 @@ export function HMSPage({
             <button 
               onClick={() => router.push('/news?section=upcoming-events')}
               className="px-6 py-3 rounded-full font-medium bg-transparent cursor-pointer transition-all duration-300 hover:text-black"
-              style={{ transition: 'all 0.3s ease', border: '1px solid #FDB813' }}
+              style={{ transition: 'all 0.3s ease', border: '2px solid #FDB813' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FDB813'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >

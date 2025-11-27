@@ -95,6 +95,9 @@ export function HMSStudentForm({
     defaultValues: mergedDefaults as any
   });
 
+  // watch current values for live character counts
+  const watched = watch();
+
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [formAlert, setFormAlert] = useState<{ type?: 'error' | 'info'; message?: string }>({});
   const [programLevels, setProgramLevels] = useState<string[]>(() => (mergedDefaults.programApplyingFor as string[]) || []);
@@ -284,7 +287,7 @@ export function HMSStudentForm({
                 handleReset(false);
                 setSubmitSuccess(false);
               }}
-              className="px-6 py-2 rounded-md text-black font-bold transition-all duration-300"
+              className="px-6 py-2 rounded-full text-black font-bold transition-all duration-300 shadow-md inline-flex items-center justify-center"
               style={{ backgroundColor: '#FDB813' }}
             >
               {t('studentForm.buttons.submitAnother') || 'Submit another application'}
@@ -304,30 +307,35 @@ export function HMSStudentForm({
           <div className="w-24 h-1 bg-[#FDB813] mb-6"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label htmlFor="fullName" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.fullName')} <span className="text-[#FDB813]">*</span>
-              </label>
-              <input
-                id="fullName"
-                type="text"
-                {...register('fullName', { 
-                  required: t('studentForm.validation.fullNameRequired'),
-                  minLength: { value: 2, message: t('studentForm.validation.fullNameMin') },
-                  maxLength: { value: 100, message: t('studentForm.validation.fullNameMax') },
-                  pattern: { 
-                    value: /^[a-zA-Z\s.'-]+$/, 
-                    message: t('studentForm.validation.fullNamePattern') 
-                  }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.fullName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder={t('studentForm.placeholders.fullName')}
-                maxLength={100}
-              />
-              {errors.fullName ? (
-                <p className="text-red-400 text-xs mt-1">{errors.fullName.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="fullName" className="block text-white text-sm font-medium cursor-pointer">
+                    {t('studentForm.fields.fullName')} <span className="text-[#FDB813]">*</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.fullName || '').length}/100</p>
+                </div>
+                <input
+                  id="fullName"
+                  type="text"
+                  {...register('fullName', { 
+                    required: t('studentForm.validation.fullNameRequired'),
+                    minLength: { value: 2, message: t('studentForm.validation.fullNameMin') },
+                    maxLength: { value: 100, message: t('studentForm.validation.fullNameMax') },
+                    pattern: { 
+                      value: /^[a-zA-Z\s.'-]+$/, 
+                      message: t('studentForm.validation.fullNamePattern') 
+                    }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.fullName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  placeholder={t('studentForm.placeholders.fullName')}
+                  maxLength={100}
+                />
+                <div className="mt-1">
+                  {errors.fullName ? (
+                    <p className="text-red-400 text-xs">{errors.fullName.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
             
             <div>
@@ -360,7 +368,7 @@ export function HMSStudentForm({
                       dateFormat="dd-MM-yyyy"
                       maxDate={new Date()}
                       placeholderText={t('studentForm.placeholders.dateOfBirth')}
-                      className={`w-full px-4 py-2 bg-black rounded border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                      className={`w-full px-4 py-2 bg-black rounded-md border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                       showPopperArrow={false}
                     />
                   )}
@@ -368,9 +376,7 @@ export function HMSStudentForm({
               </div>
               {errors.dateOfBirth ? (
                 <p className="text-red-400 text-xs mt-1">{errors.dateOfBirth.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.dateRequired')}</p>
-              )}
+              ) : null}
             </div>
             
             <div>
@@ -380,7 +386,7 @@ export function HMSStudentForm({
               <select
                 id="gender"
                 {...register('gender', { required: t('studentForm.validation.genderRequired') })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.gender ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.gender ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
               >
                 <option value="">{t('studentForm.placeholders.selectGender')}</option>
                 <option value="male">{t('studentForm.options.male')}</option>
@@ -389,162 +395,190 @@ export function HMSStudentForm({
               </select>
               {errors.gender ? (
                 <p className="text-red-400 text-xs mt-1">{errors.gender.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.selectFromOptions')}</p>
-              )}
+              ) : null}
             </div>
             
             <div className="md:col-span-2">
-              <label htmlFor="address" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.address')} <span className="text-[#FDB813]">*</span>
-              </label>
-              <input
-                id="address"
-                type="text"
-                {...register('address', { 
-                  required: t('studentForm.validation.addressRequired'),
-                  minLength: { value: 5, message: t('studentForm.validation.addressMin') },
-                  maxLength: { value: 200, message: t('studentForm.validation.addressMax') }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.address ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder={t('studentForm.placeholders.address')}
-                maxLength={200}
-              />
-              {errors.address ? (
-                <p className="text-red-400 text-xs mt-1">{errors.address.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 200 })}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="address" className="block text-white text-sm font-medium cursor-pointer">
+                    {t('studentForm.fields.address')} <span className="text-[#FDB813]">*</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.address || '').length}/200</p>
+                </div>
+                <input
+                  id="address"
+                  type="text"
+                  {...register('address', { 
+                    required: t('studentForm.validation.addressRequired'),
+                    minLength: { value: 5, message: t('studentForm.validation.addressMin') },
+                    maxLength: { value: 200, message: t('studentForm.validation.addressMax') }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.address ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  placeholder={t('studentForm.placeholders.address')}
+                  maxLength={200}
+                />
+                <div className="mt-1">
+                  {errors.address ? (
+                    <p className="text-red-400 text-xs">{errors.address.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
             
             <div className="md:col-span-2">
-              <label htmlFor="cityStateZip" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.cityStateZip')} <span className="text-[#FDB813]">*</span>
-              </label>
-              <input
-                id="cityStateZip"
-                type="text"
-                {...register('cityStateZip', { 
-                  required: t('studentForm.validation.cityStateZipRequired'),
-                  maxLength: { value: 100, message: t('studentForm.validation.cityStateZipMax') }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.cityStateZip ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder={t('studentForm.placeholders.cityStateZip')}
-                maxLength={100}
-              />
-              {errors.cityStateZip ? (
-                <p className="text-red-400 text-xs mt-1">{errors.cityStateZip.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="cityStateZip" className="block text-white text-sm font-medium cursor-pointer">
+                    {t('studentForm.fields.cityStateZip')} <span className="text-[#FDB813]">*</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.cityStateZip || '').length}/100</p>
+                </div>
+                <input
+                  id="cityStateZip"
+                  type="text"
+                  {...register('cityStateZip', { 
+                    required: t('studentForm.validation.cityStateZipRequired'),
+                    maxLength: { value: 100, message: t('studentForm.validation.cityStateZipMax') }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.cityStateZip ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  placeholder={t('studentForm.placeholders.cityStateZip')}
+                  maxLength={100}
+                />
+                <div className="mt-1">
+                  {errors.cityStateZip ? (
+                    <p className="text-red-400 text-xs">{errors.cityStateZip.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
             
             <div>
-              <label htmlFor="phoneNumber" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.phoneNumber')} <span className="text-[#FDB813]">*</span>
-              </label>
-              <input
-                id="phoneNumber"
-                type="tel"
-                inputMode="numeric"
-                pattern="^[0-9]{7,15}$"
-                {...register('phoneNumber', { 
-                  required: t('studentForm.validation.phoneRequired'),
-                  pattern: { 
-                    value: /^[0-9]{7,15}$/, 
-                    message: t('studentForm.validation.phonePattern') 
-                  }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                maxLength={15}
-                placeholder={t('studentForm.placeholders.phone')}
-                onInput={(e) => {
-                  const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
-                  setValue('phoneNumber', cleaned, { shouldValidate: true, shouldDirty: true });
-                }}
-              />
-              {errors.phoneNumber ? (
-                <p className="text-red-400 text-xs mt-1">{errors.phoneNumber.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.validNumberNoCountry')}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="phoneNumber" className="block text-white text-sm font-medium cursor-pointer">
+                    {t('studentForm.fields.phoneNumber')} <span className="text-[#FDB813]">*</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.phoneNumber || '').length}/15</p>
+                </div>
+                <input
+                  id="phoneNumber"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="^[0-9]{7,15}$"
+                  {...register('phoneNumber', { 
+                    required: t('studentForm.validation.phoneRequired'),
+                    pattern: { 
+                      value: /^[0-9]{7,15}$/, 
+                      message: t('studentForm.validation.phonePattern') 
+                    }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  maxLength={15}
+                  placeholder={t('studentForm.placeholders.phone')}
+                  onInput={(e) => {
+                    const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
+                    setValue('phoneNumber', cleaned, { shouldValidate: true, shouldDirty: true });
+                  }}
+                />
+                <div className="mt-1">
+                  {errors.phoneNumber ? (
+                    <p className="text-red-400 text-xs">{errors.phoneNumber.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
             
             <div>
-              <label htmlFor="emailId" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.emailId')} <span className="text-[#FDB813]">*</span>
-              </label>
-              <input
-                id="emailId"
-                type="email"
-                {...register('emailId', { 
-                  required: t('studentForm.validation.emailRequired'),
-                  maxLength: { value: 100, message: t('studentForm.validation.emailMax') },
-                  pattern: { 
-                    value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 
-                    message: t('studentForm.validation.emailPattern') 
-                  }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emailId ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                maxLength={100}
-                placeholder={t('studentForm.placeholders.email')}
-              />
-              {errors.emailId ? (
-                <p className="text-red-400 text-xs mt-1">{errors.emailId.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="emailId" className="block text-white text-sm font-medium cursor-pointer">
+                    {t('studentForm.fields.emailId')} <span className="text-[#FDB813]">*</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.emailId || '').length}/100</p>
+                </div>
+                <input
+                  id="emailId"
+                  type="email"
+                  {...register('emailId', { 
+                    required: t('studentForm.validation.emailRequired'),
+                    maxLength: { value: 100, message: t('studentForm.validation.emailMax') },
+                    pattern: { 
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 
+                      message: t('studentForm.validation.emailPattern') 
+                    }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emailId ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  maxLength={100}
+                  placeholder={t('studentForm.placeholders.email')}
+                />
+                <div className="mt-1">
+                  {errors.emailId ? (
+                    <p className="text-red-400 text-xs">{errors.emailId.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
             
             <div>
-              <label htmlFor="parentGuardianName" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.parentGuardianName')}
-              </label>
-              <input
-                id="parentGuardianName"
-                type="text"
-                {...register('parentGuardianName', {
-                  maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder={t('studentForm.placeholders.parentGuardianName')}
-                maxLength={100}
-              />
-              {errors.parentGuardianName ? (
-                <p className="text-red-400 text-xs mt-1">{errors.parentGuardianName.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="parentGuardianName" className="block text-white text-sm font-medium cursor-pointer">
+                    {t('studentForm.fields.parentGuardianName')}
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.parentGuardianName || '').length}/100</p>
+                </div>
+                <input
+                  id="parentGuardianName"
+                  type="text"
+                  {...register('parentGuardianName', {
+                    maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.parentGuardianName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  placeholder={t('studentForm.placeholders.parentGuardianName')}
+                  maxLength={100}
+                />
+                <div className="mt-1">
+                  {errors.parentGuardianName ? (
+                    <p className="text-red-400 text-xs">{errors.parentGuardianName.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
             
             <div>
-              <label htmlFor="parentGuardianContact" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.parentGuardianContact')}
-              </label>
-              <input
-                id="parentGuardianContact"
-                type="tel"
-                inputMode="numeric"
-                pattern="^[0-9]{7,15}$"
-                {...register('parentGuardianContact', {
-                  pattern: {
-                    value: /^[0-9]{7,15}$/, 
-                    message: t('studentForm.validation.phonePattern')
-                  }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                maxLength={15}
-                placeholder={t('studentForm.placeholders.parentGuardianContact')}
-                onInput={(e) => {
-                  const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
-                  setValue('parentGuardianContact', cleaned, { shouldValidate: true, shouldDirty: true });
-                }}
-              />
-              {errors.parentGuardianContact ? (
-                <p className="text-red-400 text-xs mt-1">{errors.parentGuardianContact.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.validNumberNoCountry')}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="parentGuardianContact" className="block text-white text-sm font-medium cursor-pointer">
+                    {t('studentForm.fields.parentGuardianContact')}
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.parentGuardianContact || '').length}/15</p>
+                </div>
+                <input
+                  id="parentGuardianContact"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="^[0-9]{7,15}$"
+                  {...register('parentGuardianContact', {
+                    pattern: {
+                      value: /^[0-9]{7,15}$/, 
+                      message: t('studentForm.validation.phonePattern')
+                    }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.parentGuardianContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  maxLength={15}
+                  placeholder={t('studentForm.placeholders.parentGuardianContact')}
+                  onInput={(e) => {
+                    const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
+                    setValue('parentGuardianContact', cleaned, { shouldValidate: true, shouldDirty: true });
+                  }}
+                />
+                <div className="mt-1">
+                  {errors.parentGuardianContact ? (
+                    <p className="text-red-400 text-xs">{errors.parentGuardianContact.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -629,22 +663,23 @@ export function HMSStudentForm({
                     {t('studentForm.options.other')}:
                   </label>
                   {instruments.includes('other') && (
-                    <input
-                      type="text"
-                      {...register('instrumentOther', {
-                        maxLength: { value: 50, message: t('studentForm.validation.instrumentOtherMax') }
-                      })}
-                      placeholder={t('studentForm.placeholders.instrumentOther')}
-                      className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32 cursor-text"
-                      maxLength={50}
-                    />
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        {...register('instrumentOther', {
+                          maxLength: { value: 50, message: t('studentForm.validation.instrumentOtherMax') }
+                        })}
+                        placeholder={t('studentForm.placeholders.instrumentOther')}
+                        className="px-3 py-1 bg-black rounded-md border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32 cursor-text"
+                        maxLength={50}
+                      />
+                      <p className="text-sm text-gray-400">{(watched.instrumentOther || '').length}/50</p>
+                    </div>
                   )}
                   {instruments.includes('other') && (
                     errors.instrumentOther ? (
                       <p className="text-red-400 text-xs mt-1">{(errors as any).instrumentOther?.message}</p>
-                    ) : (
-                      <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 50 })}</p>
-                    )
+                    ) : null
                   )}
                 </div>
                 </div>
@@ -771,7 +806,7 @@ export function HMSStudentForm({
                   min: { value: 0, message: t('studentForm.validation.yearsMin') },
                   max: { value: 100, message: t('studentForm.validation.yearsMax') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 min={0}
                 max={100}
                 placeholder={t('studentForm.placeholders.yearsOfExperience')}
@@ -784,51 +819,55 @@ export function HMSStudentForm({
               />
               {errors.yearsOfExperience ? (
                 <p className="text-red-400 text-xs mt-1">{errors.yearsOfExperience.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.range0to100')}</p>
-              )}
+              ) : null}
             </div>
             
             <div>
-              <label htmlFor="previousTraining" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.previousTraining')}
-              </label>
+              <div className="mb-1 flex items-center justify-between">
+                <label htmlFor="previousTraining" className="block text-white text-sm font-medium cursor-pointer">
+                  {t('studentForm.fields.previousTraining')}
+                </label>
+                <p className="text-sm text-gray-400">{(watched.previousTraining || '').length}/200</p>
+              </div>
               <input
                 id="previousTraining"
                 type="text"
                 {...register('previousTraining', {
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.previousTraining ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.previousTraining ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 placeholder={t('studentForm.placeholders.previousTraining')}
                 maxLength={200}
               />
-              {errors.previousTraining ? (
-                <p className="text-red-400 text-xs mt-1">{errors.previousTraining.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 200 })}</p>
-              )}
+              <div className="mt-1">
+                {errors.previousTraining ? (
+                  <p className="text-red-400 text-xs">{errors.previousTraining.message}</p>
+                ) : null}
+              </div>
             </div>
             
             <div>
-              <label htmlFor="musicExamCertifications" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.musicExamCertifications')}
-              </label>
+              <div className="mb-1 flex items-center justify-between">
+                <label htmlFor="musicExamCertifications" className="block text-white text-sm font-medium cursor-pointer">
+                  {t('studentForm.fields.musicExamCertifications')}
+                </label>
+                <p className="text-sm text-gray-400">{(watched.musicExamCertifications || '').length}/200</p>
+              </div>
               <input
                 id="musicExamCertifications"
                 type="text"
                 {...register('musicExamCertifications', {
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.musicExamCertifications ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.musicExamCertifications ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 placeholder={t('studentForm.placeholders.musicExamCertifications')}
                 maxLength={200}
               />
-              {errors.musicExamCertifications ? (
-                <p className="text-red-400 text-xs mt-1">{errors.musicExamCertifications.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 200 })}</p>
-              )}
+              <div className="mt-1">
+                {errors.musicExamCertifications ? (
+                  <p className="text-red-400 text-xs">{errors.musicExamCertifications.message}</p>
+                ) : null}
+              </div>
             </div>
             
             <div>
@@ -864,22 +903,23 @@ export function HMSStudentForm({
                     {t('studentForm.options.other')}:
                   </label>
                   {performances.includes('other') && (
-                    <input
-                      type="text"
-                      {...register('performanceOther', {
-                        maxLength: { value: 100, message: t('studentForm.validation.performanceOtherMax') }
-                      })}
-                      placeholder={t('studentForm.placeholders.performanceOther')}
-                      className="px-3 py-1 bg-black rounded border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32 cursor-text"
-                      maxLength={100}
-                    />
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        {...register('performanceOther', {
+                          maxLength: { value: 100, message: t('studentForm.validation.performanceOtherMax') }
+                        })}
+                        placeholder={t('studentForm.placeholders.performanceOther')}
+                        className="px-3 py-1 bg-black rounded-md border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32 cursor-text"
+                        maxLength={100}
+                      />
+                      <p className="text-sm text-gray-400">{(watched.performanceOther || '').length}/100</p>
+                    </div>
                   )}
                   {performances.includes('other') && (
                     (errors as any).performanceOther ? (
                       <p className="text-red-400 text-xs mt-1">{(errors as any).performanceOther?.message}</p>
-                    ) : (
-                      <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
-                    )
+                    ) : null
                   )}
                 </div>
               </div>
@@ -895,24 +935,27 @@ export function HMSStudentForm({
           <div className="w-24 h-1 bg-[#FDB813] mb-6"></div>
           
           <div>
-            <label htmlFor="goals" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-              {t('studentForm.fields.goalsPrompt')}
-            </label>
+            <div className="mb-1 flex items-center justify-between">
+              <label htmlFor="goals" className="block text-white text-sm font-medium cursor-pointer">
+                {t('studentForm.fields.goalsPrompt')}
+              </label>
+              <p className="text-sm text-gray-400">{(watched.goals || '').length}/1000</p>
+            </div>
             <textarea
               id="goals"
               {...register('goals', {
                 maxLength: { value: 1000, message: t('studentForm.validation.goalsMax') }
               })}
               rows={4}
-              className={`w-full px-4 py-2 bg-black rounded border ${errors.goals ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none`}
+              className={`w-full px-4 py-2 bg-black rounded-md border ${errors.goals ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none`}
               maxLength={1000}
               placeholder={t('studentForm.fields.goalsPlaceholder')}
             />
-            {errors.goals ? (
-              <p className="text-red-400 text-xs mt-1">{errors.goals.message}</p>
-            ) : (
-              <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 1000 })}</p>
-            )}
+            <div className="mt-1">
+              {errors.goals ? (
+                <p className="text-red-400 text-xs">{errors.goals.message}</p>
+              ) : null}
+            </div>
           </div>
         </section>
 
@@ -992,79 +1035,94 @@ export function HMSStudentForm({
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label htmlFor="emergencyName" className="block text-white text-sm font-medium mb-1 cursor-pointer">
-                {t('studentForm.fields.emergencyName')} <span className="text-[#FDB813]">*</span>
-              </label>
-              <input
-                id="emergencyName"
-                type="text"
-                {...register('emergencyName', { 
-                  required: t('studentForm.validation.emergencyNameRequired'),
-                  minLength: { value: 2, message: t('studentForm.validation.emergencyNameMin') },
-                  maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder={t('studentForm.placeholders.emergencyName')}
-                maxLength={100}
-              />
-              {errors.emergencyName ? (
-                <p className="text-red-400 text-xs mt-1">{errors.emergencyName.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 100 })}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="emergencyName" className="block text-white text-sm font-medium cursor-pointer">
+                    {t('studentForm.fields.emergencyName')} <span className="text-[#FDB813]">*</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.emergencyName || '').length}/100</p>
+                </div>
+                <input
+                  id="emergencyName"
+                  type="text"
+                  {...register('emergencyName', { 
+                    required: t('studentForm.validation.emergencyNameRequired'),
+                    minLength: { value: 2, message: t('studentForm.validation.emergencyNameMin') },
+                    maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emergencyName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  placeholder={t('studentForm.placeholders.emergencyName')}
+                  maxLength={100}
+                />
+                <div className="mt-1">
+                  {errors.emergencyName ? (
+                    <p className="text-red-400 text-xs">{errors.emergencyName.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
             
             <div>
-              <label htmlFor="emergencyRelationship" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emergencyRelationship')} <span className="text-[#FDB813]">*</span>
-              </label>
-              <input
-                id="emergencyRelationship"
-                type="text"
-                {...register('emergencyRelationship', { 
-                  required: t('studentForm.validation.emergencyRelationshipRequired'),
-                  maxLength: { value: 50, message: t('studentForm.validation.relationshipMax') }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                placeholder={t('studentForm.placeholders.emergencyRelationship')}
-                maxLength={50}
-              />
-              {errors.emergencyRelationship ? (
-                <p className="text-red-400 text-xs mt-1">{errors.emergencyRelationship.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.maxChars', { count: 50 })}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="emergencyRelationship" className="block text-white text-sm font-medium">
+                    {t('studentForm.fields.emergencyRelationship')} <span className="text-[#FDB813]">*</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.emergencyRelationship || '').length}/50</p>
+                </div>
+                <input
+                  id="emergencyRelationship"
+                  type="text"
+                  {...register('emergencyRelationship', { 
+                    required: t('studentForm.validation.emergencyRelationshipRequired'),
+                    maxLength: { value: 50, message: t('studentForm.validation.relationshipMax') }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  placeholder={t('studentForm.placeholders.emergencyRelationship')}
+                  maxLength={50}
+                />
+                <div className="mt-1">
+                  {errors.emergencyRelationship ? (
+                    <p className="text-red-400 text-xs">{errors.emergencyRelationship.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
             
             <div>
-              <label htmlFor="emergencyContact" className="block text-white text-sm font-medium mb-1">
-                {t('studentForm.fields.emergencyContact')} <span className="text-[#FDB813]">*</span>
-              </label>
-              <input
-                id="emergencyContact"
-                type="tel"
-                inputMode="numeric"
-                pattern="^[0-9]{7,15}$"
-                {...register('emergencyContact', { 
-                  required: t('studentForm.validation.emergencyContactRequired'),
-                  pattern: { 
-                    value: /^[0-9]{7,15}$/, 
-                    message: t('studentForm.validation.phonePattern') 
-                  }
-                })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                maxLength={15}
-                placeholder={t('studentForm.placeholders.emergencyContact')}
-                onInput={(e) => {
-                  const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
-                  setValue('emergencyContact', cleaned, { shouldValidate: true, shouldDirty: true });
-                }}
-              />
-              {errors.emergencyContact ? (
-                <p className="text-red-400 text-xs mt-1">{errors.emergencyContact.message}</p>
-              ) : (
-                <p className="text-gray-400 text-xs mt-1">{t('studentForm.helpers.validNumberNoCountry')}</p>
-              )}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="emergencyContact" className="block text-white text-sm font-medium">
+                    {t('studentForm.fields.emergencyContact')} <span className="text-[#FDB813]">*</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.emergencyContact || '').length}/15</p>
+                </div>
+                <input
+                  id="emergencyContact"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="^[0-9]{7,15}$"
+                  {...register('emergencyContact', { 
+                    required: t('studentForm.validation.emergencyContactRequired'),
+                    pattern: { 
+                      value: /^[0-9]{7,15}$/, 
+                      message: t('studentForm.validation.phonePattern') 
+                    }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emergencyContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  maxLength={15}
+                  placeholder={t('studentForm.placeholders.emergencyContact')}
+                  onInput={(e) => {
+                    const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
+                    setValue('emergencyContact', cleaned, { shouldValidate: true, shouldDirty: true });
+                  }}
+                />
+                <div className="mt-1">
+                  {errors.emergencyContact ? (
+                    <p className="text-red-400 text-xs">{errors.emergencyContact.message}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -1074,7 +1132,7 @@ export function HMSStudentForm({
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full sm:w-auto px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded text-center transition-colors ${
+            className={`w-full sm:w-auto px-8 py-2 bg-[#FDB813] hover:bg-[#e5a711] font-semibold text-black rounded-full shadow-lg text-center transition-all duration-300 inline-flex items-center justify-center ${
               isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
             }`}
           >
@@ -1084,7 +1142,19 @@ export function HMSStudentForm({
             type="button"
             onClick={() => handleReset()}
             disabled={isSubmitting}
-            className={`w-full sm:w-auto px-8 py-3 bg-black hover:bg-gray-900 text-white rounded border-2 border-[#FDB813] text-center transition-colors ${
+            onMouseEnter={(e) => {
+              if (!isSubmitting) {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#FDB813';
+                (e.currentTarget as HTMLButtonElement).style.color = '#000';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSubmitting) {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '';
+                (e.currentTarget as HTMLButtonElement).style.color = '';
+              }
+            }}
+            className={`w-full sm:w-auto px-8 py-2 bg-black font-semibold text-white rounded-full border-2 border-[#FDB813] text-center transition-all duration-300 inline-flex items-center justify-center ${
               isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
             }`}
           >

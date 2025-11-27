@@ -306,7 +306,7 @@ export function Home() {
   ];
 
   return (
-    <div className="w-full min-h-screen bg-black text-white">
+    <div className="w-full min-h-screen bg-black text-white home-pill-buttons">
       {/* Hero Section - Image Slideshow */}
       <section className="relative h-screen overflow-hidden pt-16 md:pt-30">
         {isLoading ? (
@@ -334,7 +334,7 @@ export function Home() {
               <div className="w-24 h-1 rounded-full mb-8" style={{ backgroundColor: accentGold }}></div>
               <button 
                 onClick={() => router.push('/about')}
-                className="mt-6 px-6 py-3 bg-[#FDB813] text-black font-semibold rounded-md hover:bg-opacity-80 transition-all cursor-pointer"
+                className="mt-6 px-6 py-3 bg-[#FDB813] shadow-lg text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer"
               >
                 {t('about.learnMore')}
               </button>
@@ -388,7 +388,7 @@ export function Home() {
           <div className="flex justify-center mt-12">
             <button 
               onClick={() => router.push('/awards')}
-              className="px-6 py-3 bg-[#FDB813] text-black font-semibold rounded-md hover:bg-opacity-80 transition-all cursor-pointer"
+              className="px-6 py-3 bg-[#FDB813] shadow-lg text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer"
             >
               {t('achievements.learnMore')}
             </button>

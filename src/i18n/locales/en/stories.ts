@@ -63,6 +63,7 @@ export default {
   
   noStories: "No stories available at this time.",
   loading: "Loading stories...",
+  loadMore: "Load More...",
   
   form: {
     title: "Share Your Testimony",

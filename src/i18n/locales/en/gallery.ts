@@ -39,7 +39,7 @@ export default {
       title: "Kids Summer Training"
     }
   },
-  loadMore: "Load More",
+  loadMore: "Load More...",
   videoGallery: "Video Gallery",
   loadMoreVideos: "Load More Videos",
   videos: {
