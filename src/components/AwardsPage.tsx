@@ -172,7 +172,7 @@ export function AwardsPage() {
   const ActionButtons = ({ id }) => (
     <div className="flex flex-wrap md:flex-nowrap gap-3 mt-6">
       <button
-        className="px-5 py-2 bg-[#FDB813] text-black font-bold rounded-full hover:bg-opacity-80 transition-all duration-300 whitespace-nowrap inline-flex items-center justify-center"
+        className="px-5 py-2 bg-[#FDB813] text-black rounded-full hover:bg-opacity-80 transition-all duration-300 whitespace-nowrap inline-flex items-center justify-center"
         style={{ cursor: 'pointer' }}
         onClick={() => handleViewPictures(id)}
       >
@@ -225,21 +225,21 @@ export function AwardsPage() {
                 {/* Action Buttons below image - Desktop only */}
                 <div className="hidden md:flex md:flex-nowrap gap-3">
                   <button
-                    className="px-5 py-2 bg-[#FDB813] text-black font-bold rounded-full hover:bg-opacity-80 transition-all duration-300 whitespace-nowrap inline-flex items-center justify-center"
+                    className="px-5 py-2 bg-[#FDB813] shadow-lg text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 whitespace-nowrap inline-flex items-center justify-center"
                     style={{ cursor: 'pointer' }}
                     onClick={() => handleViewPictures(record.id)}
                   >
                     {t('buttons.viewPictures')}
                   </button>
                   <button
-                    className="px-5 py-2 bg-[#FDB813] text-black font-bold rounded-full hover:bg-opacity-80 transition-all duration-300 whitespace-nowrap inline-flex items-center justify-center"
+                    className="px-5 py-2 bg-[#FDB813] text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 whitespace-nowrap inline-flex items-center justify-center"
                     style={{ cursor: 'pointer' }}
                     onClick={() => handleViewVideos(record.id)}
                   >
                     {t('buttons.viewVideos')}
                   </button>
                   <button
-                    className="px-5 py-2 bg-[#FDB813] text-black font-bold rounded-full hover:bg-opacity-80 transition-all duration-300 whitespace-nowrap inline-flex items-center justify-center"
+                    className="px-5 py-2 bg-[#FDB813] text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 whitespace-nowrap inline-flex items-center justify-center"
                     style={{ cursor: 'pointer' }}
                     onClick={() => handleViewStories(record.id)}
                   >

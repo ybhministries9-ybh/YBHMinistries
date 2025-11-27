@@ -90,7 +90,7 @@ const EventCard = memo(({ event, onViewDetails, t }: { event: any; onViewDetails
             e.stopPropagation();
             onViewDetails(event);
           }}
-          className="bg-[#FDB813] text-black px-6 py-2.5 rounded-md font-semibold flex items-center justify-center gap-2 hover:bg-[#e5a711] transition-colors whitespace-nowrap flex-shrink-0 w-full md:w-auto"
+          className="bg-[#FDB813] cursor-pointer text-black px-6 py-2.5 rounded-full font-semibold flex items-center justify-center gap-2 hover:bg-[#e5a711] transition-colors whitespace-nowrap flex-shrink-0 w-full md:w-auto"
         >
           {t('news:events.viewDetails')}
           <ChevronRight size={18} />
@@ -374,7 +374,7 @@ export function NewsPage() {
                       </p>
                     )}
                     
-                    <button className="w-full bg-[#FDB813] text-black py-3 rounded-md font-medium hover:bg-opacity-90 transition-colors text-center cursor-pointer">
+                    <button className="w-full bg-[#FDB813] hover:bg-[#e5a711] transition-colors text-black py-3 rounded-full shadow-lg font-medium text-center cursor-pointer">
                       {t('news:events.enrollNow')}
                     </button>
                   </div>

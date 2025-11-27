@@ -14,7 +14,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
   const [touched, setTouched] = useState({ name: false, email: false, phone: false, location: false, message: false });
   const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string; location?: string; message?: string }>({});
 
-  const LIMITS = { name: 100, email: 254, phone: 30, location: 200, message: 1000 };
+  const LIMITS = { name: 100, email: 254, phone: 15, location: 200, message: 1000 };
 
   const validate = (data: { name: string; email: string; phone?: string; location?: string; message: string }) => {
     const errs: { name?: string; email?: string; phone?: string; location?: string; message?: string } = {};
@@ -130,7 +130,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
               <button
                 type="button"
                 onClick={() => setFormStatus({ submitted: false, message: "" })}
-                className="px-6 py-2 rounded-md text-black font-bold transition-all duration-300"
+                className="px-6 py-2 rounded-full text-black font-bold transition-all duration-300 shadow-md inline-flex items-center justify-center"
                 style={{ backgroundColor: accentColor }}
               >
                 {t('contactForm.sendAnother')}
@@ -139,9 +139,12 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
           ) : (
             <div className="space-y-4">
               <div>
-                <label htmlFor="name" className="mb-1">
-                  <span className="font-medium text-white">{t('contactForm.name', { defaultValue: 'Full Name' })} <span className="text-yellow-400">*</span></span>
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="name">
+                    <span className="font-medium text-white">{t('contactForm.name', { defaultValue: 'Full Name' })} <span className="text-yellow-400">*</span></span>
+                  </label>
+                  <p className="text-sm text-gray-400">{formData.name.length}/{LIMITS.name}</p>
+                </div>
                 <input
                   id="name"
                   name="name"
@@ -154,18 +157,20 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.name ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
                   placeholder={t('contactForm.namePlaceholder', { defaultValue: '' })}
                 />
-                <div className="mt-1 flex items-center justify-between">
+                <div className="mt-1">
                   <p id="name-error" className={`text-sm ${touched.name && errors.name ? 'text-red-400' : 'text-gray-400'}`}>
                     {touched.name && errors.name ? errors.name : ''}
                   </p>
-                  <p className="text-sm text-gray-400">{formData.name.length}/{LIMITS.name}</p>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="phone" className="mb-1">
-                  <span className="font-medium text-white">{t('contactForm.phone', { defaultValue: 'Phone Number' })} <span className="text-yellow-400">*</span></span>
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="phone">
+                    <span className="font-medium text-white">{t('contactForm.phone', { defaultValue: 'Phone Number' })} <span className="text-yellow-400">*</span></span>
+                  </label>
+                  <p className="text-sm text-gray-400">{formData.phone.length}/{LIMITS.phone}</p>
+                </div>
                 <input
                   id="phone"
                   name="phone"
@@ -180,18 +185,20 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
                   placeholder={t('contactForm.phonePlaceholder', { defaultValue: 'e.g. +1 555 555 5555' })}
                 />
-                <div className="mt-1 flex items-center justify-between">
+                <div className="mt-1">
                   <p id="phone-error" className={`text-sm ${touched.phone && errors.phone ? 'text-red-400' : 'text-gray-400'}`}>
                     {touched.phone && errors.phone ? errors.phone : ''}
                   </p>
-                  <p className="text-sm text-gray-400">{formData.phone.length}/{LIMITS.phone}</p>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="email" className="mb-1">
-                  <span className="font-medium text-white">{t('contactForm.email', { defaultValue: 'Email-id' })}</span>
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="email">
+                    <span className="font-medium text-white">{t('contactForm.email', { defaultValue: 'Email-id' })}</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{formData.email.length}/{LIMITS.email}</p>
+                </div>
                 <input
                   id="email"
                   name="email"
@@ -205,18 +212,20 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.email ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
                   placeholder={t('contactForm.emailPlaceholder', { defaultValue: '' })}
                 />
-                <div className="mt-1 flex items-center justify-between">
+                <div className="mt-1">
                   <p id="email-error" className={`text-sm ${touched.email && errors.email ? 'text-red-400' : 'text-gray-400'}`}>
                     {touched.email && errors.email ? errors.email : ''}
                   </p>
-                  <p className="text-sm text-gray-400">{formData.email.length}/{LIMITS.email}</p>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="location" className="mb-1">
-                  <span className="font-medium text-white">{t('contactForm.location', { defaultValue: 'Location' })}</span>
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="location">
+                    <span className="font-medium text-white">{t('contactForm.location', { defaultValue: 'Location' })}</span>
+                  </label>
+                  <p className="text-sm text-gray-400">{formData.location.length}/{LIMITS.location}</p>
+                </div>
                 <input
                   id="location"
                   name="location"
@@ -229,18 +238,20 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.location ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
                   placeholder={t('contactForm.locationPlaceholder', { defaultValue: '' })}
                 />
-                <div className="mt-1 flex items-center justify-between">
+                <div className="mt-1">
                   <p id="location-error" className={`text-sm ${touched.location && errors.location ? 'text-red-400' : 'text-gray-400'}`}>
                     {touched.location && errors.location ? errors.location : ''}
                   </p>
-                  <p className="text-sm text-gray-400">{formData.location.length}/{LIMITS.location}</p>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="message" className="mb-1">
-                  <span className="font-medium text-white">{t('contactForm.message', { defaultValue: 'Message' })} <span className="text-yellow-400">*</span></span>
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="message">
+                    <span className="font-medium text-white">{t('contactForm.message', { defaultValue: 'Message' })} <span className="text-yellow-400">*</span></span>
+                  </label>
+                  <p className="text-sm text-gray-400">{formData.message.length}/{LIMITS.message}</p>
+                </div>
                 <textarea
                   id="message"
                   name="message"
@@ -254,19 +265,17 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors resize-none ${errors.message ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
                   placeholder={t('contactForm.messagePlaceholder', { defaultValue: '' })}
                 ></textarea>
-                <div className="mt-1 flex items-center justify-between">
+                <div className="mt-1">
                   <p id="message-error" className={`text-sm ${touched.message && errors.message ? 'text-red-400' : 'text-gray-400'}`}>
                     {touched.message && errors.message ? errors.message : ''}
                   </p>
-                  <p className="text-sm text-gray-400">{formData.message.length}/{LIMITS.message}</p>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={!isValid || submitting}
-                className={`w-full px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 text-center ${(!isValid || submitting) ? 'opacity-60 cursor-not-allowed' : ''}`}
-                style={{ backgroundColor: accentColor }}
+                className={`w-full px-6 py-2 bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 inline-flex items-center justify-center ${(!isValid || submitting) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 {submitting ? t('contactForm.sending') : t('contactForm.send')}
               </button>

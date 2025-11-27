@@ -161,7 +161,7 @@ export function HallelWorshipDay() {
             href="https://www.facebook.com/p/Augustine-Dandingi-Official-100063698651483/" 
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center bg-[#FDB813] hover:bg-opacity-80 text-black font-semibold py-3 px-8 rounded-md transition duration-300 transform hover:scale-105 cursor-pointer"
+            className="inline-flex items-center bg-[#FDB813] hover:bg-opacity-80 text-black font-semibold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105 cursor-pointer shadow-md"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
               <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />

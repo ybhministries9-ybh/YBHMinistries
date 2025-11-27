@@ -358,7 +358,14 @@ VideoCard.displayName = 'VideoCard';
 // Submit Testimony Form Component - Memoized for performance
 const SubmitTestimonyForm = memo(() => {
   const { t } = useTranslation('stories');
-  const { register, handleSubmit, formState: { errors }, reset } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
+  const watched = watch();
+  const requiredFilled = Boolean((watched.name || '').toString().trim())
+    && Boolean((watched.email || '').toString().trim())
+    && Boolean((watched.role || '').toString().trim())
+    && Boolean((watched.category || '').toString().trim())
+    && Boolean((watched.location || '').toString().trim())
+    && Boolean((watched.testimony || '').toString().trim());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
@@ -422,10 +429,12 @@ const SubmitTestimonyForm = memo(() => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 text-left">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="name" className="block text-white text-sm font-medium mb-1">{t('form.nameLabel')} <span className="text-[#FDB813]">*</span></label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="name" className="block text-white text-sm font-medium">{t('form.nameLabel')} <span className="text-[#FDB813]">*</span></label>
+                  <p className="text-sm text-gray-400">{(watched.name || '').length}/100</p>
+                </div>
                 <input
                   id="name"
-                  aria-describedby="nameHelp"
                   type="text"
                   maxLength={100}
                   className={`w-full px-4 py-2 bg-black rounded border ${errors.name ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
@@ -436,15 +445,16 @@ const SubmitTestimonyForm = memo(() => {
                     maxLength: { value: 100, message: t('form.nameMaxLength') }
                   })}
                 />
-                <p id="nameHelp" className="text-gray-400 text-xs mt-1">Max 100 characters</p>
                 {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message as string}</p>}
               </div>
               
               <div>
-                <label htmlFor="email" className="block text-white text-sm font-medium mb-1">{t('form.emailLabel')} <span className="text-[#FDB813]">*</span></label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="email" className="block text-white text-sm font-medium">{t('form.emailLabel')} <span className="text-[#FDB813]">*</span></label>
+                  <p className="text-sm text-gray-400">{(watched.email || '').length}/254</p>
+                </div>
                 <input
                   id="email"
-                  aria-describedby="emailHelp"
                   type="email"
                   maxLength={254}
                   className={`w-full px-4 py-2 bg-black rounded border ${errors.email ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
@@ -458,24 +468,24 @@ const SubmitTestimonyForm = memo(() => {
                     maxLength: { value: 254, message: t('form.emailMaxLength') }
                   })}
                 />
-                <p id="emailHelp" className="text-gray-400 text-xs mt-1">Max 254 characters</p>
                 {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message as string}</p>}
               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="role" className="block text-white text-sm font-medium mb-1">{t('form.roleLabel')} <span className="text-[#FDB813]">*</span></label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="role" className="block text-white text-sm font-medium">{t('form.roleLabel')} <span className="text-[#FDB813]">*</span></label>
+                  <p className="text-sm text-gray-400">{(watched.role || '').length}/100</p>
+                </div>
                 <input
                   id="role"
-                  aria-describedby="roleHelp"
                   type="text"
                   maxLength={100}
                   className={`w-full px-4 py-2 bg-black rounded border ${errors.role ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                   placeholder={t('form.rolePlaceholder')}
                   {...register("role", { required: t('form.roleRequired'), maxLength: { value: 100, message: t('form.roleMaxLength') } })}
                 />
-                <p id="roleHelp" className="text-gray-400 text-xs mt-1">Max 100 characters</p>
                 {errors.role && <p className="text-red-400 text-xs mt-1">{errors.role.message as string}</p>}
               </div>
               
@@ -500,31 +510,33 @@ const SubmitTestimonyForm = memo(() => {
                     </option>
                   ))}
                 </select>
-                <p id="categoryHelp" className="text-gray-400 text-xs mt-1">Choose one</p>
                 {errors.category && <p className="text-red-400 text-xs mt-1">{errors.category.message as string}</p>}
               </div>
             </div>
             
             <div>
-              <label htmlFor="location" className="block text-white text-sm font-medium mb-1">{t('form.locationLabel')} <span className="text-[#FDB813]">*</span></label>
+              <div className="mb-1 flex items-center justify-between">
+                <label htmlFor="location" className="block text-white text-sm font-medium">{t('form.locationLabel')} <span className="text-[#FDB813]">*</span></label>
+                <p className="text-sm text-gray-400">{(watched.location || '').length}/100</p>
+              </div>
               <input
                 id="location"
-                aria-describedby="locationHelp"
                 type="text"
                 maxLength={100}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.location ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 placeholder={t('form.locationPlaceholder')}
                 {...register("location", { required: t('form.locationRequired'), maxLength: { value: 100, message: t('form.locationMaxLength') } })}
               />
-              <p id="locationHelp" className="text-gray-400 text-xs mt-1">Max 100 characters</p>
               {errors.location && <p className="text-red-400 text-xs mt-1">{errors.location.message as string}</p>}
             </div>
             
             <div>
-              <label htmlFor="testimony" className="block text-white text-sm font-medium mb-1">{t('form.testimonyLabel')} <span className="text-[#FDB813]">*</span></label>
+              <div className="mb-1 flex items-center justify-between">
+                <label htmlFor="testimony" className="block text-white text-sm font-medium">{t('form.testimonyLabel')} <span className="text-[#FDB813]">*</span></label>
+                <p className="text-sm text-gray-400">{(watched.testimony || '').length}/5000</p>
+              </div>
               <textarea
                 id="testimony"
-                aria-describedby="testimonyHelp"
                 rows={6}
                 maxLength={5000}
                 className={`w-full px-4 py-2 bg-black rounded border ${errors.testimony ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none`}
@@ -535,15 +547,14 @@ const SubmitTestimonyForm = memo(() => {
                   maxLength: { value: 5000, message: t('form.testimonyMaxLength') }
                 })}
               />
-              <p id="testimonyHelp" className="text-gray-400 text-xs mt-1">50–5000 characters</p>
               {errors.testimony && <p className="text-red-400 text-xs mt-1">{errors.testimony.message as string}</p>}
             </div>
             
             <button
               type="submit"
-              disabled={isSubmitting}
-              className={`w-full bg-[#FDB813] hover:bg-[#DAA520] text-black py-3 px-4 rounded font-medium text-center transition-colors ${
-                isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              disabled={isSubmitting || !requiredFilled}
+              className={`w-full py-3 px-4 text-center bg-[#FDB813] shadow-lg text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 ${
+                (isSubmitting || !requiredFilled) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
               }`}
             >
               {isSubmitting ? t('form.submitting') : t('form.submitButton')}
@@ -564,10 +575,29 @@ export function StoriesPage() {
   const [activeTab, setActiveTab] = useState<string>('guinness');
   const [publicStories, setPublicStories] = useState<PublicStory[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({});
+  // Client-side pagination sizes for stories/videos
+  const PAGE_SIZE_TESTIMONIALS = 8;
+  const PAGE_SIZE_VIDEOS = 8;
+  const [testimonialsVisible, setTestimonialsVisible] = useState<number>(PAGE_SIZE_TESTIMONIALS);
+  const [videosVisible, setVideosVisible] = useState<number>(PAGE_SIZE_VIDEOS);
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  // Reset visible counts when tab changes
+  useEffect(() => {
+    setTestimonialsVisible(PAGE_SIZE_TESTIMONIALS);
+    setVideosVisible(PAGE_SIZE_VIDEOS);
+  }, [activeTab]);
+
+  const loadMoreTestimonials = useCallback(() => {
+    setTestimonialsVisible((s) => s + PAGE_SIZE_TESTIMONIALS);
+  }, []);
+
+  const loadMoreVideos = useCallback(() => {
+    setVideosVisible((s) => s + PAGE_SIZE_VIDEOS);
   }, []);
 
   // fetch public stories from DB (approved & visible)
@@ -797,10 +827,21 @@ export function StoriesPage() {
                     <div className="mb-12">
                       <h3 className="text-2xl md:text-3xl text-white mb-6 text-center">{t('testimoniesHeading')}</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
-                        {displayedTestimonials.map((testimonial) => (
-                          <TestimonialCard key={`disp-${testimonial.id}`} testimonial={testimonial} />
-                        ))}
+                              {displayedTestimonials.slice(0, testimonialsVisible).map((testimonial) => (
+                                <TestimonialCard key={`disp-${testimonial.id}`} testimonial={testimonial} />
+                              ))}
                       </div>
+                            {displayedTestimonials.length > testimonialsVisible && (
+                              <div className="mt-6 text-center">
+                                <button
+                                  className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-2 px-6"
+                                  onClick={loadMoreTestimonials}
+                                  style={{ color: '#000' }}
+                                >
+                                  {t('loadMore')}
+                                </button>
+                              </div>
+                            )}
                     </div>
                   )}
 
@@ -816,10 +857,21 @@ export function StoriesPage() {
                         <div className="flex-grow h-px bg-gray-700"></div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
-                        {displayedVideos.map((video) => (
+                        {displayedVideos.slice(0, videosVisible).map((video) => (
                           <VideoCard key={`disp-${video.id}`} video={video} />
                         ))}
                       </div>
+                      {displayedVideos.length > videosVisible && (
+                        <div className="mt-6 text-center">
+                          <button
+                            className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-2 px-6"
+                            onClick={loadMoreVideos}
+                            style={{ color: '#000' }}
+                          >
+                            {t('loadMore')}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>

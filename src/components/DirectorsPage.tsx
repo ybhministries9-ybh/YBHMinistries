@@ -305,32 +305,17 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
             </div>
             
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
-                <button 
-                onClick={() => {
-                  window.location.href = '/contact?tab=getintouch';
-                }}
-                className="px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer"
-                style={{ backgroundColor: accentColor }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#DAA520'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = accentColor}
-              >
-                {t('augustine.buttons.getInTouch')}
-              </button>
-              <button 
-                onClick={() => {
-                  // Resources page reads the tab from the URL hash (e.g. #worship)
-                  window.location.href = '/resources#worship';
-                }}
-                className="px-6 py-3 border rounded-md shadow-sm hover:shadow transition-all duration-300 font-bold cursor-pointer"
-                style={{ borderColor: accentColor, color: accentColor }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = accentColor;
-                  e.currentTarget.style.color = '#000';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = accentColor;
-                }}
+                <button
+                  onClick={() => { window.location.href = '/contact?tab=getintouch'; }}
+                  className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
+                  style={{ color: '#000000' }}
+                >
+                  {t('augustine.buttons.getInTouch')}
+                </button>
+              <button
+                onClick={() => { window.location.href = '/resources#worship'; }}
+                className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
+                style={{ color: '#000000' }}
               >
                 {t('augustine.buttons.worshipSongs')}
               </button>
@@ -459,23 +444,32 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
           <div className="mb-12 max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
             {/* Pill-style tabs */}
             <div className="flex flex-wrap justify-center mb-5 space-x-2 md:space-x-4">
-              <button 
-                className={`px-5 py-2 mb-2 text-sm font-medium transition-all duration-200 rounded-full cursor-pointer ${augustineTab === 'ministries' ? 'text-black shadow-md' : 'text-white bg-[#2E2E2E] hover:bg-[#3E3E3E]'}`}
-                style={augustineTab === 'ministries' ? { backgroundColor: accentColor } : {}}
+              <button
+                className={`px-5 py-2 mb-2 text-sm font-medium transition-all duration-200 rounded-full cursor-pointer ${
+                  augustineTab === 'ministries'
+                    ? 'bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]'
+                    : 'bg-[#2E2E2E] text-white hover:bg-[#3E3E3E] hover:text-black'
+                }`}
                 onClick={() => setAugustineTab('ministries')}
               >
                 {t('augustine.subTabs.ministryOverview')}
               </button>
-              <button 
-                className={`px-5 py-2 mb-2 text-sm font-medium transition-all duration-200 rounded-full cursor-pointer ${augustineTab === 'hallel' ? 'text-black shadow-md' : 'text-white bg-[#2E2E2E] hover:bg-[#3E3E3E]'}`}
-                style={augustineTab === 'hallel' ? { backgroundColor: accentColor } : {}}
+              <button
+                className={`px-5 py-2 mb-2 text-sm font-medium transition-all duration-200 rounded-full cursor-pointer ${
+                  augustineTab === 'hallel'
+                    ? 'bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]'
+                    : 'bg-[#2E2E2E] text-white hover:bg-[#3E3E3E] hover:text-black'
+                }`}
                 onClick={() => setAugustineTab('hallel')}
               >
                 {t('augustine.subTabs.hallelMusicSchool')}
               </button>
-              <button 
-                className={`px-5 py-2 mb-2 text-sm font-medium transition-all duration-200 rounded-full cursor-pointer ${augustineTab === 'teaching' ? 'text-black shadow-md' : 'text-white bg-[#2E2E2E] hover:bg-[#3E3E3E]'}`}
-                style={augustineTab === 'teaching' ? { backgroundColor: accentColor } : {}}
+              <button
+                className={`px-5 py-2 mb-2 text-sm font-medium transition-all duration-200 rounded-full cursor-pointer ${
+                  augustineTab === 'teaching'
+                    ? 'bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]'
+                    : 'bg-[#2E2E2E] text-white hover:bg-[#3E3E3E] hover:text-black'
+                }`}
                 onClick={() => setAugustineTab('teaching')}
               >
                 {t('augustine.subTabs.teachingShofar')}
@@ -659,7 +653,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                           // Navigate to Ministries page and select Hallel Music School tab
                           window.location.href = '/ministries?tab=hallel-music-school';
                         }}
-                        className="px-8 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer inline-flex items-center gap-2"
+                        className="px-8 py-3 bg-[#FDB813] shadow-lg text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer inline-flex items-center gap-2"
                         style={{ backgroundColor: accentColor }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#DAA520'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = accentColor}
@@ -884,14 +878,10 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accent
             </div>
             
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
-              <button 
-                onClick={() => {
-                  window.location.href = '/contact?tab=getintouch';
-                }}
-                className="px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer"
-                style={{ backgroundColor: accentColor }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#DAA520'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = accentColor}
+              <button
+                onClick={() => { window.location.href = '/contact?tab=getintouch'; }}
+                className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
+                style={{ color: '#000000' }}
               >
                 {t('vijaya.buttons.getInTouch')}
               </button>
@@ -1062,14 +1052,10 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accen
             </div>
             
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
-              <button 
-                onClick={() => {
-                  window.location.href = '/contact?tab=getintouch';
-                }}
-                className="px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer"
-                style={{ backgroundColor: accentColor }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#DAA520'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = accentColor}
+              <button
+                onClick={() => { window.location.href = '/contact?tab=getintouch'; }}
+                className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
+                style={{ color: '#000000' }}
               >
                 {t('charles.buttons.getInTouch')}
               </button>
@@ -1233,14 +1219,10 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentC
             </div>
             
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
-              <button 
-                onClick={() => {
-                  window.location.href = '/contact?tab=getintouch';
-                }}
-                className="px-6 py-3 rounded-md shadow-md hover:shadow-lg text-black font-bold transition-all duration-300 cursor-pointer"
-                style={{ backgroundColor: accentColor }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#DAA520'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = accentColor}
+              <button
+                onClick={() => { window.location.href = '/contact?tab=getintouch'; }}
+                className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
+                style={{ color: '#000000' }}
               >
                 {t('nancy.buttons.getInTouch')}
               </button>
