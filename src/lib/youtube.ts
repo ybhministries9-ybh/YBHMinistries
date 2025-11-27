@@ -6,6 +6,8 @@ export function extractYouTubeId(url: string | null | undefined): string | null 
     if (s.includes('youtube.com/watch?v=')) return s.split('v=')[1]?.split('&')[0] || null;
     if (s.includes('youtu.be/')) return s.split('youtu.be/')[1]?.split('?')[0] || null;
     if (s.includes('youtube.com/shorts/')) return s.split('shorts/')[1]?.split('?')[0] || null;
+    // Support live stream short links like: https://www.youtube.com/live/<id>
+    if (s.includes('youtube.com/live/')) return s.split('live/')[1]?.split('?')[0] || null;
   } catch (err) {
     return null;
   }
