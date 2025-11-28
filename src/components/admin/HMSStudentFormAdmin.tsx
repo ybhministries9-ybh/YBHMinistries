@@ -251,7 +251,7 @@ export function HMSStudentFormAdmin({
                   }
                 })}
                 value={display(watch('fullName'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.fullName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.fullName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={100}
                 readOnly
               />
@@ -290,7 +290,7 @@ export function HMSStudentFormAdmin({
                       dateFormat="dd-MM-yyyy"
                       maxDate={new Date()}
                       placeholderText={display(field.value) === '-' ? '-' : t('studentForm.placeholders.dateOfBirth')}
-                      className={`w-full px-4 py-2 bg-black rounded border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                      className={`w-full px-4 py-2 bg-black rounded-md border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                       showPopperArrow={false}
                       disabled
                     />
@@ -309,7 +309,7 @@ export function HMSStudentFormAdmin({
               <select
                 id="gender"
                 {...register('gender', { required: t('studentForm.validation.genderRequired') })}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.gender ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.gender ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 disabled
               >
                 <option value="">{t('studentForm.placeholders.selectGender')}</option>
@@ -335,7 +335,7 @@ export function HMSStudentFormAdmin({
                   maxLength: { value: 200, message: t('studentForm.validation.addressMax') }
                 })}
                 value={display(watch('address'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.address ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.address ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={200}
                 readOnly
               />
@@ -356,7 +356,7 @@ export function HMSStudentFormAdmin({
                   maxLength: { value: 100, message: t('studentForm.validation.cityStateZipMax') }
                 })}
                 value={display(watch('cityStateZip'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.cityStateZip ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.cityStateZip ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={100}
                 readOnly
               />
@@ -382,7 +382,7 @@ export function HMSStudentFormAdmin({
                   }
                 })}
                 value={display(watch('phoneNumber'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={15}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
@@ -411,7 +411,7 @@ export function HMSStudentFormAdmin({
                   }
                 })}
                 value={display(watch('emailId'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emailId ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emailId ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={100}
                 readOnly
               />
@@ -431,7 +431,7 @@ export function HMSStudentFormAdmin({
                   maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
                 })}
                 value={display(watch('parentGuardianName'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.parentGuardianName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={100}
                 readOnly
               />
@@ -456,7 +456,7 @@ export function HMSStudentFormAdmin({
                   }
                 })}
                 value={display(watch('parentGuardianContact'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.parentGuardianContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.parentGuardianContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={15}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
@@ -664,7 +664,7 @@ export function HMSStudentFormAdmin({
                   max: { value: 100, message: t('studentForm.validation.yearsMax') }
                 })}
                 value={display(watch('yearsOfExperience'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 min={0}
                 max={100}
                 placeholder={t('studentForm.placeholders.yearsOfExperience')}
@@ -692,7 +692,7 @@ export function HMSStudentFormAdmin({
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
                 value={display(watch('previousTraining'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.previousTraining ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.previousTraining ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={200}
                 readOnly
               />
@@ -712,7 +712,7 @@ export function HMSStudentFormAdmin({
                   maxLength: { value: 200, message: t('studentForm.validation.textMax200') }
                 })}
                 value={display(watch('musicExamCertifications'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.musicExamCertifications ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.musicExamCertifications ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={200}
                 readOnly
               />
@@ -796,7 +796,7 @@ export function HMSStudentFormAdmin({
               })}
               rows={4}
               value={display(watch('goals'))}
-              className={`w-full px-4 py-2 bg-black rounded border ${errors.goals ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] resize-none`}
+              className={`w-full px-4 py-2 bg-black rounded-md border ${errors.goals ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] resize-none`}
               maxLength={1000}
               readOnly
             />
@@ -897,7 +897,7 @@ export function HMSStudentFormAdmin({
                   maxLength: { value: 100, message: t('studentForm.validation.nameMax') }
                 })}
                 value={display(watch('emergencyName'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emergencyName ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={100}
                 readOnly
               />
@@ -918,7 +918,7 @@ export function HMSStudentFormAdmin({
                   maxLength: { value: 50, message: t('studentForm.validation.relationshipMax') }
                 })}
                 value={display(watch('emergencyRelationship'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={50}
                 readOnly
               />
@@ -944,7 +944,7 @@ export function HMSStudentFormAdmin({
                   }
                 })}
                 value={display(watch('emergencyContact'))}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.emergencyContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emergencyContact ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 maxLength={15}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');

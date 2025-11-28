@@ -164,7 +164,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
     return (
       <div className="w-full text-white px-0">
         <div className="max-w-6xl mx-auto mb-4 px-2">
-              <button onClick={() => router.push('/admin/contacts/getintouch')} className="inline-flex items-center px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg shadow-sm">
+              <button onClick={() => router.push('/admin/contacts/getintouch')} className="inline-flex items-center px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg shadow-sm cursor-pointer">
                 Back to list
               </button>
             </div>
@@ -179,27 +179,27 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 w-full">
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Name</h3>
-                <input disabled value={r.name || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
+                <input disabled value={r.name || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Email</h3>
-                <input disabled value={r.email || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
+                <input disabled value={r.email || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Phone</h3>
-                <input disabled value={r.phone || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
+                <input disabled value={r.phone || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Location</h3>
-                <input disabled value={r.location || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
+                <input disabled value={r.location || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
               <div className="md:col-span-2 min-w-0">
                 <h3 className="text-sm text-gray-300">Message</h3>
-                <textarea disabled value={r.message || '-'} rows={4} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600 resize-none" />
+                <textarea disabled value={r.message || '-'} rows={4} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600 resize-none" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Submitted</h3>
-                <input disabled value={(r.created_at || '').split('T')[0]} className="w-full mt-1 px-4 py-2 bg-black text-white rounded border border-gray-600" />
+                <input disabled value={(r.created_at || '').split('T')[0]} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
             </div>
           </div>
