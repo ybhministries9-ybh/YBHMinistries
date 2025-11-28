@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { ShoppingCart, Play, Download, ExternalLink, Plus, Minus, X, Youtube, Calendar } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { ShoppingCart, Plus, Minus, X, Calendar, Phone } from "lucide-react";
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
 
@@ -42,7 +42,7 @@ export function ResourcesPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const cartRef = useRef<HTMLDivElement | null>(null);
 
-  // Handle hash changes for tab navigation
+ 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
@@ -329,8 +329,11 @@ export function ResourcesPage() {
 
   // Function to get all images for a book (cover + additional)
   const getAllBookImages = (book) => {
-    return [book.coverImage, ...(book.additionalImages || [])];
+    return book ? [book.coverImage, ...(book.additionalImages || [])] : [];
   };
+
+  // Memoize selected book images to avoid re-computing on every render
+  const selectedBookImages = useMemo(() => getAllBookImages(selectedBook), [selectedBook]);
 
   // Format date to be more readable (returns empty string for invalid/missing values)
   const formatDate = (dateInput) => {
@@ -401,6 +404,13 @@ export function ResourcesPage() {
     return String(dt.getDate());
   };
 
+  // Return only the year part of a date-like input
+  const formatYear = (dateInput) => {
+    const dt = parseLocalDate(dateInput);
+    if (!dt) return '';
+    return String(dt.getFullYear());
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Main Content */}
@@ -408,18 +418,16 @@ export function ResourcesPage() {
         {/* Tabs */}
         <div className="mb-12">
           <div className="flex flex-wrap justify-center gap-3">
-            {["books", "worship", "sermons"].map((tab) => {
+            {['books', 'worship', 'sermons'].map((tab) => {
               const isActive = activeTab === tab;
               return (
                 <button
                   key={tab}
-                  className={`px-8 py-2.5 rounded-full font-semibold transition-colors focus:outline-none ${
-                    isActive
-                      ? "bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]"
-                : "bg-[#2E2E2E] text-white hover:bg-[#FDB813] hover:text-black focus:ring-2 focus:ring-offset-2 focus:ring-[#FDB813]"
-                  }`}
+                  type="button"
+                  aria-current={isActive ? 'true' : undefined}
+                  className={`px-8 py-2.5 rounded-full font-semibold transition-colors focus:outline-none ${isActive ? 'bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]' : 'bg-[#2E2E2E] text-white hover:bg-[#FDB813] hover:text-black focus:ring-2 focus:ring-offset-2 focus:ring-[#FDB813]'}`}
                   style={{ cursor: 'pointer' }}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => { setActiveTab(tab); setSelectedBook(null); }}
                 >
                   {t(`tabs.${tab}`)}
                 </button>
@@ -427,29 +435,8 @@ export function ResourcesPage() {
             })}
           </div>
         </div>
-
-        {/* Cart Icon - Positioned below tabs on mobile, top-right on desktop */}
-        {activeTab === "books" && !showCart && (
-          <div className="fixed top-44 right-8 z-[60] md:top-36 lg:top-40">
-            <button 
-              id="cart-icon-button"
-              className={`relative p-3 bg-[#2E2E2E] rounded-full cursor-pointer transition-transform shadow-lg hover:bg-[#3E3E3E] ${cartAnimation ? 'animate-bounce' : ''}`}
-              onClick={() => setShowCart(!showCart)}
-              style={{ cursor: 'pointer' }}
-            >
-              <ShoppingCart size={24} color="white" />
-              {cartItems.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-[#FDB813] rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold" style={{ color: '#000000' }}>
-                  {cartItems.reduce((total, item) => total + item.quantity, 0)}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Books Tab Content */}
         {activeTab === "books" && !selectedBook && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {loading.books ? (
               <div className="col-span-full text-center py-12">
                 <p className="text-white text-lg">Loading books...</p>
@@ -476,25 +463,16 @@ export function ResourcesPage() {
                   <h3 className="text-xl font-bold mb-2">{book.title}</h3>
                   <p className="text-white mb-4">{book.author}</p>
                   
-                  {/* Price and Buttons - fixed at bottom */}
-                  <div className="mt-auto">
-                    <div className="text-[#FDB813] font-bold text-xl mb-3">₹{book.price}</div>
-                    <div className="flex gap-3 justify-center">
-                      <button
-                        className="flex-1 py-2 px-4 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 flex items-center justify-center whitespace-nowrap font-bold"
-                        onClick={() => setSelectedBook(book)}
-                        style={{ cursor: 'pointer', color: '#000000' }}
-                      >
-                        {t('buttons.details')}
-                      </button>
-                      <button
-                        className="flex-1 py-2 px-4 bg-[#FDB813] rounded hover:bg-[#e5a711] hover:scale-102 transition-all duration-200 flex items-center justify-center whitespace-nowrap font-bold"
-                        onClick={() => addToCart(book)}
-                        style={{ cursor: 'pointer', color: '#000000' }}
-                      >
-                        {t('buttons.addToCart')}
-                      </button>
-                    </div>
+                  {/* Price and Details button: price left, Details button right (Add to Cart removed) */}
+                  <div className="mt-auto flex items-center justify-between">
+                    <div className="text-[#FDB813] font-bold text-xl">₹{book.price}</div>
+                    <button
+                      className="py-2 px-4 bg-[#FDB813] rounded-full hover:bg-[#e5a711] transition-all duration-200 flex items-center justify-center whitespace-nowrap font-bold"
+                      onClick={() => setSelectedBook(book)}
+                      style={{ cursor: 'pointer', color: '#000000' }}
+                    >
+                      {t('buttons.details')}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -506,7 +484,7 @@ export function ResourcesPage() {
         {activeTab === "books" && selectedBook && (
           <div className="bg-[#2E2E2E] rounded-lg overflow-hidden shadow-lg">
             <button
-              className="ml-4 mt-4 px-4 py-2 bg-[#FDB813] rounded hover:bg-opacity-80 transition-colors font-bold"
+              className="ml-4 mt-4 px-4 py-2 bg-[#FDB813] rounded-full hover:bg-opacity-80 transition-colors font-bold"
               onClick={() => setSelectedBook(null)}
               style={{ cursor: 'pointer', color: '#000000' }}
             >
@@ -585,15 +563,36 @@ export function ResourcesPage() {
                   <h3 className="text-xl font-semibold mb-2">{t('books.detailsLabel')}</h3>
                   <p className="text-gray-300">{t('books.languageLabel')}: {formatLanguage(selectedBook.language)}</p>
                   <p className="text-gray-300">{t('books.pagesLabel')}: {selectedBook.pages}</p>
-                  <p className="text-gray-300">{t('books.publishedLabel')}: {formatDate(selectedBook.publishDate)}</p>
+                  <p className="text-gray-300">{t('books.publishedLabel')}: {formatYear(selectedBook.publishDate)}</p>
                 </div>
-                <button
-                  className="px-6 py-3 bg-[#FDB813] rounded-lg hover:bg-opacity-80 transition-colors font-bold"
-                  onClick={() => addToCart(selectedBook)}
-                  style={{ cursor: 'pointer', color: '#000000' }}
-                >
-                  {t('buttons.addToCart')}
-                </button>
+                {/* Order books (localized) */}
+                <div className="mt-8 border-t border-gray-700 pt-6">
+                  <h3 className="text-xl font-semibold mb-3">{t('books.orderTitle')}</h3>
+                  <p className="text-gray-300 mb-4">{t('books.orderText')}</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <a
+                      href="https://wa.me/918309655233"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] rounded-full font-bold hover:opacity-90"
+                      style={{ color: '#000000' }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+                        <path d="M20.52 3.48A11.94 11.94 0 0012 0C5.373 0 0 5.373 0 12c0 2.11.55 4.08 1.6 5.84L0 24l6.35-1.59A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12 0-3.19-1.24-6.17-3.48-8.52zM12 21.5a9.5 9.5 0 01-4.89-1.27l-.35-.21-3.77.95.96-3.69-.22-.37A9.5 9.5 0 1121.5 12 9.5 9.5 0 0112 21.5zM17.3 14.9c-.3-.15-1.77-.87-2.05-.97-.28-.11-.48-.16-.69.16-.21.33-.78.97-.96 1.17-.18.21-.37.24-.68.08-.3-.16-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.08-.17-.31-.02-.48.13-.63.13-.12.3-.33.45-.5.15-.17.2-.28.3-.46.09-.18.04-.34-.02-.49-.06-.14-.69-1.65-.95-2.25-.25-.59-.51-.51-.69-.52-.18-.01-.39-.01-.59-.01-.2 0-.52.07-.79.34-.27.27-1.02 1-1.02 2.45 0 1.45 1.05 2.85 1.2 3.04.15.19 2.07 3.34 5.02 4.68 2.95 1.34 2.95.89 3.48.83.53-.06 1.77-.72 2.02-1.41.25-.69.25-1.28.18-1.41-.07-.13-.27-.21-.57-.36z" />
+                      </svg>
+                      <span>{t('books.whatsappLabel')}</span>
+                    </a>
+
+                    <a
+                      href="tel:+918309655233"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] rounded-full font-bold hover:opacity-90"
+                      style={{ color: '#000000' }}
+                    >
+                      <Phone size={16} />
+                      <span>{t('books.callLabel')}</span>
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
