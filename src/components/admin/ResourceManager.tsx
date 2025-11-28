@@ -829,7 +829,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           value={book.title}
                           onChange={(e) => handleUpdate(book.id, { title: e.target.value })}
                           placeholder="Book Title"
-                          className="bg-black border-gray-600 text-white text-lg mb-2"
+                          className="bg-[#2e2e2e] border-gray-600 text-white text-lg mb-2"
+                          style={{ backgroundColor: '#2e2e2e' }}
                           maxLength={TITLE_MAX}
                           aria-invalid={!!formErrors[book.id]?.title}
                           aria-describedby={formErrors[book.id]?.title ? `error-${book.id}-title` : undefined}
@@ -906,7 +907,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                             value={book.author}
                             onChange={(e) => handleUpdate(book.id, { author: e.target.value })}
                             placeholder="Author Name"
-                            className="bg-black border-gray-600 text-white"
+                          className="bg-[#2e2e2e] border-gray-600 text-white"
+                          style={{ backgroundColor: '#2e2e2e' }}
                             disabled={!isEditing}
                             maxLength={AUTHOR_MAX}
                             aria-invalid={!!formErrors[book.id]?.author}
@@ -926,7 +928,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           value={book.language}
                           onChange={(e) => handleUpdate(book.id, { language: e.target.value })}
                           placeholder="Language"
-                          className="bg-black border-gray-600 text-white"
+                          className="bg-[#2e2e2e] border-gray-600 text-white"
+                          style={{ backgroundColor: '#2e2e2e' }}
                           disabled={!isEditing}
                           maxLength={LANGUAGE_MAX}
                           aria-invalid={!!formErrors[book.id]?.language}
@@ -947,7 +950,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           value={book.price === undefined ? '' : book.price}
                           onChange={(e) => handleUpdate(book.id, { price: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
                           placeholder="Price (₹)"
-                          className="bg-black border-gray-600 text-white"
+                          className="bg-[#2e2e2e] border-gray-600 text-white"
+                          style={{ backgroundColor: '#2e2e2e' }}
                           disabled={!isEditing}
                           min={PRICE_MIN}
                           max={PRICE_MAX}
@@ -970,7 +974,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           value={book.pages === undefined ? '' : book.pages}
                           onChange={(e) => handleUpdate(book.id, { pages: e.target.value === '' ? undefined : parseInt(e.target.value) })}
                           placeholder="Number of Pages"
-                          className="bg-black border-gray-600 text-white"
+                          className="bg-[#2e2e2e] border-gray-600 text-white"
+                          style={{ backgroundColor: '#2e2e2e' }}
                           disabled={!isEditing}
                           min={PAGES_MIN}
                           max={PAGES_MAX}
@@ -989,7 +994,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           value={toDateInputValue(book.publishDate)}
                           onChange={(e) => handleUpdate(book.id, { publishDate: e.target.value })}
                           placeholder="Publish Date"
-                          className="bg-black border-gray-600 text-white"
+                          className="bg-[#2e2e2e] border-gray-600 text-white"
+                          style={{ backgroundColor: '#2e2e2e' }}
                           disabled={!isEditing}
                           aria-invalid={!!formErrors[book.id]?.publishDate}
                           aria-describedby={formErrors[book.id]?.publishDate ? `error-${book.id}-publishDate` : undefined}
@@ -1009,7 +1015,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                         value={book.description}
                         onChange={(e) => handleUpdate(book.id, { description: e.target.value })}
                         placeholder="Book description"
-                        className="bg-black border-gray-600 text-white"
+                        className="bg-[#2e2e2e] border-gray-600 text-white"
+                        style={{ backgroundColor: '#2e2e2e' }}
                         rows={3}
                         disabled={!isEditing}
                         maxLength={DESCRIPTION_MAX}

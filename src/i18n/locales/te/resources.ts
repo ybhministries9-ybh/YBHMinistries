@@ -13,55 +13,59 @@ export default {
   },
   buttons: {
     details: "వివరాలు",
-    addToCart: "కార్ట్‌కు జోడించండి",
-    backToBooks: "పుస్తకాలకు తిరిగి వెళ్ళండి",
+    addToCart: "కార్ట్‌లో జోడించండి",
+    backToBooks: "పుస్తకాలకు వెనక్కి",
     watchOnYoutube: "యూట్యూబ్‌లో చూడండి",
-    viewMore: "మరిన్ని చూడండి",
+    viewMore: "మరిన్ని",
     showLess: "తక్కువ చూపించండి",
-    checkout: "చెక్అవుట్‌కు వెళ్ళండి",
+    checkout: "చెకౌట్",
     continueShopping: "షాపింగ్ కొనసాగించండి",
     loadMore: "మరిన్ని లోడ్ చేయండి..."
   },
   books: {
     title: "సంగీత పుస్తకాలు",
-    description: "మా ఆరాధన సంగీత పుస్తకాల సేకరణను డౌన్‌లోడ్ చేయండి లేదా కొనుగోలు చేయండి",
+    description: "మా ఆరాధన సంగీత పుస్తకాల సేకరణను డౌన్‌లోడ్ చేయండి లేదా కొనుగోలుకు పొందండి",
     author: "రచయిత",
     pages: "పేజీలు",
     price: "ధర",
     language: "భాష",
     publishDate: "ప్రచురణ తేదీ",
-    preview: "ముందస్తు వీక్షణ",
-    outOfStock: "స్టాక్ అయిపోయింది",
+    preview: "ప్రీవ్యూ",
+    outOfStock: "స్టాక్ లేరు",
     fullDescription: "పూర్తి వివరణ",
-    additionalInfo: "అదనపు సమాచారం",
-    by: "రచయిత",
+    additionalInfo: "అదనపు వివరాలు",
+    by: "ద్వారా",
     descriptionLabel: "వివరణ",
     detailsLabel: "వివరాలు",
     languageLabel: "భాష",
     pagesLabel: "పేజీలు",
-    publishedLabel: "ప్రచురించబడింది"
+    publishedLabel: "ప్రచురించిన సంవత్సరం",
+    orderTitle: "పుస్తకాలు ఆర్డర్ చేయండి",
+    orderText: "పుస్తకాలను ఆర్డర్ చేయడానికి దయచేసి పాస్టర్ ఆగస్టైన్ డండింగిని వాట్సాప్ లేదా కాల్ ద్వారా సంప్రదించండి.",
+    whatsappLabel: "వాట్సాప్",
+    callLabel: "కాల్"
   },
   worship: {
     title: "ఆరాధన పాటలు",
     description: "మా ఆరాధన పాటల సేకరణను వినండి",
     artist: "కళాకారుడు",
     duration: "వ్యవధి",
-    uploaded: "అప్‌లోడ్ చేయబడింది",
-    play: "ప్లే చేయండి",
-    download: "డౌన్‌లోడ్ చేయండి",
-    lyrics: "సాహిత్యం",
-    chords: "తంతులు",
+    uploaded: "అప్‌లోడ్ చేసినది",
+    play: "ప్లే",
+    download: "డౌన్‌లోడ్",
+    lyrics: "పాట సాహిత్యం",
+    chords: "కార్డ్స్",
     latestFirst: "తాజావి మొదట"
   },
   sermons: {
     title: "ప్రసంగాలు",
-    description: "మా ప్రసంగ లైబ్రరీ నుండి చూడండి మరియు నేర్చుకోండి",
+    description: "మా ప్రసంగ లైబ్రరీని చూడండి మరియు నేర్చుకోండి",
     speaker: "వక్త",
     duration: "వ్యవధి",
     date: "తేదీ",
     watch: "చూడండి",
     listen: "వినండి",
-    notes: "ప్రసంగ గమనికలు"
+    notes: "ప్రసంగ నోట్స్"
   },
   bibleStudies: {
     title: "బైబిల్ అధ్యయనాలు",
@@ -71,8 +75,8 @@ export default {
     date: "తేదీ",
     fileType: "ఫైల్ రకం",
     read: "చదవండి",
-    download: "డౌన్‌లోడ్ చేయండి",
-    studyGuide: "అధ్యయన మార్గదర్శి",
+    download: "డౌన్‌లోడ్",
+    studyGuide: "అధ్యయన మార్గదర్శకము",
     lessons: "పాఠాలు"
   },
   cart: {
@@ -80,25 +84,25 @@ export default {
     items: "వస్తువులు",
     item: "వస్తువు",
     quantity: "పరిమాణం",
-    subtotal: "ఉప మొత్తం",
+    subtotal: "ఉప మొత్తము",
     total: "మొత్తం",
-    checkout: "చెక్అవుట్",
+    checkout: "చెకౌట్",
     empty: "మీ కార్ట్ ఖాళీగా ఉంది.",
-    emptyDescription: "ప్రారంభించడానికి మీ కార్ట్‌కు కొన్ని పుస్తకాలను జోడించండి!",
-    remove: "తొలగించండి",
+    emptyDescription: "ప్రారంభించడానికి మీ కార్ట్‌లో కొన్ని పుస్తకాలను జోడించండి!",
+    remove: "తొలగించు",
     continueShopping: "షాపింగ్ కొనసాగించండి"
   },
   filters: {
     all: "అన్ని",
-    recent: "ఇటీవల జోడించినవి",
-    popular: "అత్యంత జనాదరణ పొందినవి",
+    recent: "ఇటీవల జోడించబడినవి",
+    popular: "ప్రసిద్ధమైనవి",
     free: "ఉచితం",
-    paid: "చెల్లించవలసినది"
+    paid: "చెల్లింపుతో"
   },
   search: {
-    placeholder: "వనరులను శోధించండి...",
-    noResults: "మీ శోధనకు సరిపోలే వనరులు కనుగొనబడలేదు"
+    placeholder: "వనరులను వెతకండి...",
+    noResults: "మీ శోధనకు సరిపడే వనరులు కనపడలేదు"
   },
   currency: "₹",
-  min: "నిమి"
+  min: "నిమిషం"
 };

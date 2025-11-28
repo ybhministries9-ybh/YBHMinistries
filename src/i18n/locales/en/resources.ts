@@ -39,7 +39,11 @@ export default {
     detailsLabel: "Details",
     languageLabel: "Language",
     pagesLabel: "Pages",
-    publishedLabel: "Published"
+    publishedLabel: "Last Published",
+    orderTitle: "Order books",
+    orderText: "Contact Ps. Augustine Dandingi over WhatsApp or call to order books.",
+    whatsappLabel: "WhatsApp",
+    callLabel: "Call"
   },
   worship: {
     title: "Worship Songs",
