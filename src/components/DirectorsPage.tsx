@@ -449,8 +449,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                   <div className="grid gap-0 overflow-hidden rounded-lg md:grid-cols-5">
                     <div className="hidden overflow-hidden md:block md:col-span-2">
                       <ImageWithFallback
-                        src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
-                        alt="Worship service"
+                        src="/images/directors/ybhm.jpg"
+                        alt="Yeshua Beth Hallel Ministries"
                         className="object-cover w-full h-full"
                       />
                     </div>
@@ -552,7 +552,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                     </div>
                     <div className="hidden overflow-hidden md:block md:col-span-2">
                       <ImageWithFallback
-                        src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
+                        src="/images/ministries/hms/hms_c.jpg"
                         alt="Music keyboard"
                         className="object-cover w-full h-full"
                       />

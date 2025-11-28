@@ -146,7 +146,7 @@ export function HallelBibleCollege() {
           <div className="flex flex-col md:flex-row gap-8 items-center">
             <div className="md:w-1/2">
               <ImageWithFallback 
-                src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+                src="/images/ministries/college/1.jpg"
                 alt="Life at Hallel Bible College"
                 className="w-full h-64 md:h-96 object-cover rounded-lg"
               />

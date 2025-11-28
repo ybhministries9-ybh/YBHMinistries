@@ -67,11 +67,11 @@ export function HallelConferences() {
             </div>
             {/* Image Content */}
             <div className="md:w-2/5 w-full order-1 md:order-2">
-              <div className="w-full aspect-square overflow-hidden rounded-lg shadow-lg">
+              <div className="w-full aspect-square overflow-hidden rounded-lg shadow-lg bg-black">
                 <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80"
+                  src="/images/ministries/conference/1.jpg"
                   alt="People worshiping at Hallel Conference"
-                  className="w-full h-full object-cover"
+                  className="block w-full h-full object-contain bg-black"
                 />
               </div>
             </div>
@@ -150,11 +150,11 @@ export function HallelConferences() {
             </div>
             {/* Image Column */}
             <div className="md:w-2/5 w-full order-1 md:order-2">
-              <div className="w-full aspect-square overflow-hidden rounded-lg shadow-lg">
+              <div className="w-full aspect-square overflow-hidden rounded-lg shadow-lg bg-black">
                 <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1522199710521-72d69614c702?auto=format&fit=crop&w=800&q=80"
+                  src="/images/ministries/conference/2.jpg"
                   alt="Hands lifted in worship"
-                  className="w-full h-full object-cover"
+                  className="block w-full h-full object-contain bg-black"
                 />
               </div>
             </div>
