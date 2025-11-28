@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Edit2, Calendar, X, ChevronDown, ChevronUp, Save, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Edit2, Calendar, X, Save, Loader2, Eye, EyeOff } from 'lucide-react';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -175,6 +175,8 @@ export function EventsManager() {
       if (result.success) {
         toast.success(isNew ? 'Event created successfully' : 'Event updated successfully');
         setEditingId(null);
+        // Close the expanded edit form and show the card
+        setExpandedId(null);
         // If we uploaded a file for this event, clear the selected file reference
         if (selectedFile) selectedFilesRef.current.delete(event.id);
         fetchEvents(); // Refresh the list
@@ -527,20 +529,17 @@ export function EventsManager() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button
-                      title={event.published ? 'Unpublish event' : 'Publish event'}
-                      onClick={() => togglePublished(event)}
-                      className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
-                    >
-                      {event.published ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </Button>
-                    <Button
-                      title={isExpanded ? 'Collapse' : 'Expand'}
-                      onClick={() => setExpandedId(isExpanded ? null : event.id)}
-                      className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
-                    >
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </Button>
+                    {/* Show publish/unpublish button only when not editing the event (keep it on the card only) */}
+                    {!isEditing && (
+                      <Button
+                        title={event.published ? 'Unpublish event' : 'Publish event'}
+                        onClick={() => togglePublished(event)}
+                        className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
+                      >
+                        {event.published ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    )}
+                    {/* Expand/collapse button removed as requested */}
                     {!isEditing && (
                       <>
                         <Button

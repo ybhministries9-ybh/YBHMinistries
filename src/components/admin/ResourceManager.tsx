@@ -1350,13 +1350,6 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
                 {video.published ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
               <button
-                title="Edit"
-                onClick={() => setEditingId(video.id)}
-                className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
-              >
-                <Edit2 size={14} />
-              </button>
-              <button
                 title="Delete"
                 onClick={() => handleDelete(video.id)}
                 className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
@@ -1962,7 +1955,6 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
 
             <div className="absolute top-2 right-2 z-30 flex items-center gap-2">
               <button title={sermon.published ? 'Unpublish' : 'Publish'} onClick={() => togglePublishedSermon(sermon.id)} className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white">{sermon.published ? <EyeOff size={14} /> : <Eye size={14} />}</button>
-              <button title="Edit" onClick={() => setEditingId(sermon.id)} className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"><Edit2 size={14} /></button>
               <button title="Delete" onClick={() => handleDelete(sermon.id)} className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"><Trash2 size={14} /></button>
             </div>
           </div>

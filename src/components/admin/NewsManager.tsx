@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Calendar, BarChart3, ChevronUp, ChevronDown, X, Eye, EyeOff, Save } from 'lucide-react';
+import { Plus, Trash2, Edit2, Calendar, BarChart3, X, Eye, EyeOff, Save } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -267,6 +267,8 @@ function ReportsManager() {
 
         if (result.success) {
           setEditingId(null);
+          // Close expanded form and show card
+          setExpandedReport(null);
           toast.success('Report saved successfully');
         } else {
           toast.error(result.error || 'Failed to save report');
@@ -427,14 +429,7 @@ function ReportsManager() {
                     >
                       {report.published ? <EyeOff size={14} /> : <Eye size={14} />}
                     </Button>
-                    <Button
-                      title={isExpanded ? 'Collapse' : 'Expand'}
-                      onClick={() => setExpandedReport(isExpanded ? null : report.id)}
-                      size="sm"
-                      className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
-                    >
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </Button>
+                    {/* Expand/collapse control removed per request */}
                     {!isEditing && (
                       <>
                         <Button
