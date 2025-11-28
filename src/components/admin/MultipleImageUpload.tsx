@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, X, Loader2, CheckCircle2, AlertCircle, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 
@@ -106,7 +106,7 @@ interface UploadedImage {
 }
 
 interface MultipleImageUploadProps {
-  onUploadComplete: (images: { url: string; category: string }[]) => void;
+  onUploadComplete: (images: { url: string; file?: File; category: string }[]) => void;
   onClose: () => void;
   category: string;
   maxSizeMB?: number;
@@ -116,11 +116,13 @@ export function MultipleImageUpload({
   onUploadComplete, 
   onClose,
   category,
-  maxSizeMB = 5
+  maxSizeMB = 2
 }: MultipleImageUploadProps) {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  // Track generated object URLs so we can revoke them when images are removed or component unmounts
+  const generatedUrlsRef = useRef<Set<string>>(new Set());
   // Only support file upload mode
 
   const processFiles = async (files: FileList | File[]) => {
@@ -179,40 +181,27 @@ export function MultipleImageUpload({
             fileToUpload = image.file;
           }
         }
-        // Upload to Vercel Blob via /api/upload
-        const formData = new FormData();
-        formData.append('file', fileToUpload);
-        formData.append('folder', category);
+        // Do not upload now — just create a preview and mark complete. Parent will upload on Save.
         try {
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          const result = await response.json();
-          if (response.ok && result.url) {
-            setUploadedImages(prev => prev.map(img =>
-              img.id === image.id
-                ? {
-                    ...img,
-                    status: 'complete' as const,
-                    preview: result.url,
-                    originalSize: fileToUpload.size,
-                    compressedSize: fileToUpload.size,
-                    compressionRatio: shouldCompress ? Math.round((1 - fileToUpload.size / image.file.size) * 100) : 0
-                  }
-                : img
-            ));
-          } else {
-            setUploadedImages(prev => prev.map(img =>
-              img.id === image.id
-                ? { ...img, status: 'error' as const, error: result.error || 'Failed to upload image' }
-                : img
-            ));
-          }
+          const p = previewUrl || URL.createObjectURL(fileToUpload);
+          try { generatedUrlsRef.current.add(p); } catch (e) {}
+          setUploadedImages(prev => prev.map(img =>
+            img.id === image.id
+              ? {
+                  ...img,
+                  status: 'complete' as const,
+                  preview: p,
+                  originalSize: image.file.size,
+                  compressedSize: fileToUpload.size,
+                  compressionRatio: shouldCompress ? Math.round((1 - fileToUpload.size / image.file.size) * 100) : 0,
+                  file: fileToUpload,
+                }
+              : img
+          ));
         } catch (err) {
           setUploadedImages(prev => prev.map(img =>
             img.id === image.id
-              ? { ...img, status: 'error' as const, error: 'Failed to upload image' }
+              ? { ...img, status: 'error' as const, error: 'Failed to process preview' }
               : img
           ));
         }
@@ -253,8 +242,28 @@ export function MultipleImageUpload({
   }, []);
 
   const removeImage = (id: string) => {
+    // revoke object URL if we generated one for this image
+    try {
+      const img = uploadedImages.find(i => i.id === id);
+      if (img && img.preview && img.preview.startsWith('blob:') && generatedUrlsRef.current.has(img.preview)) {
+        try { URL.revokeObjectURL(img.preview); } catch (e) {}
+        generatedUrlsRef.current.delete(img.preview);
+      }
+    } catch (e) {}
     setUploadedImages(prev => prev.filter(img => img.id !== id));
   };
+
+  // cleanup generated object URLs on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        for (const u of generatedUrlsRef.current) {
+          try { URL.revokeObjectURL(u); } catch (e) {}
+        }
+        generatedUrlsRef.current.clear();
+      } catch (e) {}
+    };
+  }, []);
 
   // URL management functions
   // Removed URL management functions
@@ -265,6 +274,7 @@ export function MultipleImageUpload({
       .filter(img => img.status === 'complete')
       .map(img => ({
         url: img.preview,
+        file: img.file,
         category
       }));
     onUploadComplete(validImages);
@@ -313,7 +323,7 @@ export function MultipleImageUpload({
                 <p className="text-sm text-gray-300 mb-1">
                   <span className="font-semibold">Click to upload</span> or drag and drop
                 </p>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF, WebP up to {maxSizeMB}MB per file</p>
+                <p className="text-xs text-gray-500">PNG, JPG to {maxSizeMB}MB per file</p>
                 <p className="text-xs text-[#FDB813] mt-2">
                   ✨ Select multiple files at once
                 </p>
@@ -410,12 +420,15 @@ export function MultipleImageUpload({
                     </div>
 
                     {/* Remove Button */}
-                    <button
+                    <Button
                       onClick={() => removeImage(image.id)}
-                      className="absolute top-2 right-2 p-1 bg-black/70 rounded-full text-white hover:bg-red-600 transition-colors z-10"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2 z-10"
+                      type="button"
                     >
-                      <X size={14} />
-                    </button>
+                      <X size={16} />
+                    </Button>
                   </div>
                 ))}
               </div>

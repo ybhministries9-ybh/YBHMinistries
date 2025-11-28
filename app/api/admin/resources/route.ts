@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@vercel/blob';
+import { parseKeyFromUrl, deleteObject } from '@/lib/r2';
 import { sql } from '@vercel/postgres';
 import { getActorName } from '@/lib/sessions';
 
@@ -32,6 +33,33 @@ function validateBook(data: any) {
   else if (String(data.language).length > LANGUAGE_MAX) errors.language = `Language must be at most ${LANGUAGE_MAX} characters`;
 
   if (!data.cover_image || String(data.cover_image).trim().length === 0) errors.cover_image = 'Cover image is required';
+
+  if (!data.publish_date || String(data.publish_date).trim().length === 0) errors.publish_date = 'Publish date is required';
+
+  const price = toNumber(data.price);
+  if (Number.isNaN(price)) errors.price = 'Price is required';
+  else if (price < PRICE_MIN || price > PRICE_MAX) errors.price = `Price must be between ${PRICE_MIN} and ${PRICE_MAX}`;
+
+  const pages = toNumber(data.pages);
+  if (Number.isNaN(pages)) errors.pages = 'Pages is required';
+  else if (pages < PAGES_MIN || pages > PAGES_MAX) errors.pages = `Pages must be between ${PAGES_MIN} and ${PAGES_MAX}`;
+
+  if (data.description && String(data.description).length > DESCRIPTION_MAX) errors.description = `Description must be at most ${DESCRIPTION_MAX} characters`;
+
+  return Object.keys(errors).length ? errors : null;
+}
+
+// Relaxed validation for creating books: allow missing cover_image initially
+function validateBookForCreate(data: any) {
+  const errors: Record<string, string> = {};
+  if (!data.title || String(data.title).trim().length === 0) errors.title = 'Title is required';
+  else if (String(data.title).length > TITLE_MAX) errors.title = `Title must be at most ${TITLE_MAX} characters`;
+
+  if (!data.author || String(data.author).trim().length === 0) errors.author = 'Author is required';
+  else if (String(data.author).length > AUTHOR_MAX) errors.author = `Author must be at most ${AUTHOR_MAX} characters`;
+
+  if (!data.language || String(data.language).trim().length === 0) errors.language = 'Language is required';
+  else if (String(data.language).length > LANGUAGE_MAX) errors.language = `Language must be at most ${LANGUAGE_MAX} characters`;
 
   if (!data.publish_date || String(data.publish_date).trim().length === 0) errors.publish_date = 'Publish date is required';
 
@@ -173,7 +201,7 @@ export async function POST(request: NextRequest) {
     const actor = await getActorName((request.headers.get('authorization') || '').startsWith('Bearer ') ? (request.headers.get('authorization') || '').slice(7) : (request.headers.get('authorization') || '') || null);
     // Server-side validation
     let validationErrors: Record<string, string> | null = null;
-    if (type === 'books') validationErrors = validateBook(data);
+    if (type === 'books') validationErrors = validateBookForCreate(data);
     else if (type === 'worship') validationErrors = validateWorship(data);
     else if (type === 'sermons') validationErrors = validateSermon(data);
     else if (type === 'bibleStudies') validationErrors = validateBibleStudy(data);
@@ -281,15 +309,20 @@ export async function PUT(request: NextRequest) {
     }
 
     const data = await request.json();
-    // Server-side validation for updates
-    let validationErrors: Record<string, string> | null = null;
-    if (type === 'books') validationErrors = validateBook(data);
-    else if (type === 'worship') validationErrors = validateWorship(data);
-    else if (type === 'sermons') validationErrors = validateSermon(data);
-    else if (type === 'bibleStudies') validationErrors = validateBibleStudy(data);
+    // Allow a minimal publish/unpublish update for `books` when the client only sends { published: true|false }
+    const isBooksPartialPublish = (type === 'books' && typeof data === 'object' && data !== null && Object.keys(data).length === 1 && Object.prototype.hasOwnProperty.call(data, 'published'));
 
-    if (validationErrors) {
-      return NextResponse.json({ success: false, errors: validationErrors }, { status: 400 });
+    // Server-side validation for updates (skip full book validation when doing a minimal publish update)
+    let validationErrors: Record<string, string> | null = null;
+    if (!isBooksPartialPublish) {
+      if (type === 'books') validationErrors = validateBook(data);
+      else if (type === 'worship') validationErrors = validateWorship(data);
+      else if (type === 'sermons') validationErrors = validateSermon(data);
+      else if (type === 'bibleStudies') validationErrors = validateBibleStudy(data);
+
+      if (validationErrors) {
+        return NextResponse.json({ success: false, errors: validationErrors }, { status: 400 });
+      }
     }
 
     // resolve actor (server-side)
@@ -299,24 +332,84 @@ export async function PUT(request: NextRequest) {
 
     switch (type) {
       case 'books':
-        // server-side validation already performed above
-        result = await sql`
-          UPDATE books
-          SET title = ${data.title},
-              author = ${data.author},
-              price = ${data.price},
-              pages = ${data.pages},
-              language = ${data.language},
-              cover_image = ${data.cover_image},
-              additional_images = ${JSON.stringify(data.additional_images || [])},
-              description = ${data.description},
-              publish_date = ${data.publish_date},
-              published = ${data.published},
-              updated_by = ${actor},
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = ${id}
-          RETURNING *
-        `;
+        // If this is a minimal publish/unpublish update, only touch the `published` column.
+        if (isBooksPartialPublish) {
+          result = await sql`
+            UPDATE books
+            SET published = ${data.published},
+                updated_by = ${actor},
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ${id}
+            RETURNING *
+          `;
+        } else {
+          // full update for books (server-side validation already performed above)
+          // Attempt to delete any removed additional images (and old cover if replaced) from storage
+          try {
+            const selectRes = await sql`SELECT cover_image, additional_images FROM books WHERE id = ${id}`;
+            const row = selectRes.rows[0];
+            if (row) {
+              const oldCover = row.cover_image;
+              const oldAdditional: string[] = Array.isArray(row.additional_images) ? row.additional_images : [];
+              const newAdditional: string[] = Array.isArray(data.additional_images) ? data.additional_images : [];
+
+              // Helper to attempt deletion from Vercel Blob or R2 (depending on URL form)
+              const tryDelete = async (url: string) => {
+                if (!url || typeof url !== 'string') return;
+                try {
+                  if (url.includes('blob.vercel-storage.com')) {
+                    try { await del(url); return; } catch (e) { console.error('Vercel blob delete failed for', url, e); }
+                  }
+
+                  if (url.startsWith('r2://')) {
+                    const parsed = parseKeyFromUrl(url);
+                    if (parsed && parsed.key) {
+                      try { await deleteObject(parsed.key, parsed.bucket || undefined); return; } catch (e) { console.error('R2 deleteObject failed for', parsed, e); }
+                    }
+                  }
+
+                  const parsed2 = parseKeyFromUrl(url);
+                  if (parsed2 && parsed2.key) {
+                    try { await deleteObject(parsed2.key, parsed2.bucket || undefined); return; } catch (e) { console.error('R2 deleteObject failed for parsed public URL', parsed2, e); }
+                  }
+                } catch (err) {
+                  console.error('Failed to delete blob/R2 object for URL', url, err);
+                }
+              };
+
+              // If cover was replaced, delete the old cover (and not equal to new)
+              if (oldCover && typeof data.cover_image === 'string' && oldCover !== data.cover_image) {
+                await tryDelete(oldCover);
+              }
+
+              // Delete any additional images that were removed
+              const toDelete = oldAdditional.filter(x => x && !newAdditional.includes(x));
+              for (const url of toDelete) {
+                await tryDelete(url);
+              }
+            }
+          } catch (err) {
+            console.error('Error while attempting to delete replaced/removed book images:', err);
+          }
+
+          result = await sql`
+            UPDATE books
+            SET title = ${data.title},
+                author = ${data.author},
+                price = ${data.price},
+                pages = ${data.pages},
+                language = ${data.language},
+                cover_image = ${data.cover_image},
+                additional_images = ${JSON.stringify(data.additional_images || [])},
+                description = ${data.description},
+                publish_date = ${data.publish_date},
+                published = ${data.published},
+                updated_by = ${actor},
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ${id}
+            RETURNING *
+          `;
+        }
         break;
 
       case 'worship':
@@ -415,7 +508,7 @@ export async function DELETE(request: NextRequest) {
 
     switch (type) {
       case 'books':
-        // Fetch image URLs before deleting the DB record so we can remove blobs
+        // Fetch image URLs before deleting the DB record so we can remove blobs (Vercel Blob or R2)
         try {
           const selectRes = await sql`SELECT cover_image, additional_images FROM books WHERE id = ${id}`;
           const row = selectRes.rows[0];
@@ -423,24 +516,51 @@ export async function DELETE(request: NextRequest) {
             const coverUrl = row.cover_image;
             const additional = row.additional_images || [];
 
-            // Delete cover image blob if it's a Vercel Blob URL
-            if (coverUrl && typeof coverUrl === 'string' && coverUrl.includes('blob.vercel-storage.com')) {
+            // Helper to attempt deletion from Vercel Blob or R2 (depending on URL form)
+            const tryDelete = async (url: string) => {
+              if (!url || typeof url !== 'string') return;
               try {
-                await del(coverUrl);
-              } catch (blobErr) {
-                console.error(`Failed to delete cover blob for book ${id}:`, blobErr);
+                // Vercel Blob (legacy) - use @vercel/blob del
+                if (url.includes('blob.vercel-storage.com')) {
+                  try { await del(url); return; } catch (e) { console.error('Vercel blob delete failed for', url, e); }
+                }
+
+                // r2:// URL - parse bucket/key and call deleteObject
+                if (url.startsWith('r2://')) {
+                  const parsed = parseKeyFromUrl(url);
+                  if (parsed && parsed.key) {
+                    try {
+                      await deleteObject(parsed.key, parsed.bucket || undefined);
+                      return;
+                    } catch (e) {
+                      console.error('R2 deleteObject failed for', parsed, e);
+                    }
+                  }
+                }
+
+                // Otherwise try to parse public URL into bucket/key and delete from R2
+                const parsed2 = parseKeyFromUrl(url);
+                if (parsed2 && parsed2.key) {
+                  try {
+                    await deleteObject(parsed2.key, parsed2.bucket || undefined);
+                    return;
+                  } catch (e) {
+                    console.error('R2 deleteObject failed for parsed public URL', parsed2, e);
+                  }
+                }
+              } catch (err) {
+                console.error('Failed to delete blob/R2 object for URL', url, err);
               }
-            }
+            };
+
+            // Attempt to delete cover
+            if (coverUrl) await tryDelete(coverUrl);
 
             // Delete additional images
             if (Array.isArray(additional)) {
               for (const img of additional) {
-                if (img && typeof img === 'string' && img.includes('blob.vercel-storage.com')) {
-                  try {
-                    await del(img);
-                  } catch (blobErr) {
-                    console.error(`Failed to delete additional image blob for book ${id}:`, blobErr);
-                  }
+                if (img && typeof img === 'string') {
+                  await tryDelete(img);
                 }
               }
             }

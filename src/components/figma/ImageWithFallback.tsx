@@ -38,18 +38,90 @@ function _ImageWithFallback({
 }: ImageWithFallbackProps) {
   // If caller requests a person fallback and no src is provided, avoid loading
   // the default image placeholder and render the person icon instead.
-  const [imgSrc, setImgSrc] = useState(
-    src ?? (fallbackVariant === 'person' ? '' : fallbackSrc)
-  );
+  const [imgSrc, setImgSrc] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
+  // Cache resolved signed URLs to avoid repeated presign requests
+  const resolvedCacheRef = (globalThis as any).__ybh_image_presign_cache || { current: {} as Record<string,string> };
+  if (!(globalThis as any).__ybh_image_presign_cache) (globalThis as any).__ybh_image_presign_cache = resolvedCacheRef;
+
   useEffect(() => {
+    let canceled = false;
     const newSrc = src ?? (fallbackVariant === 'person' ? '' : fallbackSrc);
-    setImgSrc(newSrc);
-    // Only show loading skeleton when there's an image to load
-    setIsLoading(!!newSrc);
-    setHasError(false);
+
+    const resolve = async () => {
+      setHasError(false);
+      // No source provided
+      if (!newSrc) {
+        setImgSrc(undefined);
+        setIsLoading(false);
+        return;
+      }
+
+      const s = String(newSrc).trim();
+
+      // If browser-usable already, use directly
+      if (s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) {
+        setImgSrc(s);
+        setIsLoading(true);
+        return;
+      }
+
+      // If we've cached a resolved URL, use it
+      if (resolvedCacheRef.current[s]) {
+        setImgSrc(resolvedCacheRef.current[s]);
+        setIsLoading(true);
+        return;
+      }
+
+      try {
+        // Extract key from r2://bucket/key or use plain key as-is
+        let key = s;
+        if (s.startsWith('r2://')) {
+          const rest = s.slice('r2://'.length);
+          const parts = rest.split('/').filter(Boolean);
+          parts.shift();
+          key = parts.join('/');
+        }
+        if (!key) {
+          setImgSrc(undefined);
+          setIsLoading(false);
+          return;
+        }
+
+        const resp = await fetch('/api/r2/presign-get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, expiresIn: 3600 })
+        });
+        if (!resp.ok) {
+          // Fallback: treat given value as-is
+          setImgSrc(s);
+          setIsLoading(true);
+          return;
+        }
+        const json = await resp.json();
+        if (canceled) return;
+        if (json && json.url) {
+          resolvedCacheRef.current[s] = json.url;
+          setImgSrc(json.url);
+          setIsLoading(true);
+          return;
+        }
+        // Fallback to raw value
+        setImgSrc(s);
+        setIsLoading(true);
+      } catch (e) {
+        setImgSrc(s);
+        setIsLoading(true);
+      }
+    };
+
+    // Start resolving
+    resolve();
+
+    return () => { canceled = true; };
   }, [src, fallbackSrc, fallbackVariant]);
 
   const handleError = () => {

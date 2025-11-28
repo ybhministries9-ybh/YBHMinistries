@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Save, Plus, Trash2, Book, Video, Music, FileText, Youtube, Calendar, Upload, X, Eye, EyeOff, Edit2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -56,6 +56,39 @@ const toDateInputValue = (dateInput: any) => {
     // ignore
   }
   return '';
+};
+
+// Convert stored value (http URL, r2://bucket/key, or plain key) into a public preview URL
+const getPreviewUrl = (val?: string | null) => {
+  if (!val) return '';
+  try {
+    const s = String(val).trim();
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    // r2://bucket/key
+    if (s.startsWith('r2://')) {
+      const rest = s.slice('r2://'.length);
+      const parts = rest.split('/').filter(Boolean);
+      const bucket = parts.shift() || '';
+      const key = parts.join('/');
+      const base = (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_ENDPOINT || '').replace(/\/$/, '');
+      const publicBucket = (process.env.NEXT_PUBLIC_R2_PUBLIC_BUCKET || bucket) as string;
+      const encodeKey = (k: string) => k.split('/').map(encodeURIComponent).join('/');
+      if (base) return `${base}/${publicBucket}/${encodeKey(key)}`;
+      // Fallback to account endpoint if available
+      const account = process.env.NEXT_PUBLIC_R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID || process.env.CF_ACCOUNT_ID;
+      if (account) return `https://${account}.r2.cloudflarestorage.com/${bucket}/${encodeKey(key)}`;
+      try { console.warn('[getPreviewUrl] falling back to returning key (no public base/account):', key); } catch (e) {}
+      return key;
+    }
+    // plain key like resources/books/24/..., prefer public base if available
+    const base2 = (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_ENDPOINT || '').replace(/\/$/, '');
+    const publicBucket2 = process.env.NEXT_PUBLIC_R2_PUBLIC_BUCKET;
+    const encodeKey2 = (k: string) => k.split('/').map(encodeURIComponent).join('/');
+    if (base2 && publicBucket2) return `${base2}/${publicBucket2}/${encodeKey2(s)}`;
+    return s;
+  } catch (err) {
+    return String(val);
+  }
 };
 
 // Pick first non-empty value from args
@@ -134,6 +167,8 @@ export function ResourceManager() {
   // Form errors: map resourceId -> { fieldName: message }
   const [formErrors, setFormErrors] = useState<Record<string, Record<string, string>>>({});
 
+  // (moved into individual managers that need them)
+
   const setFieldErrors = (id: string, errors: Record<string, string>) => {
     setFormErrors(prev => ({ ...prev, [id]: { ...(prev[id] || {}), ...errors } }));
   };
@@ -210,6 +245,15 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
   const [expandedBook, setExpandedBook] = useState<string | null>(null);
   const [showAdditionalImagesUpload, setShowAdditionalImagesUpload] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Preview URL cache for images (maps bookId or bookId::add::index -> signed preview URL)
+  const [previewUrls, setPreviewUrls] = useState<Record<string,string>>({});
+  const previewSourceRef = useRef<Record<string,string>>({});
+
+  // Keep track of files selected in ImageUpload but not yet uploaded (upload occurs on Save)
+  const selectedFilesRef = useRef<Map<string, File>>(new Map());
+  // Keep track of additional images selected per resource (but not uploaded yet)
+  // Store pairs of { file, preview } so we can replace the preview entry with the uploaded URL
+  const selectedAdditionalFilesRef = useRef<Map<string, { file: File; preview: string }[]>>(new Map());
 
   // Fetch books from database
   useEffect(() => {
@@ -264,7 +308,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
       additionalImages: [],
       description: '',
       publishDate: '',
-      published: false
+      // default new books to published
+      published: true
     };
     setBooks([newBook, ...books]);
     setEditingId(newBook.id);
@@ -275,6 +320,94 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
     setBooks(books.map(b => b.id === id ? { ...b, ...updates } : b));
     // field error clearing handled by parent ResourceManager
   };
+
+  // When books change, request presigned GET URLs for any r2:// or plain-key images.
+  useEffect(() => {
+    let canceled = false;
+    const tasks: Array<any> = [];
+
+    for (const book of books) {
+      // Cover image
+      const cover = book.coverImage;
+      if (cover) {
+        const s = String(cover);
+        const mapKey = book.id;
+        if (previewSourceRef.current[mapKey] === s) {
+          // already fetched
+        } else if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:') || s.startsWith('data:')) {
+          previewSourceRef.current[mapKey] = s;
+          setPreviewUrls(prev => ({ ...prev, [mapKey]: s }));
+        } else {
+          // Prepare presign task (key extraction)
+          let key = s;
+          if (s.startsWith('r2://')) {
+            const rest = s.slice('r2://'.length);
+            const parts = rest.split('/').filter(Boolean);
+            parts.shift(); // drop bucket
+            key = parts.join('/');
+          }
+          tasks.push({ mapKey, key });
+        }
+      }
+
+      // Additional images
+      if (Array.isArray(book.additionalImages)) {
+        book.additionalImages.forEach((url, idx) => {
+          if (!url) return;
+          const mapKey = `${book.id}::add::${idx}`;
+          const s = String(url);
+          if (previewSourceRef.current[mapKey] === s) return;
+          if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:') || s.startsWith('data:')) {
+            previewSourceRef.current[mapKey] = s;
+            setPreviewUrls(prev => ({ ...prev, [mapKey]: s }));
+          } else {
+            let key = s;
+            if (s.startsWith('r2://')) {
+              const rest = s.slice('r2://'.length);
+              const parts = rest.split('/').filter(Boolean);
+              parts.shift();
+              key = parts.join('/');
+            }
+            tasks.push({ mapKey, key });
+          }
+        });
+      }
+    }
+
+    if (tasks.length === 0) return;
+
+    (async () => {
+      try {
+        await runInBatches(tasks, 6, async (t) => {
+          try {
+            // send presign request for key
+            const resp = await fetch('/api/r2/presign-get', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ key: t.key, expiresIn: 3600 })
+            });
+            if (!resp.ok) {
+              console.warn('[ResourceManager] presign-get failed status', resp.status, 'for key', t.key);
+              return null;
+            }
+            const json = await resp.json();
+            if (canceled) return null;
+            if (json && json.url) {
+              previewSourceRef.current[t.mapKey] = t.key;
+              setPreviewUrls(prev => ({ ...prev, [t.mapKey]: json.url }));
+            }
+          } catch (e) {
+            console.error('[ResourceManager] presign-get error for key', t.key, e);
+          }
+          return null;
+        });
+      } catch (e) {
+        console.error('[ResourceManager] presign batch failed', e);
+      }
+    })();
+
+    return () => { canceled = true; };
+  }, [books]);
 
   const togglePublished = async (id: string) => {
     const book = books.find(b => b.id === id);
@@ -298,25 +431,11 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const body: any = {
-        type: 'books',
-        id,
-        title: book.title,
-        author: book.author,
-        price: Number(book.price),
-        pages: Number(book.pages),
-        language: book.language,
-        cover_image: book.coverImage,
-        additional_images: book.additionalImages,
-        description: book.description,
-        publish_date: book.publishDate,
-        published: newPublished
-      };
-
+      // Send a minimal update for published state only to avoid full validation issues
       const response = await fetch(`/api/admin/resources?type=books&id=${id}`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify(body)
+        body: JSON.stringify({ published: newPublished })
       });
 
       if (!response.ok) {
@@ -420,7 +539,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
     if (!book.language || book.language.trim().length === 0) fieldErrors.language = 'Language is required';
     else if (book.language.length > LANGUAGE_MAX) fieldErrors.language = `Language must be at most ${LANGUAGE_MAX} characters`;
 
-    if (!book.coverImage) fieldErrors.coverImage = 'Cover image is required';
+    if (!book.coverImage && !selectedFilesRef.current.has(id)) fieldErrors.coverImage = 'Cover image is required';
 
     if (!book.publishDate || book.publishDate.trim().length === 0) fieldErrors.publishDate = 'Publish date is required';
 
@@ -441,15 +560,183 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
 
     try {
       const isNew = id.startsWith('new-');
-      const method = isNew ? 'POST' : 'PUT';
       // include auth token so server can set created_by/updated_by
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
       if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      // Always include type in body
-      const body: any = {
+
+      // Capture selected files now (before we may replace the temp id) so we can upload them after creation
+      const selectedFile = selectedFilesRef.current.get(id);
+      const additionalSelectedFiles = selectedAdditionalFilesRef.current.get(id) || [];
+
+      // For new records: create DB row first (without images) to get a stable numeric id
+      let saveId = id;
+      if (isNew) {
+        const createBody: any = {
+          type: 'books',
+          title: book.title,
+          author: book.author,
+          price: Number(book.price),
+          pages: Number(book.pages),
+          language: book.language,
+          cover_image: '',
+          additional_images: [],
+          description: book.description,
+          publish_date: book.publishDate,
+          // default new books to published unless explicitly set to false
+          published: book.published === false ? false : true,
+        };
+        const createResp = await fetch(`/api/admin/resources?type=books`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(createBody)
+        });
+        if (!createResp.ok) {
+          const errText = await createResp.text();
+          throw new Error(errText || 'Failed to create book record');
+        }
+        const createResult = await createResp.json();
+        saveId = createResult.data.id.toString();
+        // replace temp item in UI with a placeholder that keeps editing state
+        setBooks(prev => prev.map(b => b.id === id ? { ...b, id: saveId } : b));
+      }
+
+      // Upload cover image if a file was selected via ImageUpload (but not uploaded yet)
+      if (selectedFile) {
+        try {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          formData.append('folder', `resources/books/${saveId}`);
+          const uploadResp = await fetch('/api/upload', { method: 'POST', body: formData });
+          const uploadResult = await uploadResp.json();
+          if (uploadResp.ok && uploadResult.url) {
+            // update the book coverImage locally so validation and body use the uploaded URL
+            handleUpdate(saveId, { coverImage: uploadResult.url });
+            // clear selected file tracking
+            // remove original ref entry (may be keyed by temp id)
+            try { selectedFilesRef.current.delete(id); } catch (e) {}
+            // also reflect in local variable
+            book.coverImage = uploadResult.url;
+          } else {
+            throw new Error(uploadResult.error || 'Image upload failed');
+          }
+        } catch (uploadErr) {
+          setFieldErrors(saveId, { coverImage: String(uploadErr?.message || uploadErr) });
+          return;
+        }
+      }
+
+      // If additional images were selected via MultipleImageUpload, upload them now and replace preview entries
+      try {
+        const additionalSelected = additionalSelectedFiles || [];
+        if (additionalSelected.length > 0) {
+          for (const entry of additionalSelected) {
+            const fd = new FormData();
+            fd.append('file', entry.file);
+            fd.append('folder', `resources/books/${saveId}`);
+            const r = await fetch('/api/upload', { method: 'POST', body: fd });
+            const resJson = await r.json();
+            if (r.ok && resJson.url) {
+              // Replace the first occurrence of the preview in book.additionalImages with the uploaded URL
+              const idx = (book.additionalImages || []).findIndex(u => u === entry.preview);
+              if (idx !== -1) {
+                book.additionalImages[idx] = resJson.url;
+              } else {
+                // If preview not found (edge case), append
+                book.additionalImages = [...(book.additionalImages || []), resJson.url];
+              }
+            } else {
+              throw new Error(resJson.error || 'Additional image upload failed');
+            }
+          }
+          // clear stored pending files for this book
+          selectedAdditionalFilesRef.current.delete(id);
+        }
+      } catch (uploadErr) {
+        setFieldErrors(saveId, { additionalImages: String(uploadErr?.message || uploadErr) });
+        return;
+      }
+
+      // Ensure no base64/blob URLs remain in coverImage or additionalImages - upload them and replace with R2 URLs
+      const needsUpload = (s?: string) => !!s && (s.startsWith('data:') || s.startsWith('blob:'));
+
+      // Helper to upload a data URL or blob URL (convert blob: via fetch) and return uploaded R2 url
+      const uploadDataOrBlob = async (inputUrl: string) => {
+        try {
+          let fileToUpload: File | null = null;
+
+          if (inputUrl.startsWith('data:')) {
+            // data:[<mediatype>][;base64],<data>
+            const parts = inputUrl.split(',');
+            const meta = parts[0];
+            const b64 = parts[1] || '';
+            const m = meta.match(/data:([^;]+);base64/);
+            const mime = m ? m[1] : 'image/jpeg';
+            const binary = atob(b64);
+            const len = binary.length;
+            const u8 = new Uint8Array(len);
+            for (let i = 0; i < len; i++) u8[i] = binary.charCodeAt(i);
+            fileToUpload = new File([u8], `upload-${Date.now()}.jpg`, { type: mime });
+          } else if (inputUrl.startsWith('blob:')) {
+            // fetch the blob and convert to File
+            const resp = await fetch(inputUrl);
+            const blob = await resp.blob();
+            fileToUpload = new File([blob], `upload-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+          } else {
+            return null;
+          }
+
+          if (!fileToUpload) return null;
+
+          const fd2 = new FormData();
+          fd2.append('file', fileToUpload);
+          fd2.append('folder', `resources/books/${saveId}`);
+          const up = await fetch('/api/upload', { method: 'POST', body: fd2 });
+          const j = await up.json();
+          if (up.ok && j.url) return j.url;
+          return null;
+        } catch (e) {
+          console.error('uploadDataOrBlob failed', e);
+          return null;
+        }
+      };
+
+      // Cover image: if it's a data/blob and not already handled via selectedFile, upload it and replace
+      try {
+        const coverNeeds = needsUpload(book.coverImage) && !selectedFile;
+        if (coverNeeds) {
+          const uploaded = await uploadDataOrBlob(book.coverImage as string);
+          if (uploaded) {
+            handleUpdate(saveId, { coverImage: uploaded });
+            book.coverImage = uploaded;
+          }
+        }
+      } catch (e) {
+        // ignore, validation/upload earlier will catch
+      }
+
+      // Additional images: iterate and upload any data/blob entries
+      try {
+        const newAdditional: string[] = [];
+        for (const img of book.additionalImages || []) {
+          if (!img) continue;
+          if (needsUpload(img)) {
+            const uploaded = await uploadDataOrBlob(img);
+            if (uploaded) newAdditional.push(uploaded);
+            // If upload failed, skip the item (do not save base64)
+          } else {
+            newAdditional.push(img);
+          }
+        }
+        book.additionalImages = newAdditional;
+      } catch (e) {
+        console.error('Failed to process additionalImages data URLs', e);
+      }
+
+      // Finally, update the DB record with the uploaded image URLs (or update existing record)
+      const finalBody: any = {
         type: 'books',
         title: book.title,
         author: book.author,
@@ -462,44 +749,35 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
         publish_date: book.publishDate,
         published: book.published === true ? true : false,
       };
-      if (!isNew) body.id = id;
-
-      const url = isNew ? `/api/admin/resources?type=books` : `/api/admin/resources?type=books&id=${id}`;
-      const response = await fetch(url, {
-        method,
-        headers,
-        body: JSON.stringify(body)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to save book');
+      const finalUrl = `/api/admin/resources?type=books&id=${encodeURIComponent(saveId)}`;
+      const finalResp = await fetch(finalUrl, { method: 'PUT', headers, body: JSON.stringify(finalBody) });
+      if (!finalResp.ok) {
+        const errText = await finalResp.text();
+        throw new Error(errText || 'Failed to save book');
       }
-
-      const result = await response.json();
+      const result = await finalResp.json();
 
       // Update local state with the saved book (includes DB id)
-      if (isNew) {
-        const d = result.data;
-        const saved: MusicBook = {
-          id: d.id.toString(),
-          title: d.title || '',
-          author: d.author || '',
-          price: d.price || 0,
-          pages: d.pages || 0,
-          language: d.language || 'English',
-          coverImage: d.cover_image || '',
-          additionalImages: d.additional_images || [],
-          description: d.description || '',
-          publishDate: d.publish_date || '',
-          published: d.published === true || d.published === 't' || false
-        };
-        setBooks(books.map(b => b.id === id ? saved : b));
-      }
+      const d = result.data;
+      const saved: MusicBook = {
+        id: d.id.toString(),
+        title: d.title || '',
+        author: d.author || '',
+        price: d.price || 0,
+        pages: d.pages || 0,
+        language: d.language || 'English',
+        coverImage: d.cover_image || '',
+        additionalImages: d.additional_images || [],
+        description: d.description || '',
+        publishDate: d.publish_date || '',
+        published: d.published === true || d.published === 't' || false
+      };
+      setBooks(prev => prev.map(b => b.id === (isNew ? saveId : id) ? saved : b));
 
       // Clear any field errors and finish
-      clearFieldErrors(id);
+      clearFieldErrors(isNew ? saveId : id);
       setEditingId(null);
+      setExpandedBook(null);
       toast.success('Book saved successfully');
     } catch (error) {
       console.error('Error saving book:', error);
@@ -536,12 +814,16 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
             const isExpanded = expandedBook === book.id;
 
             return (
-              <div key={book.id} className="bg-black rounded-lg border border-gray-700">
+              <div key={book.id} className={`bg-black rounded-lg border border-gray-700 ${String(book.id).startsWith('new-') ? 'new-resource-form' : ''}`}>
                 {/* Header */}
                 <div className="p-4 flex items-center justify-between">
                   <div className="flex-1">
                     {isEditing ? (
                       <div>
+                        <div className="flex items-start justify-between mb-1">
+                          <label className="text-sm text-white">Title <span className="text-red-400">*</span></label>
+                          <div className="text-xs text-gray-400 ml-2">{(book.title?.length || 0)}/{TITLE_MAX}</div>
+                        </div>
                         <Input
                           id={`field-${book.id}-title`}
                           value={book.title}
@@ -552,7 +834,6 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           aria-invalid={!!formErrors[book.id]?.title}
                           aria-describedby={formErrors[book.id]?.title ? `error-${book.id}-title` : undefined}
                         />
-                        <div className="text-xs text-gray-400">{book.title?.length || 0}/{TITLE_MAX} characters</div>
                         {isEditing && formErrors[book.id]?.title && (
                           <div id={`error-${book.id}-title`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].title}</div>
                         )}
@@ -573,40 +854,9 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      title={isExpanded ? 'Collapse' : 'Expand'}
-                      onClick={() => setExpandedBook(isExpanded ? null : book.id)}
-                      size="sm"
-                      className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
-                    >
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </Button>
+                  <div className="flex gap-2 self-start">
                     {isEditing ? (
-                      <>
-                        <Button
-                          title="Save"
-                          onClick={() => handleSave(book.id)}
-                          size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md bg-[#FDB813] hover:bg-[#e5a610] text-black border border-[#FDB813]"
-                        >
-                          <Save size={16} />
-                        </Button>
-                        <Button
-                          title="Cancel"
-                          onClick={() => {
-                            setEditingId(null);
-                            // Remove the book if it's empty (newly added)
-                            if (!book.title && !book.coverImage) {
-                              setBooks(books.filter(b => b.id !== book.id));
-                            }
-                          }}
-                          size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-gray-600 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white"
-                        >
-                          <X size={14} />
-                        </Button>
-                      </>
+                      <></>
                     ) : (
                       <>
                         <Button
@@ -620,7 +870,10 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                         <Button
                           title="Edit"
                           aria-label="Edit"
-                          onClick={() => setEditingId(book.id)}
+                          onClick={() => {
+                            setEditingId(book.id);
+                            setExpandedBook(book.id);
+                          }}
                           size="sm"
                           className="h-9 w-9 p-2 flex items-center justify-center rounded-md rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
                         >
@@ -641,10 +894,13 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
 
                 {/* Expanded Content */}
                 {isExpanded && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-gray-700 pt-4">
+                  <div className={`px-4 pb-4 space-y-4 border-t border-gray-700 pt-4 ${book.id && String(book.id).startsWith('new-') ? 'new-resource-form' : ''}`}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                          <label className="text-sm text-white mb-1 block">Author <span className="text-red-400">*</span></label>
+                          <div className="flex items-start justify-between mb-1">
+                            <label className="text-sm text-white">Author <span className="text-red-400">*</span></label>
+                            <div className="text-xs text-gray-400 ml-2">{(book.author?.length || 0)}/{AUTHOR_MAX}</div>
+                          </div>
                           <Input
                             id={`field-${book.id}-author`}
                             value={book.author}
@@ -656,13 +912,15 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                             aria-invalid={!!formErrors[book.id]?.author}
                             aria-describedby={formErrors[book.id]?.author ? `error-${book.id}-author` : undefined}
                           />
-                          {isEditing && <div className="text-xs text-gray-400">{book.author?.length || 0}/{AUTHOR_MAX} characters</div>}
                           {isEditing && formErrors[book.id]?.author && (
                             <div id={`error-${book.id}-author`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].author}</div>
                           )}
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Language <span className="text-red-400">*</span></label>
+                        <div className="flex items-start justify-between mb-1">
+                          <label className="text-sm text-white">Language <span className="text-red-400">*</span></label>
+                          <div className="text-xs text-gray-400 ml-2">{(book.language?.length || 0)}/{LANGUAGE_MAX}</div>
+                        </div>
                         <Input
                           id={`field-${book.id}-language`}
                           value={book.language}
@@ -674,13 +932,15 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           aria-invalid={!!formErrors[book.id]?.language}
                           aria-describedby={formErrors[book.id]?.language ? `error-${book.id}-language` : undefined}
                         />
-                        {isEditing && <div className="text-xs text-gray-400">Max {LANGUAGE_MAX} characters</div>}
                         {isEditing && formErrors[book.id]?.language && (
                           <div id={`error-${book.id}-language`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].language}</div>
                         )}
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Price (₹) <span className="text-red-400">*</span></label>
+                        <div className="flex items-start justify-between mb-1">
+                          <label className="text-sm text-white">Price (₹) <span className="text-red-400">*</span></label>
+                          <div className="text-xs text-gray-400 ml-2">Min ₹{PRICE_MIN} — Max ₹{PRICE_MAX}</div>
+                        </div>
                         <Input
                           id={`field-${book.id}-price`}
                           type="number"
@@ -695,13 +955,15 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           aria-invalid={!!formErrors[book.id]?.price}
                           aria-describedby={formErrors[book.id]?.price ? `error-${book.id}-price` : undefined}
                         />
-                        {isEditing && <div className="text-xs text-gray-400">Min ₹{PRICE_MIN} — Max ₹{PRICE_MAX}</div>}
                         {isEditing && formErrors[book.id]?.price && (
                           <div id={`error-${book.id}-price`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].price}</div>
                         )}
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Pages <span className="text-red-400">*</span></label>
+                        <div className="flex items-start justify-between mb-1">
+                          <label className="text-sm text-white">Pages <span className="text-red-400">*</span></label>
+                          <div className="text-xs text-gray-400 ml-2">Min {PAGES_MIN} — Max {PAGES_MAX} pages</div>
+                        </div>
                         <Input
                           id={`field-${book.id}-pages`}
                           type="number"
@@ -715,7 +977,6 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           aria-invalid={!!formErrors[book.id]?.pages}
                           aria-describedby={formErrors[book.id]?.pages ? `error-${book.id}-pages` : undefined}
                         />
-                        {isEditing && <div className="text-xs text-gray-400">Min {PAGES_MIN} — Max {PAGES_MAX} pages</div>}
                         {isEditing && formErrors[book.id]?.pages && (
                           <div id={`error-${book.id}-pages`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].pages}</div>
                         )}
@@ -725,7 +986,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                         <Input
                           id={`field-${book.id}-publishDate`}
                           type="date"
-                          value={book.publishDate}
+                          value={toDateInputValue(book.publishDate)}
                           onChange={(e) => handleUpdate(book.id, { publishDate: e.target.value })}
                           placeholder="Publish Date"
                           className="bg-black border-gray-600 text-white"
@@ -740,7 +1001,10 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Description <span className="text-gray-400 text-xs">(optional)</span></label>
+                      <div className="flex items-start justify-between mb-1">
+                        <label className="text-sm text-white">Description <span className="text-gray-400 text-xs">(optional)</span></label>
+                        <div className="text-xs text-gray-400 ml-2">{(book.description?.length || 0)}/{DESCRIPTION_MAX}</div>
+                      </div>
                       <Textarea
                         value={book.description}
                         onChange={(e) => handleUpdate(book.id, { description: e.target.value })}
@@ -750,27 +1014,12 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                         disabled={!isEditing}
                         maxLength={DESCRIPTION_MAX}
                       />
-                      {isEditing && <div className="text-xs text-gray-400">{book.description?.length || 0}/{DESCRIPTION_MAX} characters</div>}
                       {isEditing && formErrors[book.id]?.description && (
                         <div id={`error-${book.id}-description`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].description}</div>
                       )}
                     </div>
 
-                    {/* Move Published checkbox to the end of the form, left aligned */}
-                    <div className="mt-4">
-                      <div className="flex items-center mb-2">
-                        <input
-                          type="checkbox"
-                          checked={book.published === true}
-                          onChange={e => handleUpdate(book.id, { published: e.target.checked })}
-                          className="form-checkbox h-4 w-4 text-[#FDB813] border-gray-600 rounded focus:ring-[#FDB813] mr-2"
-                          disabled={!isEditing}
-                          aria-checked={book.published === true}
-                          aria-label="Published"
-                        />
-                        <span className="text-sm text-white">Published</span>
-                      </div>
-                    </div>
+                    {/* Published control removed: new books default to published; use header Publish/Unpublish button to change state */}
 
                     <div>
                       <label className="text-sm text-white mb-2 block">Cover Image <span className="text-red-400">*</span></label>
@@ -780,6 +1029,12 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                             <ImageUpload
                               bucket={`resources/books/${book.id}`}
                               onUploadComplete={(url) => handleUpdate(book.id, { coverImage: url })}
+                              onFileSelect={(file) => {
+                                try {
+                                  if (file) selectedFilesRef.current.set(book.id, file);
+                                  else selectedFilesRef.current.delete(book.id);
+                                } catch (e) {}
+                              }}
                               currentImage={book.coverImage}
                               imageType="gallery"
                             />
@@ -792,16 +1047,16 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                       ) : (
                         book.coverImage && (
                           <div className="mt-2">
-                            {book.coverImage ? (
-                              <img
-                                src={book.coverImage || undefined}
-                                alt="Cover preview"
-                                className="w-full h-48 object-cover rounded border border-gray-600"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            ) : null}
+                                {book.coverImage ? (
+                                  <img
+                                    src={previewUrls[book.id] || getPreviewUrl(book.coverImage) || undefined}
+                                    alt="Cover preview"
+                                    className="w-full h-48 object-cover rounded border border-gray-600"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                ) : null}
                           </div>
                         )
                       )}
@@ -825,32 +1080,63 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                       {book.additionalImages.length > 0 && (
                         <div className="mt-3 grid grid-cols-4 md:grid-cols-6 gap-2">
                           {book.additionalImages.map((url, index) => (
-                            <div key={index} className="relative group">
+                            <div key={index} className="relative group flex items-center justify-center bg-[#1a1a1a] rounded overflow-hidden">
                               {url ? (
                                 <img
-                                  src={url || undefined}
+                                  src={previewUrls[`${book.id}::add::${index}`] || getPreviewUrl(url) || undefined}
                                   alt={`Additional ${index + 1}`}
-                                  className="w-full h-20 object-cover rounded border border-gray-600"
+                                  className="w-full h-auto object-contain rounded"
+                                  style={{ maxHeight: '8rem' }}
                                   onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                   }}
                                 />
                               ) : null}
                               {isEditing && (
-                                <button
+                                <Button
                                   onClick={() => {
                                     const newImages = book.additionalImages.filter((_, i) => i !== index);
                                     handleUpdate(book.id, { additionalImages: newImages });
                                   }}
-                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-2 right-2 z-10"
+                                  type="button"
                                 >
-                                  <X size={12} />
-                                </button>
+                                  <X size={16} />
+                                </Button>
                               )}
                             </div>
                           ))}
                         </div>
                       )}
+
+                    {/* Footer actions for the expanded form */}
+                    {isEditing && (
+                      <div className="mt-4 sticky bottom-0 z-40 flex justify-end gap-3 bg-gradient-to-t from-black/60 to-transparent py-2">
+                        <Button
+                          onClick={() => {
+                              setEditingId(null);
+                              setExpandedBook(null);
+                              // Remove the book if it's empty (newly added)
+                              if (!book.title && !book.coverImage) {
+                                setBooks(books.filter(b => b.id !== book.id));
+                              }
+                          }}
+                          className="h-9 px-4 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600 flex items-center gap-2"
+                        >
+                          <X size={14} />
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => handleSave(book.id)}
+                          className="h-9 px-4 bg-[#FDB813] hover:bg-[#e5a711] text-black flex items-center gap-2"
+                        >
+                          <Save size={14} />
+                          Save
+                        </Button>
+                      </div>
+                    )}
                     </div>
                   </div>
                 )}
@@ -870,18 +1156,23 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
 
       {showAdditionalImagesUpload && (
         <MultipleImageUpload
-          onUploadComplete={(images) => {
-            const bookId = showAdditionalImagesUpload;
-            const book = books.find(b => b.id === bookId);
-            if (book) {
-              const newUrls = images.map(img => img.url);
-              handleUpdate(bookId, { 
-                additionalImages: [...book.additionalImages, ...newUrls] 
-              });
-              toast.success(`${images.length} image(s) added successfully!`);
-            }
-            setShowAdditionalImagesUpload(null);
-          }}
+            onUploadComplete={(images) => {
+              const bookId = showAdditionalImagesUpload;
+              const book = books.find(b => b.id === bookId);
+              if (book) {
+                const newUrls = images.map(img => img.url);
+                handleUpdate(bookId, { 
+                  additionalImages: [...book.additionalImages, ...newUrls] 
+                });
+                // store the files so they can be uploaded on Save
+                try {
+                  const entries = images.map(img => ({ file: img.file, preview: img.url })).filter(e => e.file) as { file: File; preview: string }[];
+                  if (entries.length > 0) selectedAdditionalFilesRef.current.set(bookId, entries);
+                } catch (e) {}
+                toast.success(`${images.length} image(s) added successfully!`);
+              }
+              setShowAdditionalImagesUpload(null);
+            }}
           onClose={() => setShowAdditionalImagesUpload(null)}
           category={showAdditionalImagesUpload ? `resources/books/${showAdditionalImagesUpload}` : 'resources/books'}
         />

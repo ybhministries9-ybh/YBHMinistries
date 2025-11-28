@@ -68,6 +68,18 @@ export function getPublicUrl(key: string, bucket?: string) {
 
 export async function uploadBuffer(key: string, buffer: Buffer, contentType = "application/octet-stream", bucket?: string, cacheControl?: string) {
   const usedBucket = bucket || BUCKET || PRIVATE_BUCKET;
+  // Validate config early to provide clearer diagnostics
+  const missing: string[] = [];
+  if (!ACCOUNT_ID) missing.push('R2_ACCOUNT_ID');
+  if (!ACCESS_KEY_ID) missing.push('R2_ACCESS_KEY_ID');
+  if (!SECRET_ACCESS_KEY) missing.push('R2_SECRET_ACCESS_KEY');
+  if (!usedBucket) missing.push('R2_BUCKET');
+  if (missing.length) {
+    const msg = `R2 configuration incomplete: missing ${missing.join(', ')}`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+
   const cmd = new PutObjectCommand({
     Bucket: usedBucket,
     Key: key,
@@ -85,6 +97,9 @@ export async function uploadBuffer(key: string, buffer: Buffer, contentType = "a
 
     if (!isAccessDenied) throw err;
 
+    // Log bucket and key to help debug permission issues (do not log secrets)
+    console.error(`R2 access denied for bucket="${usedBucket}" key="${key}" — attempting presigned PUT fallback`);
+
     try {
       const presigned = await getPresignedPutUrl(key, contentType, 3600, usedBucket);
       // Ensure we pass a plain ArrayBuffer to fetch (avoid Node Buffer typing issues)
@@ -92,7 +107,9 @@ export async function uploadBuffer(key: string, buffer: Buffer, contentType = "a
       const resp = await fetch(presigned, { method: 'PUT', headers: { 'Content-Type': contentType }, body: arrayBuffer as any });
       if (!resp.ok) {
         const txt = await resp.text().catch(() => `status ${resp.status}`);
-        throw new Error('Presigned PUT failed: ' + txt);
+        const presignMsg = `Presigned PUT failed: ${txt}`;
+        console.error(presignMsg);
+        throw new Error(presignMsg);
       }
       return getPublicUrl(key, usedBucket);
     } catch (presignErr) {

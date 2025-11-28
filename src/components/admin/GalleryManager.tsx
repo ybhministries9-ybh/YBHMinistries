@@ -783,7 +783,7 @@ export function GalleryManager() {
                   {/* Removed compact 'Choose Files : No files chosen' row per request. */}
                   <div className="text-center">
                     <div className="text-gray-200 font-medium">Click or drag images here to upload</div>
-                    <div className="text-xs text-gray-500 mt-1">PNG or JPG, multiple files supported</div>
+                    <div className="text-xs text-gray-500 mt-1">PNG or JPG files supported</div>
                   </div>
                 </div>
               </div>

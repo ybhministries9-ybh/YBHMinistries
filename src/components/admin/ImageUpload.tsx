@@ -12,9 +12,10 @@ const formatFileSize = (bytes: number): string => {
 };
 
 const validateImageFile = (file: File): { valid: boolean; error?: string } => {
-  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  // Only allow PNG and JPEG (jpg/jpeg) as requested
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
   if (!validTypes.includes(file.type)) {
-    return { valid: false, error: 'Invalid file type. Please upload an image file.' };
+    return { valid: false, error: 'Invalid file type. Please upload a PNG or JPG image.' };
   }
   return { valid: true };
 };
@@ -117,6 +118,7 @@ interface ImageUploadProps {
   optional?: boolean; // marks the upload as optional in the UI
   squarePreview?: boolean; // render preview as a square (useful for QR codes)
   allowRemove?: boolean; // allow deleting the image via the X button (default true)
+  onFileSelect?: (file: File | null) => void; // called when a file is selected/dropped (but not uploaded)
 }
 
 export function ImageUpload({ 
@@ -124,48 +126,70 @@ export function ImageUpload({
   onUploadComplete, 
   currentImage,
   maxSizeMB = 5,
-  acceptedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+  acceptedFormats = ['image/jpeg', 'image/jpg', 'image/png'],
   imageType = 'gallery',
   showPreviewNotice = true,
   optional = false,
   squarePreview = false,
   allowRemove = true,
+  onFileSelect,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [compressing, setCompressing] = useState(false);
-  const [preview, setPreview] = useState<string | null>(currentImage || null);
+  const [dragActive, setDragActive] = useState(false);
+  // Do NOT initialize `preview` to `currentImage` because `currentImage` may be an `r2://` URL
+  // which the browser cannot load. Resolve it asynchronously via presign or public URL.
+  const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [compressionInfo, setCompressionInfo] = useState<{
     originalSize: number;
     compressedSize: number;
     ratio: number;
   } | null>(null);
+  // Track object URLs we create so we can revoke them later
+  const generatedUrlsRef = (globalThis as any).__ybh_generated_urls_ref || { current: new Set<string>() };
+  if (!(globalThis as any).__ybh_generated_urls_ref) (globalThis as any).__ybh_generated_urls_ref = generatedUrlsRef;
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
+      if (!event.target.files || event.target.files.length === 0) return;
+      const originalFile = event.target.files[0];
+      await processFile(originalFile);
+    } catch (err) {
+      setError('An unexpected error occurred while processing the image');
+    }
+  };
+
+  // Process a File object: validate, optionally compress, show preview immediately, then upload
+  const processFile = async (originalFile: File) => {
+    try {
       setError(null);
       setCompressionInfo(null);
-      if (!event.target.files || event.target.files.length === 0) {
-        return;
-      }
-      const originalFile = event.target.files[0];
+
       // Validate file
       const validation = validateImageFile(originalFile);
       if (!validation.valid) {
         setError(validation.error || 'Invalid file');
         return;
       }
-      // Check if compression is needed
+
       const shouldCompress = needsCompression(originalFile);
       let fileToUpload = originalFile;
-      let previewUrl = URL.createObjectURL(originalFile);
+
+      // show immediate preview while processing/uploading
+      const initialPreview = URL.createObjectURL(originalFile);
+      try { generatedUrlsRef.current.add(initialPreview); } catch (e) {}
+      setPreview(initialPreview);
+
       if (shouldCompress) {
         setCompressing(true);
         try {
           const settings = getCompressionSettings(imageType);
           const compressed = await compressImage(originalFile, settings);
           fileToUpload = compressed.file;
-          previewUrl = compressed.dataUrl;
+          // replace preview with compressed data URL and revoke the initial object URL
+          setPreview(compressed.dataUrl);
+          try { if (initialPreview && generatedUrlsRef.current.has(initialPreview)) { URL.revokeObjectURL(initialPreview); generatedUrlsRef.current.delete(initialPreview); } } catch (e) {}
           setCompressionInfo({
             originalSize: compressed.originalSize,
             compressedSize: compressed.compressedSize,
@@ -177,107 +201,128 @@ export function ImageUpload({
           setCompressing(false);
         }
       }
+
       const maxSizeBytes = maxSizeMB * 1024 * 1024;
       if (fileToUpload.size > maxSizeBytes) {
         setError(`File size must be less than ${maxSizeMB}MB even after compression`);
         return;
       }
-      setUploading(true);
-      // Upload to Vercel Blob via /api/upload
-      const formData = new FormData();
-      formData.append('file', fileToUpload);
-      formData.append('folder', bucket);
+
+      // Do not upload here. Inform parent about selected file so parent can upload on Save.
       try {
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        const result = await response.json();
-        if (response.ok && result.url) {
-          setPreview(result.url);
-          onUploadComplete(result.url);
-        } else {
-          setError(result.error || 'Failed to upload image');
-        }
-      } catch (err) {
-        setError('Failed to upload image');
-      }
-    } catch (error) {
+        if (onFileSelect) onFileSelect(fileToUpload);
+      } catch (e) {}
+    } catch (err) {
       setError('An unexpected error occurred while processing the image');
-    } finally {
       setUploading(false);
+      setCompressing(false);
     }
   };
 
   const removeImage = () => {
+    // Revoke any object URL we created for preview
+    try {
+      if (preview && preview.startsWith('blob:') && generatedUrlsRef.current.has(preview)) {
+        URL.revokeObjectURL(preview);
+        generatedUrlsRef.current.delete(preview);
+      }
+    } catch (e) {}
     setPreview(null);
     setError(null);
     setCompressionInfo(null);
+    try { if (onFileSelect) onFileSelect(null); } catch (e) {}
     onUploadComplete('');
   };
 
   // Keep preview state in sync if parent updates currentImage (e.g., after QR generation)
   useEffect(() => {
-    setPreview(currentImage || null);
+    // If parent passes a new currentImage, clear our generated blob urls and use the provided URL
+    try {
+      for (const u of generatedUrlsRef.current) {
+        try { URL.revokeObjectURL(u); } catch (e) {}
+      }
+      generatedUrlsRef.current.clear();
+    } catch (e) {}
+    // If the parent provided an R2 reference (r2://bucket/key) or a plain key, request a presigned GET URL
+    const resolvePreview = async () => {
+      if (!currentImage) {
+        setPreview(null);
+        return;
+      }
+
+      const s = String(currentImage).trim();
+      // Already usable by browser
+      if (s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) {
+        setPreview(s);
+        return;
+      }
+
+      try {
+        // If r2://bucket/key, extract key; if plain key like resources/.., use it as-is
+        let key = s;
+        if (s.startsWith('r2://')) {
+          const rest = s.slice('r2://'.length);
+          const parts = rest.split('/').filter(Boolean);
+          // drop bucket
+          parts.shift();
+          key = parts.join('/');
+        }
+        if (!key) {
+          setPreview(s);
+          return;
+        }
+
+        const resp = await fetch('/api/r2/presign-get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, expiresIn: 3600 })
+        });
+        if (!resp.ok) {
+          setPreview(s);
+          return;
+        }
+        const json = await resp.json();
+        if (json && json.url) {
+          setPreview(json.url);
+        } else {
+          setPreview(s);
+        }
+      } catch (e) {
+        setPreview(s);
+      }
+    };
+
+    // Fire async resolver but don't block sync cleanup
+    resolvePreview();
+
+    // Cleanup on unmount: revoke any remaining object URLs
+    return () => {
+      try {
+        for (const u of generatedUrlsRef.current) {
+          try { URL.revokeObjectURL(u); } catch (e) {}
+        }
+        generatedUrlsRef.current.clear();
+      } catch (e) {}
+    };
   }, [currentImage]);
 
   return (
     <div className="space-y-4">
-      {preview ? (
-        <div className="space-y-3">
-          <div className="relative">
-            <img 
-              src={preview} 
-              alt="Preview" 
-              className={
-                squarePreview
-                  ? 'w-56 h-56 object-contain rounded-md border border-gray-700 bg-white p-2'
-                  : 'w-full h-48 object-cover rounded-lg border border-gray-700'
-              }
-            />
-            {allowRemove && (
-              <Button
-              onClick={removeImage}
-              variant="destructive"
-              size="sm"
-              className="absolute top-2 right-2"
-              type="button"
-            >
-              <X size={16} />
-            </Button>
-            )}
-          </div>
-          
-          {/* Compression Info */}
-          {compressionInfo && (
-            <div className="bg-green-900/30 border border-green-700 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="text-green-400 mt-0.5" size={18} />
-                <div className="flex-1">
-                  <p className="text-sm text-green-400 mb-1">
-                    Image Optimized Successfully
-                  </p>
-                  <div className="text-xs text-green-300 space-y-1">
-                    <div className="flex justify-between">
-                      <span>Original size:</span>
-                      <span>{formatFileSize(compressionInfo.originalSize)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Optimized size:</span>
-                      <span>{formatFileSize(compressionInfo.compressedSize)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Space saved:</span>
-                      <span className="text-green-400">{compressionInfo.ratio}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:bg-[#2E2E2E] transition-colors">
+        <label
+          className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${dragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-600 hover:bg-[#2E2E2E]'}`}
+          onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+          onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+          onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragActive(false);
+            const f = e.dataTransfer?.files?.[0];
+            if (f && f.type && f.type.startsWith('image/')) {
+              processFile(f);
+            }
+          }}
+        >
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
             {compressing ? (
               <>
@@ -295,7 +340,7 @@ export function ImageUpload({
                 <Upload className="text-gray-600 mb-3" size={40} />
                 <p className="text-sm text-gray-300 mb-1">Click to upload image{optional ? ' (optional)' : ''}</p>
                 <p className="text-xs text-gray-500">
-                  PNG, JPG, GIF, WebP up to {maxSizeMB}MB
+                  PNG, JPG up to {maxSizeMB}MB
                 </p>
                 <p className="text-xs text-[#FDB813] mt-2">
                   ✨ Images are automatically optimized
@@ -311,23 +356,57 @@ export function ImageUpload({
             disabled={uploading || compressing}
           />
         </label>
-      )}
-      
+        {/* Preview area shown separately below the drop area */}
+        {preview && (
+          <div className="space-y-3">
+            <div className="mt-2 text-sm text-white">Preview</div>
+            <div className="relative inline-block">
+              <img
+                src={preview}
+                alt="Preview"
+                className={
+                  squarePreview
+                    ? 'w-56 h-56 object-contain rounded-md border border-gray-700 bg-white p-2'
+                    : 'w-32 h-32 object-cover rounded-md border border-gray-700'
+                }
+                onError={(ev) => { (ev.target as HTMLImageElement).style.display = 'none'; }}
+              />
+              {allowRemove && (
+                <Button
+                  onClick={removeImage}
+                  variant="destructive"
+                  size="sm"
+                  className="absolute -top-2 -right-2"
+                  type="button"
+                >
+                  <X size={16} />
+                </Button>
+              )}
+            </div>
+            {compressionInfo && (
+              <div className="bg-green-900/30 border border-green-700 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="text-green-400 mt-0.5" size={18} />
+                  <div className="flex-1">
+                    <p className="text-sm text-green-400 mb-1">Image Optimized Successfully</p>
+                    <div className="text-xs text-green-300 space-y-1">
+                      <div className="flex justify-between"><span>Original size:</span><span>{formatFileSize(compressionInfo.originalSize)}</span></div>
+                      <div className="flex justify-between"><span>Optimized size:</span><span>{formatFileSize(compressionInfo.compressedSize)}</span></div>
+                      <div className="flex justify-between"><span>Space saved:</span><span className="text-green-400">{compressionInfo.ratio}%</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
       {error && (
         <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-3">
           <div className="flex items-start gap-2">
             <AlertCircle className="text-yellow-400 mt-0.5" size={18} />
             <p className="text-sm text-yellow-300">{error}</p>
           </div>
-        </div>
-      )}
-      
-      {!preview && !uploading && !compressing && (showPreviewNotice !== false) && (
-        <div className="bg-[#2E2E2E] border border-[#FDB813] rounded-lg p-3">
-          <p className="text-xs text-gray-300">
-            <strong className="text-[#FDB813]">Preview Mode:</strong> Images are optimized and previewed locally. 
-            No backend storage is configured, so images will not persist after page refresh.
-          </p>
         </div>
       )}
     </div>
