@@ -90,12 +90,11 @@ export function HMSPage({
         ref={sectionRefs.home}
         className="pt-4 md:pt-16 h-[80vh] flex items-start relative overflow-hidden"
       >
-        <div className="absolute inset-0 z-0">
-          <ImageWithFallback
-            src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
-            alt="Music instruments in a studio"
-            className="w-full h-full object-cover opacity-40"
-          />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-90 z-10"></div>
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-10"
+          style={{ backgroundImage: "url('/images/ministries/hms/hms.jpg')" }}
+        >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>
         

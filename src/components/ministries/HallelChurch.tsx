@@ -9,7 +9,7 @@ function ThemedSectionTitle({ title, subtitle }: { title: string; subtitle?: str
   // SEO: Use h1 if this is the main page title, otherwise h2
   return (
     <div className="text-center mb-12 mt-32 md:mt-48">
-      <h2 className="text-3xl font-bold mb-2" tabIndex={0}>{title}</h2>
+      <h2 className="text-3xl font mb-2" tabIndex={0}>{title}</h2>
       {subtitle && <p className="text-lg text-gray-400" tabIndex={0}>{subtitle}</p>}
       <div className="w-24 h-1 rounded-full mx-auto mt-4" style={{ backgroundColor: '#FDB813' }}></div>
     </div>
@@ -61,8 +61,11 @@ export function HallelChurch() {
       {/* Hero Section */}
       <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-40">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/images/ministries/church/church.jpg')" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent"></div>
         </div>
         
         <div className="container mx-auto px-4 z-20 text-center">
@@ -128,7 +131,7 @@ export function HallelChurch() {
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 whileHover={{ y: -8, scale: 1.02 }}
-                className={`relative group cursor-pointer ${activity.featured ? 'md:col-span-2' : ''}`}
+                className={`relative group ${activity.featured ? 'md:col-span-2' : ''}`}
               >
                 <div 
                   className="rounded-2xl md:rounded-3xl p-8 h-full min-h-[340px] transition-all duration-500 border hover:shadow-2xl mx-auto max-w-xl text-center flex flex-col justify-between"
@@ -198,22 +201,6 @@ export function HallelChurch() {
                           <Clock className="w-4 h-4" style={{ color: accentColor }} />
                           {t(`hallelChurchPage.${activity.timeKey}`)}
                         </motion.div>
-
-                        {/* Time of Day Indicator */}
-                        <div 
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium justify-center"
-                          style={{ 
-                            backgroundColor: activity.timeOfDay === 'Evening' ? '#1e293b15' : '#fbbf2415',
-                            color: activity.timeOfDay === 'Evening' ? theme.primary : '#d97706'
-                          }}
-                        >
-                          {activity.timeOfDay === 'Evening' ? (
-                            <Moon className="w-3 h-3" />
-                          ) : (
-                            <Sun className="w-3 h-3" />
-                          )}
-                          {activity.timeOfDay}
-                        </div>
                       </div>
                     </div>
                   </div>
