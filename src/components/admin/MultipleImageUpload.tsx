@@ -116,7 +116,7 @@ export function MultipleImageUpload({
   onUploadComplete, 
   onClose,
   category,
-  maxSizeMB = 5
+  maxSizeMB = 2
 }: MultipleImageUploadProps) {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -323,7 +323,7 @@ export function MultipleImageUpload({
                 <p className="text-sm text-gray-300 mb-1">
                   <span className="font-semibold">Click to upload</span> or drag and drop
                 </p>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF, WebP up to {maxSizeMB}MB per file</p>
+                <p className="text-xs text-gray-500">PNG, JPG to {maxSizeMB}MB per file</p>
                 <p className="text-xs text-[#FDB813] mt-2">
                   ✨ Select multiple files at once
                 </p>
