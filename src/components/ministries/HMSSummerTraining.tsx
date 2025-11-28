@@ -25,8 +25,10 @@ export function HMSSummerTraining() {
     <div className="bg-black text-white min-h-screen font-sans">
       {/* Hero Section */}
       <section id="home" className="relative h-[80vh] flex items-start justify-center overflow-hidden pt-4 md:pt-4">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1950&q=80')] bg-cover bg-top opacity-30">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/images/ministries/summer/summer.jpg')" }}
+        >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>
         
@@ -132,8 +134,7 @@ export function HMSSummerTraining() {
       </section>
 
       {/* Learning through Experience */}
-      <section id="experience" className="py-20 bg-[url('https://images.unsplash.com/photo-1511632765486-a01980e01a18?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1950&q=80')] bg-cover bg-center relative">
-        <div className="absolute inset-0 bg-black opacity-80"></div>
+      <section id="experience" className="py-20 bg-[#2E2E2E] relative">
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl md:text-4xl mb-2 text-center">{t('hmsSummerTrainingPage.experience.title')}</h2>
@@ -188,12 +189,6 @@ export function HMSSummerTraining() {
               <p>
                 {t('hmsSummerTrainingPage.hallelConnection.paragraph3')}
               </p>
-            </div>
-            
-            <div className="flex flex-col md:flex-row justify-center items-center space-y-6 md:space-y-0 md:space-x-6">
-              <div className="w-full md:w-1/3 aspect-square bg-[url('https://images.unsplash.com/photo-1519710164239-da123dc03ef4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80')] bg-cover bg-center rounded-lg"></div>
-              <div className="w-full md:w-1/3 aspect-square bg-[url('https://images.unsplash.com/photo-1508695666381-69deeaa78ccb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80')] bg-cover bg-center rounded-lg"></div>
-              <div className="w-full md:w-1/3 aspect-square bg-[url('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80')] bg-cover bg-center rounded-lg"></div>
             </div>
           </div>
         </div>
@@ -268,25 +263,25 @@ export function HMSSummerTraining() {
             <div className="w-24 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: '#FDB813' }}></div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-              <a href="#" className="bg-black p-6 rounded-lg flex flex-col items-center text-center hover:bg-[#1a1a1a] transition-colors duration-300 cursor-pointer">
+              <a href="https://www.facebook.com/p/Augustine-Dandingi-Official-100063698651483/" target="_blank" rel="noopener noreferrer" aria-label="Facebook - Augustine Dandingi Official" className="bg-black p-6 rounded-lg flex flex-col items-center text-center hover:bg-[#1a1a1a] transition-colors duration-300">
                 <svg className="w-12 h-12 text-[#FDB813] mb-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"></path>
+                  <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
                 </svg>
                 <h3 className="text-xl font-semibold mb-2">{t('hmsSummerTrainingPage.connect.facebook.title')}</h3>
                 <p className="text-gray-300">{t('hmsSummerTrainingPage.connect.facebook.subtitle')}</p>
               </a>
-              
-              <a href="#" className="bg-black p-6 rounded-lg flex flex-col items-center text-center hover:bg-[#1a1a1a] transition-colors duration-300 cursor-pointer">
-                <svg className="w-12 h-12 text-[#FDB813] mb-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm-1-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm5 7h-2v-3c0-.55-.45-1-1-1s-1 .45-1 1v3h-2v-6h2v1.1c.17-.31.48-.6 1.3-.6 1.49 0 2.7 1.21 2.7 2.7V17z"></path>
+
+              <a href="https://www.youtube.com/@augustinedandingi6878" target="_blank" rel="noopener noreferrer" aria-label="YouTube Channel - Augustine Dandingi" className="bg-black p-6 rounded-lg flex flex-col items-center text-center hover:bg-[#1a1a1a] transition-colors duration-300">
+                <svg className="w-12 h-12 text-[#FDB813] mb-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M23.498 6.186a2.998 2.998 0 0 0-2.115-2.12C19.647 3.5 12 3.5 12 3.5s-7.647 0-9.382.566A3 3 0 0 0 .503 6.186C0 8.03 0 12 0 12s0 3.97.503 5.814a2.998 2.998 0 0 0 2.115 2.12C4.353 20.5 12 20.5 12 20.5s7.647 0 9.382-.566a2.998 2.998 0 0 0 2.115-2.12C24 15.97 24 12 24 12s0-3.97-.502-5.814zM9.75 15.02V8.98L15.5 12l-5.75 3.02z" />
                 </svg>
                 <h3 className="text-xl font-semibold mb-2">{t('hmsSummerTrainingPage.connect.website.title')}</h3>
                 <p className="text-gray-300">{t('hmsSummerTrainingPage.connect.website.subtitle')}</p>
               </a>
-              
-              <a href="#" className="bg-black p-6 rounded-lg flex flex-col items-center text-center hover:bg-[#1a1a1a] transition-colors duration-300 cursor-pointer">
+
+              <a href="mailto:daugustine001@gmail.com" aria-label="Email Augustine Dandingi" className="bg-black p-6 rounded-lg flex flex-col items-center text-center hover:bg-[#1a1a1a] transition-colors duration-300">
                 <svg className="w-12 h-12 text-[#FDB813] mb-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path>
+                  <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
                 </svg>
                 <h3 className="text-xl font-semibold mb-2">{t('hmsSummerTrainingPage.connect.email.title')}</h3>
                 <p className="text-gray-300">{t('hmsSummerTrainingPage.connect.email.subtitle')}</p>

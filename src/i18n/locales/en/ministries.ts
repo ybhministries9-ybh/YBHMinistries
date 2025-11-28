@@ -243,12 +243,12 @@ export default {
         subtitle: "Augustine Dandingi Official"
       },
       website: {
-        title: "HMS Website",
-        subtitle: "Official page and announcements"
+        title: "YouTube Channel",
+        subtitle: "Latest Videos and Announcements"
       },
       email: {
         title: "Email",
-        subtitle: "info@hallel-ministry.org"
+        subtitle: "daugustine001@gmail.com"
       },
       closing1: "Prepare to encounter God in a new way this summer.",
       closing2: "This is your time to grow, to serve, and to rise as a true worshiper and leader.",
@@ -696,9 +696,9 @@ export default {
     paragraph2: "Through social programs we serve the vulnerable and share God’s love. We proclaim the Gospel among unreached communities and disciple those who are rescued to become faithful followers of Jesus Christ. Our members support one another’s spiritual, financial, and social growth.",
     activitiesTitle: "Church Activities",
     activity1Name: "Sunday Worship Service",
-      activity1Time: "6:00 – 8:00",
+      activity1Time: "6:00 PM – 8:00 PM",
     activity2Name: "Fasting Prayer",
-      activity2Time: "7:00 – 8:00",
+      activity2Time: "7:00 PM – 8:00 PM",
     activityNote: "All times are local",
     activity1Subtitle: "Join us for praise, worship, and the Word of God",
     activity2Subtitle: "A time of spiritual renewal and intercession"

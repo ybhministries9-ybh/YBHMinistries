@@ -12,10 +12,13 @@ export function HallelConferences() {
   return (
     <div className="font-sans text-white bg-black">
       {/* Hero Section */}
-      <section className="relative h-[80vh] flex items-start justify-center overflow-hidden mb-20 pt-4 md:pt-16">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1515616227676-603a1c547b3b?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-40">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
+      <section className="relative h-[80vh] flex items-start justify-center overflow-hidden mb-20 pt-4 md:pt-16"> 
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div> 
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/images/ministries/conference/conference.jpg')" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent"></div>
         </div>
         
         <div className="container mx-auto px-4 z-20 text-center">
@@ -64,11 +67,11 @@ export function HallelConferences() {
             </div>
             {/* Image Content */}
             <div className="md:w-2/5 w-full order-1 md:order-2">
-              <div className="w-full aspect-square overflow-hidden rounded-lg shadow-lg">
+              <div className="w-full aspect-square overflow-hidden rounded-lg shadow-lg bg-black">
                 <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80"
+                  src="/images/ministries/conference/1.jpg"
                   alt="People worshiping at Hallel Conference"
-                  className="w-full h-full object-cover"
+                  className="block w-full h-full object-contain bg-black"
                 />
               </div>
             </div>
@@ -147,11 +150,11 @@ export function HallelConferences() {
             </div>
             {/* Image Column */}
             <div className="md:w-2/5 w-full order-1 md:order-2">
-              <div className="w-full aspect-square overflow-hidden rounded-lg shadow-lg">
+              <div className="w-full aspect-square overflow-hidden rounded-lg shadow-lg bg-black">
                 <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1522199710521-72d69614c702?auto=format&fit=crop&w=800&q=80"
+                  src="/images/ministries/conference/2.jpg"
                   alt="Hands lifted in worship"
-                  className="w-full h-full object-cover"
+                  className="block w-full h-full object-contain bg-black"
                 />
               </div>
             </div>

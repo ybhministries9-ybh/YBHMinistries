@@ -13,7 +13,10 @@ export function HallelBibleCollege() {
       {/* Hero Section */}
       <section className="relative h-[80vh] flex items-start justify-center overflow-hidden pt-4 md:pt-16">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504052434569-70ad5836ab65?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80')] bg-cover bg-center opacity-40">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-90"
+          style={{ backgroundImage: "url('/images/ministries/college/college.jpg')" }}
+        >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>
         
@@ -143,7 +146,7 @@ export function HallelBibleCollege() {
           <div className="flex flex-col md:flex-row gap-8 items-center">
             <div className="md:w-1/2">
               <ImageWithFallback 
-                src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+                src="/images/ministries/college/1.jpg"
                 alt="Life at Hallel Bible College"
                 className="w-full h-64 md:h-96 object-cover rounded-lg"
               />

@@ -13,7 +13,10 @@ export function HallelBibleSchoolMinistry() {
       {/* Hero Section (full-width) */}
       <section className="relative h-[80vh] flex items-start justify-center overflow-hidden mb-20 pt-4 md:pt-16">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1672867138294-8aa5591041de?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-40">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/images/ministries/school/school.jpg')" }}
+        >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>
         

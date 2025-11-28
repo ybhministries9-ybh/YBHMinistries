@@ -712,9 +712,9 @@ export default {
     activitiesTitle: "సంఘ కార్యకలాపాలు",
     activitiesSubtitle: "ఆరాధన, ప్రార్థన మరియు సహవాసంలో వారాంతం అంతా మాతో చేరండి",
     activity1Name: "ఆదివారం సంఘ ఆరాధన",
-    activity1Time: "6:00 – 8:00",
+    activity1Time: "6:00 PM – 8:00 PM",
     activity2Name: "ఉపవాస ప్రార్థన",
-    activity2Time: "7:00 – 8:00",
+    activity2Time: "7:00 PM – 8:00 PM",
     activityNote: "అన్ని సమయాలు స్థానిక సమయములో ఉన్నాయి",
     activity1Subtitle: "ప్రశంస, ఆరాధన మరియు దేవుని వాక్యం కోసం మాతో చేరండి",
     activity2Subtitle: "ఆధ్యాత్మిక పునరుద్ధరణ మరియు మధ్యవర్తిత్వానికి సమయం"

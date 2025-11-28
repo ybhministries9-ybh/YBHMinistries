@@ -61,8 +61,16 @@ function _ImageWithFallback({
 
       const s = String(newSrc).trim();
 
-      // If browser-usable already, use directly
-      if (s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) {
+      // If browser-usable already, use directly. Also treat absolute
+      // local paths (starting with `/`) as ready-to-use public assets
+      // served from `public/` so we should not attempt presignning.
+      if (
+        s.startsWith('blob:') ||
+        s.startsWith('data:') ||
+        s.startsWith('http://') ||
+        s.startsWith('https://') ||
+        s.startsWith('/')
+      ) {
         setImgSrc(s);
         setIsLoading(true);
         return;

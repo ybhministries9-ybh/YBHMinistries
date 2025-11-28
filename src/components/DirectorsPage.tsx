@@ -10,15 +10,15 @@ import { useTranslation } from 'react-i18next';
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 const separatorImage = `${R2_BASE}/separator.png`;
 
-// Hero image URL
-const HERO_IMAGE_URL = `${R2_BASE}/directors/Augustine.JPG`;
+// Hero image URL (use lowercase to match files in `public/images/directors`)
+const HERO_IMAGE_URL = `/images/directors/augustine.jpg`;
 
 // Image URLs for preloading
 const IMAGE_URLS = {
   augustine: HERO_IMAGE_URL,
-  vijaya: `${R2_BASE}/directors/Vijaya.JPG`,
-  charles: `${R2_BASE}/directors/Charlie.JPG`,
-  nancy: `${R2_BASE}/directors/Nancy.JPG`,
+  vijaya: `/images/directors/vijaya.jpg`,
+  charles: `/images/directors/charlie.jpg`,
+  nancy: `/images/directors/nancy.jpg`,
   hms: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
 };
 
@@ -64,52 +64,17 @@ export function DirectorsPage() {
   // URLs on mount so tab switches are fast.
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
+  // Previously we attempted to presign R2 objects for some image paths.
+  // To simplify and avoid presign failures on static/public assets, just
+  // use the values from `IMAGE_URLS` directly. If images are served from
+  // `/public/images/...` they will resolve without any server presign.
   useEffect(() => {
-    let cancelled = false;
-    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    async function resolveAll() {
-      const entries = Object.entries(IMAGE_URLS) as [string, string][];
-      const out: Record<string, string> = {};
-      await Promise.all(entries.map(async ([k, v]) => {
-        try {
-          if (!v || typeof v !== 'string') { out[k] = String(v); return; }
-          // If it's an external URL and not hosted under our R2 base, skip presign
-          if (v.startsWith('http') && R2_BASE && !v.startsWith(R2_BASE)) { out[k] = v; return; }
-
-          // Determine object key to request presign for
-          let key = v;
-          if (v.startsWith(R2_BASE)) {
-            // strip base (possible trailing slash)
-            key = v.replace(new RegExp('^' + escapeRegex(R2_BASE) + '/?'), '');
-          } else if (v.startsWith('r2://')) {
-            key = v.slice('r2://'.length);
-            // if r2://bucket/key, remove bucket
-            const parts = key.split('/').filter(Boolean);
-            if (parts.length > 1) key = parts.slice(1).join('/');
-          }
-
-          // If key still looks like an absolute URL, don't presign
-          if (!key || key.startsWith('http')) { out[k] = v; return; }
-
-          const resp = await fetch('/api/r2/presign-get', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key })
-          });
-          if (!resp.ok) { out[k] = v; return; }
-          const j = await resp.json();
-          out[k] = j.url || v;
-        } catch (err) {
-          out[k] = v;
-        }
-      }));
-
-      if (!cancelled) setSignedUrls(out);
-    }
-
-    resolveAll();
-    return () => { cancelled = true; };
+    const out: Record<string, string> = {};
+    Object.entries(IMAGE_URLS).forEach(([k, v]) => {
+      out[k] = v as string;
+    });
+    setSignedUrls(out);
+    // no cleanup required
   }, []);
 
   // Preload current tab image (prefer signed URL when available)
@@ -484,8 +449,8 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                   <div className="grid gap-0 overflow-hidden rounded-lg md:grid-cols-5">
                     <div className="hidden overflow-hidden md:block md:col-span-2">
                       <ImageWithFallback
-                        src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
-                        alt="Worship service"
+                        src="/images/directors/ybhm.jpg"
+                        alt="Yeshua Beth Hallel Ministries"
                         className="object-cover w-full h-full"
                       />
                     </div>
@@ -587,7 +552,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                     </div>
                     <div className="hidden overflow-hidden md:block md:col-span-2">
                       <ImageWithFallback
-                        src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
+                        src="/images/ministries/hms/hms_c.jpg"
                         alt="Music keyboard"
                         className="object-cover w-full h-full"
                       />

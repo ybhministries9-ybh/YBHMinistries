@@ -72,7 +72,7 @@ export function AwardsPage() {
     {
       id: "guinness",
       name: t('records.guinness.name'),
-      image: `${R2_BASE}/awards/guinness/guinness.JPG?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
+      image: '/images/awards/guinness.jpg',
       award: t('records.guinness.award'),
       year: t('records.guinness.year'),
       participants: t('records.guinness.participants'),
@@ -83,7 +83,8 @@ export function AwardsPage() {
     {
       id: "ingenious",
       name: t('records.ingenious.name'),
-      image: `${R2_BASE}/awards/ingenious/ingenious.JPG?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
+    //  image: `${R2_BASE}/awards/ingenious/ingenious.JPG?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
+      image: '/images/awards/ingenious.jpg',
       award: t('records.ingenious.award'),
       year: t('records.ingenious.year'),
       participants: t('records.ingenious.participants'),
@@ -94,7 +95,8 @@ export function AwardsPage() {
     {
       id: "asian",
       name: t('records.asian.name'),
-      image: `${R2_BASE}/awards/asian/asian.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
+     // image: `${R2_BASE}/awards/asian/asian.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
+      image: '/images/awards/asian.jpg',
       award: t('records.asian.award'),
       year: t('records.asian.year'),
       participants: t('records.asian.participants'),
@@ -105,7 +107,8 @@ export function AwardsPage() {
     {
       id: "international",
       name: t('records.international.name'),
-      image: `${R2_BASE}/awards/star/star.JPG?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
+      // image: `${R2_BASE}/awards/star/star.JPG?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
+      image: '/images/awards/star.jpg',
       award: t('records.international.award'),
       year: t('records.international.year'),
       participants: t('records.international.participants'),
@@ -129,6 +132,8 @@ export function AwardsPage() {
         try {
           const v = rec.image;
           if (!v || typeof v !== 'string') { out[rec.id] = String(v); return; }
+          // If it's a local public asset (starts with '/'), use it directly and skip presign
+          if (v.startsWith('/')) { out[rec.id] = v; return; }
           // If it's an external URL and not hosted under our R2 base, skip presign
           if (v.startsWith('http') && R2_BASE && !v.startsWith(R2_BASE)) { out[rec.id] = v; return; }
 

@@ -90,12 +90,11 @@ export function HMSPage({
         ref={sectionRefs.home}
         className="pt-4 md:pt-16 h-[80vh] flex items-start relative overflow-hidden"
       >
-        <div className="absolute inset-0 z-0">
-          <ImageWithFallback
-            src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
-            alt="Music instruments in a studio"
-            className="w-full h-full object-cover opacity-40"
-          />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-90 z-10"></div>
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-10"
+          style={{ backgroundImage: "url('/images/ministries/hms/hms.jpg')" }}
+        >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>
         
@@ -160,9 +159,9 @@ export function HMSPage({
               </p>
             </div>
             <div className="md:w-1/2 relative">
-              <div className="aspect-video rounded-lg overflow-hidden">
+                <div className="aspect-video rounded-lg overflow-hidden">
                 <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
+                  src="/images/ministries/hms/vision.jpg"
                   alt="Students learning music"
                   className="w-full h-full object-cover"
                 />
@@ -234,25 +233,25 @@ export function HMSPage({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {[
               {
-                title: t('hmsPage.approach.items.training.title'),
-                description: t('hmsPage.approach.items.training.description'),
-                image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
-              },
-              {
-                title: t('hmsPage.approach.items.biblical.title'),
-                description: t('hmsPage.approach.items.biblical.description'),
-                image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
-              },
-              {
-                title: t('hmsPage.approach.items.workshops.title'),
-                description: t('hmsPage.approach.items.workshops.description'),
-                image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
-              },
-              {
-                title: t('hmsPage.approach.items.practical.title'),
-                description: t('hmsPage.approach.items.practical.description'),
-                image: "https://images.unsplash.com/photo-1501612780327-45045538702b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
-              }
+                  title: t('hmsPage.approach.items.training.title'),
+                  description: t('hmsPage.approach.items.training.description'),
+                  image: "/images/ministries/hms/approach_1.jpg"
+                },
+                {
+                  title: t('hmsPage.approach.items.biblical.title'),
+                  description: t('hmsPage.approach.items.biblical.description'),
+                  image: "/images/ministries/hms/approach_2.jpg"
+                },
+                {
+                  title: t('hmsPage.approach.items.workshops.title'),
+                  description: t('hmsPage.approach.items.workshops.description'),
+                  image: "/images/ministries/hms/approach_3.jpg"
+                },
+                {
+                  title: t('hmsPage.approach.items.practical.title'),
+                  description: t('hmsPage.approach.items.practical.description'),
+                  image: "/images/ministries/hms/approach_4.jpg"
+                }
             ].map((item, index) => (
               <div
                 key={index}

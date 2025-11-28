@@ -13,7 +13,10 @@ export function HallelWorshipDay() {
       {/* Hero Section */}
       <section className="relative h-[80vh] flex items-start justify-center overflow-hidden pt-4 md:pt-16">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1712844470225-94cbb5bd7dc8?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-40">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-90"
+          style={{ backgroundImage: "url('/images/ministries/worship/worship.jpg')" }}
+        >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>
         
