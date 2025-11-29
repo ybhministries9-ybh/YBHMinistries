@@ -493,7 +493,7 @@ export function NewsPage() {
 
                     <button
                       onClick={() => router.push('/contact?tab=student-form')}
-                      className="w-full bg-[#FDB813] hover:bg-[#e5a711] transition-colors text-black py-2 rounded-full shadow-lg font-medium text-center cursor-pointer"
+                      className="w-full bg-[#FDB813] hover:bg-[#e5a711] transition-colors text-black py-2 rounded-full shadow-lg font-semibold text-center cursor-pointer"
                       aria-label={t('news:events.enrollNow')}
                     >
                       {t('news:events.enrollNow')}
