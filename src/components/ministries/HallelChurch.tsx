@@ -2,7 +2,6 @@
 
 import React from "react";
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
 import { Clock, Calendar, Sun, Moon, Heart, Music } from 'lucide-react';
 
 function ThemedSectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -124,17 +123,9 @@ export function HallelChurch() {
             const accentColor = colors[index % colors.length];
 
             return (
-              <motion.div
-                key={activity.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ y: -8, scale: 1.02 }}
-                className={`relative group ${activity.featured ? 'md:col-span-2' : ''}`}
-              >
+              <div key={activity.id} className={`relative ${activity.featured ? 'md:col-span-2' : ''}`}>
                 <div 
-                  className="rounded-2xl md:rounded-3xl p-8 h-full min-h-[340px] transition-all duration-500 border hover:shadow-2xl mx-auto max-w-xl text-center flex flex-col justify-between"
+                  className="rounded-2xl md:rounded-3xl p-8 h-full min-h-[340px] border mx-auto max-w-xl text-center flex flex-col justify-between"
                   style={{ 
                     backgroundColor: theme.background,
                     borderColor: theme.textMuted + '20',
@@ -142,8 +133,8 @@ export function HallelChurch() {
                 >
                   <div className="flex flex-col items-center gap-6">
                     {/* Icon */}
-                    <motion.div 
-                      className={`flex-shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 mx-auto`}
+                    <div 
+                      className="flex-shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto"
                       style={{ 
                         background: `linear-gradient(135deg, ${accentColor}20, ${accentColor}10)`,
                         border: `2px solid ${accentColor}30`
@@ -153,12 +144,12 @@ export function HallelChurch() {
                         className={`w-10 h-10`}
                         style={{ color: accentColor }}
                       />
-                    </motion.div>
+                    </div>
 
                     {/* Content */}
                     <div className="w-full">
                       <h3 
-                        className={`font-bold mb-2 transition-colors text-xl text-white text-center`}
+                        className={`font-bold mb-2 text-xl text-white text-center`}
                         style={{ color: '#fff' }}
                         tabIndex={0}
                       >
@@ -175,9 +166,8 @@ export function HallelChurch() {
                       {/* Schedule Info */}
                       <div className="flex flex-wrap justify-center items-center gap-3">
                         {/* Day Badge */}
-                        <motion.div 
-                          whileHover={{ scale: 1.05 }}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all justify-center"
+                        <div 
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium justify-center"
                           style={{ 
                             backgroundColor: accentColor + '15',
                             color: accentColor,
@@ -186,12 +176,11 @@ export function HallelChurch() {
                         >
                           <Calendar className="w-4 h-4" />
                           {activity.schedule}
-                        </motion.div>
+                        </div>
 
                         {/* Time Badge */}
-                        <motion.div 
-                          whileHover={{ scale: 1.05 }}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all justify-center"
+                        <div 
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium justify-center"
                           style={{ 
                             backgroundColor: theme.backgroundAlt,
                             color: theme.text,
@@ -200,18 +189,12 @@ export function HallelChurch() {
                         >
                           <Clock className="w-4 h-4" style={{ color: accentColor }} />
                           {t(`hallelChurchPage.${activity.timeKey}`)}
-                        </motion.div>
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Decorative Line */}
-                  <div 
-                    className="absolute bottom-0 left-0 h-1 rounded-b-3xl transition-all duration-500 group-hover:w-full w-0"
-                    style={{ backgroundColor: accentColor }}
-                  />
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
