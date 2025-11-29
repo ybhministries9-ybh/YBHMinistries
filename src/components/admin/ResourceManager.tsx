@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { fetchYouTubeTitle, fetchYouTubeMeta, extractYouTubeId } from '../../lib/youtube';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import DateInput from '../ui/date-input';
 import { Textarea } from '../ui/textarea';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { ImageUpload } from './ImageUpload';
@@ -987,19 +988,16 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                         )}
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Publish Date <span className="text-red-400">*</span></label>
-                        <Input
-                          id={`field-${book.id}-publishDate`}
-                          type="date"
-                          value={toDateInputValue(book.publishDate)}
-                          onChange={(e) => handleUpdate(book.id, { publishDate: e.target.value })}
-                          placeholder="Publish Date"
-                          className="bg-[#2e2e2e] border-gray-600 text-white"
-                          style={{ backgroundColor: '#2e2e2e' }}
-                          disabled={!isEditing}
-                          aria-invalid={!!formErrors[book.id]?.publishDate}
-                          aria-describedby={formErrors[book.id]?.publishDate ? `error-${book.id}-publishDate` : undefined}
-                        />
+                          <label className="text-sm text-white mb-1 block">Publish Date <span className="text-red-400">*</span></label>
+                          <DateInput
+                            value={toDateInputValue(book.publishDate)}
+                            onChange={(v) => handleUpdate(book.id, { publishDate: v })}
+                            disabled={!isEditing}
+                            allowFuture={false}
+                            className="bg-[#2e2e2e] border-gray-600 text-white"
+                          />
+                        
+                        
                         {isEditing && formErrors[book.id]?.publishDate && (
                           <div id={`error-${book.id}-publishDate`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].publishDate}</div>
                         )}

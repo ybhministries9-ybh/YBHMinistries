@@ -3,6 +3,7 @@ import { Plus, Trash2, Edit2, Calendar, X, Save, Loader2, Eye, EyeOff } from 'lu
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import DateInput from '../ui/date-input';
 import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
 import {
@@ -613,14 +614,13 @@ export function EventsManager() {
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="text-sm text-white mb-1 block">Date <span className="text-[#FDB813]">*</span></label>
-                        <Input
-                          type="date"
-                          value={event.date}
-                          onChange={(e) => handleUpdate(event.id, { date: e.target.value })}
-                          min={new Date().toISOString().split('T')[0]}
-                          className="bg-[#2E2E2E] border-gray-600 text-white"
-                          disabled={!isEditing}
-                        />
+                          <DateInput
+                            value={event.date}
+                            onChange={(v) => handleUpdate(event.id, { date: v })}
+                            allowFuture={true}
+                            disabled={!isEditing}
+                            className="bg-[#2E2E2E] border-gray-600 text-white"
+                          />
                         <div className="text-xs mt-1">{validationErrors[event.id]?.date ? <span className="text-red-400">{validationErrors[event.id].date}</span> : <span>&nbsp;</span>}</div>
                       </div>
                       <div>
