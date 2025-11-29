@@ -15,7 +15,7 @@ export function HallelBibleSchoolMinistry() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/ministries/school/school.jpg')" }}
+          style={{ backgroundImage: "url('/images/ministries/school/1.jpg')" }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>
