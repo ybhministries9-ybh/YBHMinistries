@@ -362,28 +362,29 @@ export function HMSStudentForm({
                     }
                   }}
                     render={({ field }) => (
-                      <DatePicker
-                        value={typeof field.value === 'string' ? field.value : (field.value instanceof Date ? (() => {
-                          const d = field.value as Date;
-                          const yyyy = d.getFullYear();
-                          const mm = String(d.getMonth()+1).padStart(2,'0');
-                          const dd = String(d.getDate()).padStart(2,'0');
-                          return `${yyyy}-${mm}-${dd}`;
-                        })() : '')}
-                        onChange={(v: string) => {
-                          // convert YYYY-MM-DD string into Date object for internal consumers
-                          if (!v) {
-                            field.onChange('');
-                            return;
-                          }
-                          if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                            field.onChange(v);
-                          } else {
-                            field.onChange(v);
-                          }
-                        }}
-                        className="w-full"
-                      />
+                        <DatePicker
+                          value={typeof field.value === 'string' ? field.value : (field.value instanceof Date ? (() => {
+                            const d = field.value as Date;
+                            const yyyy = d.getFullYear();
+                            const mm = String(d.getMonth()+1).padStart(2,'0');
+                            const dd = String(d.getDate()).padStart(2,'0');
+                            return `${yyyy}-${mm}-${dd}`;
+                          })() : '')}
+                          onChange={(v: string) => {
+                            // convert YYYY-MM-DD string into Date object for internal consumers
+                            if (!v) {
+                              field.onChange('');
+                              return;
+                            }
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                              field.onChange(v);
+                            } else {
+                              field.onChange(v);
+                            }
+                          }}
+                          className="bg-black border-gray-600 text-white w-full"
+                          allowFuture={false}
+                        />
                     )}
                 />
               </div>
