@@ -152,9 +152,11 @@ function VideoSection() {
               ref={videoRef}
               className="w-full h-full object-cover"
               controls
+              controlsList="nodownload"
               preload="none"
               poster={videoData.thumbnailUrl}
               playsInline
+              onContextMenu={(e) => e.preventDefault()}
             >
               <source src={videoData.videoUrl} type="video/mp4" />
               {t('video.noSupport')}
