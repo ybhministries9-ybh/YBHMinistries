@@ -152,7 +152,7 @@ export function HallelConferences() {
             <div className="md:w-2/5 w-full order-1 md:order-2">
               <div className="w-full aspect-square overflow-hidden rounded-lg shadow-lg bg-black">
                 <ImageWithFallback
-                  src="/images/ministries/conference/2.jpg"
+                  src="/images/ministries/conference/hands.jpg"
                   alt="Hands lifted in worship"
                   className="block w-full h-full object-contain bg-black"
                 />
