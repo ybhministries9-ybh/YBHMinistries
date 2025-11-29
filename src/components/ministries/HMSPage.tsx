@@ -93,7 +93,7 @@ export function HMSPage({
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-90 z-10"></div>
         <div
           className="absolute inset-0 bg-cover bg-center opacity-10"
-          style={{ backgroundImage: "url('/images/ministries/hms/hms.jpg')" }}
+          style={{ backgroundImage: "url('/images/ministries/hms/1.jpg')" }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>

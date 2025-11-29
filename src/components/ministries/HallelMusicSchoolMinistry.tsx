@@ -12,7 +12,7 @@ export function HallelMusicSchoolMinistry() {
       {/* Hero Section with Background Image */}
       <div className="relative w-full overflow-hidden" style={{ height: '70vh', minHeight: '500px' }}>
         <ImageWithFallback
-          src="/images/ministries/hms/hms.jpg"
+          src="/images/ministries/hms/1.jpg"
           alt={t('hallelMusicSchoolPage.title')}
           className="w-full h-full object-cover"
           style={{ height: '100vh', minHeight: '500px' }}

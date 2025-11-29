@@ -27,7 +27,7 @@ export function HMSSummerTraining() {
       <section id="home" className="relative h-[80vh] flex items-start justify-center overflow-hidden pt-4 md:pt-4">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/ministries/summer/summer.jpg')" }}
+          style={{ backgroundImage: "url('/images/ministries/summer/1.jpg')" }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>

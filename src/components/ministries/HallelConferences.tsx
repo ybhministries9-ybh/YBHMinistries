@@ -16,7 +16,7 @@ export function HallelConferences() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div> 
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/ministries/conference/conference.jpg')" }}
+          style={{ backgroundImage: "url('/images/ministries/conference/3.jpg')" }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent"></div>
         </div>

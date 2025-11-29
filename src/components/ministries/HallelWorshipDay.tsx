@@ -15,7 +15,7 @@ export function HallelWorshipDay() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
         <div
           className="absolute inset-0 bg-cover bg-center opacity-90"
-          style={{ backgroundImage: "url('/images/ministries/worship/worship.jpg')" }}
+          style={{ backgroundImage: "url('/images/ministries/worship/1.jpg')" }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
         </div>
