@@ -82,62 +82,158 @@ function DatePicker({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  
+  const [text, setText] = useState<string>(value || ''); // Initialize text with value or empty string
+
   // Parse the date string (YYYY-MM-DD) correctly as local date
   const parseDateValue = (v?: string) => {
     if (!v) return undefined;
-    // If it's already a Date string or Date-like, normalize to a Date
     try {
-      // if value contains a T (ISO datetime), take the date portion
-      let s = String(v);
+      let s = String(v).trim();
+      if (!s) return undefined;
       if (s.includes('T')) s = s.split('T')[0];
-      // If value looks like YYYY-MM-DD, parse parts
       const parts = s.split('-').map(p => Number(p));
       if (parts.length === 3 && parts.every(p => !Number.isNaN(p))) {
         const [year, month, day] = parts;
         return new Date(year, month - 1, day);
       }
-      // Fallback: try Date constructor
       const d = new Date(s);
       if (!isNaN(d.getTime())) return d;
     } catch (e) {
-      // ignore and return undefined below
+      // ignore
     }
     return undefined;
   };
 
-  const dateValue = parseDateValue(value);
-  
+  useEffect(() => {
+    setText(value || '');
+  }, [value]);
+
+  const dateValue = parseDateValue(text || value);
+
   const today = new Date();
-  today.setHours(23, 59, 59, 999); // Set to end of today
-  
+  today.setHours(23, 59, 59, 999);
+
+  // displayMonth controls which month/year the calendar shows (so year select can jump)
+  const [displayMonth, setDisplayMonth] = useState<Date | undefined>(() => parseDateValue(value));
+  // Sync displayMonth when the incoming `value` string changes. Use the string value
+  // so we don't trigger the effect on every render due to a freshly-created Date object.
+  useEffect(() => {
+    const dv = parseDateValue(value);
+    setDisplayMonth(prev => {
+      if (!dv) return undefined;
+      if (!prev || dv.getTime() !== prev.getTime()) return dv;
+      return prev;
+    });
+  }, [value]);
+
   const handleSelect = (date: Date | undefined) => {
     if (date) {
-      // Format date using local timezone to avoid off-by-one errors
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
-      onChange(`${year}-${month}-${day}`);
+      const formatted = `${year}-${month}-${day}`;
+      setText(formatted);
+      onChange(formatted);
+      setDisplayMonth(date);
       setOpen(false);
     }
   };
 
+  const handleInputChange = (v: string) => setText(v);
+
+  const handleBlur = () => {
+    const s = (text || '').trim();
+    if (!s) { onChange(''); return; }
+    const parsed = parseDateValue(s);
+    if (parsed) {
+      const year = parsed.getFullYear();
+      const month = String(parsed.getMonth() + 1).padStart(2, '0');
+      const day = String(parsed.getDate()).padStart(2, '0');
+      const formatted = `${year}-${month}-${day}`;
+      setText(formatted);
+      onChange(formatted);
+      setDisplayMonth(parsed);
+    } else {
+      setText(value || '');
+    }
+  };
+
+  const handleClear = () => { setText(''); onChange(''); };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={`w-full justify-start text-left !bg-[#2e2e2e] border-gray-600 text-white hover:bg-[#2e2e2e] hover:text-white cursor-pointer ${className || ''}`}
-            style={{ backgroundColor: '#2e2e2e', color: '#fff' }}
-          >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {dateValue ? format(dateValue, 'PPP') : <span>Pick a date</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 !bg-[#2e2e2e] border-gray-600" align="start" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
+      <div className={`flex items-center gap-2 ${className || ''}`}>
+        <div style={{ width: '100%' }} className="relative">
+            <Input
+              value={text}
+              onChange={(e: any) => handleInputChange(e.target.value)}
+              onBlur={handleBlur}
+              placeholder="YYYY-MM-DD"
+              className="!bg-[#2e2e2e] border-gray-600 text-white pl-10 pr-3"
+            />
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label="Open calendar"
+              title="Open calendar"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white z-10"
+            >
+              <CalendarIcon />
+            </button>
+          </PopoverTrigger>
+        </div>
+        <button type="button" onClick={handleClear} className="text-xs text-gray-400 hover:text-gray-200">Clear</button>
+      </div>
+      <PopoverContent className="w-auto p-2 !bg-[#2e2e2e] border-gray-600" align="start" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
+        <div className="flex items-center justify-between px-2 pb-2 gap-2">
+          <div className="flex items-center gap-2">
+            <div className="text-sm text-gray-300">Month</div>
+            <select
+              value={displayMonth ? displayMonth.getMonth() : ''}
+              onChange={(e) => {
+                const m = Number(e.target.value);
+                if (!Number.isFinite(m)) return;
+                const y = displayMonth ? displayMonth.getFullYear() : new Date().getFullYear();
+                setDisplayMonth(new Date(y, m, 1));
+              }}
+              className="bg-[#1a1a1a] text-white border border-gray-700 rounded px-2 py-1"
+            >
+              {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((label, i) => (
+                <option key={i} value={i}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="text-sm text-gray-300">Year</div>
+            <select
+              value={displayMonth ? displayMonth.getFullYear() : ''}
+              onChange={(e) => {
+                const y = Number(e.target.value);
+                if (!Number.isFinite(y)) return;
+                const m = displayMonth ? displayMonth.getMonth() : 0;
+                setDisplayMonth(new Date(y, m, 1));
+              }}
+              className="bg-[#1a1a1a] text-white border border-gray-700 rounded px-2 py-1"
+            >
+              {(() => {
+                const years: number[] = [];
+                const currentYear = new Date().getFullYear();
+                const start = Math.max(1900, currentYear - 100);
+                const end = currentYear + 1;
+                for (let y = end; y >= start; y--) years.push(y);
+                return years.map((yr) => <option key={yr} value={yr}>{yr}</option>);
+              })()}
+            </select>
+          </div>
+        </div>
         <Calendar
           mode="single"
+          // `selected` should be the actual selected date; `month` controls which
+          // month is displayed. This prevents confusion when the user changes the
+          // month/year view before picking a day.
           selected={dateValue}
+          month={displayMonth}
           onSelect={handleSelect}
           disabled={(date) => date > today}
           initialFocus
@@ -404,7 +500,8 @@ export function StoriesManager() {
   };
 
   const isValidYouTubeUrl = (url: string): boolean => {
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/;
+    // Accept common YouTube URL formats including watch, youtu.be and shorts
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]+/;
     return youtubeRegex.test(url);
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, memo, lazy, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { Music, Globe, Mail, Youtube, Instagram, ExternalLink, ChevronRight, Award, Mic, BookOpen, Heart, Users, Calendar, MapPin } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Badge } from './ui/badge';
@@ -63,6 +64,7 @@ export function DirectorsPage() {
   // in `IMAGE_URLS` (e.g. 'augustine', 'vijaya'). We prefetch presigned GET
   // URLs on mount so tab switches are fast.
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const router = useRouter();
 
   // Previously we attempted to presign R2 objects for some image paths.
   // To simplify and avoid presign failures on static/public assets, just
@@ -204,6 +206,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
   t: any;
   signedUrls: Record<string, string>;
 }) => {
+  const router = useRouter();
   return (
     <div>
       {/* Hero Section */}
@@ -271,14 +274,14 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
             
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
                 <button
-                  onClick={() => { window.location.href = '/contact?tab=getintouch'; }}
+                  onClick={() => { router.push('/contact?tab=getintouch'); }}
                   className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
                   style={{ color: '#000000' }}
                 >
                   {t('augustine.buttons.getInTouch')}
                 </button>
               <button
-                onClick={() => { window.location.href = '/resources#worship'; }}
+                onClick={() => { router.push('/resources#worship'); }}
                 className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
                 style={{ color: '#000000' }}
               >
@@ -777,6 +780,7 @@ AugustineTab.displayName = 'AugustineTab';
 
 // Memoized Vijaya Tab Component
 const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentColor: string; imagePreloaded: boolean; t: any; signedUrls: Record<string,string> }) => {
+  const router = useRouter();
   return (
     <div>
       {/* Hero Section */}
@@ -844,7 +848,7 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accent
             
             <div className="flex flex-wrap justify-center gap-4 md:justify-start mt-6 md:mt-auto">
               <button
-                onClick={() => { window.location.href = '/contact?tab=getintouch'; }}
+                onClick={() => { router.push('/contact?tab=getintouch'); }}
                 className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-3 px-6"
                 style={{ color: '#000000' }}
               >
@@ -963,6 +967,7 @@ VijayaTab.displayName = 'VijayaTab';
 
 // Memoized Charles Tab Component
 const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentColor: string; imagePreloaded: boolean; t: any; signedUrls: Record<string,string> }) => {
+  const router = useRouter();
   return (
     <div>
       {/* Hero Section */}
@@ -1130,6 +1135,7 @@ CharlesTab.displayName = 'CharlesTab';
 
 // Memoized Nancy Tab Component
 const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentColor: string; imagePreloaded: boolean; t: any; signedUrls: Record<string,string> }) => {
+  const router = useRouter();
   return (
     <div>
       {/* Hero Section */}

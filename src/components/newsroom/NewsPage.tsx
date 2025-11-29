@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
+import { useRouter } from 'next/navigation';
 import { Calendar, FileText, ChevronRight, Plus, Users, Music, Globe, BookOpen, X, Clock, MapPin, Calendar as CalendarIcon, User, Clock as ClockIcon, ArrowRight, ArrowLeft, MessageSquare, Star, Medal, Mic, UserCheck, BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getEvents, type Event } from "../../utils/eventsData";
@@ -213,18 +214,22 @@ export function NewsPage() {
     
     if (section === 'upcoming-events') {
       setActiveTab('events');
-      setViewMode('list');
-      
-      // If eventId is provided, show that event's details
+
+      // If eventId is provided, immediately show that event's details (skip list)
       if (eventId) {
         const event = events.find(e => e.id === parseInt(eventId));
         if (event) {
-          setTimeout(() => {
-            handleViewDetails(event);
-          }, 100);
+          setSelectedEvent(event);
+          setViewMode('detail');
+          window.scrollTo(0, 0);
+        } else {
+          // fallback to list if event not found
+          setViewMode('list');
         }
       } else {
-        // Scroll to upcoming events section after a short delay
+        // No specific event requested — show list and scroll to top
+        setViewMode('list');
+        setSelectedEvent(null);
         setTimeout(() => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }, 100);
@@ -284,9 +289,12 @@ export function NewsPage() {
     setSelectedEvent(null);
   }, []);
 
+  const router = useRouter();
+
   const handleContactClick = useCallback(() => {
-    alert("Navigating to contact page");
-  }, []);
+    // Navigate to Contact page and open the Get In Touch tab
+    router.push('/contact?tab=getintouch');
+  }, [router]);
 
   // Memoize all events sorted by date with translation applied
   const allEvents = useMemo(() => 
@@ -331,59 +339,24 @@ export function NewsPage() {
     
     return (
       <div className="w-full">
-        <div className="container mx-auto px-4">
+        <div className="max-w-[1800px] mx-auto px-4 md:px-0">
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left Side - Sticky Image and Registration Card */}
+            {/* Left Column - Poster */}
             <div className="lg:w-80 flex-shrink-0">
-              <div className="lg:sticky lg:top-36 space-y-6">
+              <div className="lg:sticky lg:top-36">
                 {(
-                  // If the stored URL is an R2 reference, wait for resolvedImageUrl.
                   (selectedEvent.imageUrl && !selectedEvent.imageUrl.startsWith('r2://') && (
-                    <img src={selectedEvent.imageUrl} alt={selectedEvent.title} className="w-full h-auto rounded-xl" />
+                    <img src={selectedEvent.imageUrl} alt={selectedEvent.title} loading="lazy" className="w-full h-auto rounded-xl" />
                   )) ||
                   (resolvedImageUrl && (
-                    <img src={resolvedImageUrl} alt={selectedEvent.title} className="w-full h-auto rounded-xl" />
+                    <img src={resolvedImageUrl} alt={selectedEvent.title} loading="lazy" className="w-full h-auto rounded-xl" />
                   ))
-                )}
-                
-                {/* Registration Card */}
-                {selectedEvent.registration?.enabled && (
-                  <div className="p-5 bg-[#1a1a1a] rounded-xl">
-                    <h3 className="font-semibold text-lg mb-2 text-[#FDB813]">{t('news:events.registration')}</h3>
-                    <p className="text-gray-300 text-sm mb-6">
-                      {selectedEvent.registration.description || t('news:events.registerEarly')}
-                    </p>
-                    
-                    {selectedEvent.registration.nationalFee && (
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-gray-400">National:</span>
-                        <span className="text-lg font-bold">₹{selectedEvent.registration.nationalFee.toLocaleString()}</span>
-                      </div>
-                    )}
-                    
-                    {selectedEvent.registration.internationalFee && (
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-gray-400">International:</span>
-                        <span className="text-lg font-bold">₹{selectedEvent.registration.internationalFee.toLocaleString()}</span>
-                      </div>
-                    )}
-                    
-                    {selectedEvent.registration.registrationFee && (
-                      <p className="text-xs text-gray-400 mb-4 pb-4 border-b border-gray-700">
-                        (Registration Fee ₹{selectedEvent.registration.registrationFee.toLocaleString()} included)
-                      </p>
-                    )}
-                    
-                    <button className="w-full bg-[#FDB813] hover:bg-[#e5a711] transition-colors text-black py-3 rounded-full shadow-lg font-medium text-center cursor-pointer">
-                      {t('news:events.enrollNow')}
-                    </button>
-                  </div>
                 )}
               </div>
             </div>
 
-            {/* Right Side - Main Content */}
-            <div className="flex-1">
+            {/* Center Column - Main Content (double width) */}
+            <div className="flex-1 lg:flex-[3]">
             {/* Main Content */}
             <div>
               {/* Hero Header Section */}
@@ -466,23 +439,74 @@ export function NewsPage() {
                   </div>
                 )}
                 
-                <div className="flex justify-start items-center mt-6">
-                  <button 
-                    onClick={handleContactClick} 
-                    className="text-white flex items-center gap-2 hover:text-[#FDB813] transition-colors cursor-pointer"
+                <div className="flex items-center gap-4 mt-6">
+                  {/* Show help prompt as plain text and Contact button as a pill */}
+                  <span className="text-white">{(() => {
+                    const full = t('news:events.needHelp');
+                    // Try to extract leading part (e.g. "Need help?") if translation contains '?'
+                    const idx = full.indexOf('?');
+                    return idx !== -1 ? full.slice(0, idx + 1) : full;
+                  })()}</span>
+
+                  <button
+                    onClick={handleContactClick}
+                    className="bg-[#FDB813] text-black cursor-pointer font-semibold text-sm px-4 py-2 rounded-full shadow-sm hover:bg-[#e5a711] transition-colors inline-flex items-center gap-2"
+                    aria-label={t('common:navigation.contactUs')}
                   >
-                    <MessageSquare size={20} />
-                    <span>{t('news:events.needHelp')}</span>
+                    <MessageSquare size={16} />
+                    <span>{t('common:navigation.contactUs')}</span>
                   </button>
                 </div>
               </div>
             </div>
             </div>
+
+            {/* Right Column - Registration Card */}
+            <div className="lg:w-80 flex-shrink-0">
+              <div className="lg:sticky lg:top-36">
+                {selectedEvent.registration?.enabled && (
+                  <div className="p-5 bg-[#1a1a1a] rounded-xl">
+                    <h3 className="font-semibold text-lg mb-2 text-[#FDB813]">{t('news:events.registration')}</h3>
+                    <p className="text-gray-300 text-sm mb-6">
+                      {selectedEvent.registration.description || t('news:events.registerEarly')}
+                    </p>
+
+                    {selectedEvent.registration.nationalFee && (
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-gray-400">National:</span>
+                        <span className="text-lg font-bold">₹{selectedEvent.registration.nationalFee.toLocaleString()}</span>
+                      </div>
+                    )}
+
+                    {selectedEvent.registration.internationalFee && (
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-gray-400">International:</span>
+                        <span className="text-lg font-bold">₹{selectedEvent.registration.internationalFee.toLocaleString()}</span>
+                      </div>
+                    )}
+
+                    {selectedEvent.registration.registrationFee && (
+                      <p className="text-xs text-gray-400 mb-4 pb-4 border-b border-gray-700">
+                        (Registration Fee ₹{selectedEvent.registration.registrationFee.toLocaleString()} included)
+                      </p>
+                    )}
+
+                    <button
+                      onClick={() => router.push('/contact?tab=student-form')}
+                      className="w-full bg-[#FDB813] hover:bg-[#e5a711] transition-colors text-black py-2 rounded-full shadow-lg font-medium text-center cursor-pointer"
+                      aria-label={t('news:events.enrollNow')}
+                    >
+                      {t('news:events.enrollNow')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
     );
-  }, [selectedEvent, handleContactClick]);
+  }, [selectedEvent, handleContactClick, resolvedImageUrl, t, i18n.language]);
 
   // Resolve r2:// image references to presigned https URLs for the public event details
   useEffect(() => {
@@ -556,7 +580,7 @@ export function NewsPage() {
       </div>
 
       {/* Content Area */}
-      <div className="max-w-6xl mx-auto px-3 md:px-6 py-4 md:py-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-0 py-4 md:py-6">
         {/* Upcoming Events Tab */}
         {activeTab === 'events' && (
           <>

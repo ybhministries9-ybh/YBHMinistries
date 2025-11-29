@@ -1,11 +1,14 @@
+"use client";
+
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { navigate } from '../utils/navigate';
 import { getUpcomingEvents, formatEventDate, Event } from '../utils/eventsData';
 
 export function EventScrollBanner() {
   const { t, i18n } = useTranslation('home');
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -21,7 +24,8 @@ export function EventScrollBanner() {
   }
 
   const handleBannerClick = () => {
-    navigate('/news?section=upcoming-events');
+    // fallback: open upcoming events list using client-side navigation
+    try { router.push('/news?section=upcoming-events'); } catch (e) { window.location.href = '/news?section=upcoming-events'; }
   };
 
   // Calculate animation duration based on number of events
@@ -54,6 +58,10 @@ export function EventScrollBanner() {
                 <div 
                   key={`event-1-${index}`} 
                   className="event-item"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch (err) { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch (err) { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } } }}
                 >
                   {/* Event Name */}
                   <div className="text-white font-semibold text-base">
@@ -82,6 +90,10 @@ export function EventScrollBanner() {
                 <div 
                   key={`event-2-${index}`} 
                   className="event-item"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch (err) { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch (err) { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } } }}
                 >
                   {/* Event Name */}
                   <div className="text-white font-semibold text-base">
