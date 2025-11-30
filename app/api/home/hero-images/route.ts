@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
             console.error('Failed to generate presigned URL for', parsed, err);
           }
         }
-        // also generate signed thumbnail URL if thumbnail_url exists
+        // also generate signed thumbnail/medium URLs if available (prefer smaller thumb for fast LCP)
         const thumbUrl = img.thumbnail_url || img.thumb_url || '';
         if (thumbUrl) {
           try {
@@ -36,6 +36,19 @@ export async function GET(request: NextRequest) {
             }
           } catch (err) {
             console.error('Failed to generate presigned thumbnail URL', err);
+          }
+        }
+
+        const mediumUrl = img.medium_url || img.mediumUrl || '';
+        if (mediumUrl) {
+          try {
+            const pm = parseKeyFromUrl(mediumUrl);
+            const bucket = pm.bucket || PRIVATE_BUCKET;
+            if (pm && pm.key) {
+              out.signedMediumUrl = await getPresignedGetUrl(pm.key, 3600, bucket || undefined);
+            }
+          } catch (err) {
+            console.error('Failed to generate presigned medium URL', err);
           }
         }
         return out;

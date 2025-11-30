@@ -7,16 +7,11 @@ import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import SessionWarning from '@/components/admin/SessionWarning';
 
 export default function AdminPage() {
-  // Optimistically assume logged in if a token exists locally to avoid
-  // flashing the login UI while we verify the token with the server.
+  // Do NOT read localStorage during initial render to avoid server/client
+  // hydration mismatches. Start conservatively as logged out and verify the
+  // stored token on mount (client-only) via useEffect.
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    try {
-      return !!localStorage.getItem('admin_token');
-    } catch (e) {
-      return false;
-    }
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const searchParams = useSearchParams();
   const requestedSection = searchParams?.get('section') || undefined;
 

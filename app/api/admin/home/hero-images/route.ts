@@ -4,7 +4,7 @@ import { uploadBuffer, getPublicUrl, parseKeyFromUrl, deleteObject, PRIVATE_BUCK
 import { createHeroImage, updateHeroImage, deleteHeroImage, deleteHeroImages, reorderHeroImages, getActiveHeroImages } from '@/lib/db';
 import { sql } from '@vercel/postgres';
 import { verifySession, getActorName } from '@/lib/sessions';
-import processHeroImageById from '@/lib/imageProcessor';
+import processHeroImageById, { processBufferToVariants } from '@/lib/imageProcessor';
 
 /**
  * GET /api/admin/home/hero-images
@@ -81,38 +81,50 @@ export async function POST(request: NextRequest) {
       // Upload to Cloudflare R2 using server-side helper
       const originalName = file.name || `upload-${Date.now()}`;
       const sanitized = originalName.replace(/[^a-zA-Z0-9.\-_/]/g, '_');
-      const key = `home/hero/${Date.now()}-${sanitized}`;
+      const baseKey = `home/hero/${Date.now()}-${sanitized}`;
 
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      // upload original immediately into the configured PRIVATE_BUCKET
-      await uploadBuffer(key, buffer, file.type || 'application/octet-stream', PRIVATE_BUCKET);
-      const storageRef = `r2://${PRIVATE_BUCKET}/${key}`;
 
-      // Save to database using internal r2:// reference (thumbnail/medium will be added later)
-      const heroImage = await createHeroImage(
-        storageRef,
-        undefined,
-        createdBy
-      );
-
-      // Enqueue processing: create a queue entry to generate thumbnail/medium asynchronously
+      // Convert uploaded image to WebP (resize to sensible max width) and upload as the canonical image
       try {
-        const insertSql = `INSERT INTO image_processing_queue (hero_image_id, r2_bucket, r2_key, status) VALUES ($1, $2, $3, 'pending')`;
-        await sql.query(insertSql, [heroImage.id, PRIVATE_BUCKET, key]);
-      } catch (qerr) {
-        console.error('Failed to enqueue image processing for', heroImage.id, qerr);
-      }
+        const webpBuffer = await (await import('sharp')).default(buffer).resize({ width: 2000, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+        const webpKey = `${baseKey}.webp`;
+        await uploadBuffer(webpKey, webpBuffer, 'image/webp', PRIVATE_BUCKET, 'public, max-age=31536000, immutable');
+        const storageRef = `r2://${PRIVATE_BUCKET}/${webpKey}`;
 
-      // Try to process immediately (best-effort) so thumbnails are available for admin instantly.
-      try {
-        await processHeroImageById(heroImage.id);
-      } catch (procErr) {
-        // Log and continue; background processor or manual script can pick it up later
-        console.error('Immediate processing failed for', heroImage.id, procErr);
-      }
+        // Save to database using internal r2:// reference
+        const heroImage = await createHeroImage(storageRef, undefined, createdBy);
 
-      uploadedImages.push(heroImage);
+        // Generate medium + thumb variants synchronously (webp) and store refs in DB
+        try {
+          const { thumbRef, mediumRef } = await processBufferToVariants(buffer, 'home/hero', PRIVATE_BUCKET);
+          try {
+            await sql.query(`UPDATE home_hero_images SET thumbnail_url = $1, medium_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`, [thumbRef, mediumRef, heroImage.id]);
+          } catch (updErr) {
+            console.error('Failed to update hero image with variant refs', heroImage.id, updErr);
+          }
+        } catch (variantErr) {
+          console.error('Failed to create medium/thumb variants', variantErr);
+        }
+
+        uploadedImages.push(heroImage);
+      } catch (convErr) {
+        console.error('Failed to convert/upload webp original for', sanitized, convErr);
+        // Fallback: upload original file as before so admin can still use it
+        const key = `${baseKey}${file.name?.includes('.') ? '' : ''}`;
+        await uploadBuffer(key, buffer, file.type || 'application/octet-stream', PRIVATE_BUCKET);
+        const storageRef = `r2://${PRIVATE_BUCKET}/${key}`;
+        const heroImage = await createHeroImage(storageRef, undefined, createdBy);
+        // enqueue older processing path for later
+        try {
+          const insertSql = `INSERT INTO image_processing_queue (hero_image_id, r2_bucket, r2_key, status) VALUES ($1, $2, $3, 'pending')`;
+          await sql.query(insertSql, [heroImage.id, PRIVATE_BUCKET, key]);
+        } catch (qerr) {
+          console.error('Failed to enqueue image processing for', heroImage.id, qerr);
+        }
+        uploadedImages.push(heroImage);
+      }
     }
 
     return NextResponse.json({
