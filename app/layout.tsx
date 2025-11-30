@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { OrganizationStructuredData, WebsiteStructuredData } from '@/components/seo/StructuredData';
 import '../src/index.css';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+// Load Inter via Google Fonts link to avoid runtime internal Turbopack font imports
 
 const siteUrl = 'https://ybhministries.org';
 
@@ -96,15 +95,19 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#1e40af" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="YBH Ministries" />
-        <OrganizationStructuredData />
-        <WebsiteStructuredData />
-      </head>
-      <body className={inter.className} suppressHydrationWarning>
+            <meta name="theme-color" content="#1e40af" />
+            <meta name="mobile-web-app-capable" content="yes" />
+            <meta name="apple-mobile-web-app-capable" content="yes" />
+            <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+            <meta name="apple-mobile-web-app-title" content="YBH Ministries" />
+            <OrganizationStructuredData />
+            <WebsiteStructuredData />
+            {/* Load Inter from Google Fonts to avoid next/font turbopack internal loader issues */}
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+          </head>
+          <body suppressHydrationWarning>
         {children}
         <Toaster position="bottom-center" />
       </body>

@@ -214,7 +214,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
         <div className="flex flex-col items-center md:flex-row md:gap-12 md:items-stretch">
           <div className="order-2 md:order-1 mb-8 text-center md:mb-0 md:text-left md:w-[45%] md:pl-8 flex flex-col">
             <div className="space-y-4">
-              <h1 className="mb-3 text-2xl md:text-5xl text-white md:whitespace-nowrap font-bold md:font-normal">
+              <h1 className="mb-3 text-2xl md:text-5xl text-white font-bold md:font-normal break-words">
                 {t('augustine.name')}
               </h1>
               
@@ -788,7 +788,7 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accent
         <div className="flex flex-col items-center md:items-start md:flex-row md:gap-12">
           <div className="order-2 md:order-1 mb-8 text-center md:mb-0 md:text-left md:w-[45%] md:pl-8 flex flex-col md:justify-between w-full md:w-[45%]" style={{ minHeight: '405px' }}>
             <div className="space-y-4">
-              <h1 className="mb-3 text-2xl md:text-5xl text-white text-center md:text-left md:whitespace-nowrap font-bold md:font-normal">
+              <h1 className="mb-3 text-2xl md:text-5xl text-white text-center md:text-left font-bold md:font-normal break-words">
                 {t('vijaya.name')}
               </h1>
               
@@ -975,7 +975,7 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accen
         <div className="flex flex-col items-center md:items-start md:flex-row md:gap-12">
           <div className="order-2 md:order-1 mb-8 text-center md:mb-0 md:text-left md:w-[45%] md:pl-8 flex flex-col md:justify-between w-full md:w-[45%]" style={{ minHeight: '405px' }}>
             <div className="space-y-4">
-              <h1 className="mb-3 text-2xl md:text-5xl text-white text-center md:text-left md:whitespace-nowrap font-bold md:font-normal">
+              <h1 className="mb-3 text-2xl md:text-5xl text-white text-center md:text-left font-bold md:font-normal break-words">
                 {t('charles.name')}
               </h1>
               
@@ -1143,7 +1143,7 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentC
         <div className="flex flex-col items-center md:items-start md:flex-row md:gap-12">
           <div className="order-2 md:order-1 mb-8 text-center md:mb-0 md:text-left md:w-[45%] md:pl-8 flex flex-col md:justify-between w-full md:w-[45%]" style={{ minHeight: '405px' }}>
             <div className="space-y-4">
-              <h1 className="mb-3 text-2xl md:text-5xl text-white text-center md:text-left md:whitespace-nowrap font-bold md:font-normal">
+              <h1 className="mb-3 text-2xl md:text-5xl text-white text-center md:text-left font-bold md:font-normal break-words">
                 {t('nancy.name')}
               </h1>
               

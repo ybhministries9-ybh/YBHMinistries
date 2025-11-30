@@ -11,12 +11,12 @@ async function checkData() {
     
     // Debug output: enabled when DEBUG env var is set (e.g. DEBUG=1)
     if (process.env.DEBUG) {
-      console.log('=== Report Data ===');
+      console.debug('=== Report Data ===');
       result.rows.forEach(row => {
-        console.log(`\nYear: ${row.year}, Class: ${row.class_type}`);
-        console.log('Monthly Data:');
+        console.debug(`\nYear: ${row.year}, Class: ${row.class_type}`);
+        console.debug('Monthly Data:');
         row.monthly_data.forEach(month => {
-          console.log(`  ${month.month}: indian=${month.indian}, nonIndian=${month.nonIndian}, total=${month.total}`);
+          console.debug(`  ${month.month}: indian=${month.indian}, nonIndian=${month.nonIndian}, total=${month.total}`);
         });
       });
     }

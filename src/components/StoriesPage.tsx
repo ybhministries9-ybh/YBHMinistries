@@ -437,7 +437,7 @@ const SubmitTestimonyForm = memo(() => {
                   id="name"
                   type="text"
                   maxLength={100}
-                  className={`w-full px-4 py-2 bg-black rounded border ${errors.name ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.name ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                   placeholder={t('form.namePlaceholder')}
                   {...register("name", { 
                     required: t('form.nameRequired'),
@@ -457,7 +457,7 @@ const SubmitTestimonyForm = memo(() => {
                   id="email"
                   type="email"
                   maxLength={254}
-                  className={`w-full px-4 py-2 bg-black rounded border ${errors.email ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.email ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                   placeholder={t('form.emailPlaceholder')}
                   {...register("email", { 
                     required: t('form.emailRequired'),
@@ -482,7 +482,7 @@ const SubmitTestimonyForm = memo(() => {
                   id="role"
                   type="text"
                   maxLength={100}
-                  className={`w-full px-4 py-2 bg-black rounded border ${errors.role ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.role ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                   placeholder={t('form.rolePlaceholder')}
                   {...register("role", { required: t('form.roleRequired'), maxLength: { value: 100, message: t('form.roleMaxLength') } })}
                 />
@@ -500,7 +500,7 @@ const SubmitTestimonyForm = memo(() => {
                 })()}
                 <select
                   id="category"
-                  className={`w-full px-4 py-2 bg-black rounded border ${errors.category ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.category ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
                   {...register("category", { required: t('form.eventRequired') })}
                 >
                   <option value="">{t('form.eventPlaceholder')}</option>
@@ -523,7 +523,7 @@ const SubmitTestimonyForm = memo(() => {
                 id="location"
                 type="text"
                 maxLength={100}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.location ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.location ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                 placeholder={t('form.locationPlaceholder')}
                 {...register("location", { required: t('form.locationRequired'), maxLength: { value: 100, message: t('form.locationMaxLength') } })}
               />
@@ -539,7 +539,7 @@ const SubmitTestimonyForm = memo(() => {
                 id="testimony"
                 rows={6}
                 maxLength={5000}
-                className={`w-full px-4 py-2 bg-black rounded border ${errors.testimony ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none`}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.testimony ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none`}
                 placeholder={t('form.testimonyPlaceholder')}
                 {...register("testimony", { 
                   required: t('form.testimonyRequired'),

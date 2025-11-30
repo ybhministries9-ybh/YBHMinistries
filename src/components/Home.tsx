@@ -152,9 +152,11 @@ function VideoSection() {
               ref={videoRef}
               className="w-full h-full object-cover"
               controls
+              controlsList="nodownload"
               preload="none"
               poster={videoData.thumbnailUrl}
               playsInline
+              onContextMenu={(e) => e.preventDefault()}
             >
               <source src={videoData.videoUrl} type="video/mp4" />
               {t('video.noSupport')}
@@ -200,6 +202,9 @@ function ImageCarousel({ images, interval = 3000 }) {
             alt={t('hero.slideAlt', { number: index + 1 })}
             className="w-full h-full object-cover"
             style={{ objectPosition: 'center 20%' }}
+            loading={index === currentIndex ? 'eager' : 'lazy'}
+            fetchPriority={index === currentIndex ? 'high' : undefined}
+            decoding="async"
           />
         </div>
       ))}
@@ -257,9 +262,25 @@ export function Home() {
         const response = await fetch('/api/home/hero-images');
         const result = await response.json();
         
-        if (result.success && result.data && result.data.length > 0) {
-          const imageUrls = result.data.map((img: any) => img.signedUrl || img.image_url || img.url).filter(Boolean) as string[];
-          setHeroImages(imageUrls.length > 0 ? imageUrls : [defaultHeroImage]);
+            if (result.success && result.data && result.data.length > 0) {
+              // Prefer the signed original (converted to WebP at upload time) so the hero shows the highest-quality WebP.
+                const imageUrls = result.data.map((img: any) => {
+                  // Prefer the DB `image_url` (original) when it's not the same as medium/thumb.
+                  try {
+                    if (img.image_url && img.image_url !== img.medium_url && img.image_url !== img.thumbnail_url) {
+                      return img.signedUrl || img.image_url;
+                    }
+                  } catch (e) {
+                    // fallback silently
+                  }
+                  // If signedUrl points to a medium/thumb path, prefer medium only as a fallback.
+                  if (img.signedUrl && !/(\/medium\/|\/thumbs\/)/.test(String(img.signedUrl))) {
+                    return img.signedUrl;
+                  }
+                  return img.signedUrl || img.signedMediumUrl || img.signedThumbUrl || img.image_url || img.medium_url || img.thumbnail_url || img.url;
+                }).filter(Boolean) as string[];
+
+              setHeroImages(imageUrls.length > 0 ? imageUrls : [defaultHeroImage]);
         } else {
           // Use default image if no images in database
           setHeroImages([defaultHeroImage]);
