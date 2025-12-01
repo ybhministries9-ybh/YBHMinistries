@@ -90,7 +90,7 @@ export function HMSStudentForm({
     ...initialData
   };
 
-  const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, watch, setValue, reset, control, setError, formState: { errors, isSubmitting } } = useForm<FormData>({
     mode: 'onBlur',
     defaultValues: mergedDefaults as any
   });
@@ -221,6 +221,46 @@ export function HMSStudentForm({
         data.dateOfBirth = `${parts[2]}-${parts[1]}-${parts[0]}`;
       }
 
+      // Client-side age check: ensure applicant is at least 5 years old before submitting
+      try {
+        const dobParts = String(data.dateOfBirth).split('-');
+        if (dobParts.length === 3) {
+          const dDay = Number(dobParts[0]);
+          const dMonth = Number(dobParts[1]) - 1;
+          const dYear = Number(dobParts[2]);
+          const dobCheck = new Date(dYear, dMonth, dDay);
+          if (!isNaN(dobCheck.getTime())) {
+            const today = new Date();
+            let age = today.getFullYear() - dobCheck.getFullYear();
+            const m = today.getMonth() - dobCheck.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dobCheck.getDate())) {
+              age--;
+            }
+            if (age < 5) {
+              setError('dateOfBirth' as any, { type: 'validation', message: String(t('studentForm.validation.ageMinimum')) });
+              setFormAlert({ type: 'error', message: String(t('studentForm.validation.ageMinimum')) });
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        // ignore parsing issues here; server will validate
+      }
+
+      // Coerce conditional "other" fields to single strings so server-side zod validation won't see arrays
+      try {
+        // instrumentOther may come through as an array if the client produced duplicated keys — join into comma-separated string
+        (data as any).instrumentOther = Array.isArray((data as any).instrumentOther)
+          ? (data as any).instrumentOther.join(', ')
+          : String((data as any).instrumentOther ?? '').trim();
+
+        (data as any).performanceOther = Array.isArray((data as any).performanceOther)
+          ? (data as any).performanceOther.join(', ')
+          : String((data as any).performanceOther ?? '').trim();
+      } catch (e) {
+        // ignore, server validation will catch any remaining issues
+      }
+
       // If caller provided an override submit handler, call it
       if (onSubmitOverride) {
         const result = await onSubmitOverride(data);
@@ -231,14 +271,131 @@ export function HMSStudentForm({
         }
       } else {
         // Submit to server API (default behavior)
-          const resp = await fetch(effectiveSubmitUrl, {
-            method: effectiveSubmitMethod,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-          });
-        const result = await resp.json();
-        if (!resp.ok || !result.success) {
-          console.error('Server responded with error', result);
+        const debug = process.env.NODE_ENV !== 'production';
+        if (debug) {
+          try {
+            // dev debug removed
+          } catch (e) { /* ignore debug errors */ }
+        }
+
+        const resp = await fetch(effectiveSubmitUrl, {
+          method: effectiveSubmitMethod,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        // Try to parse JSON safely; handle non-JSON or empty responses.
+        let result: any = null;
+        try {
+          result = await resp.json();
+        } catch (parseErr) {
+          // If parsing fails, attempt to read text for diagnostics
+          let txt: string | null = null;
+          try {
+            txt = await resp.text();
+          } catch (tErr) {
+            txt = null;
+          }
+          // non-JSON response (dev debug removed)
+          setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
+          return;
+        }
+
+        if (debug) {
+          try {
+            const ct = resp.headers?.get ? resp.headers.get('content-type') : undefined;
+            // response parsed (dev debug removed)
+          } catch (e) { /* ignore */ }
+        }
+
+        if (!resp.ok) {
+          // API returned an error status. If it's a validation error (zod), map to field errors.
+          if (result?.error === 'validation_error' && result?.details) {
+            const details = result.details;
+
+            // Zod sometimes exposes issues array; handle that shape first
+            if (Array.isArray((details as any).issues)) {
+              for (const issue of (details as any).issues) {
+                const path = Array.isArray(issue.path) && issue.path.length ? issue.path.join('.') : String(issue.path || '');
+                const msg = String(issue.message || issue.toString || JSON.stringify(issue));
+                if (path) {
+                  try { setError(path as any, { type: 'server', message: msg }); } catch (e) { /* ignore */ }
+                } else {
+                  setFormAlert(prev => prev?.message ? prev : { type: 'error', message: msg });
+                }
+              }
+              return;
+            }
+
+            // Some servers return an `errors` array of objects with path/message
+            if (Array.isArray((details as any).errors)) {
+              for (const errObj of (details as any).errors) {
+                const path = Array.isArray(errObj.path) ? errObj.path.join('.') : String(errObj.path || '');
+                const msg = errObj.message || errObj.msg || JSON.stringify(errObj);
+                if (path) {
+                  try { setError(path as any, { type: 'server', message: msg }); } catch (e) { /* ignore */ }
+                } else {
+                  setFormAlert(prev => prev?.message ? prev : { type: 'error', message: String(msg) });
+                }
+              }
+              return;
+            }
+
+            // Fallback: traverse the zod-formatted object and look for _errors
+            const walkAndSet = (obj: any, prefix = '') => {
+              for (const key of Object.keys(obj || {})) {
+                const val = obj[key];
+                const fieldPath = prefix ? `${prefix}.${key}` : key;
+                if (key === '_errors' && Array.isArray(obj['_errors']) && obj['_errors'].length) {
+                  const msg = obj['_errors'].join(', ');
+                  const target = prefix || '';
+                  if (target) {
+                    try { setError(target as any, { type: 'server', message: msg }); } catch (e) { /* ignore */ }
+                  } else {
+                    setFormAlert(prev => prev?.message ? prev : { type: 'error', message: msg });
+                  }
+                } else if (typeof val === 'object' && val !== null) {
+                  walkAndSet(val, fieldPath);
+                }
+              }
+            };
+            walkAndSet(details, '');
+            setFormAlert(prev => (prev.message ? prev : { type: 'error', message: String(t('studentForm.messages.error')) }));
+            return;
+          }
+
+          console.error('Server error response', { status: resp.status, body: result });
+          setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
+          return;
+        }
+
+        if (!result || result.success === false) {
+          // If the API returned a structured validation error as success=false, try to map it too
+          if (result?.error === 'validation_error' && result?.details) {
+            const details = result.details;
+            const walkAndSet = (obj: any, prefix = '') => {
+              for (const key of Object.keys(obj || {})) {
+                const val = obj[key];
+                const fieldPath = prefix ? `${prefix}.${key}` : key;
+                if (key === '_errors' && Array.isArray(obj['_errors']) && obj['_errors'].length) {
+                  const msg = obj['_errors'].join(', ');
+                  const target = prefix || '';
+                  if (target) {
+                    try { setError(target as any, { type: 'server', message: msg }); } catch (e) { /* ignore */ }
+                  } else {
+                    setFormAlert({ type: 'error', message: msg });
+                  }
+                } else if (typeof val === 'object' && val !== null) {
+                  walkAndSet(val, fieldPath);
+                }
+              }
+            };
+            walkAndSet(details, '');
+            setFormAlert(prev => (prev.message ? prev : { type: 'error', message: String(t('studentForm.messages.error')) }));
+            return;
+          }
+
+          console.error('API returned failure', result);
           setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
           return;
         }
@@ -275,8 +432,8 @@ export function HMSStudentForm({
       {/* If the success message is short, show only the success panel and hide the form to keep focus on the message */}
       {submitSuccess && successIsShort && (
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <div className="py-8 text-center">
-            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full" style={{ backgroundColor: '#FDB813' }}>
+          <div className="max-w-3xl mx-auto rounded-lg bg-[#2E2E2E] p-8 text-center">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 rounded-full" style={{ backgroundColor: '#FDB813' }}>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
@@ -609,7 +766,7 @@ export function HMSStudentForm({
             {/* Program Applying For */}
             <div className={`${programError ? 'ring-2 ring-red-500 border border-red-500 rounded-md p-3 bg-[#2a2a2a]' : ''}`}>
               <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
-                {t('studentForm.fields.programApplyingFor')} *
+                {t('studentForm.fields.programApplyingFor')} <span className="text-[#FDB813]">*</span>
               </label>
               {programError && (
                 <div className="mb-3 px-2">
@@ -640,7 +797,7 @@ export function HMSStudentForm({
             {/* Instrument / Specialization */}
             <div className={`${instrumentError ? 'ring-2 ring-red-500 border border-red-500 rounded-md p-3 bg-[#2a2a2a]' : ''}`}>
               <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
-                {t('studentForm.fields.instrumentSpecialization')} *
+                {t('studentForm.fields.instrumentSpecialization')} <span className="text-[#FDB813]">*</span>
               </label>
               {instrumentError && (
                 <div className="mb-3 px-2">
@@ -703,7 +860,7 @@ export function HMSStudentForm({
             {/* Preferred Class Type */}
             <div className={`${classTypeError ? 'ring-2 ring-red-500 border border-red-500 rounded-md p-3 bg-[#2a2a2a]' : ''}`}>
               <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
-                {t('studentForm.fields.preferredClassType')} *
+                {t('studentForm.fields.preferredClassType')} <span className="text-[#FDB813]">*</span>
               </label>
               {classTypeError && (
                 <div className="mb-3 px-2">
@@ -734,7 +891,7 @@ export function HMSStudentForm({
             {/* Preferred Schedule */}
             <div className={`${scheduleError ? 'ring-2 ring-red-500 border border-red-500 rounded-md p-3 bg-[#2a2a2a]' : ''}`}>
               <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
-                {t('studentForm.fields.preferredSchedule')} *
+                {t('studentForm.fields.preferredSchedule')} <span className="text-[#FDB813]">*</span>
               </label>
               {scheduleError && (
                 <div className="mb-3 px-2">
@@ -767,7 +924,7 @@ export function HMSStudentForm({
         {/* 3. Course Type / Certification Options */}
         <section className={`bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg ${courseTypeError ? 'ring-2 ring-red-500 border border-red-500' : ''}`}>
           <h3 className="text-2xl text-white font-normal mb-2">
-            {t('studentForm.sections.courseType')} <span className="text-[#FDB813]">*</span>
+            {t('studentForm.sections.courseType')} <span className="text-xl text-[#FDB813]">*</span>
           </h3>
           <div className="w-24 h-1 bg-[#FDB813] mb-6"></div>
           
@@ -1181,8 +1338,8 @@ export function HMSStudentForm({
         {/* success panel shown below the buttons (only for long messages) */}
         {submitSuccess && !successIsShort && (
           <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
-            <div className="py-8 text-center">
-              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full" style={{ backgroundColor: '#FDB813' }}>
+            <div className="max-w-3xl mx-auto rounded-lg bg-[#2E2E2E] p-8 text-center">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 rounded-full" style={{ backgroundColor: '#FDB813' }}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
@@ -1194,7 +1351,7 @@ export function HMSStudentForm({
                   handleReset(false);
                   setSubmitSuccess(false);
                 }}
-                className="px-6 py-2 rounded-md text-black font-bold transition-all duration-300"
+                className="px-6 py-2 rounded-md text-black font-bold transition-all duration-300 shadow-md inline-flex items-center justify-center"
                 style={{ backgroundColor: '#FDB813' }}
               >
                 {t('studentForm.buttons.submitAnother') || 'Submit another application'}

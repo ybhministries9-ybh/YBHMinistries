@@ -66,3 +66,9 @@ export async function rateLimit(key: string, limit = 10, windowMs = 60 * 60 * 10
 }
 
 // reCAPTCHA verification removed — temporarily disabled
+
+// Enhance rateLimit function: helper to build per-endpoint keys for per-account limits
+export function buildRateKey(prefix: string, identifier: string) {
+  // Keep keys short to fit Redis limits
+  return `${prefix}:${identifier}`;
+}

@@ -170,7 +170,7 @@ export default {
       submitting: "Submitting...",
       reset: "Reset Form"
       ,
-      submitAnother: "Submit another application"
+      submitAnother: "Submit Another Application"
     },
     messages: {
       success: "Application submitted successfully! We will contact you soon.",

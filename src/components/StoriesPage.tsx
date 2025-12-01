@@ -425,7 +425,7 @@ const SubmitTestimonyForm = memo(() => {
                 <button
                   type="button"
                   onClick={() => { reset(); setSubmitSuccess(false); }}
-                  className="px-6 py-2 rounded-full text-black cursor-pointer font-bold transition-all duration-300 shadow-md inline-flex items-center justify-center"
+                  className="px-6 py-2 bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 inline-flex items-center justify-center"
                   style={{ backgroundColor: '#FDB813' }}
                 >
                   {t('form.sendAnother', { defaultValue: 'Send another message' })}

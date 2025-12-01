@@ -27,7 +27,8 @@ export async function POST(request: Request) {
       body = await request.json();
     } catch (parseErr: any) {
       // Log and return a 400 if the incoming body is not valid JSON
-      console.error('Invalid JSON body in /api/get-in-touch:', parseErr);
+      const { logger } = await import('../../../src/lib/logger');
+      logger.error('Invalid JSON body in /api/get-in-touch', { error: parseErr?.message });
       // Try to read raw text for debugging
       let rawBody: string | null = null;
       try {
@@ -86,19 +87,17 @@ export async function POST(request: Request) {
     const userAgent = request.headers.get('user-agent') || null;
 
     // Log the exact payload we will send to DB (only in non-production)
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        console.debug('/api/get-in-touch payload for DB:', {
-          name: nameClean,
-          email: emailVal,
-          phone: phoneVal,
-          messageLen: messageClean.length,
-          location,
-          userAgent,
-        });
-      } catch (e) {
-        // ignore logging errors
-      }
+    try {
+      const { logger } = await import('../../../src/lib/logger');
+      logger.debug('/api/get-in-touch payload for DB', {
+        name: nameClean,
+        email: emailVal,
+        phone: phoneVal,
+        messageLen: messageClean?.length,
+        location,
+      });
+    } catch (e) {
+      // ignore logging errors
     }
 
     let saved;
@@ -112,19 +111,22 @@ export async function POST(request: Request) {
         user_agent: userAgent,
       });
     } catch (dbErr: any) {
-      console.error('DB error in createGetInTouch:', dbErr);
+      const { logger } = await import('../../../src/lib/logger');
+      logger.error('DB error in createGetInTouch', { error: dbErr?.message });
       // Do not leak internal DB errors to the client. Return a generic message.
       return NextResponse.json({ error: 'DB error', details: 'An internal error occurred while saving the submission.' }, { status: 500 });
     }
 
     if (!saved || !('id' in saved)) {
-      console.error('createGetInTouch returned no row or missing id', saved);
+      const { logger } = await import('../../../src/lib/logger');
+      logger.error('createGetInTouch returned no row or missing id', { saved });
       return NextResponse.json({ error: 'Failed to save submission', details: saved }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, id: (saved as any).id });
   } catch (err: any) {
-    console.error('Error in /api/get-in-touch:', err);
+    const { logger } = await import('../../../src/lib/logger');
+    logger.error('Error in /api/get-in-touch', { error: err?.message });
     // Avoid returning stack traces or internal error messages to clients.
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

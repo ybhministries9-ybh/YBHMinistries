@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createHMSStudent } from '@/lib/db';
 import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '@/lib/security';
 import { hmsStudentSchema } from '@/lib/schemas';
+import { logger } from '@/lib/logger';
 
 function isValidEmail(email: string) {
   const re = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -25,8 +26,8 @@ export async function POST(request: Request) {
     const rl = await rateLimit(`hms-students:${ip}`, 10, 60 * 60 * 1000);
     if (!rl.ok) return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
 
+    // Read raw body
     const body = await request.json();
-
     const fullName = sanitizeInput(body.fullName, 200);
     const dateOfBirthRaw = sanitizeInput(body.dateOfBirth, 20);
     const gender = sanitizeInput(body.gender, 50);
@@ -88,7 +89,12 @@ export async function POST(request: Request) {
       emergencyRelationship,
       emergencyContact
     });
-    if (!parsed.success) return NextResponse.json({ success: false, error: 'validation_error', details: parsed.error.format() }, { status: 400 });
+    if (!parsed.success) {
+      try {
+        logger.warn('hms-students validation failed', { errors: parsed.error.format() });
+      } catch (e) {}
+      return NextResponse.json({ success: false, error: 'validation_error', details: parsed.error.format() }, { status: 400 });
+    }
     // reCAPTCHA removed: not enforced
 
     // Basic validation
@@ -158,9 +164,10 @@ export async function POST(request: Request) {
       createdBy: 'public'
     });
 
+    logger.info('HMS student created', { id: (created as any)?.id || null });
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (err) {
-    console.error('POST /api/hms-students error', err);
+    try { logger.error('POST /api/hms-students error', { error: (err as any)?.message || err }); } catch (e) {}
     return NextResponse.json({ success: false, error: 'Failed to save enrolment' }, { status: 500 });
   }
 }

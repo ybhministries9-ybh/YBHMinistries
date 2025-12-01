@@ -53,7 +53,8 @@ export async function getActorName(token?: string) {
     const user = res.rows[0];
     return user.name || user.email || `user_${session.user_id}`;
   } catch (err) {
-    console.error('Failed to resolve actor name from token', err);
+    const { logger } = await import('./logger');
+    logger.error('Failed to resolve actor name from token', { error: (err as any)?.message });
     return null;
   }
 }
