@@ -399,8 +399,6 @@ const SubmitTestimonyForm = memo(() => {
       setIsSubmitting(false);
       setSubmitSuccess(true);
       reset();
-      // Reset success message after 4 seconds
-      setTimeout(() => setSubmitSuccess(false), 4000);
     } catch (err: any) {
       console.error('Submit testimony error', err);
       setIsSubmitting(false);
@@ -417,16 +415,26 @@ const SubmitTestimonyForm = memo(() => {
         
         <div className="max-w-2xl mx-auto bg-[#2E2E2E] p-6 md:p-8 rounded-lg shadow-lg">
           {submitSuccess ? (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="bg-green-900/50 text-green-100 p-4 rounded mb-6"
-            >
-              {t('form.successMessage')}
-            </motion.div>
+            <div>
+                <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ backgroundColor: '#FDB813' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-black font-bold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <p className="mb-6 text-xl font-semibold text-white">{t('form.successMessage', { defaultValue: "Thanks — we'll get back to you soon!" })}</p>
+                <button
+                  type="button"
+                  onClick={() => { reset(); setSubmitSuccess(false); }}
+                  className="px-6 py-2 rounded-full text-black cursor-pointer font-bold transition-all duration-300 shadow-md inline-flex items-center justify-center"
+                  style={{ backgroundColor: '#FDB813' }}
+                >
+                  {t('form.sendAnother', { defaultValue: 'Send another message' })}
+                </button>
+            </div>
           ) : null}
           
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 text-left">
+          {!submitSuccess && (
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 text-left">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <div className="mb-1 flex items-center justify-between">
@@ -547,19 +555,34 @@ const SubmitTestimonyForm = memo(() => {
                   maxLength: { value: 5000, message: t('form.testimonyMaxLength') }
                 })}
               />
+              {/* Preview removed per request */}
               {errors.testimony && <p className="text-red-400 text-xs mt-1">{errors.testimony.message as string}</p>}
             </div>
             
-            <button
-              type="submit"
-              disabled={isSubmitting || !requiredFilled}
-              className={`w-full py-3 px-4 text-center bg-[#FDB813] shadow-lg text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 ${
-                (isSubmitting || !requiredFilled) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
-              }`}
-            >
-              {isSubmitting ? t('form.submitting') : t('form.submitButton')}
-            </button>
-          </form>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                type="submit"
+                disabled={isSubmitting || !requiredFilled}
+                aria-label={t('form.submitButton', { defaultValue: 'Submit Testimony' })}
+                className={`flex-1 py-2 px-4 text-sm text-center bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 ${
+                  (isSubmitting || !requiredFilled) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                }`}
+              >
+                {isSubmitting ? t('form.submitting') : t('form.submitButton')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => reset()}
+                disabled={isSubmitting}
+                aria-label={t('form.resetButton', { defaultValue: 'Reset Form' })}
+                className={`flex-1 py-2 px-4 text-sm bg-black cursor-pointer font-semibold text-white rounded-full border-2 border-[#FDB813] transition-colors duration-200 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#111]'}`}
+              >
+                {t('form.resetButton', { defaultValue: 'Reset Form' })}
+              </button>
+            </div>
+            </form>
+          )}
         </div>
       </div>
     </section>

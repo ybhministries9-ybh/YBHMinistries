@@ -100,6 +100,7 @@ export function HMSStudentForm({
 
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [formAlert, setFormAlert] = useState<{ type?: 'error' | 'info'; message?: string }>({});
+  
   const [programLevels, setProgramLevels] = useState<string[]>(() => (mergedDefaults.programApplyingFor as string[]) || []);
   const [instruments, setInstruments] = useState<string[]>(() => (mergedDefaults.instrumentSpecialization as string[]) || []);
   const [classTypes, setClassTypes] = useState<string[]>(() => (mergedDefaults.preferredClassType as string[]) || []);
@@ -230,11 +231,11 @@ export function HMSStudentForm({
         }
       } else {
         // Submit to server API (default behavior)
-        const resp = await fetch(effectiveSubmitUrl, {
-          method: effectiveSubmitMethod,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
+          const resp = await fetch(effectiveSubmitUrl, {
+            method: effectiveSubmitMethod,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
         const result = await resp.json();
         if (!resp.ok || !result.success) {
           console.error('Server responded with error', result);
@@ -965,6 +966,7 @@ export function HMSStudentForm({
               maxLength={1000}
               placeholder={t('studentForm.fields.goalsPlaceholder')}
             />
+            {/* Preview removed per request */}
             <div className="mt-1">
               {errors.goals ? (
                 <p className="text-red-400 text-xs">{errors.goals.message}</p>

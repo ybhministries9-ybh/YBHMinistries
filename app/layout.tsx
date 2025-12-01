@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Toaster } from 'sonner';
 import { OrganizationStructuredData, WebsiteStructuredData } from '@/components/seo/StructuredData';
 import '../src/index.css';
@@ -95,6 +96,13 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+            {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
+              <Script
+                // Load reCAPTCHA v2 explicit render so we can call grecaptcha.render on specific containers
+                src={`https://www.google.com/recaptcha/api.js?render=explicit`}
+                strategy="afterInteractive"
+              />
+            ) : null}
             <meta name="theme-color" content="#1e40af" />
             <meta name="mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -2,17 +2,8 @@ import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getVisibleApprovedStories } from '@/lib/db';
 import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
-
-function sanitizeString(input: any, maxLength = 2000) {
-  if (!input && input !== 0) return null;
-  let s = String(input || '');
-  // Strip HTML tags
-  s = s.replace(/<[^>]*>/g, '');
-  // Trim and collapse whitespace
-  s = s.trim().replace(/\s+/g, ' ');
-  if (maxLength) s = s.substring(0, maxLength);
-  return s;
-}
+import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '@/lib/security';
+import { storySchema } from '@/lib/schemas';
 
 export async function GET() {
   try {
@@ -48,16 +39,24 @@ export async function GET() {
 // Public submission endpoint for testimonies
 export async function POST(request: Request) {
   try {
+    if (!requireJson(request)) return NextResponse.json({ success: false, error: 'Content-Type must be application/json' }, { status: 400 });
+    if (!checkBodySize(request, 128 * 1024)) return NextResponse.json({ success: false, error: 'Payload too large' }, { status: 413 });
+
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+    const rl = await rateLimit(`stories:${ip}`, 10, 60 * 60 * 1000);
+    if (!rl.ok) return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
+
     const body = await request.json();
     // Basic server-side validation & sanitization
-    const name = sanitizeString(body.name, 100);
-    const email = sanitizeString(body.email, 254);
-    const role = sanitizeString(body.role, 50);
-    const categoryKey = sanitizeString(body.category, 50);
-    const location = sanitizeString(body.location, 100);
-    const testimony = sanitizeString(body.testimony, 5000);
+    const name = sanitizeInput(body.name, 100);
+    const email = sanitizeInput(body.email, 254);
+    const role = sanitizeInput(body.role, 50);
+    const categoryKey = sanitizeInput(body.category, 50);
+    const location = sanitizeInput(body.location, 100);
+    const testimony = sanitizeInput(body.testimony, 5000);
 
-    if (!name || name.length < 2) return NextResponse.json({ success: false, error: 'Invalid name' }, { status: 400 });
+    const parsed = storySchema.safeParse({ name, email: email || undefined, role, category: categoryKey, location, testimony });
+    if (!parsed.success) return NextResponse.json({ success: false, error: 'validation_error', details: parsed.error.format() }, { status: 400 });
     // email optional but validate if present
     if (email) {
       const emailRe = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -79,6 +78,8 @@ export async function POST(request: Request) {
     };
 
     const category = TAB_TO_CATEGORY[categoryKey] || categoryKey;
+
+    // reCAPTCHA removed: not enforced
 
     // Insert into DB with prepared statements (sql tagged template) and mark as In-Review and text media
     const date = new Date().toISOString().split('T')[0];

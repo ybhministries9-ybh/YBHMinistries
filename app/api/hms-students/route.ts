@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createHMSStudent } from '@/lib/db';
-
-function sanitizeString(input: any, maxLength = 2000) {
-  if (!input && input !== 0) return null;
-  let s = String(input || '');
-  s = s.replace(/<[^>]*>/g, '');
-  s = s.trim().replace(/\s+/g, ' ');
-  if (maxLength) s = s.substring(0, maxLength);
-  return s;
-}
+import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '@/lib/security';
+import { hmsStudentSchema } from '@/lib/schemas';
 
 function isValidEmail(email: string) {
   const re = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -25,39 +18,78 @@ function isValidName(name: string) {
 
 export async function POST(request: Request) {
   try {
+    if (!requireJson(request)) return NextResponse.json({ success: false, error: 'Content-Type must be application/json' }, { status: 400 });
+    if (!checkBodySize(request, 256 * 1024)) return NextResponse.json({ success: false, error: 'Payload too large' }, { status: 413 });
+
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+    const rl = await rateLimit(`hms-students:${ip}`, 10, 60 * 60 * 1000);
+    if (!rl.ok) return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
+
     const body = await request.json();
 
-    const fullName = sanitizeString(body.fullName, 200);
-    const dateOfBirthRaw = sanitizeString(body.dateOfBirth, 20);
-    const gender = sanitizeString(body.gender, 50);
-    const address = sanitizeString(body.address, 500);
-    const cityStateZip = sanitizeString(body.cityStateZip, 200);
-    const phoneNumber = sanitizeString(body.phoneNumber, 50);
-    const email = sanitizeString(body.emailId, 254);
-    const parentGuardianName = sanitizeString(body.parentGuardianName, 200);
-    const parentGuardianContact = sanitizeString(body.parentGuardianContact, 50);
+    const fullName = sanitizeInput(body.fullName, 200);
+    const dateOfBirthRaw = sanitizeInput(body.dateOfBirth, 20);
+    const gender = sanitizeInput(body.gender, 50);
+    const address = sanitizeInput(body.address, 500);
+    const cityStateZip = sanitizeInput(body.cityStateZip, 200);
+    const phoneNumber = sanitizeInput(body.phoneNumber, 50);
+    const email = sanitizeInput(body.emailId, 254);
+    const parentGuardianName = sanitizeInput(body.parentGuardianName, 200);
+    const parentGuardianContact = sanitizeInput(body.parentGuardianContact, 50);
 
     const programApplyingFor = Array.isArray(body.programApplyingFor) ? body.programApplyingFor : body.programApplyingFor ? [body.programApplyingFor] : [];
     const instrumentSpecialization = Array.isArray(body.instrumentSpecialization) ? body.instrumentSpecialization : body.instrumentSpecialization ? [body.instrumentSpecialization] : [];
-    const instrumentOther = sanitizeString(body.instrumentOther, 100);
+    const instrumentOther = sanitizeInput(body.instrumentOther, 100);
     const preferredClassType = Array.isArray(body.preferredClassType) ? body.preferredClassType : body.preferredClassType ? [body.preferredClassType] : [];
     const preferredSchedule = Array.isArray(body.preferredSchedule) ? body.preferredSchedule : body.preferredSchedule ? [body.preferredSchedule] : [];
     const courseType = Array.isArray(body.courseType) ? body.courseType : body.courseType ? [body.courseType] : [];
 
     const yearsOfExperience = body.yearsOfExperience ? Number(body.yearsOfExperience) : null;
-    const previousTraining = sanitizeString(body.previousTraining, 500);
-    const musicExamCertifications = sanitizeString(body.musicExamCertifications, 500);
+    const previousTraining = sanitizeInput(body.previousTraining, 500);
+    const musicExamCertifications = sanitizeInput(body.musicExamCertifications, 500);
     const performanceExperience = Array.isArray(body.performanceExperience) ? body.performanceExperience : body.performanceExperience ? [body.performanceExperience] : [];
-    const performanceOther = sanitizeString(body.performanceOther, 200);
+    const performanceOther = sanitizeInput(body.performanceOther, 200);
 
-    const goals = sanitizeString(body.goals, 2000);
+    const goals = sanitizeInput(body.goals, 2000);
 
-    const volunteerInterested = sanitizeString(body.volunteerInterested, 10) === 'yes';
+    const volunteerInterested = sanitizeInput(body.volunteerInterested, 10) === 'yes';
     const volunteerAreas = Array.isArray(body.volunteerAreas) ? body.volunteerAreas : body.volunteerAreas ? [body.volunteerAreas] : [];
 
-    const emergencyName = sanitizeString(body.emergencyName, 200);
-    const emergencyRelationship = sanitizeString(body.emergencyRelationship, 100);
-    const emergencyContact = sanitizeString(body.emergencyContact, 50);
+    const emergencyName = sanitizeInput(body.emergencyName, 200);
+    const emergencyRelationship = sanitizeInput(body.emergencyRelationship, 100);
+    const emergencyContact = sanitizeInput(body.emergencyContact, 50);
+
+    // Server-side schema validation (basic fields). If validation fails, return structured error.
+    const parsed = hmsStudentSchema.safeParse({
+      fullName,
+      dateOfBirth: dateOfBirthRaw,
+      gender,
+      address,
+      cityStateZip,
+      phoneNumber,
+      emailId: email,
+      parentGuardianName,
+      parentGuardianContact,
+      programApplyingFor,
+      instrumentSpecialization,
+      instrumentOther,
+      preferredClassType,
+      preferredSchedule,
+      courseType,
+      yearsOfExperience,
+      previousTraining,
+      musicExamCertifications,
+      performanceExperience,
+      performanceOther,
+      goals,
+      volunteerInterested: volunteerInterested ? 'yes' : 'no',
+      volunteerAreas,
+      emergencyName,
+      emergencyRelationship,
+      emergencyContact
+    });
+    if (!parsed.success) return NextResponse.json({ success: false, error: 'validation_error', details: parsed.error.format() }, { status: 400 });
+    // reCAPTCHA removed: not enforced
 
     // Basic validation
     if (!fullName || !isValidName(fullName)) return NextResponse.json({ success: false, error: 'Invalid full name' }, { status: 400 });
