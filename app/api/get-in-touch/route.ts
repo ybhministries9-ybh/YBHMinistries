@@ -123,6 +123,64 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to save submission', details: saved }, { status: 500 });
     }
 
+    // Try to send a confirmation email to the submitter (if they provided an email).
+    // Do not fail the API call if email sending fails; log the error for investigation.
+    (async () => {
+      if (!emailVal) return;
+      try {
+        const nodemailer = await import('nodemailer');
+        const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+        const smtpPort = Number(process.env.SMTP_PORT || '465');
+        const smtpSecure = (process.env.SMTP_SECURE || 'true') === 'true';
+        const smtpUser = process.env.SMTP_USER;
+        const smtpPass = process.env.SMTP_PASS;
+
+        if (!smtpUser || !smtpPass) {
+          const { logger } = await import('../../../src/lib/logger');
+          logger.warn('SMTP credentials not configured; skipping confirmation email');
+          return;
+        }
+
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpSecure,
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+        });
+
+        const fromAddress = process.env.EMAIL_FROM || smtpUser;
+        const subject = 'We received your message';
+        const plain = `Hi ${nameClean || ''},\n\nThank you for contacting YBH Ministries. We received your message and will respond soon.\n\nRegards,\nYBH Ministries`;
+        const html = `<div style="font-family: sans-serif; color: #111">` +
+          `<p>Hi ${nameClean || ''},</p>` +
+          `<p>Thank you for contacting <strong>YBH Ministries</strong>. We received your message and will respond soon.</p>` +
+          `<p><em>This is an automated confirmation.</em></p>` +
+          `<p>Regards,<br/>YBH Ministries</p>` +
+          `</div>`;
+
+        await transporter.sendMail({
+          from: fromAddress,
+          to: emailVal,
+          subject,
+          text: plain,
+          html,
+        });
+
+        const { logger } = await import('../../../src/lib/logger');
+        logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
+      } catch (emailErr: any) {
+        try {
+          const { logger } = await import('../../../src/lib/logger');
+          logger.error('Failed to send confirmation email for get-in-touch', { error: String(emailErr?.message || emailErr) });
+        } catch (_) {
+          // ignore
+        }
+      }
+    })();
+
     return NextResponse.json({ success: true, id: (saved as any).id });
   } catch (err: any) {
     const { logger } = await import('../../../src/lib/logger');
