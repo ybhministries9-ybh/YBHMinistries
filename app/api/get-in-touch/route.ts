@@ -65,6 +65,17 @@ export async function POST(request: Request) {
       }
       emailVal = v.normalized || null;
     }
+    // Log whether an email was provided (obfuscated) to help diagnose delivery issues
+    try {
+      const { logger } = await import('../../../src/lib/logger');
+      const obfuscate = (e: string | null) => {
+        if (!e) return null;
+        return e.replace(/(.{2}).+(@.+)/, '$1***$2');
+      };
+      logger.info('get-in-touch: email presence', { hasEmail: !!emailVal, email: obfuscate(emailVal) });
+    } catch (e) {
+      // ignore logging errors
+    }
     if (!messageClean || messageClean.length < 10) {
       return NextResponse.json({ error: 'Message is required and must be at least 10 characters.' }, { status: 400 });
     }
@@ -192,6 +203,11 @@ export async function POST(request: Request) {
           </div>
         `;
 
+        try {
+          const { logger } = await import('../../../src/lib/logger');
+          logger.info('get-in-touch: attempting confirmation send', { to: String(emailVal).replace(/(.{2}).+(@.+)/, '$1***$2') });
+        } catch (e) {}
+
         const res = await sendMail({
           from: process.env.EMAIL_FROM || undefined,
           to: emailVal,
@@ -200,13 +216,14 @@ export async function POST(request: Request) {
           text: plain,
           html,
         });
-        const { logger } = await import('../../../src/lib/logger');
-        // Always surface email failures in logs so we can debug in production
-        if (res?.success) {
-          if (process.env.ENABLE_VERBOSE_LOGS === 'true') logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
-        } else {
-          logger.warn('Confirmation email not sent for get-in-touch', { to: emailVal, error: res?.error });
-        }
+        try {
+          const { logger } = await import('../../../src/lib/logger');
+          if (res?.success) {
+            logger.info('Sent confirmation email for get-in-touch', { to: String(emailVal).replace(/(.{2}).+(@.+)/, '$1***$2') });
+          } else {
+            logger.warn('Confirmation email not sent for get-in-touch', { to: String(emailVal).replace(/(.{2}).+(@.+)/, '$1***$2'), error: res?.error });
+          }
+        } catch (e) {}
       } catch (emailErr: any) {
         try {
           const { logger } = await import('../../../src/lib/logger');
