@@ -313,8 +313,10 @@ export async function POST(request: Request) {
 
         try {
           const { logger } = await import('@/lib/logger');
-          if (process.env.ENABLE_VERBOSE_LOGS === 'true') {
-            logger.info('HMS student email send result', { to: email, result: res });
+          if (res?.success) {
+            if (process.env.ENABLE_VERBOSE_LOGS === 'true') logger.info('HMS student email sent', { to: email });
+          } else {
+            logger.warn('HMS student email not sent', { to: email, error: res?.error });
           }
         } catch (e) {}
       } catch (e) {

@@ -201,12 +201,11 @@ export async function POST(request: Request) {
           html,
         });
         const { logger } = await import('../../../src/lib/logger');
-        if (process.env.ENABLE_VERBOSE_LOGS === 'true') {
-          if (res?.success) {
-            logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
-          } else {
-            logger.error('Failed to send confirmation email for get-in-touch', { error: res?.error });
-          }
+        // Always surface email failures in logs so we can debug in production
+        if (res?.success) {
+          if (process.env.ENABLE_VERBOSE_LOGS === 'true') logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
+        } else {
+          logger.warn('Confirmation email not sent for get-in-touch', { to: emailVal, error: res?.error });
         }
       } catch (emailErr: any) {
         try {
