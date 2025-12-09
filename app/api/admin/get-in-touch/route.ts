@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
     const rows = await getGetInTouch({ limit: Math.min(limit, 500), offset: Math.max(0, offset) });
     return NextResponse.json({ success: true, data: rows });
   } catch (err: any) {
-    console.error('GET /api/admin/get-in-touch error', err);
+    const { logger } = await import('@/lib/logger');
+    logger.error('GET /api/admin/get-in-touch error', { error: err?.message });
     return NextResponse.json({ success: false, error: 'Failed to fetch submissions' }, { status: 500 });
   }
 }

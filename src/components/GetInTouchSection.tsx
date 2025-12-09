@@ -85,11 +85,12 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
-    try {
+            try {
+      const payload = { ...formData };
       const res = await fetch('/api/get-in-touch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -107,6 +108,14 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleResetForm = () => {
+    if (contactFormRef.current) contactFormRef.current.reset();
+    setFormData({ name: '', email: '', phone: '', location: '', message: '' });
+    setTouched({ name: false, email: false, phone: false, location: false, message: false });
+    setErrors({});
+    setFormStatus({ submitted: false, message: '' });
   };
 
   return (
@@ -130,6 +139,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
               <button
                 type="button"
                 onClick={() => setFormStatus({ submitted: false, message: "" })}
+                aria-label={t('contactForm.sendAnother', { defaultValue: 'Send another message' })}
                 className="px-6 py-2 rounded-full text-black font-bold transition-all duration-300 shadow-md inline-flex items-center justify-center"
                 style={{ backgroundColor: accentColor }}
               >
@@ -265,6 +275,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors resize-none ${errors.message ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
                   placeholder={t('contactForm.messagePlaceholder', { defaultValue: '' })}
                 ></textarea>
+                                {/* Preview removed per request */}
                 <div className="mt-1">
                   <p id="message-error" className={`text-sm ${touched.message && errors.message ? 'text-red-400' : 'text-gray-400'}`}>
                     {touched.message && errors.message ? errors.message : ''}
@@ -272,13 +283,26 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={!isValid || submitting}
-                className={`w-full px-6 py-2 bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 inline-flex items-center justify-center ${(!isValid || submitting) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                {submitting ? t('contactForm.sending') : t('contactForm.send')}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  type="submit"
+                  disabled={!isValid || submitting}
+                  aria-label={t('contactForm.sendMessage', { defaultValue: 'Send Message' })}
+                  className={`flex-1 py-2 px-4 text-sm bg-[#FDB813] cursor-pointer shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 inline-flex items-center justify-center ${(!isValid || submitting) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  {submitting ? t('contactForm.sending') : t('contactForm.sendMessage', { defaultValue: 'Send Message' })}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  disabled={submitting}
+                  aria-label={t('contactForm.resetButton', { defaultValue: 'Reset Form' })}
+                  className={`flex-1 py-2 px-4 text-sm bg-black cursor-pointer font-semibold text-white rounded-full border-2 border-[#FDB813] transition-colors duration-200 ${submitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#111]'}`}
+                >
+                  {t('contactForm.resetButton', { defaultValue: 'Reset Form' })}
+                </button>
+              </div>
             </div>
           )}
         </form>

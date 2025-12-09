@@ -1,6 +1,8 @@
 // Email helper: uses SendGrid when `SENDGRID_API_KEY` is configured. Falls back
 // to console logging in development to avoid blocking admin flows.
 
+import { logger } from './logger';
+
 export async function sendInviteEmail(to: string, name: string | null, link: string) {
   const subject = 'Set up your admin account at YBH Ministries';
   const plain = `Hello ${name || ''},\n\nPlease set up your admin account by visiting the link below:\n\n${link}\n\nThis link will expire in 48 hours.`;
@@ -33,13 +35,13 @@ export async function sendInviteEmail(to: string, name: string | null, link: str
       try { parsed = JSON.parse(text); } catch (e) { /* keep raw text */ }
 
       if (!res.ok) {
-        console.error('Brevo responded with non-OK status', res.status, parsed);
+        logger.error('Brevo responded with non-OK status', { status: res.status, body: parsed });
         return { success: false, error: 'brevo_error', status: res.status, body: parsed };
       }
 
       return { success: true, provider: 'brevo', status: res.status, body: parsed };
     } catch (err) {
-      console.error('Brevo send failed', err);
+      logger.error('Brevo send failed', { error: String(err) });
       return { success: false, error: 'brevo_failed', details: String(err) };
     }
   }
@@ -73,21 +75,21 @@ export async function sendInviteEmail(to: string, name: string | null, link: str
       try { parsed = JSON.parse(text); } catch (e) { /* keep raw text */ }
 
       if (!res.ok) {
-        console.error('SendGrid responded with non-OK status', res.status, parsed);
+        logger.error('SendGrid responded with non-OK status', { status: res.status, body: parsed });
         return { success: false, error: 'sendgrid_error', status: res.status, body: parsed };
       }
 
       return { success: true, provider: 'sendgrid', status: res.status, body: parsed };
     } catch (err) {
-      console.error('SendGrid send failed', err);
+      logger.error('SendGrid send failed', { error: String(err) });
       return { success: false, error: 'send_failed', details: String(err) };
     }
   }
 
   // Development fallback: log invite link so devs can copy it instead of sending real email.
-  console.warn('SENDGRID_API_KEY not configured — logging invite link to console (development).');
+  logger.warn('SENDGRID_API_KEY not configured — invite link logged in development.');
   if (process.env.NODE_ENV !== 'production') {
-    // debug logging removed in cleanup - leave production-safe behavior
+    // In development we still return success to avoid blocking flows.
   }
   return { success: true, dev: true };
 }

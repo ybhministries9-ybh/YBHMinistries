@@ -47,7 +47,8 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   try {
     // Check for Vercel Blob token
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('BLOB_READ_WRITE_TOKEN is not set');
+      const { logger } = await import('../lib/logger');
+      logger.error('BLOB_READ_WRITE_TOKEN is not set');
       return res.status(500).json({ 
         error: 'Server configuration error. Please set BLOB_READ_WRITE_TOKEN environment variable.' 
       });
@@ -72,6 +73,22 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
     // Read file as buffer
     const fs = await import('fs');
     const fileBuffer = fs.readFileSync(uploadedFile.filepath);
+
+    // Basic MIME/type validation: ensure the uploaded mimetype is acceptable
+    const allowed = [
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/webp',
+      'video/mp4',
+    ];
+    const mimetype = uploadedFile.mimetype || 'application/octet-stream';
+    if (!allowed.includes(mimetype)) {
+      const { logger } = await import('../lib/logger');
+      logger.warn('Rejected upload due to disallowed mimetype', { mimetype, filename: uploadedFile.originalFilename });
+      fs.unlinkSync(uploadedFile.filepath);
+      return res.status(400).json({ error: 'File type not allowed' });
+    }
     
     // Generate a unique filename with timestamp
     const timestamp = Date.now();
@@ -80,12 +97,18 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
     const filename = `${timestamp}-${sanitizedName}`;
     const pathname = `${folder}/${filename}`;
 
-    // Upload to Vercel Blob
-    const blob = await put(pathname, fileBuffer, {
-      access: 'public',
+    // Upload to Vercel Blob (default to private unless query param `public=true`)
+    const makePublic = String(req.query.public || '').toLowerCase() === 'true';
+    // Only include `access: 'public'` when explicitly requested.
+    // The `put` type from `@vercel/blob` currently accepts 'public' or undefined,
+    // so avoid passing an unsupported 'private' string which causes a TS error.
+    const blobOpts: any = {
       contentType: uploadedFile.mimetype || 'application/octet-stream',
       token: process.env.BLOB_READ_WRITE_TOKEN,
-    });
+    };
+    if (makePublic) blobOpts.access = 'public';
+
+    const blob = await put(pathname, fileBuffer, blobOpts);
 
     // Clean up temp file
     fs.unlinkSync(uploadedFile.filepath);
@@ -99,7 +122,8 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
+    const { logger } = await import('../lib/logger');
+    logger.error('Upload error', { error: (error as any)?.message });
     return res.status(500).json({ 
       error: 'Failed to upload file',
       details: error instanceof Error ? error.message : 'Unknown error'

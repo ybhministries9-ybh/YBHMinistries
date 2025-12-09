@@ -37,6 +37,8 @@ export default {
     messagePlaceholder: "Write your message here",
     send: "Send",
     sending: "Sending...",
+    sendMessage: "Send Message",
+    resetButton: "Reset Form",
     sendAnother: "Send another message",
     success: "Thanks — we'll get back to you soon!",
     error: "There was an error sending your message. Please try again."
@@ -168,7 +170,7 @@ export default {
       submitting: "Submitting...",
       reset: "Reset Form"
       ,
-      submitAnother: "Submit another application"
+      submitAnother: "Submit Another Application"
     },
     messages: {
       success: "Application submitted successfully! We will contact you soon.",

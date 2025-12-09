@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createHMSStudent } from '@/lib/db';
-
-function sanitizeString(input: any, maxLength = 2000) {
-  if (!input && input !== 0) return null;
-  let s = String(input || '');
-  s = s.replace(/<[^>]*>/g, '');
-  s = s.trim().replace(/\s+/g, ' ');
-  if (maxLength) s = s.substring(0, maxLength);
-  return s;
-}
+import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '@/lib/security';
+import { hmsStudentSchema } from '@/lib/schemas';
+import { logger } from '@/lib/logger';
 
 function isValidEmail(email: string) {
   const re = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -25,39 +19,83 @@ function isValidName(name: string) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    if (!requireJson(request)) return NextResponse.json({ success: false, error: 'Content-Type must be application/json' }, { status: 400 });
+    if (!checkBodySize(request, 256 * 1024)) return NextResponse.json({ success: false, error: 'Payload too large' }, { status: 413 });
 
-    const fullName = sanitizeString(body.fullName, 200);
-    const dateOfBirthRaw = sanitizeString(body.dateOfBirth, 20);
-    const gender = sanitizeString(body.gender, 50);
-    const address = sanitizeString(body.address, 500);
-    const cityStateZip = sanitizeString(body.cityStateZip, 200);
-    const phoneNumber = sanitizeString(body.phoneNumber, 50);
-    const email = sanitizeString(body.emailId, 254);
-    const parentGuardianName = sanitizeString(body.parentGuardianName, 200);
-    const parentGuardianContact = sanitizeString(body.parentGuardianContact, 50);
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+    const rl = await rateLimit(`hms-students:${ip}`, 10, 60 * 60 * 1000);
+    if (!rl.ok) return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
+
+    // Read raw body
+    const body = await request.json();
+    const fullName = sanitizeInput(body.fullName, 200);
+    const dateOfBirthRaw = sanitizeInput(body.dateOfBirth, 20);
+    const gender = sanitizeInput(body.gender, 50);
+    const address = sanitizeInput(body.address, 500);
+    const cityStateZip = sanitizeInput(body.cityStateZip, 200);
+    const phoneNumber = sanitizeInput(body.phoneNumber, 50);
+    const email = sanitizeInput(body.emailId, 254);
+    const parentGuardianName = sanitizeInput(body.parentGuardianName, 200);
+    const parentGuardianContact = sanitizeInput(body.parentGuardianContact, 50);
 
     const programApplyingFor = Array.isArray(body.programApplyingFor) ? body.programApplyingFor : body.programApplyingFor ? [body.programApplyingFor] : [];
     const instrumentSpecialization = Array.isArray(body.instrumentSpecialization) ? body.instrumentSpecialization : body.instrumentSpecialization ? [body.instrumentSpecialization] : [];
-    const instrumentOther = sanitizeString(body.instrumentOther, 100);
+    const instrumentOther = sanitizeInput(body.instrumentOther, 100);
     const preferredClassType = Array.isArray(body.preferredClassType) ? body.preferredClassType : body.preferredClassType ? [body.preferredClassType] : [];
     const preferredSchedule = Array.isArray(body.preferredSchedule) ? body.preferredSchedule : body.preferredSchedule ? [body.preferredSchedule] : [];
     const courseType = Array.isArray(body.courseType) ? body.courseType : body.courseType ? [body.courseType] : [];
 
     const yearsOfExperience = body.yearsOfExperience ? Number(body.yearsOfExperience) : null;
-    const previousTraining = sanitizeString(body.previousTraining, 500);
-    const musicExamCertifications = sanitizeString(body.musicExamCertifications, 500);
+    const previousTraining = sanitizeInput(body.previousTraining, 500);
+    const musicExamCertifications = sanitizeInput(body.musicExamCertifications, 500);
     const performanceExperience = Array.isArray(body.performanceExperience) ? body.performanceExperience : body.performanceExperience ? [body.performanceExperience] : [];
-    const performanceOther = sanitizeString(body.performanceOther, 200);
+    const performanceOther = sanitizeInput(body.performanceOther, 200);
 
-    const goals = sanitizeString(body.goals, 2000);
+    const goals = sanitizeInput(body.goals, 2000);
 
-    const volunteerInterested = sanitizeString(body.volunteerInterested, 10) === 'yes';
+    const volunteerInterested = sanitizeInput(body.volunteerInterested, 10) === 'yes';
     const volunteerAreas = Array.isArray(body.volunteerAreas) ? body.volunteerAreas : body.volunteerAreas ? [body.volunteerAreas] : [];
 
-    const emergencyName = sanitizeString(body.emergencyName, 200);
-    const emergencyRelationship = sanitizeString(body.emergencyRelationship, 100);
-    const emergencyContact = sanitizeString(body.emergencyContact, 50);
+    const emergencyName = sanitizeInput(body.emergencyName, 200);
+    const emergencyRelationship = sanitizeInput(body.emergencyRelationship, 100);
+    const emergencyContact = sanitizeInput(body.emergencyContact, 50);
+
+    // Server-side schema validation (basic fields). If validation fails, return structured error.
+    const parsed = hmsStudentSchema.safeParse({
+      fullName,
+      dateOfBirth: dateOfBirthRaw,
+      gender,
+      address,
+      cityStateZip,
+      phoneNumber,
+      emailId: email,
+      parentGuardianName,
+      parentGuardianContact,
+      programApplyingFor,
+      instrumentSpecialization,
+      instrumentOther,
+      preferredClassType,
+      preferredSchedule,
+      courseType,
+      yearsOfExperience,
+      previousTraining,
+      musicExamCertifications,
+      performanceExperience,
+      performanceOther,
+      goals,
+      volunteerInterested: volunteerInterested ? 'yes' : 'no',
+      volunteerAreas,
+      emergencyName,
+      emergencyRelationship,
+      emergencyContact
+    });
+    if (!parsed.success) {
+      try {
+        logger.warn('hms-students validation failed', { errors: parsed.error.format() });
+      } catch (e) {}
+      return NextResponse.json({ success: false, error: 'validation_error', details: parsed.error.format() }, { status: 400 });
+    }
+    // reCAPTCHA removed: not enforced
 
     // Basic validation
     if (!fullName || !isValidName(fullName)) return NextResponse.json({ success: false, error: 'Invalid full name' }, { status: 400 });
@@ -126,9 +164,167 @@ export async function POST(request: Request) {
       createdBy: 'public'
     });
 
+    // Log creation; make verbose logging optional to avoid console noise during normal runs
+    try {
+      const { logger } = await import('@/lib/logger');
+      if (process.env.ENABLE_VERBOSE_LOGS === 'true') {
+        logger.info('HMS student created', { id: (created as any)?.id || null });
+      }
+    } catch (e) {
+      // ignore logging errors
+    }
+
+    // Send a confirmation/receipt email to the provided email address (if present).
+    // Do not block the API response on email delivery.
+    (async () => {
+      try {
+        if (!email) return;
+        const { sendMail } = await import('@/lib/smtpMailer');
+
+        // Build a list of filled fields only, and format labels/values to title case
+        const fields: Array<{ label: string; value: string }> = [];
+
+        function titleCaseLabel(s: string) {
+          if (!s) return s;
+          return s
+            .replace(/[_\-]/g, ' ')
+            .split(/\s+/)
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ')
+            .trim();
+        }
+
+        function isEmailLike(s: string) {
+          return /@/.test(s) && /\.[a-zA-Z]{2,}$/.test(s);
+        }
+
+        function isPhoneLike(s: string) {
+          return /^[0-9+()\-\.\s]+$/.test(s);
+        }
+
+        function formatValue(val: any) {
+          if (val === undefined || val === null) return '';
+          if (Array.isArray(val)) return val.filter(Boolean).map(v => formatValue(v)).join(', ');
+          const s = String(val).trim();
+          if (!s) return '';
+          // preserve email casing and phone numbers and dates
+          if (isEmailLike(s) || isPhoneLike(s) || /^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
+          // split camelCase words into words
+          const split = s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_.\-]+/g, ' ');
+          return split
+            .split(/\s+/)
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(' ');
+        }
+
+        const pushIf = (label: string, val: any) => {
+          if (val === undefined || val === null) return;
+          const formatted = formatValue(val);
+          if (formatted && formatted.trim().length > 0) fields.push({ label: titleCaseLabel(label), value: formatted });
+        };
+
+        pushIf('Full name', fullName);
+        pushIf('Date of birth', dateOfBirthRaw);
+        pushIf('Gender', gender);
+        pushIf('Address', address);
+        pushIf('City / State / ZIP', cityStateZip);
+        pushIf('Phone', phoneNumber);
+        pushIf('Email', email);
+        pushIf('Parent / Guardian', parentGuardianName);
+        pushIf('Parent / Guardian contact', parentGuardianContact);
+        pushIf('Program applying for', programApplyingFor);
+        pushIf('Instrument specialization', instrumentSpecialization);
+        pushIf('Other instrument', instrumentOther);
+        pushIf('Preferred class type', preferredClassType);
+        pushIf('Preferred schedule', preferredSchedule);
+        pushIf('Course type', courseType);
+        pushIf('Years of experience', yearsOfExperience);
+        pushIf('Previous training', previousTraining);
+        pushIf('Music exam certifications', musicExamCertifications);
+        pushIf('Performance experience', performanceExperience);
+        pushIf('Other performance', performanceOther);
+        pushIf('Goals', goals);
+        pushIf('Volunteer interested', volunteerInterested ? 'yes' : 'no');
+        pushIf('Volunteer areas', volunteerAreas);
+        pushIf('Emergency contact name', emergencyName);
+        pushIf('Emergency relationship', emergencyRelationship);
+        pushIf('Emergency contact', emergencyContact);
+
+        // Use public logo URL and MSO-safe header/footer so clients like Outlook render correctly
+        const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
+
+        // Plain text
+        const plainLines = [`Dear ${fullName || ''},`, '', 'Thank you for applying to HMS at YBH Ministries.', 'Below are the details you submitted:', ''];
+        for (const f of fields) plainLines.push(`${f.label}: ${f.value}`);
+        plainLines.push('', 'We will contact you soon with next steps.', '', 'Note:- This is a system-generated confirmation of your message. Please do not reply to this email.');
+        const plain = plainLines.join('\n');
+
+        // HTML
+        const htmlFields = fields.map(f => `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee; font-size:14px;color:#333;"><strong>${f.label}</strong></td><td style="padding:6px 12px;border-bottom:1px solid #eee; font-size:14px;color:#555;">${f.value}</td></tr>`).join('');
+        const html = `
+          <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#111; background-color:#f7f7f7; padding:18px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;">
+              <tr>
+                <td bgcolor="#000000" style="padding:20px 24px; text-align:center; background-color:#000000;">
+                  <!--[if mso]>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="background-color:#000000;padding:20px 24px;text-align:center;">
+                  <![endif]-->
+                  ${logoUrl ? `<img src="${logoUrl}" alt="YBH Ministries" width="140" style="display:block;margin:0 auto;border:0;"/>` : ''}
+                  <!--[if mso]>
+                    </td></tr></table>
+                  <![endif]-->
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px;">
+                  <p style="margin:0 0 12px 0; color:#333; font-size:15px;">Dear ${fullName || ''},</p>
+                  <h2 style="margin:0 0 12px 0; font-size:20px; color:#111;">HMS Application received</h2>
+                  <p style="margin:0 0 12px 0;color:#333; font-size:15px;">Thank you for applying to HMS at <strong>YBH Ministries</strong>. Below are the details you submitted.</p>
+
+                  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse; margin-top:12px; background:#fafafa; border-radius:4px;">
+                    ${htmlFields}
+                  </table>
+
+                  <p style="margin:12px 0 0 0;color:#333; font-size:15px;">We will contact you soon with next steps.</p>
+
+                  <p style="margin:18px 0 0 0;color:#333; font-size:15px;">Regards,<br/><span style="color:#333; font-size:15px;">YBH Ministries</span></p>
+                  <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system‑generated confirmation of your message. Please do not reply to this email.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:12px 24px; text-align:center; background:#101010; color:#fff; font-size:12px;">
+                  <div style="max-width:560px;margin:0 auto;">&copy; ${new Date().getFullYear()} YBH Ministries. All rights reserved.</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        `;
+
+        const subject = `YBH Ministries — HMS application received`;
+
+        const res = await sendMail({
+          from: process.env.EMAIL_FROM || undefined,
+          to: email,
+          replyTo: process.env.SMTP_USER || undefined,
+          subject,
+          text: plain,
+          html,
+        });
+
+        try {
+          const { logger } = await import('@/lib/logger');
+          if (process.env.ENABLE_VERBOSE_LOGS === 'true') {
+            logger.info('HMS student email send result', { to: email, result: res });
+          }
+        } catch (e) {}
+      } catch (e) {
+        try { logger.error('Failed to send HMS student email', { error: (e as any)?.message || e }); } catch (_) {}
+      }
+    })();
+
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (err) {
-    console.error('POST /api/hms-students error', err);
+    try { logger.error('POST /api/hms-students error', { error: (err as any)?.message || err }); } catch (e) {}
     return NextResponse.json({ success: false, error: 'Failed to save enrolment' }, { status: 500 });
   }
 }
