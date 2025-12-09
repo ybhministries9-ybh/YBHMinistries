@@ -86,16 +86,18 @@ export async function POST(request: Request) {
     const location = locationClean;
     const userAgent = request.headers.get('user-agent') || null;
 
-    // Log the exact payload we will send to DB (only in non-production)
+    // Log the exact payload we will send to DB (only when ENABLE_VERBOSE_LOGS is set)
     try {
       const { logger } = await import('../../../src/lib/logger');
-      logger.debug('/api/get-in-touch payload for DB', {
-        name: nameClean,
-        email: emailVal,
-        phone: phoneVal,
-        messageLen: messageClean?.length,
-        location,
-      });
+      if (process.env.ENABLE_VERBOSE_LOGS === 'true') {
+        logger.info('/api/get-in-touch payload for DB', {
+          name: nameClean,
+          email: emailVal,
+          phone: phoneVal,
+          messageLen: messageClean?.length,
+          location,
+        });
+      }
     } catch (e) {
       // ignore logging errors
     }
@@ -181,12 +183,13 @@ export async function POST(request: Request) {
           text: plain,
           html,
         });
-
         const { logger } = await import('../../../src/lib/logger');
-        if (res?.success) {
-          logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
-        } else {
-          logger.error('Failed to send confirmation email for get-in-touch', { error: res?.error });
+        if (process.env.ENABLE_VERBOSE_LOGS === 'true') {
+          if (res?.success) {
+            logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
+          } else {
+            logger.error('Failed to send confirmation email for get-in-touch', { error: res?.error });
+          }
         }
       } catch (emailErr: any) {
         try {
