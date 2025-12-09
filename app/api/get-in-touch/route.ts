@@ -123,54 +123,71 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to save submission', details: saved }, { status: 500 });
     }
 
-    // Try to send a confirmation email to the submitter (if they provided an email).
-    // Do not fail the API call if email sending fails; log the error for investigation.
+    // Use reusable SMTP mailer to send email; do not block response if it fails.
     (async () => {
       if (!emailVal) return;
       try {
-        const nodemailer = await import('nodemailer');
-        const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-        const smtpPort = Number(process.env.SMTP_PORT || '465');
-        const smtpSecure = (process.env.SMTP_SECURE || 'true') === 'true';
-        const smtpUser = process.env.SMTP_USER;
-        const smtpPass = process.env.SMTP_PASS;
+        const { sendMail } = await import('../../../src/lib/smtpMailer');
+        const subject = `YBH Ministries — We received your message`;
+        const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
 
-        if (!smtpUser || !smtpPass) {
-          const { logger } = await import('../../../src/lib/logger');
-          logger.warn('SMTP credentials not configured; skipping confirmation email');
-          return;
-        }
+        const plain = `Hi ${nameClean || ''},\n\nThank you for contacting YBH Ministries. We received your message and will respond soon.\n\nThis is a system-generated confirmation of your message.\n\nRegards,\nYBH Ministries`;
 
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpSecure,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-        });
+        const html = `
+          <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color: #111; background-color: #f7f7f7; padding: 24px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;">
+              <tr>
+                <td bgcolor="#000000" style="padding:20px 24px; text-align:center; background-color:#000000;">
+                  <!--[if mso]>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="background-color:#000000;padding:20px 24px;text-align:center;">
+                  <![endif]-->
+                  ${logoUrl ? `<img src="${logoUrl}" alt="YBH Ministries" width="120" style="display:block;margin:0 auto;border:0;"/>` : ''}
+                  <!--[if mso]>
+                    </td></tr></table>
+                  <![endif]-->
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px;">
+                  <h2 style="margin:0 0 12px 0; font-size:20px; color:#111;">Hi ${nameClean || ''},</h2>
+                  <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">Thanks for reaching out to <strong>YBH Ministries</strong>. We received your message and our team will review it shortly.</p>
+                  <div style="margin-top:18px; padding:12px; background:#fafafa; border-left:4px solid #e6e6e6; border-radius:4px;">
+                    <p style="margin:0 0 8px 0; color:#333; font-size:14px;"><strong>Submission details</strong></p>
+                    <p style="margin:6px 0 0 0; color:#555; font-size:13px;">Name: ${nameClean || ''}</p>
+                    <p style="margin:6px 0 0 0; color:#555; font-size:13px;">Email: ${emailVal || '—'}</p>
+                    <p style="margin:6px 0 0 0; color:#555; font-size:13px;">Phone: ${phoneVal || '—'}</p>
+                    ${location ? `<p style="margin:6px 0 0 0; color:#555; font-size:13px;">Location: ${location}</p>` : ''}
+                    <p style="margin:8px 0 0 0; color:#555; font-size:13px;">Message: ${messageClean ? messageClean.replace(/\n/g, '<br/>') : ''}</p>
+                  </div>
 
-        const fromAddress = process.env.EMAIL_FROM || smtpUser;
-        const subject = 'We received your message';
-        const plain = `Hi ${nameClean || ''},\n\nThank you for contacting YBH Ministries. We received your message and will respond soon.\n\nRegards,\nYBH Ministries`;
-        const html = `<div style="font-family: sans-serif; color: #111">` +
-          `<p>Hi ${nameClean || ''},</p>` +
-          `<p>Thank you for contacting <strong>YBH Ministries</strong>. We received your message and will respond soon.</p>` +
-          `<p><em>This is an automated confirmation.</em></p>` +
-          `<p>Regards,<br/>YBH Ministries</p>` +
-          `</div>`;
+                  <p style="margin:24px 0 0 0; color:#333; font-size:15px;">Regards,<br/><span style="color:#333; font-size:15px;">YBH Ministries</span></p>
+                  <p style="margin:12px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system‑generated confirmation of your message. Please do not reply to this email.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:12px 24px; text-align:center; background:#101010; color:#fff; font-size:12px;">
+                  <div style="max-width:560px;margin:0 auto;">&copy; ${new Date().getFullYear()} YBH Ministries. All rights reserved.</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        `;
 
-        await transporter.sendMail({
-          from: fromAddress,
+        const res = await sendMail({
+          from: process.env.EMAIL_FROM || undefined,
           to: emailVal,
+          replyTo: process.env.SMTP_USER || undefined,
           subject,
           text: plain,
           html,
         });
 
         const { logger } = await import('../../../src/lib/logger');
-        logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
+        if (res?.success) {
+          logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
+        } else {
+          logger.error('Failed to send confirmation email for get-in-touch', { error: res?.error });
+        }
       } catch (emailErr: any) {
         try {
           const { logger } = await import('../../../src/lib/logger');
