@@ -91,6 +91,67 @@ export async function POST(request: Request) {
     `;
 
     const created = rows[0];
+
+    // Send a confirmation email to the submitter with only the filled fields.
+    // Non-blocking: do not delay the API response if email sending fails.
+    (async () => {
+      try {
+        if (!email) return;
+        const { sendMail } = await import('@/lib/smtpMailer');
+        const { logger } = await import('@/lib/logger');
+
+        const fields: Array<{ label: string; value: string }> = [];
+        const titleCase = (s: string) => s.replace(/[_\-]/g, ' ').split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        const pushIf = (label: string, val: any) => {
+          if (val === undefined || val === null) return;
+          const v = Array.isArray(val) ? val.filter(Boolean).join(', ') : String(val);
+          if (v && v.trim().length > 0) fields.push({ label: titleCase(label), value: v });
+        };
+
+        pushIf('name', name);
+        pushIf('date', new Date().toISOString().split('T')[0]);
+        pushIf('location', location);
+        pushIf('category', category);
+        pushIf('role', role);
+        pushIf('testimony', testimony);
+
+        const plainLines = [`Dear ${name || ''},`, '', 'Thank you for sharing your testimony with YBH Ministries. Below are the details you submitted:', ''];
+        for (const f of fields) plainLines.push(`${f.label}: ${f.value}`);
+        plainLines.push('', 'We will review your submission and contact you if we need more information.');
+        const plain = plainLines.join('\n');
+
+        const htmlFields = fields.map(f => `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee; font-size:14px;color:#333;"><strong>${f.label}</strong></td><td style="padding:6px 12px;border-bottom:1px solid #eee; font-size:14px;color:#555;">${f.value}</td></tr>`).join('');
+        const html = `
+          <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#111; padding:18px;">
+            <h2 style="font-size:18px;margin:0 0 12px 0;">Share Your Testimony — Received</h2>
+            <p style="margin:0 0 12px 0;color:#333;">Dear ${name || ''},</p>
+            <p style="margin:0 0 12px 0;color:#333;">Thank you for sharing your testimony with <strong>YBH Ministries</strong>. Below are the details you submitted.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse; margin-top:12px; background:#fafafa; border-radius:4px;">
+              ${htmlFields}
+            </table>
+            <p style="margin:12px 0 0 0;color:#333;">We will review your submission and contact you if we need more information.</p>
+            <p style="margin:18px 0 0 0;color:#333; font-size:15px;">Regards,<br/>YBH Ministries</p>
+            <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system‑generated confirmation of your message. Please do not reply to this email.</p>
+          </div>
+        `;
+
+        const subject = `YBH Ministries — We received your testimony`;
+
+        const res = await sendMail({
+          from: process.env.EMAIL_FROM || undefined,
+          to: email,
+          replyTo: process.env.SMTP_USER || undefined,
+          subject,
+          text: plain,
+          html,
+        });
+
+        if (process.env.ENABLE_VERBOSE_LOGS === 'true') logger.info('Stories email send result', { to: email, result: res });
+      } catch (e) {
+        try { const { logger } = await import('@/lib/logger'); if (process.env.ENABLE_VERBOSE_LOGS === 'true') logger.error('Failed sending stories email', { error: (e as any)?.message || e }); } catch (_) {}
+      }
+    })();
+
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (err) {
     console.error('POST /api/stories error', err);

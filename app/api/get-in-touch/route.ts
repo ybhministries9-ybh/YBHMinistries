@@ -133,7 +133,28 @@ export async function POST(request: Request) {
         const subject = `YBH Ministries — We received your message`;
         const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
 
-        const plain = `Hi ${nameClean || ''},\n\nThank you for contacting YBH Ministries. We received your message and will respond soon.\n\nThis is a system-generated confirmation of your message.\n\nRegards,\nYBH Ministries`;
+        // Build fields table similar to HMS email format
+        const fields: Array<{ label: string; value: string }> = [];
+        const titleCase = (s: string) => String(s || '').replace(/[_\-]/g, ' ').split(/\s+/).map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+        const fmt = (v: any) => {
+          if (v === undefined || v === null) return '';
+          if (Array.isArray(v)) return v.filter(Boolean).join(', ');
+          return String(v);
+        };
+
+        const pushIf = (label: string, val: any) => { const fv = fmt(val); if (fv && fv.trim()) fields.push({ label: titleCase(label), value: fv }); };
+        pushIf('Full name', nameClean);
+        pushIf('Email', emailVal);
+        pushIf('Phone', phoneVal);
+        pushIf('Location', location);
+        pushIf('Message', messageClean ? messageClean.replace(/\n/g, '<br/>') : '');
+
+        const plainLines = [`Hi ${nameClean || ''},`, '', 'Thanks for reaching out to YBH Ministries. We received your message and our team will review it shortly.', '', 'Submission details:', ''];
+        for (const f of fields) plainLines.push(`${f.label}: ${f.value}`);
+        plainLines.push('', 'Regards,', 'YBH Ministries', '', 'Note:- This is a system-generated confirmation of your message. Please do not reply to this email.');
+        const plain = plainLines.join('\n');
+
+        const htmlFields = fields.map(f => `<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;background:#fafafa;font-weight:600;width:40%;">${f.label}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;color:#555;">${f.value}</td></tr>`).join('');
 
         const html = `
           <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color: #111; background-color: #f7f7f7; padding: 24px;">
@@ -153,14 +174,10 @@ export async function POST(request: Request) {
                 <td style="padding:24px;">
                   <h2 style="margin:0 0 12px 0; font-size:20px; color:#111;">Hi ${nameClean || ''},</h2>
                   <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">Thanks for reaching out to <strong>YBH Ministries</strong>. We received your message and our team will review it shortly.</p>
-                  <div style="margin-top:18px; padding:12px; background:#fafafa; border-left:4px solid #e6e6e6; border-radius:4px;">
-                    <p style="margin:0 0 8px 0; color:#333; font-size:14px;"><strong>Submission details</strong></p>
-                    <p style="margin:6px 0 0 0; color:#555; font-size:13px;">Name: ${nameClean || ''}</p>
-                    <p style="margin:6px 0 0 0; color:#555; font-size:13px;">Email: ${emailVal || '—'}</p>
-                    <p style="margin:6px 0 0 0; color:#555; font-size:13px;">Phone: ${phoneVal || '—'}</p>
-                    ${location ? `<p style="margin:6px 0 0 0; color:#555; font-size:13px;">Location: ${location}</p>` : ''}
-                    <p style="margin:8px 0 0 0; color:#555; font-size:13px;">Message: ${messageClean ? messageClean.replace(/\n/g, '<br/>') : ''}</p>
-                  </div>
+
+                  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse; margin-top:18px;">
+                    ${htmlFields}
+                  </table>
 
                   <p style="margin:24px 0 0 0; color:#333; font-size:15px;">Regards,<br/><span style="color:#333; font-size:15px;">YBH Ministries</span></p>
                   <p style="margin:12px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system‑generated confirmation of your message. Please do not reply to this email.</p>
