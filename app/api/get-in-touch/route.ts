@@ -224,8 +224,8 @@ export async function POST(request: Request) {
             logger.warn('Confirmation email not sent for get-in-touch', { to: String(emailVal).replace(/(.{2}).+(@.+)/, '$1***$2'), error: res?.error });
           }
           // TEMPORARY DEBUG: log full sendMail result object to help diagnose production issues.
-          // Remove this once debugging is complete.
-          logger.info('get-in-touch: raw sendMail result', { result: res });
+          // Use WARN so it is visible in Vercel logs by default. Remove this once debugging is complete.
+          logger.warn('get-in-touch: raw sendMail result', { result: res });
         } catch (e) {}
       } catch (emailErr: any) {
         try {
