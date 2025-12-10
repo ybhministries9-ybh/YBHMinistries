@@ -41,6 +41,12 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const [hmsExportMonth, setHmsExportMonth] = useState<string>('');
   const [hmsExportYear, setHmsExportYear] = useState<string>('');
   
+  // Applied filters for table data
+  const [appliedMonth, setAppliedMonth] = useState<string>('');
+  const [appliedYear, setAppliedYear] = useState<string>('');
+  const [hmsAppliedMonth, setHmsAppliedMonth] = useState<string>('');
+  const [hmsAppliedYear, setHmsAppliedYear] = useState<string>('');
+  
   const [students, setStudents] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -60,7 +66,9 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         const limit = pageSize + 1;
         const offset = (page - 1) * pageSize;
         const qParam = activeHmsSearchQuery && activeHmsSearchQuery.trim().length > 0 ? `&q=${encodeURIComponent(activeHmsSearchQuery.trim())}` : '';
-        const resp = await fetch(`/api/admin/hms-students?limit=${limit}&offset=${offset}${qParam}`, {
+        const monthParam = hmsAppliedMonth ? `&month=${hmsAppliedMonth}` : '';
+        const yearParam = hmsAppliedYear ? `&year=${hmsAppliedYear}` : '';
+        const resp = await fetch(`/api/admin/hms-students?limit=${limit}&offset=${offset}${qParam}${monthParam}${yearParam}`, {
           headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
           signal: controller.signal,
         });
@@ -94,7 +102,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
       aborted = true;
       controller.abort();
     };
-  }, [activeTab, page, activeHmsSearchQuery]);
+  }, [activeTab, page, activeHmsSearchQuery, hmsAppliedMonth, hmsAppliedYear]);
 
   useEffect(() => {
     if (activeTab !== 'getintouch') return;
@@ -108,7 +116,9 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         const limit = pageSize + 1;
         const offset = (page - 1) * pageSize;
         const qParam = activeSearchQuery && activeSearchQuery.trim().length > 0 ? `&q=${encodeURIComponent(activeSearchQuery.trim())}` : '';
-        const resp = await fetch(`/api/admin/get-in-touch?limit=${limit}&offset=${offset}${qParam}`, {
+        const monthParam = appliedMonth ? `&month=${appliedMonth}` : '';
+        const yearParam = appliedYear ? `&year=${appliedYear}` : '';
+        const resp = await fetch(`/api/admin/get-in-touch?limit=${limit}&offset=${offset}${qParam}${monthParam}${yearParam}`, {
           headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
           signal: controller.signal,
         });
@@ -139,7 +149,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     })();
 
     return () => { aborted = true; controller.abort(); };
-  }, [activeTab, page, activeSearchQuery]);
+  }, [activeTab, page, activeSearchQuery, appliedMonth, appliedYear]);
 
   // Trigger search: updating `activeSearchQuery` will cause the effect above to re-run.
   const doSearch = useCallback(() => {
@@ -155,6 +165,38 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     setSearching(true);
     setTimeout(() => setSearching(false), 300);
   }, [hmsSearchQuery]);
+
+  // Apply filters for Get In Touch table
+  const applyFilters = useCallback(() => {
+    setAppliedMonth(exportMonth);
+    setAppliedYear(exportYear);
+    setPage(1);
+  }, [exportMonth, exportYear]);
+
+  // Apply filters for HMS table
+  const applyHmsFilters = useCallback(() => {
+    setHmsAppliedMonth(hmsExportMonth);
+    setHmsAppliedYear(hmsExportYear);
+    setPage(1);
+  }, [hmsExportMonth, hmsExportYear]);
+
+  // Clear filters for Get In Touch
+  const clearFilters = useCallback(() => {
+    setExportMonth('');
+    setExportYear('');
+    setAppliedMonth('');
+    setAppliedYear('');
+    setPage(1);
+  }, []);
+
+  // Clear filters for HMS
+  const clearHmsFilters = useCallback(() => {
+    setHmsExportMonth('');
+    setHmsExportYear('');
+    setHmsAppliedMonth('');
+    setHmsAppliedYear('');
+    setPage(1);
+  }, []);
 
   // Export get-in-touch data to Excel
   const handleExport = useCallback(async () => {
@@ -473,7 +515,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
               {/* Export Filters and Button for HMS */}
               <div className="mb-3 flex gap-2 items-center flex-wrap">
-                <span className="text-sm text-gray-300">Export Filters:</span>
+                <span className="text-sm text-gray-300">Filters:</span>
                 <select
                   value={hmsExportMonth}
                   onChange={(e) => setHmsExportMonth(e.target.value)}
@@ -521,9 +563,21 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                   })()}
                 </select>
                 <button
+                  onClick={applyHmsFilters}
+                  className="px-3 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                >
+                  Apply
+                </button>
+                <button
+                  onClick={clearHmsFilters}
+                  className="px-3 py-2 rounded bg-[#333] text-white border border-gray-600 hover:bg-[#3E3E3E] transition-colors cursor-pointer"
+                >
+                  Clear
+                </button>
+                <button
                   onClick={handleHmsExport}
                   disabled={isHmsExportDisabled}
-                  className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-3 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
                   title="Export enrollments to Excel file"
                 >
                   <Download size={16} />
@@ -685,7 +739,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
               {/* Export Filters and Button */}
               <div className="mb-3 flex gap-2 items-center flex-wrap">
-                <span className="text-sm text-gray-300">Export Filters:</span>
+                <span className="text-sm text-gray-300">Filters:</span>
                 <select
                   value={exportMonth}
                   onChange={(e) => setExportMonth(e.target.value)}
@@ -734,9 +788,21 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                   })()}
                 </select>
                 <button
+                  onClick={applyFilters}
+                  className="px-3 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                >
+                  Apply
+                </button>
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-2 rounded bg-[#333] text-white border border-gray-600 hover:bg-[#3E3E3E] transition-colors cursor-pointer"
+                >
+                  Clear
+                </button>
+                <button
                   onClick={handleExport}
                   disabled={isExportDisabled}
-                  className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-3 py-[0.4rem] rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
                   title="Export data to Excel file"
                 >
                   <Download size={16} />

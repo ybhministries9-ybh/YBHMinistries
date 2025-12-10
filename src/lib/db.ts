@@ -525,43 +525,58 @@ export async function createGetInTouch(payload: {
 /**
  * Get recent Get In Touch submissions for admin listing
  */
-export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?: string }) {
+export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string }) {
   try {
     const limit = opts?.limit || 50;
     const offset = opts?.offset || 0;
-    // If a query string is provided, perform a case-insensitive partial match
+    
+    const conditions: string[] = [];
+    const values: any[] = [];
+    let valueIndex = 1;
+    
+    // Add search filter
     if (opts?.q && String(opts.q).trim().length > 0) {
       const q = `%${String(opts.q).trim()}%`;
-      const countQuery = `
-        SELECT COUNT(*) as count
-        FROM get_in_touch
-        WHERE name ILIKE $1 OR email ILIKE $2 OR phone ILIKE $3 OR location ILIKE $4
-      `;
-      const countResult = await sql.query(countQuery, [q, q, q, q] as any[]);
-      const total = Number(countResult.rows[0]?.count || 0);
-
-      const values: any[] = [q, q, q, q, limit, offset];
-      const query = `
-        SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
-        FROM get_in_touch
-        WHERE name ILIKE $1 OR email ILIKE $2 OR phone ILIKE $3 OR location ILIKE $4
-        ORDER BY created_at DESC
-        LIMIT $5 OFFSET $6
-      `;
-      const result = await sql.query(query, values as any[]);
-      return { rows: result.rows, total };
+      conditions.push(`(name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone ILIKE $${valueIndex + 2} OR location ILIKE $${valueIndex + 3})`);
+      values.push(q, q, q, q);
+      valueIndex += 4;
     }
-
-    const countResult = await sql`SELECT COUNT(*) as count FROM get_in_touch`;
+    
+    // Add month/year filters
+    if (opts?.month && opts?.year) {
+      const startDate = `${opts.year}-${String(opts.month).padStart(2, '0')}-01`;
+      const nextMonth = parseInt(opts.month) === 12 ? 1 : parseInt(opts.month) + 1;
+      const nextYear = parseInt(opts.month) === 12 ? parseInt(opts.year) + 1 : parseInt(opts.year);
+      const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      conditions.push(`DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
+      values.push(startDate, endDate);
+      valueIndex += 2;
+    } else if (opts?.year) {
+      const startDate = `${opts.year}-01-01`;
+      const endDate = `${parseInt(opts.year) + 1}-01-01`;
+      conditions.push(`DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
+      values.push(startDate, endDate);
+      valueIndex += 2;
+    }
+    
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    
+    // Get total count
+    const countQuery = `SELECT COUNT(*) as count FROM get_in_touch ${whereClause}`;
+    const countResult = await sql.query(countQuery, values.length > 0 ? values : undefined);
     const total = Number(countResult.rows[0]?.count || 0);
-
-    const { rows } = await sql`
+    
+    // Get paginated results
+    values.push(limit, offset);
+    const query = `
       SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
       FROM get_in_touch
+      ${whereClause}
       ORDER BY created_at DESC
-      LIMIT ${limit} OFFSET ${offset}
+      LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
     `;
-    return { rows, total };
+    const result = await sql.query(query, values);
+    return { rows: result.rows, total };
   } catch (error) {
     console.error('Error fetching get_in_touch records:', error);
     throw error;
@@ -586,43 +601,58 @@ export async function getGetInTouchById(id: number) {
 /**
  * Fetch a page of HMS student enrolments for admin listing
  */
-export async function getHMSStudents(opts?: { limit?: number; offset?: number; q?: string }) {
+export async function getHMSStudents(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string }) {
   try {
     const limit = opts?.limit || 50;
     const offset = opts?.offset || 0;
     
-    // If a query string is provided, perform a case-insensitive partial match
+    const conditions: string[] = [];
+    const values: any[] = [];
+    let valueIndex = 1;
+    
+    // Add search filter
     if (opts?.q && String(opts.q).trim().length > 0) {
       const q = `%${String(opts.q).trim()}%`;
-      const countQuery = `
-        SELECT COUNT(*) as count
-        FROM hms_students
-        WHERE full_name ILIKE $1 OR email ILIKE $2 OR phone_number ILIKE $3
-      `;
-      const countResult = await sql.query(countQuery, [q, q, q] as any[]);
-      const total = Number(countResult.rows[0]?.count || 0);
-
-      const values: any[] = [q, q, q, limit, offset];
-      const query = `
-        SELECT *
-        FROM hms_students
-        WHERE full_name ILIKE $1 OR email ILIKE $2 OR phone_number ILIKE $3
-        ORDER BY created_at DESC
-        LIMIT $4 OFFSET $5
-      `;
-      const result = await sql.query(query, values as any[]);
-      return { rows: result.rows, total };
+      conditions.push(`(full_name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone_number ILIKE $${valueIndex + 2})`);
+      values.push(q, q, q);
+      valueIndex += 3;
     }
-
-    const countResult = await sql`SELECT COUNT(*) as count FROM hms_students`;
+    
+    // Add month/year filters
+    if (opts?.month && opts?.year) {
+      const startDate = `${opts.year}-${String(opts.month).padStart(2, '0')}-01`;
+      const nextMonth = parseInt(opts.month) === 12 ? 1 : parseInt(opts.month) + 1;
+      const nextYear = parseInt(opts.month) === 12 ? parseInt(opts.year) + 1 : parseInt(opts.year);
+      const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      conditions.push(`DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
+      values.push(startDate, endDate);
+      valueIndex += 2;
+    } else if (opts?.year) {
+      const startDate = `${opts.year}-01-01`;
+      const endDate = `${parseInt(opts.year) + 1}-01-01`;
+      conditions.push(`DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
+      values.push(startDate, endDate);
+      valueIndex += 2;
+    }
+    
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    
+    // Get total count
+    const countQuery = `SELECT COUNT(*) as count FROM hms_students ${whereClause}`;
+    const countResult = await sql.query(countQuery, values.length > 0 ? values : undefined);
     const total = Number(countResult.rows[0]?.count || 0);
-
-    const { rows } = await sql<HMSStudentRecord>`
-      SELECT * FROM hms_students
+    
+    // Get paginated results
+    values.push(limit, offset);
+    const query = `
+      SELECT *
+      FROM hms_students
+      ${whereClause}
       ORDER BY created_at DESC
-      LIMIT ${limit} OFFSET ${offset}
+      LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
     `;
-    return { rows, total };
+    const result = await sql.query(query, values);
+    return { rows: result.rows, total };
   } catch (error) {
     console.error('Error fetching HMS students:', error);
     throw error;
