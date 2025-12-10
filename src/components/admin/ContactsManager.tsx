@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Book, ChevronUp, ChevronDown, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Download } from 'lucide-react';
+import { Book, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Download, ArrowUpDown } from 'lucide-react';
 import { accentGold } from '../../utils/theme';
 import Link from 'next/link';
 import { downloadExcelFile } from '@/lib/exportUtils';
@@ -605,13 +605,41 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                       <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
                         <thead>
                           <tr style={{ backgroundColor: '#2e2e2e', color: '#e6e6e6' }}>
-                        <th onClick={() => handleSort('id')} style={{ width: '5%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer"># {sortBy === 'id' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('full_name')} style={{ width: '23%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Name {sortBy === 'full_name' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('date_of_birth')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">DOB {sortBy === 'date_of_birth' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('phone_number')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Phone {sortBy === 'phone_number' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('email')} style={{ width: '22%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Email {sortBy === 'email' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('status')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Status {sortBy === 'status' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('created_at')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer whitespace-nowrap">Enrolled {sortBy === 'created_at' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('id')} style={{ width: '5%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                          <div className="flex items-center gap-1">
+                            # {sortBy === 'id' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                          </div>
+                        </th>
+                        <th onClick={() => handleSort('full_name')} style={{ width: '23%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                          <div className="flex items-center gap-1">
+                            Name {sortBy === 'full_name' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                          </div>
+                        </th>
+                        <th onClick={() => handleSort('date_of_birth')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                          <div className="flex items-center gap-1">
+                            DOB {sortBy === 'date_of_birth' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                          </div>
+                        </th>
+                        <th onClick={() => handleSort('phone_number')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                          <div className="flex items-center gap-1">
+                            Phone {sortBy === 'phone_number' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                          </div>
+                        </th>
+                        <th onClick={() => handleSort('email')} style={{ width: '22%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                          <div className="flex items-center gap-1">
+                            Email {sortBy === 'email' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                          </div>
+                        </th>
+                        <th onClick={() => handleSort('status')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                          <div className="flex items-center gap-1">
+                            Status {sortBy === 'status' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                          </div>
+                        </th>
+                        <th onClick={() => handleSort('created_at')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            Enrolled {sortBy === 'created_at' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                          </div>
+                        </th>
                         <th style={{ width: '8%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
                       </tr>
                     </thead>
@@ -829,12 +857,36 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                       <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
                         <thead>
                           <tr style={{ backgroundColor: '#2e2e2e', color: '#e6e6e6' }}>
-                            <th onClick={() => handleSort('id')} style={{ width: '5%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer"># {sortBy === 'id' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                            <th onClick={() => handleSort('name')} style={{ width: '18%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Name {sortBy === 'name' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                            <th onClick={() => handleSort('phone')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Phone {sortBy === 'phone' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                            <th onClick={() => handleSort('email')} style={{ width: '22%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Email {sortBy === 'email' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                            <th onClick={() => handleSort('location')} style={{ width: '18%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Location {sortBy === 'location' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                            <th onClick={() => handleSort('created_at')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer whitespace-nowrap">Submitted {sortBy === 'created_at' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                            <th onClick={() => handleSort('id')} style={{ width: '5%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                              <div className="flex items-center gap-1">
+                                # {sortBy === 'id' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                              </div>
+                            </th>
+                            <th onClick={() => handleSort('name')} style={{ width: '18%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                              <div className="flex items-center gap-1">
+                                Name {sortBy === 'name' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                              </div>
+                            </th>
+                            <th onClick={() => handleSort('phone')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                              <div className="flex items-center gap-1">
+                                Phone {sortBy === 'phone' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                              </div>
+                            </th>
+                            <th onClick={() => handleSort('email')} style={{ width: '22%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                              <div className="flex items-center gap-1">
+                                Email {sortBy === 'email' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                              </div>
+                            </th>
+                            <th onClick={() => handleSort('location')} style={{ width: '18%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                              <div className="flex items-center gap-1">
+                                Location {sortBy === 'location' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                              </div>
+                            </th>
+                            <th onClick={() => handleSort('created_at')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors whitespace-nowrap">
+                              <div className="flex items-center gap-1">
+                                Submitted {sortBy === 'created_at' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                              </div>
+                            </th>
                             <th style={{ width: '9%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
                           </tr>
                         </thead>
