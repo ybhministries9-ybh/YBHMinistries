@@ -24,12 +24,15 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeSearchQuery, setActiveSearchQuery] = useState<string>('');
+  const [hmsSearchQuery, setHmsSearchQuery] = useState<string>('');
+  const [activeHmsSearchQuery, setActiveHmsSearchQuery] = useState<string>('');
   const [searching, setSearching] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [hmsTotalCount, setHmsTotalCount] = useState<number>(0);
   // replaced modal flow with separate detail page; no selected state here
   const [sortBy, setSortBy] = useState<string>('id');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -44,7 +47,8 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
       try {
         const limit = pageSize + 1;
         const offset = (page - 1) * pageSize;
-        const resp = await fetch(`/api/admin/hms-students?limit=${limit}&offset=${offset}`, {
+        const qParam = activeHmsSearchQuery && activeHmsSearchQuery.trim().length > 0 ? `&q=${encodeURIComponent(activeHmsSearchQuery.trim())}` : '';
+        const resp = await fetch(`/api/admin/hms-students?limit=${limit}&offset=${offset}${qParam}`, {
           headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
           signal: controller.signal,
         });
@@ -64,11 +68,11 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             setHasMore(false);
             setStudents(arr);
           }
+          setHmsTotalCount(j.total || 0);
           setUnauthorized(false);
         }
       } catch (err) {
         if ((err as any)?.name === 'AbortError') return;
-        console.error('Failed to load hms students', err);
       } finally {
         if (!aborted) setLoading(false);
       }
@@ -78,7 +82,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
       aborted = true;
       controller.abort();
     };
-  }, [activeTab, page]);
+  }, [activeTab, page, activeHmsSearchQuery]);
 
   useEffect(() => {
     if (activeTab !== 'getintouch') return;
@@ -117,7 +121,6 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         }
       } catch (err) {
         if ((err as any)?.name === 'AbortError') return;
-        console.error('Failed to load get-in-touch submissions', err);
       } finally {
         if (!aborted) setLoading(false);
       }
@@ -127,13 +130,19 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   }, [activeTab, page, activeSearchQuery]);
 
   // Trigger search: updating `activeSearchQuery` will cause the effect above to re-run.
-  const doSearch = () => {
+  const doSearch = useCallback(() => {
     setPage(1);
     setActiveSearchQuery(searchQuery);
     setSearching(true);
-    // effect will run and set contacts; stop searching after a small delay to avoid race
-    setTimeout(() => setSearching(false), 400);
-  };
+    setTimeout(() => setSearching(false), 300);
+  }, [searchQuery]);
+
+  const doHmsSearch = useCallback(() => {
+    setPage(1);
+    setActiveHmsSearchQuery(hmsSearchQuery);
+    setSearching(true);
+    setTimeout(() => setSearching(false), 300);
+  }, [hmsSearchQuery]);
 
   // modal removed — detail page used instead
 
@@ -271,13 +280,51 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
           {loading ? (
             <div>Loading...</div>
           ) : (
-            <div className="md:overflow-x-auto md:-mx-2 md:mx-0">
-              <div className="w-full bg-[#1f1f1f] rounded-lg p-2 md:p-3 border border-gray-700">
-                {/* Desktop/table view (md and up) */}
-                <div className="hidden md:block">
-                  <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
-                    <thead>
-                      <tr style={{ backgroundColor: '#2e2e2e', color: '#e6e6e6' }}>
+            <>
+              <div className="mb-3 flex gap-2 items-center">
+                <input
+                  type="search"
+                  value={hmsSearchQuery}
+                  onChange={(e) => setHmsSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') doHmsSearch(); }}
+                  placeholder="Search name, email or phone"
+                  className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white w-full md:w-1/3"
+                />
+                <button
+                  onClick={doHmsSearch}
+                  disabled={searching}
+                  className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold"
+                >
+                  Search
+                </button>
+                <button
+                  onClick={() => { setHmsSearchQuery(''); setActiveHmsSearchQuery(''); setPage(1); }}
+                  className="px-3 py-2 rounded bg-[#333] text-white border border-gray-700"
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="mb-3 text-sm text-gray-300">
+                {activeHmsSearchQuery ? (
+                  hmsTotalCount === 0 ? (
+                    <span>No results found for &quot;{activeHmsSearchQuery}&quot;</span>
+                  ) : (
+                    <span>Found {hmsTotalCount} result{hmsTotalCount !== 1 ? 's' : ''} for &quot;{activeHmsSearchQuery}&quot;</span>
+                  )
+                ) : (
+                  <span>Total: {hmsTotalCount} enrollment{hmsTotalCount !== 1 ? 's' : ''}</span>
+                )}
+              </div>
+
+              {hmsTotalCount > 0 && (
+                <div className="md:overflow-x-auto md:-mx-2 md:mx-0">
+                  <div className="w-full bg-[#1f1f1f] rounded-lg p-2 md:p-3 border border-gray-700">
+                    {/* Desktop/table view (md and up) */}
+                    <div className="hidden md:block">
+                      <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
+                        <thead>
+                          <tr style={{ backgroundColor: '#2e2e2e', color: '#e6e6e6' }}>
                         <th onClick={() => handleSort('id')} style={{ width: '6%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer"># {sortBy === 'id' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
                         <th onClick={() => handleSort('full_name')} style={{ width: '26%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Name {sortBy === 'full_name' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
                         <th onClick={() => handleSort('date_of_birth')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">DOB {sortBy === 'date_of_birth' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
@@ -345,6 +392,9 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                     <button disabled={!hasMore} onClick={() => setPage(p => p + 1)} className={goldBtnClass(!hasMore)} title="Next Page">
                       <ChevronRight size={16} />
                     </button>
+                    <button disabled={!hasMore} onClick={() => setPage(Math.ceil(hmsTotalCount / pageSize))} className={goldBtnClass(!hasMore)} title="Last Page">
+                      <ChevronsRight size={16} />
+                    </button>
                   </div>
                 </div>
 
@@ -361,13 +411,18 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                     <button disabled={!hasMore} onClick={() => setPage(p => p + 1)} className={goldBtnClass(!hasMore)} title="Next Page">
                       <ChevronRight size={16} />
                     </button>
+                    <button disabled={!hasMore} onClick={() => setPage(Math.ceil(hmsTotalCount / pageSize))} className={goldBtnClass(!hasMore)} title="Last Page">
+                      <ChevronsRight size={16} />
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
+    </div>
+  )}
 
       {activeTab === 'getintouch' && (
         <div>

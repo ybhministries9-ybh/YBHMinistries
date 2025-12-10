@@ -586,16 +586,43 @@ export async function getGetInTouchById(id: number) {
 /**
  * Fetch a page of HMS student enrolments for admin listing
  */
-export async function getHMSStudents(opts?: { limit?: number; offset?: number }) {
+export async function getHMSStudents(opts?: { limit?: number; offset?: number; q?: string }) {
   try {
     const limit = opts?.limit || 50;
     const offset = opts?.offset || 0;
+    
+    // If a query string is provided, perform a case-insensitive partial match
+    if (opts?.q && String(opts.q).trim().length > 0) {
+      const q = `%${String(opts.q).trim()}%`;
+      const countQuery = `
+        SELECT COUNT(*) as count
+        FROM hms_students
+        WHERE full_name ILIKE $1 OR email ILIKE $2 OR phone_number ILIKE $3
+      `;
+      const countResult = await sql.query(countQuery, [q, q, q] as any[]);
+      const total = Number(countResult.rows[0]?.count || 0);
+
+      const values: any[] = [q, q, q, limit, offset];
+      const query = `
+        SELECT *
+        FROM hms_students
+        WHERE full_name ILIKE $1 OR email ILIKE $2 OR phone_number ILIKE $3
+        ORDER BY created_at DESC
+        LIMIT $4 OFFSET $5
+      `;
+      const result = await sql.query(query, values as any[]);
+      return { rows: result.rows, total };
+    }
+
+    const countResult = await sql`SELECT COUNT(*) as count FROM hms_students`;
+    const total = Number(countResult.rows[0]?.count || 0);
+
     const { rows } = await sql<HMSStudentRecord>`
       SELECT * FROM hms_students
       ORDER BY created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
-    return rows;
+    return { rows, total };
   } catch (error) {
     console.error('Error fetching HMS students:', error);
     throw error;
