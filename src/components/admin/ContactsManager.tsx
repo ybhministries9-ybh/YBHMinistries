@@ -29,12 +29,18 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const [activeHmsSearchQuery, setActiveHmsSearchQuery] = useState<string>('');
   const [searching, setSearching] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
+  const [hmsExporting, setHmsExporting] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
   
-  // Export filters
+  // Export filters for Get In Touch
   const [exportMonth, setExportMonth] = useState<string>('');
   const [exportYear, setExportYear] = useState<string>('');
+  
+  // Export filters for HMS
+  const [hmsExportMonth, setHmsExportMonth] = useState<string>('');
+  const [hmsExportYear, setHmsExportYear] = useState<string>('');
+  
   const [students, setStudents] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -213,6 +219,69 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     return false;
   }, [exporting, totalCount, exportMonth, exportYear]);
 
+  // Export HMS enrollments to Excel
+  const handleHmsExport = useCallback(async () => {
+    try {
+      setHmsExporting(true);
+      const params = new URLSearchParams();
+      
+      // Add search query if present
+      if (activeHmsSearchQuery && activeHmsSearchQuery.trim().length > 0) {
+        params.append('q', activeHmsSearchQuery.trim());
+      }
+      
+      // Add month and year filters if selected
+      if (hmsExportMonth) params.append('month', hmsExportMonth);
+      if (hmsExportYear) params.append('year', hmsExportYear);
+      
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const resp = await fetch(`/api/admin/hms-students/export${queryString}`, {
+        headers: getAuthHeader(),
+      });
+      
+      if (resp.status === 401) {
+        alert('Unauthorized. Please log in again.');
+        return;
+      }
+      
+      if (!resp.ok) {
+        throw new Error('Export failed');
+      }
+      
+      // Extract filename from Content-Disposition header
+      const contentDisposition = resp.headers.get('Content-Disposition');
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch?.[1] || `hms-enrollments-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Download the file
+      const blob = await resp.blob();
+      downloadExcelFile(blob, filename);
+    } catch (err) {
+      console.error('HMS Export failed:', err);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setHmsExporting(false);
+    }
+  }, [activeHmsSearchQuery, hmsExportMonth, hmsExportYear]);
+
+  // Memoize HMS export button disabled state
+  const isHmsExportDisabled = useMemo(() => {
+    if (hmsExporting || hmsTotalCount === 0) return true;
+    
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    
+    // Disable if future month/year is selected
+    if (hmsExportYear && hmsExportMonth) {
+      const selectedYear = parseInt(hmsExportYear);
+      const selectedMonth = parseInt(hmsExportMonth);
+      if (selectedYear === currentYear && selectedMonth > currentMonth) return true;
+      if (selectedYear > currentYear) return true;
+    }
+    
+    return false;
+  }, [hmsExporting, hmsTotalCount, hmsExportMonth, hmsExportYear]);
+
   // modal removed — detail page used instead
 
   const formatDateOnly = useCallback((raw?: string | null) => {
@@ -229,39 +298,64 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const formatDatePretty = useCallback((raw?: string | null) => {
     if (!raw) return '-';
     try {
-      const d = new Date(raw);
-      if (Number.isNaN(d.getTime())) return raw.split('T')[0] || raw;
-      return new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).format(d);
+      // For date-only strings (YYYY-MM-DD), parse without timezone to avoid date shifts
+      const dateStr = String(raw).split('T')[0];
+      const [year, month, day] = dateStr.split('-').map(Number);
+      if (year && month && day) {
+        const d = new Date(year, month - 1, day);
+        if (!Number.isNaN(d.getTime())) {
+          return new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).format(d);
+        }
+      }
+      return dateStr || raw;
     } catch (e) {
       return String(raw).split('T')[0] || String(raw);
+    }
+  }, []);
+
+  const formatDateShort = useCallback((raw?: string | null) => {
+    if (!raw) return '-';
+    try {
+      // Extract date part only (YYYY-MM-DD format)
+      const dateStr = String(raw).split('T')[0];
+      return dateStr;
+    } catch (e) {
+      return '-';
     }
   }, []);
 
   const sortedStudents = useMemo(() => {
     const arr = [...students];
     const dir = sortDir === 'asc' ? 1 : -1;
-    // numeric id sort (default)
+    
     if (sortBy === 'id') {
       arr.sort((a: any, b: any) => (Number(a.id || 0) - Number(b.id || 0)) * dir);
       return arr;
     }
-    arr.sort((a: any, b: any) => {
-      const A = a?.[sortBy];
-      const B = b?.[sortBy];
-      if (sortBy === 'date_of_birth') {
-        const ta = a?.date_of_birth ? new Date(a.date_of_birth).getTime() : 0;
-        const tb = b?.date_of_birth ? new Date(b.date_of_birth).getTime() : 0;
-        return (ta - tb) * dir;
-      }
-      // fallback numeric
-      if (sortBy === 'phone_number') {
-        const na = Number(String(A || '').replace(/\D/g, '')) || 0;
-        const nb = Number(String(B || '').replace(/\D/g, '')) || 0;
+    
+    if (sortBy === 'date_of_birth' || sortBy === 'created_at') {
+      // ISO date strings can be compared directly
+      arr.sort((a: any, b: any) => {
+        const dateA = String(a?.[sortBy] || '').split('T')[0];
+        const dateB = String(b?.[sortBy] || '').split('T')[0];
+        return dateA.localeCompare(dateB) * dir;
+      });
+      return arr;
+    }
+    
+    if (sortBy === 'phone_number') {
+      arr.sort((a: any, b: any) => {
+        const na = Number(String(a.phone_number || '').replace(/\D/g, '')) || 0;
+        const nb = Number(String(b.phone_number || '').replace(/\D/g, '')) || 0;
         return (na - nb) * dir;
-      }
-      // string compare
-      const sa = String(A || '').toLowerCase();
-      const sb = String(B || '').toLowerCase();
+      });
+      return arr;
+    }
+    
+    // String comparison for other fields
+    arr.sort((a: any, b: any) => {
+      const sa = String(a?.[sortBy] || '').toLowerCase();
+      const sb = String(b?.[sortBy] || '').toLowerCase();
       return sa.localeCompare(sb) * dir;
     });
     return arr;
@@ -270,23 +364,26 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const sortedContacts = useMemo(() => {
     const arr = [...contacts];
     const dir = sortDir === 'asc' ? 1 : -1;
+    
     if (sortBy === 'id') {
       arr.sort((a: any, b: any) => (Number(a.id || 0) - Number(b.id || 0)) * dir);
       return arr;
     }
+    
     if (sortBy === 'created_at') {
+      // ISO date strings can be compared directly
       arr.sort((a: any, b: any) => {
-        const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
-        const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
-        return (ta - tb) * dir;
+        const dateA = String(a.created_at || '').split('T')[0];
+        const dateB = String(b.created_at || '').split('T')[0];
+        return dateA.localeCompare(dateB) * dir;
       });
       return arr;
     }
+    
+    // String comparison for other fields
     arr.sort((a: any, b: any) => {
-      const A = a?.[sortBy];
-      const B = b?.[sortBy];
-      const sa = String(A || '').toLowerCase();
-      const sb = String(B || '').toLowerCase();
+      const sa = String(a?.[sortBy] || '').toLowerCase();
+      const sb = String(b?.[sortBy] || '').toLowerCase();
       return sa.localeCompare(sb) * dir;
     });
     return arr;
@@ -350,7 +447,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             <div>Loading...</div>
           ) : (
             <>
-              <div className="mb-3 flex gap-2 items-center">
+              <div className="mb-3 flex gap-2 items-center flex-wrap">
                 <input
                   type="search"
                   value={hmsSearchQuery}
@@ -374,6 +471,66 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 </button>
               </div>
 
+              {/* Export Filters and Button for HMS */}
+              <div className="mb-3 flex gap-2 items-center flex-wrap">
+                <span className="text-sm text-gray-300">Export Filters:</span>
+                <select
+                  value={hmsExportMonth}
+                  onChange={(e) => setHmsExportMonth(e.target.value)}
+                  className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white"
+                  style={{ 
+                    colorScheme: 'dark',
+                    background: '#111',
+                    color: 'white'
+                  }}
+                >
+                  <option value="" style={{ background: '#111', color: 'white' }}>All Months</option>
+                  <option value="1" style={{ background: '#111', color: 'white' }}>January</option>
+                  <option value="2" style={{ background: '#111', color: 'white' }}>February</option>
+                  <option value="3" style={{ background: '#111', color: 'white' }}>March</option>
+                  <option value="4" style={{ background: '#111', color: 'white' }}>April</option>
+                  <option value="5" style={{ background: '#111', color: 'white' }}>May</option>
+                  <option value="6" style={{ background: '#111', color: 'white' }}>June</option>
+                  <option value="7" style={{ background: '#111', color: 'white' }}>July</option>
+                  <option value="8" style={{ background: '#111', color: 'white' }}>August</option>
+                  <option value="9" style={{ background: '#111', color: 'white' }}>September</option>
+                  <option value="10" style={{ background: '#111', color: 'white' }}>October</option>
+                  <option value="11" style={{ background: '#111', color: 'white' }}>November</option>
+                  <option value="12" style={{ background: '#111', color: 'white' }}>December</option>
+                </select>
+                <select
+                  value={hmsExportYear}
+                  onChange={(e) => setHmsExportYear(e.target.value)}
+                  className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white"
+                  style={{ 
+                    colorScheme: 'dark',
+                    background: '#111',
+                    color: 'white'
+                  }}
+                >
+                  <option value="" style={{ background: '#111', color: 'white' }}>All Years</option>
+                  {(() => {
+                    const currentYear = new Date().getFullYear();
+                    const years = [];
+                    for (let year = currentYear; year >= 2020; year--) {
+                      years.push(year);
+                    }
+                    return years.map(year => (
+                      <option key={year} value={year} style={{ background: '#111', color: 'white' }}>{year}</option>
+                    ));
+                  })()}
+                </select>
+                <button
+                  onClick={handleHmsExport}
+                  disabled={isHmsExportDisabled}
+                  className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  title="Export enrollments to Excel file"
+                >
+                  <Download size={16} />
+                  {hmsExporting ? 'Exporting...' : 'Export to Excel'}
+                </button>
+              </div>
+
               <div className="mb-3 text-sm text-gray-300">
                 {activeHmsSearchQuery ? (
                   hmsTotalCount === 0 ? (
@@ -394,12 +551,13 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                       <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
                         <thead>
                           <tr style={{ backgroundColor: '#2e2e2e', color: '#e6e6e6' }}>
-                        <th onClick={() => handleSort('id')} style={{ width: '6%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer"># {sortBy === 'id' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('full_name')} style={{ width: '26%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Name {sortBy === 'full_name' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('id')} style={{ width: '5%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer"># {sortBy === 'id' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('full_name')} style={{ width: '23%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Name {sortBy === 'full_name' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
                         <th onClick={() => handleSort('date_of_birth')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">DOB {sortBy === 'date_of_birth' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
                         <th onClick={() => handleSort('phone_number')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Phone {sortBy === 'phone_number' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
-                        <th onClick={() => handleSort('email')} style={{ width: '24%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Email {sortBy === 'email' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('email')} style={{ width: '22%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Email {sortBy === 'email' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
                         <th onClick={() => handleSort('status')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer">Status {sortBy === 'status' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
+                        <th onClick={() => handleSort('created_at')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer whitespace-nowrap">Enrolled {sortBy === 'created_at' && (sortDir === 'asc' ? <ChevronUp size={12} className="inline"/> : <ChevronDown size={12} className="inline"/>)}</th>
                         <th style={{ width: '8%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
                       </tr>
                     </thead>
@@ -416,6 +574,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                           <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.phone_number || '-'}</td>
                           <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.email || '-'}</td>
                           <td className="px-4 py-3 text-gray-200">{s.status || '-'}</td>
+                          <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDateShort(s.created_at)}</td>
                             <td className="px-4 py-3 text-right">
                               <Link href={`/admin/contacts/${s.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
                           </td>
@@ -439,6 +598,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                           <div className="font-medium text-gray-100 truncate">{s.full_name}</div>
                           <div className="text-sm text-gray-200 mt-1">{formatDatePretty(s.date_of_birth)} • {s.phone_number || '-'}</div>
                           <div className="text-sm text-gray-200 truncate mt-1">{s.email || '-'}</div>
+                          <div className="text-xs text-gray-400 mt-1">Enrolled: {formatDateShort(s.created_at)}</div>
                         </div>
                         <div className="flex-shrink-0">
                           <Link href={`/admin/contacts/${s.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
@@ -576,7 +736,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 <button
                   onClick={handleExport}
                   disabled={isExportDisabled}
-                  className="px-3 py-[0.4rem] rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   title="Export data to Excel file"
                 >
                   <Download size={16} />

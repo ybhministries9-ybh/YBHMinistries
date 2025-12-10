@@ -102,10 +102,16 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
   const formatDateForInput = (raw?: string | null) => {
     if (!raw) return '';
     try {
-      const d = new Date(raw);
-      if (Number.isNaN(d.getTime())) return String(raw).split('T')[0] || '';
-      return d.toISOString().split('T')[0];
-    } catch (e) { return String(raw).split('T')[0] || ''; }
+      // Extract date part without timezone conversion
+      const dateStr = String(raw).split('T')[0];
+      // Validate it's a proper date format
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+      }
+      return dateStr || '';
+    } catch (e) { 
+      return String(raw).split('T')[0] || ''; 
+    }
   };
 
   const recordToInitial = (rec: any) => {
