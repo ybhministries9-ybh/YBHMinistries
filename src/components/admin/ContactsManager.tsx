@@ -802,7 +802,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 <button
                   onClick={handleExport}
                   disabled={isExportDisabled}
-                  className="px-3 py-[0.4rem] rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
+                  className="px-3 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
                   title="Export data to Excel file"
                 >
                   <Download size={16} />
