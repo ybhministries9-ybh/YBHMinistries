@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw, Edit2, Save } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw, Edit2, Save, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { InfoDialog } from './InfoDialog';
@@ -25,6 +25,7 @@ type SortDirection = 'asc' | 'desc';
 
 export function UserManager() {
   const [users, setUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string; role: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -43,6 +44,13 @@ export function UserManager() {
   const [resetInfoUser, setResetInfoUser] = useState<User | null>(null);
   const [createdInfoOpen, setCreatedInfoOpen] = useState(false);
   const [createdInfoUser, setCreatedInfoUser] = useState<User | null>(null);
+  
+  // Search and pagination
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState<string>('');
+  const [searching, setSearching] = useState<boolean>(false);
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 10;
 
   // Character limits
   const CHAR_LIMITS = {
@@ -58,7 +66,8 @@ export function UserManager() {
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
         if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
-        const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+        const qParam = activeSearchQuery && activeSearchQuery.trim().length > 0 ? `?q=${encodeURIComponent(activeSearchQuery.trim())}` : '';
+        const res = await fetch(`/api/admin/users${qParam}`, { headers: { 'Authorization': `Bearer ${token}` } });
         const j = await res.json();
         if (j.success) {
           const mapped = (j.data || []).map((r: any) => ({
@@ -71,17 +80,25 @@ export function UserManager() {
             createdAt: r.created_at || r.createdAt || new Date().toISOString(),
             mustReset: !!r.must_reset_password,
           }));
+          setAllUsers(mapped);
           setUsers(mapped);
         } else {
           toast.error('Failed to load users');
         }
       } catch (err) {
-        console.error('load users failed', err);
         toast.error('Failed to load users');
       }
     };
     load();
-  }, []);
+  }, [activeSearchQuery]);
+
+  // Search handler
+  const doSearch = useCallback(() => {
+    setPage(1);
+    setActiveSearchQuery(searchQuery);
+    setSearching(true);
+    setTimeout(() => setSearching(false), 300);
+  }, [searchQuery]);
 
   // Load current user info for permission checks
   useEffect(() => {
@@ -394,8 +411,14 @@ export function UserManager() {
       return 0;
     });
 
-    return sortedUsers;
+    // Apply pagination
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return sortedUsers.slice(startIndex, endIndex);
   };
+
+  const totalPages = Math.ceil(users.length / pageSize);
+  const goldBtnClass = (_disabled: boolean) => `px-3 py-2 rounded bg-[#FDB813] text-black disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[#FDB813]/90 transition-colors ${!_disabled ? 'cursor-pointer' : ''}`;
 
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) {
@@ -417,7 +440,7 @@ export function UserManager() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className={`flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#0d0d0d] transition-colors cursor-pointer ${currentUser && currentUser.role !== 'Super Admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#3E3E3E] transition-colors cursor-pointer ${currentUser && currentUser.role !== 'Super Admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
           disabled={!!(currentUser && currentUser.role !== 'Super Admin')}
         >
           <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
@@ -425,6 +448,44 @@ export function UserManager() {
           </span>
           <span className="font-medium">Add User</span>
         </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-6 flex gap-2 items-center">
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') doSearch(); }}
+          placeholder="Search by name or email"
+          className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white w-full md:w-1/3"
+        />
+        <button
+          onClick={doSearch}
+          disabled={searching}
+          className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer"
+        >
+          Search
+        </button>
+        <button
+          onClick={() => { setSearchQuery(''); setActiveSearchQuery(''); setPage(1); }}
+          className="px-3 py-2 rounded bg-[#333] text-white border border-[#FDB813] hover:bg-[#3E3E3E] transition-colors cursor-pointer"
+        >
+          Clear
+        </button>
+      </div>
+
+      {/* Results count */}
+      <div className="mb-3 text-sm text-gray-300">
+        {activeSearchQuery ? (
+          users.length === 0 ? (
+            <span>No results found for &quot;{activeSearchQuery}&quot;</span>
+          ) : (
+            <span>Found {users.length} user{users.length !== 1 ? 's' : ''} for &quot;{activeSearchQuery}&quot;</span>
+          )
+        ) : (
+          <span>Total: {users.length} user{users.length !== 1 ? 's' : ''}</span>
+        )}
       </div>
 
       {showForm && (
@@ -642,6 +703,49 @@ export function UserManager() {
             </div>
           </div>
         ))}
+
+        {/* Mobile Pagination */}
+        {users.length > 0 && (
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-gray-400">
+              Page {page} of {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                disabled={page <= 1} 
+                onClick={() => setPage(1)} 
+                className={goldBtnClass(page <= 1)} 
+                title="First Page"
+              >
+                <ChevronsLeft size={16} />
+              </button>
+              <button 
+                disabled={page <= 1} 
+                onClick={() => setPage(p => Math.max(1, p - 1))} 
+                className={goldBtnClass(page <= 1)} 
+                title="Previous Page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                disabled={page >= totalPages} 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+                className={goldBtnClass(page >= totalPages)} 
+                title="Next Page"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button 
+                disabled={page >= totalPages} 
+                onClick={() => setPage(totalPages)} 
+                className={goldBtnClass(page >= totalPages)} 
+                title="Last Page"
+              >
+                <ChevronsRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="hidden md:block bg-black border border-gray-700 rounded-lg shadow-sm overflow-hidden">
@@ -707,8 +811,12 @@ export function UserManager() {
                   </td>
                 </tr>
               ) : (
-                getSortedUsers().map((user) => (
-                  <tr key={user.id} className="hover:bg-[#1a1a1a]">
+                getSortedUsers().map((user, index) => (
+                  <tr 
+                    key={user.id} 
+                    className="hover:bg-[#151515]"
+                    style={{ backgroundColor: index % 2 === 0 ? '#242424' : '#1a1a1a' }}
+                  >
                     <td className="px-4 py-4">
                       <div className="flex items-center min-w-0">
                         <div className="flex-shrink-0 h-10 w-10 bg-purple-900/30 rounded-full flex items-center justify-center">
@@ -861,9 +969,48 @@ export function UserManager() {
         </div>
       </div>
 
-      <div className="mt-4 text-sm text-gray-400">
-        <p>Total Users: {users.length} • Active: {users.filter(u => u.status === 'Active').length}</p>
-      </div>
+      {/* Desktop Pagination controls */}
+      {users.length > 0 && (
+        <div className="hidden md:flex items-center justify-between mt-4 px-2">
+          <div className="text-sm text-gray-400">
+            Page {page} of {totalPages}
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              disabled={page <= 1} 
+              onClick={() => setPage(1)} 
+              className={goldBtnClass(page <= 1)} 
+              title="First Page"
+            >
+              <ChevronsLeft size={16} />
+            </button>
+            <button 
+              disabled={page <= 1} 
+              onClick={() => setPage(p => Math.max(1, p - 1))} 
+              className={goldBtnClass(page <= 1)} 
+              title="Previous Page"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button 
+              disabled={page >= totalPages} 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+              className={goldBtnClass(page >= totalPages)} 
+              title="Next Page"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button 
+              disabled={page >= totalPages} 
+              onClick={() => setPage(totalPages)} 
+              className={goldBtnClass(page >= totalPages)} 
+              title="Last Page"
+            >
+              <ChevronsRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <DeleteConfirmDialog
         open={deleteDialogOpen}

@@ -293,13 +293,13 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 <button
                   onClick={doHmsSearch}
                   disabled={searching}
-                  className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold"
+                  className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer"
                 >
                   Search
                 </button>
                 <button
                   onClick={() => { setHmsSearchQuery(''); setActiveHmsSearchQuery(''); setPage(1); }}
-                  className="px-3 py-2 rounded bg-[#333] text-white border border-gray-700"
+                  className="px-3 py-2 rounded bg-[#333] text-white border border-[#FDB813] hover:bg-[#3E3E3E] transition-colors cursor-pointer"
                 >
                   Clear
                 </button>
@@ -442,13 +442,13 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 <button
                   onClick={doSearch}
                   disabled={searching}
-                  className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold"
+                  className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer"
                 >
                   Search
                 </button>
                 <button
                   onClick={() => { setSearchQuery(''); setActiveSearchQuery(''); setPage(1); }}
-                  className="px-3 py-2 rounded bg-[#333] text-white border border-gray-700"
+                  className="px-3 py-2 rounded bg-[#333] text-white border border-[#FDB813] hover:bg-[#3E3E3E] transition-colors cursor-pointer"
                 >
                   Clear
                 </button>

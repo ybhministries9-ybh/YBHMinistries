@@ -465,7 +465,7 @@ export function DonateManager(): React.ReactElement {
 
           <div className="mb-3 flex justify-between items-center">
             <div className="text-white font-medium">UPI Entries</div>
-            <Button onClick={handleAddNewUpi} className="flex items-center gap-2 px-3 py-2 rounded-md border border-[#FDB813] bg-[#111] text-white hover:bg-[#0f0f0f]">
+            <Button onClick={handleAddNewUpi} className="flex items-center gap-2 px-3 py-2 rounded-md border border-[#FDB813] bg-[#111] text-white hover:bg-[#3E3E3E]">
               <Plus size={14} />
               <span className="font-medium">Add UPI</span>
             </Button>
@@ -534,7 +534,7 @@ export function DonateManager(): React.ReactElement {
 
           <div className="mb-3 flex justify-between items-center">
             <div className="text-white font-medium">Bank Entries</div>
-            <Button onClick={handleAddNewBank} className="flex items-center gap-2 px-3 py-2 rounded-md border border-[#FDB813] bg-[#111] text-white hover:bg-[#0f0f0f]">
+            <Button onClick={handleAddNewBank} className="flex items-center gap-2 px-3 py-2 rounded-md border border-[#FDB813] bg-[#111] text-white hover:bg-[#3E3E3E]">
               <Plus size={14} />
               <span className="font-medium">Add Bank</span>
             </Button>

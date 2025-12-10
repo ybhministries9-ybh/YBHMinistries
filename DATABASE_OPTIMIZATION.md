@@ -33,6 +33,16 @@ CREATE INDEX IF NOT EXISTS idx_hms_students_phone_number ON hms_students USING g
 CREATE INDEX IF NOT EXISTS idx_hms_students_created_at ON hms_students (created_at DESC);
 ```
 
+### Users Table
+```sql
+-- Improve search performance on name and email fields
+CREATE INDEX IF NOT EXISTS idx_users_name ON users USING gin (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users USING gin (email gin_trgm_ops);
+
+-- Improve sorting/pagination performance
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at DESC);
+```
+
 ## Benefits
 
 - **Faster Search**: GIN indexes with trigram operators significantly improve ILIKE pattern matching
@@ -46,6 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_hms_students_created_at ON hms_students (created_
 1. **First**: Run the Prerequisites section to enable the pg_trgm extension
 2. **Second**: Run the Get In Touch Table indexes
 3. **Third**: Run the HMS Students Table indexes
+4. **Fourth**: Run the Users Table indexes
 
 You can run these SQL commands in your Vercel Postgres database console or via migration script.
 
