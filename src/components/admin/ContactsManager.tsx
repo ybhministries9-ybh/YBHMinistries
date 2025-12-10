@@ -519,38 +519,28 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 <select
                   value={hmsExportMonth}
                   onChange={(e) => setHmsExportMonth(e.target.value)}
-                  className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white"
-                  style={{ 
-                    colorScheme: 'dark',
-                    background: '#111',
-                    color: 'white'
-                  }}
+                  className="px-3 py-2 rounded-md bg-[#2e2e2e] border-2 border-[#FDB813] text-sm text-white"
                 >
-                  <option value="" style={{ background: '#111', color: 'white' }}>All Months</option>
-                  <option value="1" style={{ background: '#111', color: 'white' }}>January</option>
-                  <option value="2" style={{ background: '#111', color: 'white' }}>February</option>
-                  <option value="3" style={{ background: '#111', color: 'white' }}>March</option>
-                  <option value="4" style={{ background: '#111', color: 'white' }}>April</option>
-                  <option value="5" style={{ background: '#111', color: 'white' }}>May</option>
-                  <option value="6" style={{ background: '#111', color: 'white' }}>June</option>
-                  <option value="7" style={{ background: '#111', color: 'white' }}>July</option>
-                  <option value="8" style={{ background: '#111', color: 'white' }}>August</option>
-                  <option value="9" style={{ background: '#111', color: 'white' }}>September</option>
-                  <option value="10" style={{ background: '#111', color: 'white' }}>October</option>
-                  <option value="11" style={{ background: '#111', color: 'white' }}>November</option>
-                  <option value="12" style={{ background: '#111', color: 'white' }}>December</option>
+                  <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Months</option>
+                  <option value="1" style={{ background: '#2e2e2e', color: 'white' }}>January</option>
+                  <option value="2" style={{ background: '#2e2e2e', color: 'white' }}>February</option>
+                  <option value="3" style={{ background: '#2e2e2e', color: 'white' }}>March</option>
+                  <option value="4" style={{ background: '#2e2e2e', color: 'white' }}>April</option>
+                  <option value="5" style={{ background: '#2e2e2e', color: 'white' }}>May</option>
+                  <option value="6" style={{ background: '#2e2e2e', color: 'white' }}>June</option>
+                  <option value="7" style={{ background: '#2e2e2e', color: 'white' }}>July</option>
+                  <option value="8" style={{ background: '#2e2e2e', color: 'white' }}>August</option>
+                  <option value="9" style={{ background: '#2e2e2e', color: 'white' }}>September</option>
+                  <option value="10" style={{ background: '#2e2e2e', color: 'white' }}>October</option>
+                  <option value="11" style={{ background: '#2e2e2e', color: 'white' }}>November</option>
+                  <option value="12" style={{ background: '#2e2e2e', color: 'white' }}>December</option>
                 </select>
                 <select
                   value={hmsExportYear}
                   onChange={(e) => setHmsExportYear(e.target.value)}
-                  className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white"
-                  style={{ 
-                    colorScheme: 'dark',
-                    background: '#111',
-                    color: 'white'
-                  }}
+                  className="px-3 py-2 rounded-md bg-[#2e2e2e] border-2 border-[#FDB813] text-sm text-white"
                 >
-                  <option value="" style={{ background: '#111', color: 'white' }}>All Years</option>
+                  <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Years</option>
                   {(() => {
                     const currentYear = new Date().getFullYear();
                     const years = [];
@@ -558,7 +548,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                       years.push(year);
                     }
                     return years.map(year => (
-                      <option key={year} value={year} style={{ background: '#111', color: 'white' }}>{year}</option>
+                      <option key={year} value={year} style={{ background: '#2e2e2e', color: 'white' }}>{year}</option>
                     ));
                   })()}
                 </select>
@@ -771,38 +761,28 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 <select
                   value={exportMonth}
                   onChange={(e) => setExportMonth(e.target.value)}
-                  className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white"
-                  style={{ 
-                    colorScheme: 'dark',
-                    background: '#111',
-                    color: 'white'
-                  }}
+                  className="px-3 py-2 rounded-md bg-[#2e2e2e] border-2 border-[#FDB813] text-sm text-white"
                 >
-                  <option value="" style={{ background: '#111', color: 'white' }}>All Months</option>
-                  <option value="1" style={{ background: '#111', color: 'white' }}>January</option>
-                  <option value="2" style={{ background: '#111', color: 'white' }}>February</option>
-                  <option value="3" style={{ background: '#111', color: 'white' }}>March</option>
-                  <option value="4" style={{ background: '#111', color: 'white' }}>April</option>
-                  <option value="5" style={{ background: '#111', color: 'white' }}>May</option>
-                  <option value="6" style={{ background: '#111', color: 'white' }}>June</option>
-                  <option value="7" style={{ background: '#111', color: 'white' }}>July</option>
-                  <option value="8" style={{ background: '#111', color: 'white' }}>August</option>
-                  <option value="9" style={{ background: '#111', color: 'white' }}>September</option>
-                  <option value="10" style={{ background: '#111', color: 'white' }}>October</option>
-                  <option value="11" style={{ background: '#111', color: 'white' }}>November</option>
-                  <option value="12" style={{ background: '#111', color: 'white' }}>December</option>
+                  <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Months</option>
+                  <option value="1" style={{ background: '#2e2e2e', color: 'white' }}>January</option>
+                  <option value="2" style={{ background: '#2e2e2e', color: 'white' }}>February</option>
+                  <option value="3" style={{ background: '#2e2e2e', color: 'white' }}>March</option>
+                  <option value="4" style={{ background: '#2e2e2e', color: 'white' }}>April</option>
+                  <option value="5" style={{ background: '#2e2e2e', color: 'white' }}>May</option>
+                  <option value="6" style={{ background: '#2e2e2e', color: 'white' }}>June</option>
+                  <option value="7" style={{ background: '#2e2e2e', color: 'white' }}>July</option>
+                  <option value="8" style={{ background: '#2e2e2e', color: 'white' }}>August</option>
+                  <option value="9" style={{ background: '#2e2e2e', color: 'white' }}>September</option>
+                  <option value="10" style={{ background: '#2e2e2e', color: 'white' }}>October</option>
+                  <option value="11" style={{ background: '#2e2e2e', color: 'white' }}>November</option>
+                  <option value="12" style={{ background: '#2e2e2e', color: 'white' }}>December</option>
                 </select>
                 <select
                   value={exportYear}
                   onChange={(e) => setExportYear(e.target.value)}
-                  className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white"
-                  style={{ 
-                    colorScheme: 'dark',
-                    background: '#111',
-                    color: 'white'
-                  }}
+                  className="px-3 py-2 rounded-md bg-[#2e2e2e] border-2 border-[#FDB813] text-sm text-white"
                 >
-                  <option value="" style={{ background: '#111', color: 'white' }}>All Years</option>
+                  <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Years</option>
                   {(() => {
                     const currentYear = new Date().getFullYear();
                     const currentMonth = new Date().getMonth() + 1;
@@ -811,7 +791,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                       years.push(year);
                     }
                     return years.map(year => (
-                      <option key={year} value={year} style={{ background: '#111', color: 'white' }}>{year}</option>
+                      <option key={year} value={year} style={{ background: '#2e2e2e', color: 'white' }}>{year}</option>
                     ));
                   })()}
                 </select>
