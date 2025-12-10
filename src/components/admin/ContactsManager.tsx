@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Book, ChevronUp, ChevronDown, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { Book, ChevronUp, ChevronDown, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Download } from 'lucide-react';
 import { accentGold } from '../../utils/theme';
 import Link from 'next/link';
+import { downloadExcelFile } from '@/lib/exportUtils';
 
 function getAuthHeader() {
   try {
@@ -27,8 +28,13 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const [hmsSearchQuery, setHmsSearchQuery] = useState<string>('');
   const [activeHmsSearchQuery, setActiveHmsSearchQuery] = useState<string>('');
   const [searching, setSearching] = useState<boolean>(false);
+  const [exporting, setExporting] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
+  
+  // Export filters
+  const [exportMonth, setExportMonth] = useState<string>('');
+  const [exportYear, setExportYear] = useState<string>('');
   const [students, setStudents] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -143,6 +149,69 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     setSearching(true);
     setTimeout(() => setSearching(false), 300);
   }, [hmsSearchQuery]);
+
+  // Export get-in-touch data to Excel
+  const handleExport = useCallback(async () => {
+    try {
+      setExporting(true);
+      const params = new URLSearchParams();
+      
+      // Add search query if present
+      if (activeSearchQuery && activeSearchQuery.trim().length > 0) {
+        params.append('q', activeSearchQuery.trim());
+      }
+      
+      // Add month and year filters if selected
+      if (exportMonth) params.append('month', exportMonth);
+      if (exportYear) params.append('year', exportYear);
+      
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const resp = await fetch(`/api/admin/get-in-touch/export${queryString}`, {
+        headers: getAuthHeader(),
+      });
+      
+      if (resp.status === 401) {
+        alert('Unauthorized. Please log in again.');
+        return;
+      }
+      
+      if (!resp.ok) {
+        throw new Error('Export failed');
+      }
+      
+      // Extract filename from Content-Disposition header
+      const contentDisposition = resp.headers.get('Content-Disposition');
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch?.[1] || `get-in-touch-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Download the file
+      const blob = await resp.blob();
+      downloadExcelFile(blob, filename);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  }, [activeSearchQuery, exportMonth, exportYear]);
+
+  // Memoize export button disabled state
+  const isExportDisabled = useMemo(() => {
+    if (exporting || totalCount === 0) return true;
+    
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    
+    // Disable if future month/year is selected
+    if (exportYear && exportMonth) {
+      const selectedYear = parseInt(exportYear);
+      const selectedMonth = parseInt(exportMonth);
+      if (selectedYear === currentYear && selectedMonth > currentMonth) return true;
+      if (selectedYear > currentYear) return true;
+    }
+    
+    return false;
+  }, [exporting, totalCount, exportMonth, exportYear]);
 
   // modal removed — detail page used instead
 
@@ -430,7 +499,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             <div>Loading...</div>
           ) : (
             <>
-              <div className="mb-3 flex gap-2 items-center">
+              <div className="mb-3 flex gap-2 items-center flex-wrap">
                 <input
                   type="search"
                   value={searchQuery}
@@ -451,6 +520,67 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                   className="px-3 py-2 rounded bg-[#333] text-white border border-[#FDB813] hover:bg-[#3E3E3E] transition-colors cursor-pointer"
                 >
                   Clear
+                </button>
+              </div>
+
+              {/* Export Filters and Button */}
+              <div className="mb-3 flex gap-2 items-center flex-wrap">
+                <span className="text-sm text-gray-300">Export Filters:</span>
+                <select
+                  value={exportMonth}
+                  onChange={(e) => setExportMonth(e.target.value)}
+                  className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white"
+                  style={{ 
+                    colorScheme: 'dark',
+                    background: '#111',
+                    color: 'white'
+                  }}
+                >
+                  <option value="" style={{ background: '#111', color: 'white' }}>All Months</option>
+                  <option value="1" style={{ background: '#111', color: 'white' }}>January</option>
+                  <option value="2" style={{ background: '#111', color: 'white' }}>February</option>
+                  <option value="3" style={{ background: '#111', color: 'white' }}>March</option>
+                  <option value="4" style={{ background: '#111', color: 'white' }}>April</option>
+                  <option value="5" style={{ background: '#111', color: 'white' }}>May</option>
+                  <option value="6" style={{ background: '#111', color: 'white' }}>June</option>
+                  <option value="7" style={{ background: '#111', color: 'white' }}>July</option>
+                  <option value="8" style={{ background: '#111', color: 'white' }}>August</option>
+                  <option value="9" style={{ background: '#111', color: 'white' }}>September</option>
+                  <option value="10" style={{ background: '#111', color: 'white' }}>October</option>
+                  <option value="11" style={{ background: '#111', color: 'white' }}>November</option>
+                  <option value="12" style={{ background: '#111', color: 'white' }}>December</option>
+                </select>
+                <select
+                  value={exportYear}
+                  onChange={(e) => setExportYear(e.target.value)}
+                  className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white"
+                  style={{ 
+                    colorScheme: 'dark',
+                    background: '#111',
+                    color: 'white'
+                  }}
+                >
+                  <option value="" style={{ background: '#111', color: 'white' }}>All Years</option>
+                  {(() => {
+                    const currentYear = new Date().getFullYear();
+                    const currentMonth = new Date().getMonth() + 1;
+                    const years = [];
+                    for (let year = currentYear; year >= 2020; year--) {
+                      years.push(year);
+                    }
+                    return years.map(year => (
+                      <option key={year} value={year} style={{ background: '#111', color: 'white' }}>{year}</option>
+                    ));
+                  })()}
+                </select>
+                <button
+                  onClick={handleExport}
+                  disabled={isExportDisabled}
+                  className="px-3 py-[0.4rem] rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  title="Export data to Excel file"
+                >
+                  <Download size={16} />
+                  {exporting ? 'Exporting...' : 'Export to Excel'}
                 </button>
               </div>
 
