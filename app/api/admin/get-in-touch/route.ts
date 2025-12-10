@@ -18,8 +18,9 @@ export async function GET(request: NextRequest) {
 
     const limit = Number(url.searchParams.get('limit') || '50');
     const offset = Number(url.searchParams.get('offset') || '0');
-    const rows = await getGetInTouch({ limit: Math.min(limit, 500), offset: Math.max(0, offset) });
-    return NextResponse.json({ success: true, data: rows });
+    const q = url.searchParams.get('q') || undefined;
+    const result = await getGetInTouch({ limit: Math.min(limit, 500), offset: Math.max(0, offset), q });
+    return NextResponse.json({ success: true, data: result.rows, total: result.total });
   } catch (err: any) {
     const { logger } = await import('@/lib/logger');
     logger.error('GET /api/admin/get-in-touch error', { error: err?.message });

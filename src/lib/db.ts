@@ -525,17 +525,43 @@ export async function createGetInTouch(payload: {
 /**
  * Get recent Get In Touch submissions for admin listing
  */
-export async function getGetInTouch(opts?: { limit?: number; offset?: number }) {
+export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?: string }) {
   try {
     const limit = opts?.limit || 50;
     const offset = opts?.offset || 0;
+    // If a query string is provided, perform a case-insensitive partial match
+    if (opts?.q && String(opts.q).trim().length > 0) {
+      const q = `%${String(opts.q).trim()}%`;
+      const countQuery = `
+        SELECT COUNT(*) as count
+        FROM get_in_touch
+        WHERE name ILIKE $1 OR email ILIKE $2 OR phone ILIKE $3 OR location ILIKE $4
+      `;
+      const countResult = await sql.query(countQuery, [q, q, q, q] as any[]);
+      const total = Number(countResult.rows[0]?.count || 0);
+
+      const values: any[] = [q, q, q, q, limit, offset];
+      const query = `
+        SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
+        FROM get_in_touch
+        WHERE name ILIKE $1 OR email ILIKE $2 OR phone ILIKE $3 OR location ILIKE $4
+        ORDER BY created_at DESC
+        LIMIT $5 OFFSET $6
+      `;
+      const result = await sql.query(query, values as any[]);
+      return { rows: result.rows, total };
+    }
+
+    const countResult = await sql`SELECT COUNT(*) as count FROM get_in_touch`;
+    const total = Number(countResult.rows[0]?.count || 0);
+
     const { rows } = await sql`
       SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
       FROM get_in_touch
       ORDER BY created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
-    return rows;
+    return { rows, total };
   } catch (error) {
     console.error('Error fetching get_in_touch records:', error);
     throw error;
