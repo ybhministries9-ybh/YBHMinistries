@@ -140,7 +140,7 @@ export async function POST(request: Request) {
     (async () => {
       if (!emailVal) return;
       try {
-        const { sendMail } = await import('../../../src/lib/smtpMailer');
+        const { sendTransactional } = await import('../../../src/lib/email');
         const subject = `YBH Ministries — We received your message`;
         const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
 
@@ -208,7 +208,7 @@ export async function POST(request: Request) {
           logger.info('get-in-touch: attempting confirmation send', { to: String(emailVal).replace(/(.{2}).+(@.+)/, '$1***$2') });
         } catch (e) {}
 
-        const res = await sendMail({
+        const res = await sendTransactional({
           from: process.env.EMAIL_FROM || undefined,
           to: emailVal,
           replyTo: process.env.SMTP_USER || undefined,
