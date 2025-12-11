@@ -11,13 +11,13 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || null;
-    // Basic list; optional search by name or email via q
+    // Only return Active users (soft-deleted users have status 'Deleted')
     let result;
     if (q) {
       const like = `%${q}%`;
-      result = await sql`SELECT * FROM users WHERE name ILIKE ${like} OR email ILIKE ${like} ORDER BY created_at DESC`;
+      result = await sql`SELECT * FROM users WHERE status = 'Active' AND (name ILIKE ${like} OR email ILIKE ${like}) ORDER BY created_at DESC`;
     } else {
-      result = await sql`SELECT * FROM users ORDER BY created_at DESC`;
+      result = await sql`SELECT * FROM users WHERE status = 'Active' ORDER BY created_at DESC`;
     }
     return NextResponse.json({ success: true, data: result.rows });
   } catch (err) {
@@ -39,9 +39,20 @@ export async function POST(request: NextRequest) {
     if (data.email) data.email = String(data.email).toLowerCase();
     if (!data || !data.name || !data.email) return NextResponse.json({ success: false, error: 'name & email required' }, { status: 400 });
 
-    // Check duplicate email
-    const existing = await sql`SELECT id FROM users WHERE email = ${data.email} LIMIT 1`;
-    if (existing.rows.length) return NextResponse.json({ success: false, error: 'Email already in use' }, { status: 409 });
+    // Check for existing user with this email that is Active
+    const existing = await sql`SELECT id, status FROM users WHERE email = ${data.email} AND status = 'Active' LIMIT 1`;
+    if (existing.rows.length) {
+      // User is active - show error
+      return NextResponse.json({ success: false, error: 'A user with this email already exists and is active' }, { status: 409 });
+    }
+
+    // If there's a deleted user with this email, update their email to free it up for the new user
+    const deletedUser = await sql`SELECT id FROM users WHERE email = ${data.email} AND status = 'Deleted' LIMIT 1`;
+    if (deletedUser.rows.length) {
+      // Append timestamp to old email to make it unique
+      const timestamp = Date.now();
+      await sql`UPDATE users SET email = ${data.email + '_deleted_' + timestamp} WHERE id = ${deletedUser.rows[0].id}`;
+    }
 
     const role = data.role || 'Viewer';
     const status = data.status || 'Active';
@@ -55,7 +66,6 @@ export async function POST(request: NextRequest) {
       VALUES (${data.name}, ${data.email}, ${role}, ${status}, ${passwordHash}, true, ${actor}, ${actor})
       RETURNING *
     `;
-
 
     return NextResponse.json({ success: true, data: result.rows[0] }, { status: 201 });
   } catch (err) {
@@ -83,10 +93,10 @@ export async function PUT(request: NextRequest) {
     const actorRole = actorUser.rows.length ? actorUser.rows[0].role : null;
     const actorId = actorUser.rows.length ? String(actorUser.rows[0].id) : null;
 
-    // If updating email, ensure uniqueness (emails stored lowercase)
+    // If updating email, ensure uniqueness among Active users (emails stored lowercase)
     if (data.email) {
       data.email = String(data.email).toLowerCase();
-      const dup = await sql`SELECT id FROM users WHERE email = ${data.email} AND id <> ${id} LIMIT 1`;
+      const dup = await sql`SELECT id FROM users WHERE email = ${data.email} AND id <> ${id} AND status = 'Active' LIMIT 1`;
       if (dup.rows.length) return NextResponse.json({ success: false, error: 'Email already in use' }, { status: 409 });
     }
 
@@ -144,10 +154,17 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Cannot delete Super Admin' }, { status: 403 });
     }
 
-    const result = await sql`DELETE FROM users WHERE id = ${id} RETURNING id`;
+    // Soft delete: Update status to 'Deleted' instead of permanent deletion
+    const result = await sql`
+      UPDATE users SET 
+        status = 'Deleted',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id} 
+      RETURNING id
+    `;
     if (!result.rows.length) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
 
-    return NextResponse.json({ success: true, message: 'Deleted' });
+    return NextResponse.json({ success: true, message: 'User deleted successfully' });
   } catch (err) {
     console.error('Error in DELETE /api/admin/users', err);
     return NextResponse.json({ success: false, error: 'Failed to delete user' }, { status: 500 });

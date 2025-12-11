@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw, Edit2, Save, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { Plus, Trash2, X, User, Mail, Shield, Clock, ArrowUpDown, ArrowUp, ArrowDown, Power, RotateCw, Edit2, Save, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { InfoDialog } from './InfoDialog';
@@ -25,7 +25,6 @@ type SortDirection = 'asc' | 'desc';
 
 export function UserManager() {
   const [users, setUsers] = useState<User[]>([]);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string; role: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -80,7 +79,6 @@ export function UserManager() {
             createdAt: r.created_at || r.createdAt || new Date().toISOString(),
             mustReset: !!r.must_reset_password,
           }));
-          setAllUsers(mapped);
           setUsers(mapped);
         } else {
           toast.error('Failed to load users');
@@ -266,10 +264,10 @@ export function UserManager() {
         const resp = await fetch(`/api/admin/users?id=${userToDelete.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
         const j = await resp.json();
         if (!j.success) {
-          toast.error(j.error || 'Failed to delete user');
+          toast.error(j.error || 'Failed to deactivate user');
         } else {
           setUsers(u => u.filter(user => user.id !== userToDelete.id));
-          toast.success('User deleted successfully');
+          toast.success('User deactivated successfully');
         }
       } catch (err) {
         console.error('delete user failed', err);
@@ -1019,8 +1017,8 @@ export function UserManager() {
         title="Delete User"
         description={
           userToDelete 
-            ? `Are you sure you want to delete user "${userToDelete.name}" (${userToDelete.email})? This action cannot be undone.`
-            : 'Are you sure you want to delete this user? This action cannot be undone.'
+            ? `Are you sure you want to delete user "${userToDelete.name}" (${userToDelete.email})? The user will no longer be able to access the system.`
+            : 'Are you sure you want to delete this user? The user will no longer be able to access the system.'
         }
       />
       <InfoDialog
