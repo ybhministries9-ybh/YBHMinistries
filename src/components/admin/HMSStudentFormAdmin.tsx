@@ -64,13 +64,15 @@ export function HMSStudentFormAdmin({
   initialData,
   submitUrl,
   submitMethod,
-  onSubmitOverride
+  onSubmitOverride,
+  hideCloseButton
 }: {
   onClose?: () => void;
   initialData?: Partial<FormData>;
   submitUrl?: string;
   submitMethod?: 'POST' | 'PUT';
   onSubmitOverride?: (data: FormData) => Promise<any>;
+  hideCloseButton?: boolean;
 }) {
   const { t } = useTranslation('contact');
   const mergedDefaults: Partial<FormData> = {
@@ -977,15 +979,17 @@ export function HMSStudentFormAdmin({
         </section>
 
         {/* Close Button Only */}
-        <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={() => onClose && onClose()}
-            className="px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded border border-[#FDB813] text-center transition-colors"
-          >
-            Close
-          </button>
-        </div>
+        {!hideCloseButton && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => onClose && onClose()}
+              className="px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded border border-[#FDB813] text-center transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

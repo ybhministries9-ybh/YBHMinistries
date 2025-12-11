@@ -601,7 +601,7 @@ export async function getGetInTouchById(id: number) {
 /**
  * Fetch a page of HMS student enrolments for admin listing
  */
-export async function getHMSStudents(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string }) {
+export async function getHMSStudents(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string; status?: string }) {
   try {
     const limit = opts?.limit || 50;
     const offset = opts?.offset || 0;
@@ -616,6 +616,13 @@ export async function getHMSStudents(opts?: { limit?: number; offset?: number; q
       conditions.push(`(full_name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone_number ILIKE $${valueIndex + 2})`);
       values.push(q, q, q);
       valueIndex += 3;
+    }
+    
+    // Add status filter
+    if (opts?.status && opts.status.trim().length > 0) {
+      conditions.push(`status = $${valueIndex}`);
+      values.push(opts.status.trim());
+      valueIndex += 1;
     }
     
     // Add month/year filters

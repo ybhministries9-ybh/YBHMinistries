@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
     const q = url.searchParams.get('q') || undefined;
     const month = url.searchParams.get('month') || undefined;
     const year = url.searchParams.get('year') || undefined;
-    const result = await getHMSStudents({ limit: Math.min(limit, 200), offset: Math.max(0, offset), q, month, year });
+    const status = url.searchParams.get('status') || undefined;
+    const result = await getHMSStudents({ limit: Math.min(limit, 200), offset: Math.max(0, offset), q, month, year, status });
     return NextResponse.json({ success: true, data: result.rows, total: result.total });
   } catch (err: any) {
     console.error('GET /api/admin/hms-students error', err);

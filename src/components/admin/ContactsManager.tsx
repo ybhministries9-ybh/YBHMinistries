@@ -40,12 +40,14 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   // Export filters for HMS
   const [hmsExportMonth, setHmsExportMonth] = useState<string>('');
   const [hmsExportYear, setHmsExportYear] = useState<string>('');
+  const [hmsExportStatus, setHmsExportStatus] = useState<string>('');
   
   // Applied filters for table data
   const [appliedMonth, setAppliedMonth] = useState<string>('');
   const [appliedYear, setAppliedYear] = useState<string>('');
   const [hmsAppliedMonth, setHmsAppliedMonth] = useState<string>('');
   const [hmsAppliedYear, setHmsAppliedYear] = useState<string>('');
+  const [hmsAppliedStatus, setHmsAppliedStatus] = useState<string>('');
   
   const [students, setStudents] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -68,7 +70,8 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         const qParam = activeHmsSearchQuery && activeHmsSearchQuery.trim().length > 0 ? `&q=${encodeURIComponent(activeHmsSearchQuery.trim())}` : '';
         const monthParam = hmsAppliedMonth ? `&month=${hmsAppliedMonth}` : '';
         const yearParam = hmsAppliedYear ? `&year=${hmsAppliedYear}` : '';
-        const resp = await fetch(`/api/admin/hms-students?limit=${limit}&offset=${offset}${qParam}${monthParam}${yearParam}`, {
+        const statusParam = hmsAppliedStatus ? `&status=${encodeURIComponent(hmsAppliedStatus)}` : '';
+        const resp = await fetch(`/api/admin/hms-students?limit=${limit}&offset=${offset}${qParam}${monthParam}${yearParam}${statusParam}`, {
           headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
           signal: controller.signal,
         });
@@ -102,7 +105,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
       aborted = true;
       controller.abort();
     };
-  }, [activeTab, page, activeHmsSearchQuery, hmsAppliedMonth, hmsAppliedYear]);
+  }, [activeTab, page, activeHmsSearchQuery, hmsAppliedMonth, hmsAppliedYear, hmsAppliedStatus]);
 
   useEffect(() => {
     if (activeTab !== 'getintouch') return;
@@ -177,8 +180,9 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const applyHmsFilters = useCallback(() => {
     setHmsAppliedMonth(hmsExportMonth);
     setHmsAppliedYear(hmsExportYear);
+    setHmsAppliedStatus(hmsExportStatus);
     setPage(1);
-  }, [hmsExportMonth, hmsExportYear]);
+  }, [hmsExportMonth, hmsExportYear, hmsExportStatus]);
 
   // Clear filters for Get In Touch
   const clearFilters = useCallback(() => {
@@ -193,8 +197,10 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const clearHmsFilters = useCallback(() => {
     setHmsExportMonth('');
     setHmsExportYear('');
+    setHmsExportStatus('');
     setHmsAppliedMonth('');
     setHmsAppliedYear('');
+    setHmsAppliedStatus('');
     setPage(1);
   }, []);
 
@@ -261,7 +267,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     return false;
   }, [exporting, totalCount, exportMonth, exportYear]);
 
-  // Export HMS enrollments to Excel
+  // Export HMS enrollments to Excel - exports the currently filtered/searched data
   const handleHmsExport = useCallback(async () => {
     try {
       setHmsExporting(true);
@@ -272,9 +278,10 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         params.append('q', activeHmsSearchQuery.trim());
       }
       
-      // Add month and year filters if selected
-      if (hmsExportMonth) params.append('month', hmsExportMonth);
-      if (hmsExportYear) params.append('year', hmsExportYear);
+      // Add applied filters (month, year, status)
+      if (hmsAppliedMonth) params.append('month', hmsAppliedMonth);
+      if (hmsAppliedYear) params.append('year', hmsAppliedYear);
+      if (hmsAppliedStatus) params.append('status', hmsAppliedStatus);
       
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const resp = await fetch(`/api/admin/hms-students/export${queryString}`, {
@@ -304,7 +311,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     } finally {
       setHmsExporting(false);
     }
-  }, [activeHmsSearchQuery, hmsExportMonth, hmsExportYear]);
+  }, [activeHmsSearchQuery, hmsAppliedMonth, hmsAppliedYear, hmsAppliedStatus]);
 
   // Memoize HMS export button disabled state
   const isHmsExportDisabled = useMemo(() => {
@@ -313,16 +320,16 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
     
-    // Disable if future month/year is selected
-    if (hmsExportYear && hmsExportMonth) {
-      const selectedYear = parseInt(hmsExportYear);
-      const selectedMonth = parseInt(hmsExportMonth);
+    // Disable if future month/year is selected in applied filters
+    if (hmsAppliedYear && hmsAppliedMonth) {
+      const selectedYear = parseInt(hmsAppliedYear);
+      const selectedMonth = parseInt(hmsAppliedMonth);
       if (selectedYear === currentYear && selectedMonth > currentMonth) return true;
       if (selectedYear > currentYear) return true;
     }
     
     return false;
-  }, [hmsExporting, hmsTotalCount, hmsExportMonth, hmsExportYear]);
+  }, [hmsExporting, hmsTotalCount, hmsAppliedMonth, hmsAppliedYear]);
 
   // modal removed — detail page used instead
 
@@ -552,6 +559,17 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                     ));
                   })()}
                 </select>
+                <select
+                  value={hmsExportStatus}
+                  onChange={(e) => setHmsExportStatus(e.target.value)}
+                  className="px-3 py-2 rounded-md bg-[#2e2e2e] border-2 border-[#FDB813] text-sm text-white"
+                >
+                  <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Status</option>
+                  <option value="Submitted" style={{ background: '#2e2e2e', color: 'white' }}>Submitted</option>
+                  <option value="Accepted" style={{ background: '#2e2e2e', color: 'white' }}>Accepted</option>
+                  <option value="Rejected" style={{ background: '#2e2e2e', color: 'white' }}>Rejected</option>
+                  <option value="Enrolled" style={{ background: '#2e2e2e', color: 'white' }}>Enrolled</option>
+                </select>
                 <button
                   onClick={applyHmsFilters}
                   className="px-3 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
@@ -625,9 +643,9 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                             Status {sortBy === 'status' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
                           </div>
                         </th>
-                        <th onClick={() => handleSort('created_at')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors whitespace-nowrap">
+                        <th onClick={() => handleSort('created_at')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
                           <div className="flex items-center gap-1">
-                            Enrolled {sortBy === 'created_at' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                            Submitted <ArrowUpDown size={14} className={sortBy === 'created_at' ? 'text-[#FDB813]' : 'opacity-40'}/>
                           </div>
                         </th>
                         <th style={{ width: '8%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
@@ -670,7 +688,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                           <div className="font-medium text-gray-100 truncate">{s.full_name}</div>
                           <div className="text-sm text-gray-200 mt-1">{formatDatePretty(s.date_of_birth)} • {s.phone_number || '-'}</div>
                           <div className="text-sm text-gray-200 truncate mt-1">{s.email || '-'}</div>
-                          <div className="text-xs text-gray-400 mt-1">Enrolled: {formatDateShort(s.created_at)}</div>
+                          <div className="text-xs text-gray-400 mt-1">Submitted: {formatDateShort(s.created_at)}</div>
                         </div>
                         <div className="flex-shrink-0">
                           <Link href={`/admin/contacts/${s.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>

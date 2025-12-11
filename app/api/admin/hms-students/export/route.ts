@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const q = url.searchParams.get('q') || undefined;
     const month = url.searchParams.get('month') || undefined;
     const year = url.searchParams.get('year') || undefined;
+    const status = url.searchParams.get('status') || undefined;
 
     // Build query with filters - excluding updated_at, createdBy, updatedBy
     let query = `
@@ -43,6 +44,12 @@ export async function GET(request: NextRequest) {
       const searchPattern = `%${q.trim()}%`;
       conditions.push(`(full_name ILIKE $${values.length + 1} OR email ILIKE $${values.length + 2} OR phone_number ILIKE $${values.length + 3})`);
       values.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    // Add status filter
+    if (status && status.trim().length > 0) {
+      conditions.push(`status = $${values.length + 1}`);
+      values.push(status.trim());
     }
 
     // Add date range filter
