@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
-import SmartImage from './SmartImage';
 import { useRouter } from "next/navigation";
-import { Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
@@ -180,6 +179,28 @@ function ImageCarousel({ images, interval = 3000 }) {
   const { t } = useTranslation('home');
   const [currentIndex, setCurrentIndex] = useState(0);
   
+  // Preload the first image immediately
+  useEffect(() => {
+    if (images.length > 0 && typeof window !== 'undefined') {
+      // Preload first image with high priority
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = images[0];
+      link.fetchPriority = 'high';
+      document.head.appendChild(link);
+      
+      // Preload second image for smoother transition
+      if (images.length > 1) {
+        const link2 = document.createElement('link');
+        link2.rel = 'preload';
+        link2.as = 'image';
+        link2.href = images[1];
+        document.head.appendChild(link2);
+      }
+    }
+  }, [images]);
+  
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
@@ -202,9 +223,9 @@ function ImageCarousel({ images, interval = 3000 }) {
             alt={t('hero.slideAlt', { number: index + 1 })}
             className="w-full h-full object-cover"
             style={{ objectPosition: 'center 20%' }}
-            loading={index === currentIndex ? 'eager' : 'lazy'}
-            fetchPriority={index === currentIndex ? 'high' : undefined}
-            decoding="async"
+            loading={index === 0 ? 'eager' : 'lazy'}
+            fetchPriority={index === 0 ? 'high' : undefined}
+            decoding={index === 0 ? 'sync' : 'async'}
           />
         </div>
       ))}
@@ -245,19 +266,28 @@ function ImageCarousel({ images, interval = 3000 }) {
   );
 }
 
-export function Home() {
+interface HomeProps {
+  initialHeroImages?: string[];
+}
+
+export function Home({ initialHeroImages }: HomeProps) {
   const { t } = useTranslation('home');
   const router = useRouter();
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [heroImages, setHeroImages] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [heroImages, setHeroImages] = useState<string[]>(initialHeroImages || []);
+  const [isLoading, setIsLoading] = useState(!initialHeroImages || initialHeroImages.length === 0);
   
   // Default image when no images are in database
   const defaultHeroImage = `${R2_BASE}/home/hero/default.jpg`;
 
-  // Fetch hero images and events from API
+  // Fetch hero images and events from API (skip if initialHeroImages provided)
   useEffect(() => {
     const fetchHeroImages = async () => {
+      // Skip fetching if we already have initial images from SSR
+      if (initialHeroImages && initialHeroImages.length > 0) {
+        setIsLoading(false);
+        return;
+      }
       try {
         const response = await fetch('/api/home/hero-images');
         const result = await response.json();
@@ -301,7 +331,7 @@ export function Home() {
 
     fetchHeroImages();
     fetchEvents();
-  }, []);
+  }, [initialHeroImages]);
 
   const awardImages = [
     {

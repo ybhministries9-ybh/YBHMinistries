@@ -66,8 +66,10 @@ async function generateBlurDataURL(url?: string | null) {
           buffer = Buffer.concat(chunks);
         }
       } catch (sdkErr) {
-        // fallback to using fetch below
-        console.warn('SDK GetObject failed, falling back to fetch for', url, sdkErr);
+        // fallback to using fetch below (silent in dev, only log in production)
+        if (process.env.NODE_ENV === 'production') {
+          console.warn('SDK GetObject failed, falling back to fetch for', url);
+        }
         buffer = null;
       }
     }

@@ -100,7 +100,7 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
               alt={t('hero.title')}
               fill
               className={`object-cover transition-opacity duration-500 ease-out ${isImgLoaded ? 'opacity-100' : 'opacity-0'}`}
-              style={{ objectPosition: 'center center' }}
+              style={{ objectPosition: 'center top' }}
               placeholder={initialHeroBlur ? 'blur' : 'empty'}
               blurDataURL={initialHeroBlur}
               onLoad={() => setIsImgLoaded(true)}
