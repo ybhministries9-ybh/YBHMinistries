@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { QrCode, Music, Users, Church, Copy } from 'lucide-react';
+import { Music, Users, Church, Copy, X, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import QRCode from 'qrcode';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-// Tabs removed — using a two-column layout instead
 import { accentGold } from '../utils/theme';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +14,8 @@ export function DonatePage() {
   const [upiList, setUpiList] = useState<any[]>([]);
   const [bankList, setBankList] = useState<any[]>([]);
   const [qrDataMap, setQrDataMap] = useState<Record<string, string>>({});
+  const [uploadedQrUrls, setUploadedQrUrls] = useState<Record<string, string>>({});
+  const [fullscreenQr, setFullscreenQr] = useState<{ src: string; label: string; upiId?: string } | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -48,14 +49,84 @@ export function DonatePage() {
     load();
   }, []);
 
-  // Generate QR data URLs client-side for UPI entries that do not provide a qr_image_url
+  // Fetch presigned URLs for uploaded QR images (r2:// URLs)
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchPresignedUrls = async () => {
+      try {
+        // Find UPI entries with r2:// URLs that we haven't fetched yet
+        const itemsWithR2Urls = upiList.filter((u) => 
+          u.qr_image_url && 
+          typeof u.qr_image_url === 'string' && 
+          u.qr_image_url.startsWith('r2://') &&
+          !uploadedQrUrls[String(u.id)]
+        );
+
+        if (itemsWithR2Urls.length === 0) return;
+
+        const results = await Promise.all(
+          itemsWithR2Urls.map(async (u) => {
+            try {
+              // Parse r2://bucket/key format
+              const r2Url = u.qr_image_url;
+              const match = r2Url.match(/^r2:\/\/([^/]+)\/(.+)$/);
+              if (!match) return null;
+
+              const [, bucket, key] = match;
+
+              // Get presigned URL
+              const resp = await fetch('/api/r2/presign-get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key, bucket })
+              });
+
+              if (!resp.ok) return null;
+              const json = await resp.json();
+              if (json.url) {
+                return [String(u.id), json.url] as const;
+              }
+              return null;
+            } catch (e) {
+              console.error('Failed to get presigned URL for QR:', u.id, e);
+              return null;
+            }
+          })
+        );
+
+        const newUrls: Record<string, string> = {};
+        for (const r of results) {
+          if (r) newUrls[r[0]] = r[1];
+        }
+
+        if (mounted && Object.keys(newUrls).length > 0) {
+          setUploadedQrUrls((prev) => ({ ...prev, ...newUrls }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch presigned URLs for QR images', err);
+      }
+    };
+
+    fetchPresignedUrls();
+
+    return () => {
+      mounted = false;
+    };
+  }, [upiList]);
+
+  // Generate QR data URLs client-side for UPI entries that do not have an uploaded QR image
   useEffect(() => {
     let mounted = true;
 
     const gen = async () => {
       try {
-        // Always generate our own QR from the UPI id (do not trust provided qr_image_url values)
-        const itemsToGenerate = upiList.filter((u) => u.upi_id && !qrDataMap[String(u.id)]);
+        // Only generate QR for entries that don't have an uploaded r2:// URL
+        const itemsToGenerate = upiList.filter((u) => 
+          u.upi_id && 
+          !qrDataMap[String(u.id)] &&
+          !(u.qr_image_url && typeof u.qr_image_url === 'string' && u.qr_image_url.startsWith('r2://'))
+        );
         if (itemsToGenerate.length === 0) return;
 
         const pairs = await Promise.all(
@@ -304,10 +375,18 @@ export function DonatePage() {
                       ) : (
                         <div className="w-full px-6 pb-6 flex flex-col items-center">
                           {upiList.map((u, idx) => {
-                            // Prefer our generated data URL so the QR encodes the UPI deep-link reliably.
+                            // Priority for QR source:
+                            // 1. Uploaded QR image (presigned URL from r2://)
+                            // 2. Client-generated QR from UPI ID
+                            // 3. Fallback to provided URL if not a Vercel blob
                             const providedUrl = u.qr_image_url;
+                            const isR2Url = typeof providedUrl === 'string' && providedUrl.startsWith('r2://');
                             const isVercelBlob = typeof providedUrl === 'string' && /vercel|blob\.vercel-storage/.test(providedUrl);
-                            const qrSrc = qrDataMap[String(u.id)] || (!isVercelBlob && providedUrl) || undefined;
+                            
+                            // Prefer uploaded QR image if available
+                            const uploadedQrSrc = uploadedQrUrls[String(u.id)];
+                            const generatedQrSrc = qrDataMap[String(u.id)];
+                            const qrSrc = uploadedQrSrc || generatedQrSrc || (!isVercelBlob && !isR2Url && providedUrl) || undefined;
 
                             return (
                               <div key={u.id} className="w-full flex flex-col items-center my-6">
@@ -327,23 +406,33 @@ export function DonatePage() {
                                     </div>
 
                                     <div className="w-full flex items-center justify-center mt-4">
-                                      <div className="bg-white rounded-md" style={{ width: '100%', maxWidth: 260, aspectRatio: '1 / 1', padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <div 
+                                        className="bg-white rounded-md cursor-pointer hover:ring-2 hover:ring-[#FDB813] transition-all relative group" 
+                                        style={{ width: '100%', maxWidth: 260, aspectRatio: '1 / 1', padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        onClick={() => qrSrc && setFullscreenQr({ src: qrSrc, label: u.label || 'UPI QR', upiId: u.upi_id })}
+                                        title="Click to view full screen"
+                                      >
                                         <img
                                           src={qrSrc}
                                           alt={u.label || 'UPI QR'}
                                           style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                                         />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-md flex items-center justify-center">
+                                          <Maximize2 className="opacity-0 group-hover:opacity-70 transition-opacity text-gray-700" size={32} />
+                                        </div>
                                       </div>
                                     </div>
+                                    {/* Tap to enlarge hint */}
+                                    <div className="text-xs text-gray-400 mt-2 text-center">Tap QR code to enlarge</div>
                                     {u.upi_id ? (
                                       <div className="mt-4 w-full">
                                         <div className="text-xs text-gray-300 mb-1 text-center">UPI ID</div>
                                         <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
-                                          <div className="text-sm text-white truncate">{u.upi_id}</div>
+                                          <div className="text-sm text-white break-all" style={{ textTransform: 'lowercase' }}>{u.upi_id}</div>
                                           <button
                                             onClick={async () => {
                                               try {
-                                                await navigator.clipboard.writeText(String(u.upi_id));
+                                                await navigator.clipboard.writeText(String(u.upi_id).toLowerCase());
                                                 toast.success('UPI ID copied');
                                               } catch (e) {
                                                 console.error('copy failed', e);
@@ -351,7 +440,7 @@ export function DonatePage() {
                                               }
                                             }}
                                             aria-label="Copy UPI ID"
-                                            className="ml-3 p-1 rounded bg-transparent"
+                                            className="ml-3 p-1 rounded bg-transparent flex-shrink-0"
                                             title="Copy UPI ID"
                                           >
                                             <Copy size={18} style={{ color: accentGold }} />
@@ -427,6 +516,76 @@ export function DonatePage() {
           </div>
         </div>
       </section>
+
+      {/* Fullscreen QR Modal */}
+      {fullscreenQr && (
+        <div 
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+          onClick={() => setFullscreenQr(null)}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setFullscreenQr(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            aria-label="Close fullscreen"
+          >
+            <X size={28} className="text-white" />
+          </button>
+
+          {/* Label */}
+          {fullscreenQr.label && (
+            <div className="text-xl md:text-2xl font-semibold text-center mb-4" style={{ color: '#FDB813' }}>
+              {fullscreenQr.label.toUpperCase()}
+            </div>
+          )}
+
+          <div className="text-lg md:text-xl font-semibold text-center mb-4 text-white">
+            Scan to Pay
+          </div>
+
+          {/* QR Code - Large */}
+          <div 
+            className="bg-white rounded-lg p-4 md:p-8"
+            style={{ maxWidth: 'min(85vw, 75vh, 500px)', width: '100%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={fullscreenQr.src}
+              alt={fullscreenQr.label || 'UPI QR'}
+              className="w-full h-full object-contain"
+            />
+          </div>
+
+          {/* UPI ID */}
+          {fullscreenQr.upiId && (
+            <div className="mt-4 w-full max-w-md px-4">
+              <div className="text-xs text-gray-400 mb-1 text-center">UPI ID</div>
+              <div className="flex items-center justify-center gap-2 bg-white/10 px-4 py-2 rounded-md">
+                <span className="text-white text-sm md:text-base break-all text-center" style={{ textTransform: 'lowercase' }}>{fullscreenQr.upiId}</span>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await navigator.clipboard.writeText(fullscreenQr.upiId!.toLowerCase());
+                      toast.success('UPI ID copied');
+                    } catch (err) {
+                      toast.error('Copy failed');
+                    }
+                  }}
+                  className="p-1 rounded hover:bg-white/10 flex-shrink-0"
+                  title="Copy UPI ID"
+                >
+                  <Copy size={18} style={{ color: accentGold }} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tap to close hint */}
+          <div className="mt-6 text-gray-500 text-sm">Tap anywhere to close</div>
+        </div>
+      )}
     </div>
   );
 }

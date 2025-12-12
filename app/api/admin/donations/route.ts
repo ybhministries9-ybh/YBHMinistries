@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { del } from '@vercel/blob';
 import { verifySession, getActorName } from '@/lib/sessions';
+import { deleteObject, parseKeyFromUrl } from '@/lib/r2';
 
 export const dynamic = 'force-dynamic';
 
@@ -178,19 +179,37 @@ export async function DELETE(request: NextRequest) {
     let result;
     switch (type) {
       case 'upi':
-        // When deleting UPI entry, delete the QR blob if present
+        // When deleting UPI entry, delete the QR image if present (supports both Vercel Blob and R2)
         try {
           const selectRes = await sql`SELECT qr_image_url FROM donations_upi WHERE id = ${id}`;
           const row = selectRes.rows[0];
-          if (row && row.qr_image_url && typeof row.qr_image_url === 'string' && row.qr_image_url.includes('blob.vercel-storage.com')) {
-            try {
-              await del(row.qr_image_url);
-            } catch (err) {
-              console.error(`Failed to delete QR blob for UPI ${id}:`, err);
+          if (row && row.qr_image_url && typeof row.qr_image_url === 'string') {
+            const qrUrl = row.qr_image_url;
+            
+            // Handle R2 URLs (r2://bucket/key)
+            if (qrUrl.startsWith('r2://')) {
+              try {
+                const parsed = parseKeyFromUrl(qrUrl);
+                if (parsed.key) {
+                  await deleteObject(parsed.key, parsed.bucket || undefined);
+                  console.log(`Deleted R2 QR image for UPI ${id}: ${qrUrl}`);
+                }
+              } catch (err) {
+                console.error(`Failed to delete R2 QR image for UPI ${id}:`, err);
+              }
+            }
+            // Handle Vercel Blob URLs
+            else if (qrUrl.includes('blob.vercel-storage.com')) {
+              try {
+                await del(qrUrl);
+                console.log(`Deleted Vercel Blob QR image for UPI ${id}: ${qrUrl}`);
+              } catch (err) {
+                console.error(`Failed to delete Vercel Blob QR for UPI ${id}:`, err);
+              }
             }
           }
         } catch (err) {
-          console.error('Error while attempting to delete UPI QR blob:', err);
+          console.error('Error while attempting to delete UPI QR image:', err);
         }
 
         result = await sql`DELETE FROM donations_upi WHERE id = ${id} RETURNING id`;

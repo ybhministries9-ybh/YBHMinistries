@@ -3,11 +3,13 @@ import { DonatePage } from '@/components/DonatePage';
 import { ClientLayout } from '../ClientLayout';
 
 export const metadata: Metadata = {
-  title: 'Donate & Support',
-  description: 'Support Yeshua Beth Hallel Ministries mission. Your donations help us continue empowering worship, education, and ministry programs.',
+  title: 'Donate & Support | YBH Ministries',
+  description: 'Support Yeshua Beth Hallel Ministries mission. Donate via UPI, QR code, or bank transfer. Your contributions help us continue empowering worship, music education, and ministry programs.',
+  keywords: ['donate', 'support', 'YBH Ministries', 'Yeshua Beth Hallel', 'UPI donation', 'bank transfer', 'ministry support', 'Christian ministry', 'music ministry'],
   openGraph: {
-    title: 'Support YBH Ministries',
-    description: 'Make a difference by supporting our worship, education, and ministry programs.',
+    title: 'Support YBH Ministries - Donate Today',
+    description: 'Make a difference by supporting our worship, music education, and ministry programs. Donate via UPI, QR code, or bank transfer.',
+    type: 'website',
   },
 };
 

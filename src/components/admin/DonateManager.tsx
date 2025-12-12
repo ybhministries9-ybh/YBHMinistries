@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { QrCode, Save, Edit2, Eye, EyeOff, Trash2, X, Plus } from 'lucide-react';
+import { QrCode, Edit2, Eye, EyeOff, Trash2, X, Plus, Save } from 'lucide-react';
 import { DonateUpiRow } from './DonateUpiRow';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -471,11 +471,11 @@ export function DonateManager(): React.ReactElement {
             </Button>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {loading ? (
-              <div className="text-gray-400">Loading...</div>
+              <div className="text-gray-400 col-span-full">Loading...</div>
             ) : upiList.length === 0 ? (
-              <div className="text-gray-400">No UPI entries yet.</div>
+              <div className="text-gray-400 col-span-full">No UPI entries yet.</div>
             ) : (
               upiList.map((u) => (
                 <DonateUpiRow
@@ -540,16 +540,16 @@ export function DonateManager(): React.ReactElement {
             </Button>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {bankList.length === 0 ? (
-              <div className="text-gray-400">No bank accounts yet.</div>
+              <div className="text-gray-400 col-span-full">No bank accounts yet.</div>
             ) : (
               bankList.map((b) => (
-                <div key={b.id} className="bg-black p-3 rounded-lg border border-gray-600">
+                <div key={b.id} className="bg-black p-3 rounded-lg border border-gray-600 flex flex-col">
                   {/* If this is a new row or currently being edited, show the edit form */}
                   {String(b.id).startsWith('new-') || editingBankId === String(b.id) ? (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="col-span-full">
+                      <div className="grid grid-cols-1 gap-3">
                         <div>
                           <Label className="text-gray-300 mb-1">Account Name <span className="text-red-400">*</span></Label>
                           <Input
@@ -688,11 +688,11 @@ export function DonateManager(): React.ReactElement {
                           <span className="text-sm">Save</span>
                         </Button>
                       </div>
-                    </>
+                    </div>
                   ) : (
                     /* Display card view when not editing */
-                    <div className="flex items-start justify-between">
-                      <div>
+                    <div className="flex flex-col h-full">
+                      <div className="flex-1">
                           <div className="text-lg font-semibold" style={{ color: accentGold }}>{b.account_name}</div>
                           <div className="text-sm text-gray-300">{b.bank_name}{b.branch_name ? ` — ${b.branch_name}` : ''}</div>
                           {b.ifsc_code ? (
@@ -709,11 +709,10 @@ export function DonateManager(): React.ReactElement {
                           ) : null}
                         </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-700">
                         <Button onClick={() => toggleVisibleBank(b)} className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white ${!b.visible ? 'opacity-60' : ''}`} title={b.visible ? 'Unpublish' : 'Publish'}>
                           {b.visible ? <Eye size={14} /> : <EyeOff size={14} />}
                         </Button>
-                          {/* View button removed per design request */}
                         <Button onClick={() => { setExpandedBankId(null); setEditingBankId(String(b.id)); }} className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white flex items-center gap-2" title="Edit">
                           <Edit2 size={14} />
                         </Button>
