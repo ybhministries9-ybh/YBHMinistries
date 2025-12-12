@@ -19,6 +19,8 @@ interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElemen
   fallbackIconClassName?: string;
   fallbackBgClassName?: string;
   fallbackIconSize?: number;
+  // Priority loading - uses fetchPriority="high" for above-the-fold images
+  priority?: boolean;
 }
 
 function _ImageWithFallback({
@@ -34,6 +36,7 @@ function _ImageWithFallback({
   fallbackIconClassName = undefined,
   fallbackBgClassName = undefined,
   fallbackIconSize = undefined,
+  priority = false,
   ...props
 }: ImageWithFallbackProps) {
   // If caller requests a person fallback and no src is provided, avoid loading
@@ -209,7 +212,7 @@ function _ImageWithFallback({
 
       {/* Actual image - only render when we have a non-empty src */}
       {imgSrc ? (
-        <div className={`w-full h-full ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+        <div className={`w-full h-full ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-150`}>
           <img
             src={responsiveSizes ? responsiveSizes.medium : imgSrc}
             srcSet={responsiveSizes ? `${responsiveSizes.small} 400w, ${responsiveSizes.medium} 800w, ${responsiveSizes.large} 1600w` : undefined}
@@ -218,8 +221,9 @@ function _ImageWithFallback({
             className={`object-cover w-full h-full ${className}`}
             onError={handleError}
             onLoad={handleLoad}
-            loading={loading}
-            decoding="async"
+            loading={priority ? 'eager' : loading}
+            decoding={priority ? 'sync' : 'async'}
+            fetchPriority={priority ? 'high' : undefined}
           />
         </div>
       ) : null}

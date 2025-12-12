@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         date: item.date || '',
       }));
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         images,
@@ -84,6 +84,11 @@ export async function GET(request: NextRequest) {
       },
       count: items.length,
     });
+    
+    // Cache for 5 minutes on CDN, allow stale-while-revalidate for 1 hour
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+    
+    return response;
   } catch (error: any) {
     console.error('Error fetching gallery items:', error);
     const errorMessage = error?.message || 'Failed to fetch gallery items';

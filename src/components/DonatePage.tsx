@@ -14,7 +14,6 @@ export function DonatePage() {
   const [upiList, setUpiList] = useState<any[]>([]);
   const [bankList, setBankList] = useState<any[]>([]);
   const [qrDataMap, setQrDataMap] = useState<Record<string, string>>({});
-  const [uploadedQrUrls, setUploadedQrUrls] = useState<Record<string, string>>({});
   const [fullscreenQr, setFullscreenQr] = useState<{ src: string; label: string; upiId?: string } | null>(null);
 
   useEffect(() => {
@@ -49,83 +48,18 @@ export function DonatePage() {
     load();
   }, []);
 
-  // Fetch presigned URLs for uploaded QR images (r2:// URLs)
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchPresignedUrls = async () => {
-      try {
-        // Find UPI entries with r2:// URLs that we haven't fetched yet
-        const itemsWithR2Urls = upiList.filter((u) => 
-          u.qr_image_url && 
-          typeof u.qr_image_url === 'string' && 
-          u.qr_image_url.startsWith('r2://') &&
-          !uploadedQrUrls[String(u.id)]
-        );
-
-        if (itemsWithR2Urls.length === 0) return;
-
-        const results = await Promise.all(
-          itemsWithR2Urls.map(async (u) => {
-            try {
-              // Parse r2://bucket/key format
-              const r2Url = u.qr_image_url;
-              const match = r2Url.match(/^r2:\/\/([^/]+)\/(.+)$/);
-              if (!match) return null;
-
-              const [, bucket, key] = match;
-
-              // Get presigned URL
-              const resp = await fetch('/api/r2/presign-get', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key, bucket })
-              });
-
-              if (!resp.ok) return null;
-              const json = await resp.json();
-              if (json.url) {
-                return [String(u.id), json.url] as const;
-              }
-              return null;
-            } catch (e) {
-              console.error('Failed to get presigned URL for QR:', u.id, e);
-              return null;
-            }
-          })
-        );
-
-        const newUrls: Record<string, string> = {};
-        for (const r of results) {
-          if (r) newUrls[r[0]] = r[1];
-        }
-
-        if (mounted && Object.keys(newUrls).length > 0) {
-          setUploadedQrUrls((prev) => ({ ...prev, ...newUrls }));
-        }
-      } catch (err) {
-        console.error('Failed to fetch presigned URLs for QR images', err);
-      }
-    };
-
-    fetchPresignedUrls();
-
-    return () => {
-      mounted = false;
-    };
-  }, [upiList]);
-
   // Generate QR data URLs client-side for UPI entries that do not have an uploaded QR image
   useEffect(() => {
     let mounted = true;
 
     const gen = async () => {
       try {
-        // Only generate QR for entries that don't have an uploaded r2:// URL
+        // Only generate QR for entries that don't have an already-presigned HTTPS URL
+        // (API now returns presigned URLs, so we only generate for entries with UPI ID and no qr_image_url)
         const itemsToGenerate = upiList.filter((u) => 
           u.upi_id && 
           !qrDataMap[String(u.id)] &&
-          !(u.qr_image_url && typeof u.qr_image_url === 'string' && u.qr_image_url.startsWith('r2://'))
+          !(u.qr_image_url && typeof u.qr_image_url === 'string' && u.qr_image_url.startsWith('http'))
         );
         if (itemsToGenerate.length === 0) return;
 
@@ -376,17 +310,14 @@ export function DonatePage() {
                         <div className="w-full px-6 pb-6 flex flex-col items-center">
                           {upiList.map((u, idx) => {
                             // Priority for QR source:
-                            // 1. Uploaded QR image (presigned URL from r2://)
+                            // 1. Pre-signed HTTPS URL from API (for uploaded QR images)
                             // 2. Client-generated QR from UPI ID
-                            // 3. Fallback to provided URL if not a Vercel blob
                             const providedUrl = u.qr_image_url;
-                            const isR2Url = typeof providedUrl === 'string' && providedUrl.startsWith('r2://');
-                            const isVercelBlob = typeof providedUrl === 'string' && /vercel|blob\.vercel-storage/.test(providedUrl);
+                            const isHttpsUrl = typeof providedUrl === 'string' && providedUrl.startsWith('http');
                             
-                            // Prefer uploaded QR image if available
-                            const uploadedQrSrc = uploadedQrUrls[String(u.id)];
+                            // Prefer presigned URL from API, otherwise use generated QR
                             const generatedQrSrc = qrDataMap[String(u.id)];
-                            const qrSrc = uploadedQrSrc || generatedQrSrc || (!isVercelBlob && !isR2Url && providedUrl) || undefined;
+                            const qrSrc = (isHttpsUrl ? providedUrl : null) || generatedQrSrc || undefined;
 
                             return (
                               <div key={u.id} className="w-full flex flex-col items-center my-6">
@@ -416,6 +347,9 @@ export function DonatePage() {
                                           src={qrSrc}
                                           alt={u.label || 'UPI QR'}
                                           style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                                          loading="eager"
+                                          decoding="sync"
+                                          fetchPriority={idx === 0 ? 'high' : undefined}
                                         />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-md flex items-center justify-center">
                                           <Maximize2 className="opacity-0 group-hover:opacity-70 transition-opacity text-gray-700" size={32} />

@@ -148,13 +148,45 @@ export function Gallery() {
     }
   }, [activeView, activeTab]);
 
+  // Prefetch images for better perceived performance
+  const prefetchedUrls = useRef<Set<string>>(new Set());
+  const prefetchImages = useCallback((images: GalleryImage[], count: number = 8) => {
+    images.slice(0, count).forEach((img) => {
+      const url = img.thumbnail_url || img.medium_url || img.url;
+      if (url && !prefetchedUrls.current.has(url)) {
+        prefetchedUrls.current.add(url);
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.as = 'image';
+        link.href = url;
+        document.head.appendChild(link);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     const fetchGalleryData = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch all category data in parallel to reduce total load time
-        const promises = TAB_CONFIG.map(async (tab) => {
+        // First, fetch the active tab immediately for instant display
+        const activeTabKey = initialTab || 'guinness-events';
+        const activeRes = await fetch(`/api/gallery?category=${activeTabKey}`);
+        const activeData = await activeRes.json();
+        const activeImages = activeData.success ? activeData.data.images || [] : [];
+        const activeVideos = activeData.success ? activeData.data.videos || [] : [];
+        
+        // Immediately set the active tab data and stop loading
+        setGalleryImages({ [activeTabKey]: activeImages });
+        setGalleryVideos({ [activeTabKey]: activeVideos });
+        setLoading(false); // Show content immediately
+        
+        // Prefetch first visible images for instant rendering
+        prefetchImages(activeImages, 12);
+        
+        // Then fetch remaining categories in background
+        const otherTabs = TAB_CONFIG.filter(tab => tab.key !== activeTabKey);
+        const promises = otherTabs.map(async (tab) => {
           try {
             const res = await fetch(`/api/gallery?category=${tab.key}`);
             const data = await res.json();
@@ -165,8 +197,8 @@ export function Gallery() {
         });
 
         const results = await Promise.all(promises);
-        const imagesMap: Record<string, GalleryImage[]> = {};
-        const videosMap: Record<string, Video[]> = {};
+        const imagesMap: Record<string, GalleryImage[]> = { [activeTabKey]: activeImages };
+        const videosMap: Record<string, Video[]> = { [activeTabKey]: activeVideos };
         for (const r of results) {
           imagesMap[r.key] = r.data.images;
           videosMap[r.key] = r.data.videos;
@@ -206,7 +238,10 @@ export function Gallery() {
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+    // Prefetch images for the new tab
+    const images = galleryImages[tabKey] || [];
+    prefetchImages(images, 12);
+  }, [galleryImages, prefetchImages]);
   const openLightbox = useCallback((imageIndex: number) => {
     setCurrentImageIndex(imageIndex);
     setLightboxOpen(true);
@@ -275,5 +310,5 @@ export function Gallery() {
   if (loading) return (<div className="min-h-screen text-white flex items-center justify-center" style={{ backgroundColor: primaryBackground }}><div className="text-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#FDB813] mx-auto mb-4"></div><p className="text-lg">Loading gallery...</p></div></div>);
   if (error) return (<div className="min-h-screen text-white flex items-center justify-center" style={{ backgroundColor: primaryBackground }}><div className="text-center"><p className="text-lg text-red-400 mb-4">{error}</p><button onClick={() => window.location.reload()} className="px-6 py-2 bg-[#FDB813] text-black rounded-lg hover:bg-[#DAA520] transition-colors">Retry</button></div></div>);
 
-  return (<div className="min-h-screen text-white" style={{ backgroundColor: primaryBackground }}><div className="container mx-auto px-4 md:px-4 pt-12 md:pt-30 pb-16"><div className="mb-12 my-8"><div className="flex flex-wrap justify-center gap-2 md:gap-3" role="tablist">{tabButtons}</div></div><div className="mt-8" role="tabpanel"><div className="text-center mb-10"><h2 className="text-3xl md:text-4xl text-white mb-4">{t(`tabs.${activeTab}.title`)}</h2><div className="w-24 h-1 mx-auto rounded-full" style={{ backgroundColor: accentGold }}></div></div>{sectionImages && sectionImages.length > 0 ? (<><ResponsiveMasonry columnsCountBreakPoints={{ 350: 2, 768: 3, 1024: 4 }}><Masonry gutter="16px">{visibleImages.map((image, index) => (<ImageCard key={`${activeTab}-${index}`} image={image} index={index} title={t(`tabs.${activeTab}.title`)} onClick={() => openLightbox(index)} eager={index < 4} />))}</Masonry></ResponsiveMasonry>{hasMore && (<div className="flex justify-center mt-8"><Button onClick={loadMore} className="px-8 py-3 shadow-lg rounded-full font-semibold transition-all duration-300" style={{ backgroundColor: "#FDB813", color: "black" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#DAA520")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FDB813")}>{t('loadMore')}</Button></div>)}</>) : (<div className="text-center py-12"><p className="text-gray-400 text-lg">{t('noImages')}</p></div>)}{videos.length > 0 && (<div className="mt-12" ref={videoSectionRef}><VideoJsonLd videos={sortedVideos} /><div className="flex items-center mb-6"><div className="flex-grow h-px bg-gray-700"></div><h3 className="text-xl text-white font-medium px-4 flex items-center"><Play size={20} className="text-[#FDB813] mr-2" />{t('videoGallery')}</h3><div className="flex-grow h-px bg-gray-700"></div></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">{visibleVideos.map((video) => (<VideoCard key={video.id} video={video} onThumbnailError={handleThumbnailError} getThumbnailUrl={getThumbnailUrl} />))}</div>{hasMoreVideos && (<div className="flex justify-center mt-8"><Button onClick={loadMoreVideos} className="px-8 py-3 shadow-lg font-semibold transition-all duration-300" style={{ backgroundColor: "#FDB813", color: "black" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#DAA520")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FDB813")}>{t('loadMoreVideos')}</Button></div>)}</div>)}</div></div>{lightboxOpen && (<div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center" onClick={closeLightbox} onKeyDown={handleKeyDown} tabIndex={0} role="dialog" aria-modal="true"><button className="absolute top-4 right-4 text-white hover:text-gray-300 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors cursor-pointer" onClick={closeLightbox} aria-label="Close lightbox"><X size={32} /></button><button className={`absolute left-4 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full transition-colors ${currentImageIndex === 0 ? 'text-gray-600 bg-black/30 cursor-not-allowed opacity-50' : 'text-white hover:text-gray-300 bg-black/50 hover:bg-black/70 cursor-pointer'}`} onClick={(e) => { e.stopPropagation(); if (currentImageIndex > 0) prevImage(); }} disabled={currentImageIndex === 0} aria-label="Previous image"><ChevronLeft size={40} /></button><button className={`absolute right-4 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full transition-colors ${currentImageIndex === sectionImages.length - 1 ? 'text-gray-600 bg-black/30 cursor-not-allowed opacity-50' : 'text-white hover:text-gray-300 bg-black/50 hover:bg-black/70 cursor-pointer'}`} onClick={(e) => { e.stopPropagation(); if (currentImageIndex < sectionImages.length - 1) nextImage(); }} disabled={currentImageIndex === sectionImages.length - 1} aria-label="Next image"><ChevronRight size={40} /></button><div className="flex items-center justify-center p-4 w-full h-full" onClick={(e) => e.stopPropagation()}><img src={sectionImages[currentImageIndex]?.url} alt={`${t(`tabs.${activeTab}.title`)} ${currentImageIndex + 1}`} className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain" loading="eager" decoding="async" /></div><div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black/50 px-4 py-2 rounded-full">{currentImageIndex + 1} / {sectionImages.length}</div></div>)}</div>);
+  return (<div className="min-h-screen text-white" style={{ backgroundColor: primaryBackground }}><div className="container mx-auto px-4 md:px-4 pt-12 md:pt-30 pb-16"><div className="mb-12 my-8"><div className="flex flex-wrap justify-center gap-2 md:gap-3" role="tablist">{tabButtons}</div></div><div className="mt-8" role="tabpanel"><div className="text-center mb-10"><h2 className="text-3xl md:text-4xl text-white mb-4">{t(`tabs.${activeTab}.title`)}</h2><div className="w-24 h-1 mx-auto rounded-full" style={{ backgroundColor: accentGold }}></div></div>{sectionImages && sectionImages.length > 0 ? (<><ResponsiveMasonry columnsCountBreakPoints={{ 350: 2, 768: 3, 1024: 4 }}><Masonry gutter="16px">{visibleImages.map((image, index) => (<ImageCard key={`${activeTab}-${index}`} image={image} index={index} title={t(`tabs.${activeTab}.title`)} onClick={() => openLightbox(index)} eager={index < 8} />))}</Masonry></ResponsiveMasonry>{hasMore && (<div className="flex justify-center mt-8"><Button onClick={loadMore} className="px-8 py-3 shadow-lg rounded-full font-semibold transition-all duration-300" style={{ backgroundColor: "#FDB813", color: "black" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#DAA520")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FDB813")}>{t('loadMore')}</Button></div>)}</>) : (<div className="text-center py-12"><p className="text-gray-400 text-lg">{t('noImages')}</p></div>)}{videos.length > 0 && (<div className="mt-12" ref={videoSectionRef}><VideoJsonLd videos={sortedVideos} /><div className="flex items-center mb-6"><div className="flex-grow h-px bg-gray-700"></div><h3 className="text-xl text-white font-medium px-4 flex items-center"><Play size={20} className="text-[#FDB813] mr-2" />{t('videoGallery')}</h3><div className="flex-grow h-px bg-gray-700"></div></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">{visibleVideos.map((video) => (<VideoCard key={video.id} video={video} onThumbnailError={handleThumbnailError} getThumbnailUrl={getThumbnailUrl} />))}</div>{hasMoreVideos && (<div className="flex justify-center mt-8"><Button onClick={loadMoreVideos} className="px-8 py-3 shadow-lg font-semibold transition-all duration-300" style={{ backgroundColor: "#FDB813", color: "black" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#DAA520")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FDB813")}>{t('loadMoreVideos')}</Button></div>)}</div>)}</div></div>{lightboxOpen && (<div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center" onClick={closeLightbox} onKeyDown={handleKeyDown} tabIndex={0} role="dialog" aria-modal="true"><button className="absolute top-4 right-4 text-white hover:text-gray-300 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors cursor-pointer" onClick={closeLightbox} aria-label="Close lightbox"><X size={32} /></button><button className={`absolute left-4 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full transition-colors ${currentImageIndex === 0 ? 'text-gray-600 bg-black/30 cursor-not-allowed opacity-50' : 'text-white hover:text-gray-300 bg-black/50 hover:bg-black/70 cursor-pointer'}`} onClick={(e) => { e.stopPropagation(); if (currentImageIndex > 0) prevImage(); }} disabled={currentImageIndex === 0} aria-label="Previous image"><ChevronLeft size={40} /></button><button className={`absolute right-4 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full transition-colors ${currentImageIndex === sectionImages.length - 1 ? 'text-gray-600 bg-black/30 cursor-not-allowed opacity-50' : 'text-white hover:text-gray-300 bg-black/50 hover:bg-black/70 cursor-pointer'}`} onClick={(e) => { e.stopPropagation(); if (currentImageIndex < sectionImages.length - 1) nextImage(); }} disabled={currentImageIndex === sectionImages.length - 1} aria-label="Next image"><ChevronRight size={40} /></button><div className="flex items-center justify-center p-4 w-full h-full" onClick={(e) => e.stopPropagation()}><img src={sectionImages[currentImageIndex]?.url} alt={`${t(`tabs.${activeTab}.title`)} ${currentImageIndex + 1}`} className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain" loading="eager" decoding="async" /></div><div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black/50 px-4 py-2 rounded-full">{currentImageIndex + 1} / {sectionImages.length}</div></div>)}</div>);
 }

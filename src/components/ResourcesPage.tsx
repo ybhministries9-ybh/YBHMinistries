@@ -6,7 +6,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
 
 // Utility function to extract YouTube thumbnail from video URL
-function getYouTubeThumbnail(url: string): string {
+function getYouTubeThumbnail(url: string, quality: 'maxres' | 'sd' | 'hq' = 'sd'): string {
   if (!url) return '';
   
   let videoId = '';
@@ -18,10 +18,22 @@ function getYouTubeThumbnail(url: string): string {
     videoId = url.split('youtu.be/')[1]?.split('?')[0];
   } else if (url.includes('youtube.com/shorts/')) {
     videoId = url.split('shorts/')[1]?.split('?')[0];
+  } else if (url.includes('youtube.com/live/')) {
+    videoId = url.split('live/')[1]?.split('?')[0];
+  } else if (url.includes('youtube.com/embed/')) {
+    videoId = url.split('embed/')[1]?.split('?')[0];
   }
   
-  // Return high quality thumbnail URL
-  return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
+  if (!videoId) return '';
+  
+  // Use sddefault for faster loading (640x480), fallback to hqdefault (480x360)
+  const qualityMap = {
+    maxres: 'maxresdefault',
+    sd: 'sddefault',
+    hq: 'hqdefault'
+  };
+  
+  return `https://img.youtube.com/vi/${videoId}/${qualityMap[quality]}.jpg`;
 }
 
 export function ResourcesPage() {
@@ -123,137 +135,119 @@ export function ResourcesPage() {
     sermons: true
   });
 
-  // Fetch books
+  // Helper to pick first available date-like field (defined before use)
+  const pickDate = (...vals: any[]) => {
+    for (const v of vals) {
+      if (v === 0) return v;
+      if (v) return v;
+    }
+    return null;
+  };
+
+  // Fetch all resources in parallel for faster initial load
   useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const response = await fetch('/api/resources?type=books');
-        if (!response.ok) throw new Error('Failed to fetch books');
-        const data = await response.json();
-        
-        // Transform API response to match component interface
-        const transformedBooks = (data.data || []).map((book: any) => ({
-          id: book.id,
-          title: book.title,
-          author: book.author,
-          price: book.price,
-          pages: book.pages,
-          language: book.language,
-          coverImage: book.cover_image,
-          additionalImages: book.additional_images || [],
-          description: book.description,
-          fullDescription: book.full_description || book.description || '',
-          publishDate: book.publish_date
-        }));
-        
-        setResources(prev => ({ ...prev, books: transformedBooks }));
-      } catch (error) {
-        console.error('Error fetching books:', error);
-      } finally {
-        setLoading(prev => ({ ...prev, books: false }));
+    const fetchAllResources = async () => {
+      // Fetch all resource types in parallel
+      const [booksRes, worshipRes, sermonsRes] = await Promise.all([
+        fetch('/api/resources?type=books').catch(() => null),
+        fetch('/api/resources?type=worship').catch(() => null),
+        fetch('/api/resources?type=sermons').catch(() => null)
+      ]);
+
+      // Process books
+      if (booksRes?.ok) {
+        try {
+          const data = await booksRes.json();
+          const transformedBooks = (data.data || []).map((book: any) => ({
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            price: book.price,
+            pages: book.pages,
+            language: book.language,
+            coverImage: book.cover_image,
+            additionalImages: book.additional_images || [],
+            description: book.description,
+            fullDescription: book.full_description || book.description || '',
+            publishDate: book.publish_date
+          }));
+          setResources(prev => ({ ...prev, books: transformedBooks }));
+        } catch (error) {
+          console.error('Error parsing books:', error);
+        }
       }
+      setLoading(prev => ({ ...prev, books: false }));
+
+      // Process worship videos
+      if (worshipRes?.ok) {
+        try {
+          const data = await worshipRes.json();
+          const transformedWorship = (data.data || []).map((video: any) => ({
+            id: video.id,
+            title: video.title || '',
+            artist: video.artist,
+            duration: pickDate(video.duration, video.length, video.duration_seconds, video.duration_str),
+            date: pickDate(video.date_posted, video.release_date, video.published_at, video.created_at, video.date, video.uploaded_at),
+            youtubeUrl: video.youtube_url,
+            description: video.description,
+            display_order: typeof video.display_order !== 'undefined' && video.display_order !== null ? Number(video.display_order) : null
+          }));
+
+          transformedWorship.sort((a: any, b: any) => {
+            const aHas = typeof a.display_order === 'number' && !isNaN(a.display_order);
+            const bHas = typeof b.display_order === 'number' && !isNaN(b.display_order);
+            if (aHas && bHas) return a.display_order - b.display_order;
+            if (aHas) return -1;
+            if (bHas) return 1;
+            const aTime = a.date ? new Date(a.date).getTime() : 0;
+            const bTime = b.date ? new Date(b.date).getTime() : 0;
+            return bTime - aTime;
+          });
+
+          setResources(prev => ({ ...prev, worship: transformedWorship }));
+        } catch (error) {
+          console.error('Error parsing worship:', error);
+        }
+      }
+      setLoading(prev => ({ ...prev, worship: false }));
+
+      // Process sermons
+      if (sermonsRes?.ok) {
+        try {
+          const data = await sermonsRes.json();
+          const transformedSermons = (data.data || []).map((sermon: any) => ({
+            id: sermon.id,
+            title: sermon.title || sermon.youtube_title || sermon.youtubeTitle || '',
+            duration: pickDate(sermon.duration, sermon.length, sermon.duration_seconds, sermon.duration_str),
+            date: pickDate(sermon.date_posted, sermon.sermon_date, sermon.date, sermon.published_at, sermon.created_at),
+            thumbnailUrl: sermon.thumbnail_url,
+            youtubeUrl: sermon.youtube_url,
+            description: sermon.description,
+            display_order: typeof sermon.display_order !== 'undefined' && sermon.display_order !== null ? Number(sermon.display_order) : null
+          }));
+
+          transformedSermons.sort((a: any, b: any) => {
+            const aHas = typeof a.display_order === 'number' && !isNaN(a.display_order);
+            const bHas = typeof b.display_order === 'number' && !isNaN(b.display_order);
+            if (aHas && bHas) return a.display_order - b.display_order;
+            if (aHas) return -1;
+            if (bHas) return 1;
+            const aTime = a.date ? new Date(a.date).getTime() : 0;
+            const bTime = b.date ? new Date(b.date).getTime() : 0;
+            return bTime - aTime;
+          });
+
+          setResources(prev => ({ ...prev, sermons: transformedSermons }));
+        } catch (error) {
+          console.error('Error parsing sermons:', error);
+        }
+      }
+      setLoading(prev => ({ ...prev, sermons: false }));
     };
-    fetchBooks();
+
+    fetchAllResources();
   }, []);
 
-  // Fetch worship videos
-  useEffect(() => {
-    const fetchWorship = async () => {
-      try {
-        const response = await fetch('/api/resources?type=worship');
-        if (!response.ok) throw new Error('Failed to fetch worship videos');
-        const data = await response.json();
-        
-        const transformedWorship = (data.data || []).map((video: any) => ({
-          id: video.id,
-          // Prefer DB-stored title and date_posted when available
-          title: video.title || '',
-          artist: video.artist,
-          duration: pickDate(video.duration, video.length, video.duration_seconds, video.duration_str),
-          date: pickDate(video.date_posted, video.release_date, video.published_at, video.created_at, video.date, video.uploaded_at),
-          youtubeUrl: video.youtube_url,
-          description: video.description,
-          // include display_order from DB (may be null)
-          display_order: typeof video.display_order !== 'undefined' && video.display_order !== null ? Number(video.display_order) : null
-        }));
-
-        // Sort by display_order ascending (lowest order -> left). Items without display_order go after ordered items,
-        // and are sorted by date (newest first) as a sensible fallback.
-        transformedWorship.sort((a: any, b: any) => {
-          const aHas = typeof a.display_order === 'number' && !isNaN(a.display_order);
-          const bHas = typeof b.display_order === 'number' && !isNaN(b.display_order);
-          if (aHas && bHas) return a.display_order - b.display_order;
-          if (aHas) return -1; // a comes before b
-          if (bHas) return 1;  // b comes before a
-          // fallback: sort by date descending (newest first)
-          const aTime = a.date ? new Date(a.date).getTime() : 0;
-          const bTime = b.date ? new Date(b.date).getTime() : 0;
-          return bTime - aTime;
-        });
-
-        // Use the DB-provided values only; do not call YouTube API from the public site.
-        // If DB fields are missing, the UI will show blank values.
-        setResources(prev => ({ ...prev, worship: transformedWorship }));
-      } catch (error) {
-        console.error('Error fetching worship videos:', error);
-      } finally {
-        setLoading(prev => ({ ...prev, worship: false }));
-      }
-    };
-    fetchWorship();
-  }, []);
-
-  // Fetch sermons
-  useEffect(() => {
-    const fetchSermons = async () => {
-      try {
-        const response = await fetch('/api/resources?type=sermons');
-        if (!response.ok) throw new Error('Failed to fetch sermons');
-        const data = await response.json();
-        
-        // Response received; map fields defensively (no debug logging here)
-        const transformedSermons = (data.data || []).map((sermon: any) => ({
-          id: sermon.id,
-          // Prefer DB-stored title (server should persist YouTube title into `title`)
-          // Be defensive: some backends may use `youtube_title` or `title`
-          title: sermon.title || sermon.youtube_title || sermon.youtubeTitle || '',
-          // Duration kept for compatibility but site will not rely on YouTube API
-          duration: pickDate(sermon.duration, sermon.length, sermon.duration_seconds, sermon.duration_str),
-          // Prefer `date_posted` (new column) then fallbacks
-          date: pickDate(sermon.date_posted, sermon.sermon_date, sermon.date, sermon.published_at, sermon.created_at),
-          thumbnailUrl: sermon.thumbnail_url,
-          youtubeUrl: sermon.youtube_url,
-          description: sermon.description,
-          // include display_order when provided by API (may be null)
-          display_order: typeof sermon.display_order !== 'undefined' && sermon.display_order !== null ? Number(sermon.display_order) : null
-        }));
-
-        // Sort by display_order ascending (lowest order -> left). Items without display_order go after ordered items,
-        // and are sorted by date (newest first) as a sensible fallback.
-        transformedSermons.sort((a: any, b: any) => {
-          const aHas = typeof a.display_order === 'number' && !isNaN(a.display_order);
-          const bHas = typeof b.display_order === 'number' && !isNaN(b.display_order);
-          if (aHas && bHas) return a.display_order - b.display_order;
-          if (aHas) return -1;
-          if (bHas) return 1;
-          const aTime = a.date ? new Date(a.date).getTime() : 0;
-          const bTime = b.date ? new Date(b.date).getTime() : 0;
-          return bTime - aTime;
-        });
-
-        setResources(prev => ({ ...prev, sermons: transformedSermons }));
-        // Use DB-provided values only; do not call YouTube API from the public site.
-        // If DB fields are missing, the UI will show blank values.
-      } catch (error) {
-        console.error('Error fetching sermons:', error);
-      } finally {
-        setLoading(prev => ({ ...prev, sermons: false }));
-      }
-    };
-    fetchSermons();
-  }, []);
-
-  // Fetch Bible studies
   // Bible Studies section removed — no client fetch required
 
   // Only use resources from the database/API
@@ -347,17 +341,6 @@ export function ResourcesPage() {
     }
   };
 
-  
-
-  // Pick first available date-like field from a list of possible properties
-  const pickDate = (...vals) => {
-    for (const v of vals) {
-      if (v === 0) return v;
-      if (v) return v;
-    }
-    return null;
-  };
-
   // Parse local date safely (accepts YYYY-MM-DD, ISO, timestamps)
   const parseLocalDate = (dateInput) => {
     if (!dateInput && dateInput !== 0) return null;
@@ -446,13 +429,15 @@ export function ResourcesPage() {
                 <p className="text-white text-lg">No books available yet.</p>
               </div>
             ) : (
-              displayResources.books.map((book) => (
+              displayResources.books.map((book, index) => (
               <div key={book.id} className="bg-[#2E2E2E] rounded-lg overflow-hidden shadow-lg hover:scale-102 hover:shadow-2xl transition-all duration-300 ease-in-out flex flex-col">
                 <div className="h-64 overflow-hidden relative">
                   <ImageWithFallback
                     src={book.coverImage}
                     alt={book.title}
                     className="w-full h-full object-cover"
+                    loading={index < 3 ? 'eager' : 'lazy'}
+                    priority={index < 3}
                   />
                   {/* Language badge overlay */}
                   <div className="absolute top-0 right-0 bg-[#FDB813] px-3 py-1 rounded-bl-lg font-bold shadow-md text-xs" style={{ color: '#000000' }}>
@@ -724,7 +709,7 @@ export function ResourcesPage() {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {getVisibleItems(displayResources.worship, "worship").map((item) => (
+                  {getVisibleItems(displayResources.worship, "worship").map((item, index) => (
                 <a 
                   key={item.id}
                   href={item.youtubeUrl} 
@@ -738,6 +723,8 @@ export function ResourcesPage() {
                       src={getYouTubeThumbnail(item.youtubeUrl)}
                       alt={item.title}
                       className="w-full h-full object-cover"
+                      loading={index < 4 ? 'eager' : 'lazy'}
+                      priority={index < 4}
                     />
                   </div>
                   
@@ -792,7 +779,7 @@ export function ResourcesPage() {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {getVisibleItems(displayResources.sermons, "sermons").map((sermon) => (
+                  {getVisibleItems(displayResources.sermons, "sermons").map((sermon, index) => (
                 <a 
                   key={sermon.id}
                   href={sermon.youtubeUrl} 
@@ -806,6 +793,8 @@ export function ResourcesPage() {
                       src={getYouTubeThumbnail(sermon.youtubeUrl) || sermon.thumbnailUrl}
                       alt={sermon.title}
                       className="w-full h-full object-cover"
+                      loading={index < 4 ? 'eager' : 'lazy'}
+                      priority={index < 4}
                     />
                   </div>
                   
