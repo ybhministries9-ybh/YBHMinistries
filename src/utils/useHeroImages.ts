@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { API_ENDPOINTS, apiCall } from './api-config';
+import { logger } from '@/lib/logger';
 
 export interface HeroImage {
   id: number;
@@ -30,7 +31,7 @@ export function useHeroImages() {
 
     if (apiError) {
       setError(apiError);
-      console.error('Failed to fetch hero images:', apiError);
+      logger.error('Failed to fetch hero images', apiError);
     } else if (data?.images) {
       setImages(data.images);
     }

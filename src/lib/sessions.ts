@@ -1,4 +1,5 @@
 import { sql } from '@vercel/postgres';
+import { logger } from './logger';
 
 export const DEFAULT_SESSION_MINUTES = Number(process.env.ADMIN_SESSION_MINUTES || 1);
 
@@ -22,7 +23,7 @@ export async function verifySession(token?: string) {
     try {
       await sql`DELETE FROM sessions WHERE id = ${session.id}`;
     } catch (err) {
-      console.error('Failed to delete expired session', err);
+      logger.error('Failed to delete expired session', err);
     }
     return null;
   }

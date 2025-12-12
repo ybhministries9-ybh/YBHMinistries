@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useRef, useEffect, memo } from "react";
 import { motion } from "motion/react";
 import { MapPin, Play, X, Quote, Maximize, Minimize, Calendar } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { logger } from '@/lib/logger';
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from 'sonner';
 import { primaryBackground, accentGold } from "../utils/theme";
@@ -378,6 +379,7 @@ const SubmitTestimonyForm = memo(() => {
       const payload = {
         name: data.name,
         email: data.email,
+        phone: data.phone,
         role: data.role,
         category: data.category, // key like 'guinness'
         location: data.location,
@@ -400,7 +402,7 @@ const SubmitTestimonyForm = memo(() => {
       setSubmitSuccess(true);
       reset();
     } catch (err: any) {
-      console.error('Submit testimony error', err);
+      logger.error('Submit testimony error', err);
       setIsSubmitting(false);
       toast.error(err?.message || 'Submission failed');
     }
@@ -425,7 +427,7 @@ const SubmitTestimonyForm = memo(() => {
                 <button
                   type="button"
                   onClick={() => { reset(); setSubmitSuccess(false); }}
-                  className="px-6 py-2 bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 inline-flex items-center justify-center"
+                  className="px-6 py-2 bg-[#FDB813] shadow-lg text-black cursor-pointer rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 inline-flex items-center justify-center"
                   style={{ backgroundColor: '#FDB813' }}
                 >
                   {t('form.sendAnother', { defaultValue: 'Send another message' })}
@@ -435,7 +437,7 @@ const SubmitTestimonyForm = memo(() => {
           
           {!submitSuccess && (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 text-left">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <div>
                 <div className="mb-1 flex items-center justify-between">
                   <label htmlFor="name" className="block text-white text-sm font-medium">{t('form.nameLabel')} <span className="text-[#FDB813]">*</span></label>
@@ -455,7 +457,8 @@ const SubmitTestimonyForm = memo(() => {
                 />
                 {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message as string}</p>}
               </div>
-              
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <div className="mb-1 flex items-center justify-between">
                   <label htmlFor="email" className="block text-white text-sm font-medium">{t('form.emailLabel')} <span className="text-[#FDB813]">*</span></label>
@@ -477,6 +480,25 @@ const SubmitTestimonyForm = memo(() => {
                   })}
                 />
                 {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message as string}</p>}
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="phone" className="block text-white text-sm font-medium">{t('form.phoneLabel', { defaultValue: 'Phone' })} <span className="text-gray-400 text-xs">(optional)</span></label>
+                  <p className="text-sm text-gray-400">{(watched.phone || '').length}/15</p>
+                </div>
+                <input
+                  id="phone"
+                  type="tel"
+                  maxLength={15}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.phone ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                  placeholder={t('form.phonePlaceholder', { defaultValue: 'Phone number' })}
+                  {...register("phone", {
+                    pattern: { value: /^[0-9+()\-\.\s]+$/, message: t('form.phoneInvalid', { defaultValue: 'Invalid phone number' }) },
+                    minLength: { value: 7, message: t('form.phoneMinLength', { defaultValue: 'Phone is too short' }) },
+                    maxLength: { value: 15, message: t('form.phoneMaxLength', { defaultValue: 'Phone is too long' }) }
+                  })}
+                />
+                {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone.message as string}</p>}
               </div>
             </div>
             

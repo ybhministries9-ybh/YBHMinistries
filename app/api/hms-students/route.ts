@@ -262,7 +262,7 @@ export async function POST(request: Request) {
         const plain = plainLines.join('\n');
 
         // HTML
-        const htmlFields = fields.map(f => `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee; font-size:14px;color:#333;"><strong>${f.label}</strong></td><td style="padding:6px 12px;border-bottom:1px solid #eee; font-size:14px;color:#555;">${f.value}</td></tr>`).join('');
+        const htmlFields = fields.map(f => `<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;background:#fafafa;font-weight:600;width:40%;">${f.label}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;background:#ffffff;color:#555;">${f.value}</td></tr>`).join('');
         const html = `
           <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#111; background-color:#f7f7f7; padding:18px;">
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;">
@@ -279,8 +279,7 @@ export async function POST(request: Request) {
               </tr>
               <tr>
                 <td style="padding:24px;">
-                  <p style="margin:0 0 12px 0; color:#333; font-size:15px;">Dear ${fullName || ''},</p>
-                  <h2 style="margin:0 0 12px 0; font-size:20px; color:#111;">HMS Application received</h2>
+                  <h2 style="margin:0 0 12px 0; color:#333; font-size:15px;">Dear ${fullName || ''},</h2>
                   <p style="margin:0 0 12px 0;color:#333; font-size:15px;">Thank you for applying to HMS at <strong>YBH Ministries</strong>. Below are the details you submitted.</p>
 
                   <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse; margin-top:12px; background:#fafafa; border-radius:4px;">
@@ -302,7 +301,7 @@ export async function POST(request: Request) {
           </div>
         `;
 
-        const subject = `YBH Ministries — HMS application received`;
+        const subject = `YBH Ministries — HMS Student Application Received`;
 
         const res = await sendMail({
           from: process.env.EMAIL_FROM || undefined,

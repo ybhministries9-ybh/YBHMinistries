@@ -50,7 +50,12 @@ export async function rateLimit(key: string, limit = 10, windowMs = 60 * 60 * 10
       return { ok: true, remaining: limit - count };
     } catch (e) {
       // fall back to in-memory if Redis fails
-      console.warn('Upstash rateLimit error, falling back to in-memory', e);
+      try {
+        const { logger } = await import('./logger');
+        logger.warn('Upstash rateLimit error, falling back to in-memory', e);
+      } catch (_) {
+        console.warn('Upstash rateLimit error, falling back to in-memory', e);
+      }
     }
   }
 

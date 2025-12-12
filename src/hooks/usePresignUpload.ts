@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 type UploadResult = { ok: boolean; data?: any; error?: string };
 
@@ -67,7 +68,7 @@ export function usePresignUpload(opts?: { prefix?: string }) {
       const data = await confirmResp.json();
       return { ok: true, data };
     } catch (err: any) {
-      console.error('usePresignUpload error', err);
+      logger.error('usePresignUpload error', err);
       setError(err?.message || String(err));
       setProgress(null);
       return { ok: false, error: err?.message || String(err) };

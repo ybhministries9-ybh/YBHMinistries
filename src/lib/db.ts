@@ -1,4 +1,5 @@
 import { sql } from '@vercel/postgres';
+import { logger } from './logger';
 
 /**
  * Database utility for Vercel Postgres
@@ -45,7 +46,7 @@ export async function testConnection(): Promise<boolean> {
     await sql`SELECT 1`;
     return true;
   } catch (error) {
-    console.error('Database connection failed:', error);
+    logger.error('Database connection failed', error);
     return false;
   }
 }
@@ -62,7 +63,7 @@ export async function getActiveHeroImages(): Promise<HeroImage[]> {
     `;
     return rows;
   } catch (error) {
-    console.error('Error fetching hero images:', error);
+    logger.error('Error fetching hero images', error);
     throw error;
   }
 }
@@ -80,7 +81,7 @@ export async function getActiveHomeVideo(): Promise<HomeVideo | null> {
     `;
     return rows[0] || null;
   } catch (error) {
-    console.error('Error fetching home video:', error);
+    logger.error('Error fetching home video', error);
     throw error;
   }
 }
@@ -116,7 +117,7 @@ export async function createHeroImage(
     `;
     return rows[0];
   } catch (error) {
-    console.error('Error creating hero image:', error);
+    logger.error('Error creating hero image', error);
     throw error;
   }
 }
@@ -167,7 +168,7 @@ export async function updateHeroImage(
     const result = await sql.query(query, values);
     return result.rows[0];
   } catch (error) {
-    console.error('Error updating hero image:', error);
+    logger.error('Error updating hero image', error);
     throw error;
   }
 }
@@ -179,7 +180,7 @@ export async function deleteHeroImage(id: number): Promise<void> {
   try {
     await sql`DELETE FROM home_hero_images WHERE id = ${id}`;
   } catch (error) {
-    console.error('Error deleting hero image:', error);
+    logger.error('Error deleting hero image', error);
     throw error;
   }
 }
@@ -196,7 +197,7 @@ export async function deleteHeroImages(ids: number[]): Promise<void> {
     const query = `DELETE FROM home_hero_images WHERE id IN (${placeholders})`;
     await sql.query(query, ids);
   } catch (error) {
-    console.error('Error deleting hero images:', error);
+    logger.error('Error deleting hero images', error);
     throw error;
   }
 }
@@ -226,7 +227,7 @@ export async function reorderHeroImages(
       `;
     }
   } catch (error) {
-    console.error('Error reordering hero images:', error);
+    logger.error('Error reordering hero images', error);
     throw error;
   }
 }
@@ -263,7 +264,7 @@ export async function upsertHomeVideo(
     `;
     return rows[0];
   } catch (error) {
-    console.error('Error upserting home video:', error);
+    logger.error('Error upserting home video', error);
     throw error;
   }
 }
@@ -275,7 +276,7 @@ export async function deleteHomeVideo(id: number): Promise<void> {
   try {
     await sql`DELETE FROM home_video WHERE id = ${id}`;
   } catch (error) {
-    console.error('Error deleting home video:', error);
+    logger.error('Error deleting home video', error);
     throw error;
   }
 }
@@ -293,7 +294,7 @@ export async function getActiveAboutHeroImage(): Promise<AboutHeroImage | null> 
     `;
     return rows[0] || null;
   } catch (error) {
-    console.error('Error fetching about hero image:', error);
+    logger.error('Error fetching about hero image', error);
     throw error;
   }
 }
@@ -339,7 +340,7 @@ export async function upsertAboutHeroImage(
       return rows[0];
     }
   } catch (error) {
-    console.error('Error upserting about hero image:', error);
+    logger.error('Error upserting about hero image', error);
     throw error;
   }
 }
@@ -351,7 +352,7 @@ export async function deleteAboutHeroImage(id: number): Promise<void> {
   try {
     await sql`DELETE FROM about_hero_image WHERE id = ${id}`;
   } catch (error) {
-    console.error('Error deleting about hero image:', error);
+    logger.error('Error deleting about hero image', error);
     throw error;
   }
 }

@@ -1,4 +1,5 @@
 import type { SendMailOptions } from 'nodemailer';
+import { logger } from './logger';
 
 let _transporter: any = null;
 
@@ -21,7 +22,7 @@ async function getTransporter() {
   const smtpPass = smtpPassRaw ? String(smtpPassRaw).replace(/\s+/g, '') : smtpPassRaw;
 
   if (!smtpUser || !smtpPass) {
-    console.warn('[smtpMailer] SMTP credentials not configured - SMTP_USER or SMTP_PASS missing');
+    logger.warn('[smtpMailer] SMTP credentials not configured - SMTP_USER or SMTP_PASS missing');
     return null;
   }
 
@@ -41,9 +42,9 @@ async function getTransporter() {
     });
 
     await _transporter.verify();
-    console.log('[smtpMailer] SMTP transporter verified successfully');
+    logger.info('[smtpMailer] SMTP transporter verified successfully');
   } catch (e: any) {
-    console.error('[smtpMailer] SMTP transporter verification failed:', e?.message || e);
+    logger.error('[smtpMailer] SMTP transporter verification failed', e?.message || e);
     // Keep transporter anyway - send may still work in some cases
   }
 
