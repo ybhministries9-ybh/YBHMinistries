@@ -4,6 +4,9 @@ import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '@/lib/secu
 import { hmsStudentSchema } from '@/lib/schemas';
 import { logger } from '@/lib/logger';
 
+// Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
+export const runtime = 'nodejs';
+
 function isValidEmail(email: string) {
   const re = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   return re.test(email);

@@ -4,6 +4,9 @@ import validateEmail from '../../../src/lib/validateEmail';
 import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '../../../src/lib/security';
 import { getInTouchSchema } from '../../../src/lib/schemas';
 
+// Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
+export const runtime = 'nodejs';
+
 // Server-side API route to accept GET (optional) and POST to store submissions
 export async function POST(request: Request) {
   try {

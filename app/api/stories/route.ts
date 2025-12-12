@@ -5,6 +5,9 @@ import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl } from '@
 import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '@/lib/security';
 import { storySchema } from '@/lib/schemas';
 
+// Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     // Use targeted DB query to fetch only public-facing stories.
