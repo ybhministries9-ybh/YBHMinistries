@@ -1,6 +1,7 @@
 import sharp from 'sharp';
 import { sql } from '@vercel/postgres';
 import { parseKeyFromUrl, getPresignedGetUrl, uploadBuffer, headObject } from '@/lib/r2';
+import { logger } from './logger';
 
 export async function processHeroImageById(heroId: number) {
   // fetch hero row
@@ -62,7 +63,7 @@ export async function processBufferToVariants(buffer: Buffer, basePath: string, 
   try {
     await uploadBuffer(thumbKey, thumbBuffer, 'image/webp', bucket || undefined, 'public, max-age=31536000, immutable');
   } catch (e) {
-    console.error('Thumb upload failed', e);
+    logger.error('Thumb upload failed', e);
     throw e;
   }
 
@@ -72,7 +73,7 @@ export async function processBufferToVariants(buffer: Buffer, basePath: string, 
     const h = await headObject(mediumKey, bucket || undefined);
     if (h) mediumRef = `r2://${bucket}/${mediumKey}`;
   } catch (e) {
-    console.error('Medium upload failed', e);
+    logger.error('Medium upload failed', e);
     mediumRef = null;
   }
 

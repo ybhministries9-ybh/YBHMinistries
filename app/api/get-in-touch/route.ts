@@ -4,6 +4,9 @@ import validateEmail from '../../../src/lib/validateEmail';
 import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '../../../src/lib/security';
 import { getInTouchSchema } from '../../../src/lib/schemas';
 
+// Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
+export const runtime = 'nodejs';
+
 // Server-side API route to accept GET (optional) and POST to store submissions
 export async function POST(request: Request) {
   try {
@@ -136,9 +139,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to save submission', details: saved }, { status: 500 });
     }
 
-    // Use reusable SMTP mailer to send email; do not block response if it fails.
-    (async () => {
-      if (!emailVal) return;
+    // Send confirmation email - must await to ensure it completes before function terminates
+    if (emailVal) {
       try {
         const { sendTransactional } = await import('../../../src/lib/email');
         const subject = `YBH Ministries — We received your message`;
@@ -216,17 +218,12 @@ export async function POST(request: Request) {
           text: plain,
           html,
         });
-        try {
-          const { logger } = await import('../../../src/lib/logger');
-          if (res?.success) {
-            logger.info('Sent confirmation email for get-in-touch', { to: String(emailVal).replace(/(.{2}).+(@.+)/, '$1***$2') });
-          } else {
-            logger.warn('Confirmation email not sent for get-in-touch', { to: String(emailVal).replace(/(.{2}).+(@.+)/, '$1***$2'), error: res?.error });
-          }
-          // TEMPORARY DEBUG: log full sendMail result object to help diagnose production issues.
-          // Use WARN so it is visible in Vercel logs by default. Remove this once debugging is complete.
-          logger.warn('get-in-touch: raw sendMail result', { result: res });
-        } catch (e) {}
+        const { logger } = await import('../../../src/lib/logger');
+        if (res?.success) {
+          logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
+        } else {
+          logger.error('Failed to send confirmation email for get-in-touch', { error: res?.error });
+        }
       } catch (emailErr: any) {
         try {
           const { logger } = await import('../../../src/lib/logger');
@@ -235,7 +232,7 @@ export async function POST(request: Request) {
           // ignore
         }
       }
-    })();
+    }
 
     return NextResponse.json({ success: true, id: (saved as any).id });
   } catch (err: any) {

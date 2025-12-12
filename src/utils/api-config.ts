@@ -38,7 +38,15 @@ export async function apiCall<T>(
     const data = await response.json();
     return { data };
   } catch (error) {
-    console.error('API call error:', error);
+    // use centralized logger
+    // import dynamically to avoid bundling server-only logger into client bundles
+    try {
+      const mod = await import('@/lib/logger');
+      mod.logger.error('API call error', error);
+    } catch (e) {
+      // fallback to console if logger import fails in some environments
+      console.error('API call error:', error);
+    }
     return { error: error instanceof Error ? error.message : 'Network error' };
   }
 }

@@ -4,6 +4,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { fetchYouTubeTitle, fetchYouTubeMeta, extractYouTubeId } from '../../lib/youtube';
+import { logger } from '@/lib/logger';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import DateInput from '../ui/date-input';
@@ -78,7 +79,7 @@ const getPreviewUrl = (val?: string | null) => {
       // Fallback to account endpoint if available
       const account = process.env.NEXT_PUBLIC_R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID || process.env.CF_ACCOUNT_ID;
       if (account) return `https://${account}.r2.cloudflarestorage.com/${bucket}/${encodeKey(key)}`;
-      try { console.warn('[getPreviewUrl] falling back to returning key (no public base/account):', key); } catch (e) {}
+      try { logger.warn('[getPreviewUrl] falling back to returning key (no public base/account)', key); } catch (e) {}
       return key;
     }
     // plain key like resources/books/24/..., prefer public base if available

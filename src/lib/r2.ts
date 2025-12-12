@@ -12,10 +12,12 @@ const NEXT_PUBLIC_R2_PUBLIC_BUCKET = process.env.NEXT_PUBLIC_R2_PUBLIC_BUCKET ||
 // Private bucket env (server-only)
 const PRIVATE_BUCKET = process.env.R2_PRIVATE_BUCKET || process.env.R2_PRIVATE_BUCKET_NAME || process.env.R2_BUCKET;
 
+import { logger } from '@/lib/logger';
+
 if (!ACCOUNT_ID || !ACCESS_KEY_ID || !SECRET_ACCESS_KEY || !BUCKET) {
   // Fail fast in dev so it's obvious when env is missing.
   // In production you may prefer to throw at call time instead.
-  console.warn("R2 configuration incomplete: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, or R2_BUCKET missing");
+  logger.warn('R2 configuration incomplete: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, or R2_BUCKET missing');
 }
 
 const ENDPOINT = ACCOUNT_ID ? `https://${ACCOUNT_ID}.r2.cloudflarestorage.com` : null;
@@ -76,7 +78,7 @@ export async function uploadBuffer(key: string, buffer: Buffer, contentType = "a
   if (!usedBucket) missing.push('R2_BUCKET');
   if (missing.length) {
     const msg = `R2 configuration incomplete: missing ${missing.join(', ')}`;
-    console.error(msg);
+    logger.error(msg);
     throw new Error(msg);
   }
 
@@ -98,22 +100,22 @@ export async function uploadBuffer(key: string, buffer: Buffer, contentType = "a
     if (!isAccessDenied) throw err;
 
     // Log bucket and key to help debug permission issues (do not log secrets)
-    console.error(`R2 access denied for bucket="${usedBucket}" key="${key}" — attempting presigned PUT fallback`);
+    logger.error(`R2 access denied for bucket="${usedBucket}" key="${key}" — attempting presigned PUT fallback`);
 
     try {
       const presigned = await getPresignedPutUrl(key, contentType, 3600, usedBucket);
       // Ensure we pass a plain ArrayBuffer to fetch (avoid Node Buffer typing issues)
       const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-      const resp = await fetch(presigned, { method: 'PUT', headers: { 'Content-Type': contentType }, body: arrayBuffer as any });
+        const resp = await fetch(presigned, { method: 'PUT', headers: { 'Content-Type': contentType }, body: arrayBuffer as any });
       if (!resp.ok) {
         const txt = await resp.text().catch(() => `status ${resp.status}`);
         const presignMsg = `Presigned PUT failed: ${txt}`;
-        console.error(presignMsg);
+        logger.error(presignMsg);
         throw new Error(presignMsg);
       }
       return getPublicUrl(key, usedBucket);
-    } catch (presignErr) {
-      console.error('Presigned PUT fallback failed:', presignErr && (presignErr as any).message ? (presignErr as any).message : presignErr);
+      } catch (presignErr) {
+      logger.error('Presigned PUT fallback failed', presignErr && (presignErr as any).message ? (presignErr as any).message : presignErr);
       // throw original error to keep root cause in logs
       throw err;
     }

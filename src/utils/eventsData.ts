@@ -57,6 +57,8 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  * Fetch events from the database API
  * @returns Promise<Event[]> Array of events from database
  */
+import { logger } from '@/lib/logger';
+
 async function fetchEventsFromAPI(): Promise<Event[]> {
   try {
     const response = await fetch('/api/events');
@@ -66,10 +68,10 @@ async function fetchEventsFromAPI(): Promise<Event[]> {
       return result.data;
     }
     
-    console.warn('Failed to fetch events from API, using fallback data');
+    logger.warn('Failed to fetch events from API, using fallback data');
     return FALLBACK_EVENTS;
   } catch (error) {
-    console.error('Error fetching events:', error);
+    logger.error('Error fetching events', error);
     return FALLBACK_EVENTS;
   }
 }

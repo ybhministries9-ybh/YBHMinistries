@@ -30,6 +30,7 @@ interface Story {
   // Text story fields
   name?: string;
   email?: string;
+  phone?: string;
   role?: string;
   location?: string;
   image?: string;
@@ -54,6 +55,7 @@ interface Story {
 interface ValidationErrors {
   name?: string;
   email?: string;
+  phone?: string;
   role?: string;
   location?: string;
   text?: string;
@@ -323,13 +325,14 @@ export function StoriesManager() {
   // Character limits
   const CHAR_LIMITS = {
     name: 100,
-    role: 50,
+    role: 100,
     location: 100,
     image: 500,
     title: 200,
     youtubeUrl: 500,
-    text: 1000,
-    email: 254
+    text: 5000,
+    email: 254,
+    phone: 15
   };
 
   // Image upload constraints
@@ -364,6 +367,7 @@ export function StoriesManager() {
     if (type === 'text') {
       const name = row.title || existing?.name || '';
       const email = row.email || existing?.email || '';
+      const phone = row.phone || existing?.phone || '';
       // Prefer explicit role/location columns if present, otherwise fall back to legacy `summary` parsing
       let role = '';
       let location = '';
@@ -388,6 +392,7 @@ export function StoriesManager() {
         ...base,
         name,
         email,
+        phone,
         role,
         location,
         image: (row as any).signedThumbUrl || row.thumbnail_url || existing?.image || '',
@@ -429,6 +434,15 @@ export function StoriesManager() {
           errors.email = 'Invalid email address';
         } else if (story.email.length > CHAR_LIMITS.email) {
           errors.email = `Email must be ${CHAR_LIMITS.email} characters or less`;
+        }
+      }
+
+      if (story.phone) {
+        const phoneRe = /^[0-9+()\-\.\s]+$/;
+        if (!phoneRe.test(story.phone)) {
+          errors.phone = 'Invalid phone number';
+        } else if (story.phone.length > CHAR_LIMITS.phone) {
+          errors.phone = `Phone must be ${CHAR_LIMITS.phone} characters or less`;
         }
       }
 
@@ -601,6 +615,7 @@ export function StoriesManager() {
             body: story.type === 'text' ? story.text || null : null,
             // include optional email for text stories
             email: story.type === 'text' ? story.email || null : null,
+            phone: story.type === 'text' ? story.phone || null : null,
             date: story.date || null,
             media_type: story.type,
             video_url: story.type === 'video' ? story.youtubeUrl || null : null,
@@ -654,6 +669,7 @@ export function StoriesManager() {
             updates.role = story.role || null;
             updates.location = story.location || null;
             updates.email = story.email || null;
+            updates.phone = story.phone || null;
             updates.body = story.text || null;
             updates.media_type = 'text';
             updates.thumbnail_url = uploadedThumbnail ?? (story as any).thumbnail_url ?? null;
@@ -1241,22 +1257,6 @@ export function StoriesManager() {
                         {validationErrors[story.id]?.name && (
                           <p className="text-xs text-red-500">{validationErrors[story.id].name}</p>
                         )}
-                        {/* Email (optional) */}
-                        <div className="mt-2">
-                          <Label className="text-gray-300 mb-1">Email</Label>
-                          <Input
-                            value={story.email || ''}
-                            onChange={(e) => handleUpdate(story.id, 'email', e.target.value.slice(0, CHAR_LIMITS.email))}
-                            placeholder="example@domain.com"
-                            className={`!bg-[#2e2e2e] border-gray-600 text-white ${
-                              validationErrors[story.id]?.email ? 'border-red-500' : ''
-                            }`}
-                            maxLength={CHAR_LIMITS.email}
-                          />
-                          {validationErrors[story.id]?.email && (
-                            <p className="text-xs text-red-500">{validationErrors[story.id].email}</p>
-                          )}
-                        </div>
                       </div>
 
                       {/* Role */}
@@ -1278,6 +1278,40 @@ export function StoriesManager() {
                         />
                         {validationErrors[story.id]?.role && (
                           <p className="text-xs text-red-500">{validationErrors[story.id].role}</p>
+                        )}
+                      </div>
+
+                      {/* Email (required) */}
+                      <div className="space-y-2">
+                        <Label className="text-gray-300">Email <span className="text-red-500">*</span> <span className="text-xs text-gray-500 ml-2">({(story.email||'').length}/{CHAR_LIMITS.email})</span></Label>
+                        <Input
+                          value={story.email || ''}
+                          onChange={(e) => handleUpdate(story.id, 'email', e.target.value.slice(0, CHAR_LIMITS.email))}
+                          placeholder="example@domain.com"
+                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
+                            validationErrors[story.id]?.email ? 'border-red-500' : ''
+                          }`}
+                          maxLength={CHAR_LIMITS.email}
+                        />
+                        {validationErrors[story.id]?.email && (
+                          <p className="text-xs text-red-500">{validationErrors[story.id].email}</p>
+                        )}
+                      </div>
+
+                      {/* Phone (optional) */}
+                      <div className="space-y-2">
+                        <Label className="text-gray-300">Phone <span className="text-xs text-gray-500 ml-2">({(story.phone||'').length}/{CHAR_LIMITS.phone})</span></Label>
+                        <Input
+                          value={story.phone || ''}
+                          onChange={(e) => handleUpdate(story.id, 'phone', e.target.value.slice(0, CHAR_LIMITS.phone))}
+                          placeholder="Phone number"
+                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
+                            validationErrors[story.id]?.phone ? 'border-red-500' : ''
+                          }`}
+                          maxLength={CHAR_LIMITS.phone}
+                        />
+                        {validationErrors[story.id]?.phone && (
+                          <p className="text-xs text-red-500">{validationErrors[story.id].phone}</p>
                         )}
                       </div>
 
@@ -1574,6 +1608,9 @@ export function StoriesManager() {
                         </p>
                         {story.email ? (
                           <p className="text-sm text-gray-300 mt-1">{story.email}</p>
+                        ) : null}
+                        {story.phone ? (
+                          <p className="text-sm text-gray-300 mt-1">{story.phone}</p>
                         ) : null}
                         <p className="text-xs text-[#FDB813] mt-1">{story.category}</p>
                       </div>

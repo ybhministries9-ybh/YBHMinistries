@@ -2,6 +2,7 @@
 // This file should be placed in /api/hero-images.ts for Vercel deployment
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { logger } from '@/lib/logger';
 import { sql } from '@vercel/postgres';
 
 export interface HeroImage {
@@ -105,7 +106,7 @@ async function handleHeroImages(req: VercelRequest, res: VercelResponse) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    if (process.env.NODE_ENV !== 'production') console.error('Hero images API error:', error);
+    logger.error('Hero images API error', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

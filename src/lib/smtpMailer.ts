@@ -22,23 +22,30 @@ async function getTransporter() {
   const smtpPass = smtpPassRaw ? String(smtpPassRaw).replace(/\s+/g, '') : smtpPassRaw;
 
   if (!smtpUser || !smtpPass) {
+    logger.warn('[smtpMailer] SMTP credentials not configured - SMTP_USER or SMTP_PASS missing');
     return null;
   }
 
-  _transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpSecure,
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  });
-
   try {
+    _transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+      // Connection timeout settings for serverless environments
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+
     await _transporter.verify();
-  } catch (e) {
-    // verification failed; keep transporter but callers will see send errors
+    logger.info('[smtpMailer] SMTP transporter verified successfully');
+  } catch (e: any) {
+    logger.error('[smtpMailer] SMTP transporter verification failed', e?.message || e);
+    // Keep transporter anyway - send may still work in some cases
   }
 
   return _transporter;
