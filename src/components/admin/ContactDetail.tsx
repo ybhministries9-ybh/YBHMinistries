@@ -3,8 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import HMSStudentForm from './HMSStudentFormAdmin';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
+import { toast } from 'sonner';
 
 function getAuthHeader() {
   try {
@@ -21,7 +20,7 @@ function getAuthHeader() {
 export default function ContactDetail({ id, forcedTypeProp }: { id: string, forcedTypeProp?: string }) {
   const [record, setRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const router = useRouter();
 
   const searchParams = useSearchParams();
@@ -99,15 +98,6 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
     return () => { mounted = false; };
   }, [id, forcedType, searchParams, forcedTypeProp]);
 
-  const formatDateForInput = (raw?: string | null) => {
-    if (!raw) return '';
-    try {
-      const d = new Date(raw);
-      if (Number.isNaN(d.getTime())) return String(raw).split('T')[0] || '';
-      return d.toISOString().split('T')[0];
-    } catch (e) { return String(raw).split('T')[0] || ''; }
-  };
-
   const recordToInitial = (rec: any) => {
     if (!rec) return undefined;
     return {
@@ -151,6 +141,40 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
       emergencyRelationship: rec.emergency_relationship || '',
       emergencyContact: rec.emergency_contact || ''
     };
+  };
+
+  const handleStatusUpdate = async (newStatus: 'Accepted' | 'Rejected' | 'Enrolled') => {
+    if (!record?.id) return;
+    setUpdatingStatus(true);
+    try {
+      const resp = await fetch('/api/admin/hms-students', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
+        body: JSON.stringify({ id: record.id, updates: { status: newStatus } })
+      });
+      const j = await resp.json();
+      if (!resp.ok || !j.success) {
+        toast.error(j?.error || `Failed to update status to ${newStatus}`);
+        return;
+      }
+      setRecord({ ...record, status: newStatus });
+      toast.success(`Status updated to ${newStatus}`);
+    } catch (err) {
+      console.error('status update error', err);
+      toast.error('Failed to update status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Submitted': return 'bg-yellow-900/30 text-yellow-400 border-yellow-600';
+      case 'Accepted': return 'bg-blue-900/30 text-blue-400 border-blue-600';
+      case 'Rejected': return 'bg-red-900/30 text-red-400 border-red-600';
+      case 'Enrolled': return 'bg-green-900/30 text-green-400 border-green-600';
+      default: return 'bg-gray-800 text-gray-400 border-gray-600';
+    }
   };
 
   if (loading) return <div className="p-6 text-white">Loading...</div>;
@@ -217,10 +241,15 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         </button>
       </div>
 
-      {/* Centered title and subtitle */}
+      {/* Centered title and subtitle with status badge */}
       <div className="mb-6 text-center px-2">
         <h2 className="text-2xl font-bold">Enrollment #{record.id}</h2>
         <div className="text-sm text-gray-300 mt-1">View the enrollment details.</div>
+        <div className="mt-3">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(record.status || 'Submitted')}`}>
+            Status: {record.status || 'Submitted'}
+          </span>
+        </div>
       </div>
 
       <div>
@@ -230,6 +259,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             submitUrl={'/api/admin/hms-students'}
             submitMethod={'PUT'}
             onClose={() => router.push('/admin/contacts')}
+            hideCloseButton={true}
             onSubmitOverride={async (formData) => {
               // transform to DB column names and send to admin PUT
               const updates: any = { ...formData };
@@ -275,6 +305,59 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
               }
             }}
           />
+
+          {/* Status Update Buttons */}
+          <div className="mt-8 p-6 bg-[#2e2e2e] rounded-lg border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4">Update Enrollment Status</h3>
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={() => handleStatusUpdate('Accepted')}
+                disabled={updatingStatus || record.status === 'Accepted'}
+                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                  record.status === 'Accepted'
+                    ? 'bg-blue-600 text-white cursor-not-allowed opacity-70'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {record.status === 'Accepted' ? '✓ Accepted' : 'Accept'}
+              </button>
+              <button
+                onClick={() => handleStatusUpdate('Rejected')}
+                disabled={updatingStatus || record.status === 'Rejected'}
+                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                  record.status === 'Rejected'
+                    ? 'bg-red-600 text-white cursor-not-allowed opacity-70'
+                    : 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
+                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {record.status === 'Rejected' ? '✓ Rejected' : 'Reject'}
+              </button>
+              <button
+                onClick={() => handleStatusUpdate('Enrolled')}
+                disabled={updatingStatus || record.status === 'Enrolled'}
+                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                  record.status === 'Enrolled'
+                    ? 'bg-green-600 text-white cursor-not-allowed opacity-70'
+                    : 'bg-green-600 hover:bg-green-700 text-white cursor-pointer'
+                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {record.status === 'Enrolled' ? '✓ Enrolled' : 'Enrolled'}
+              </button>
+            </div>
+            {updatingStatus && (
+              <div className="mt-3 text-sm text-gray-400">Updating status...</div>
+            )}
+          </div>
+
+          {/* Close Button */}
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={() => router.push('/admin/contacts')}
+              className="px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded border border-[#FDB813] text-center transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

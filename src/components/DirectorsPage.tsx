@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, memo, lazy, Suspense } from 'react';
+import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Music, Globe, Mail, Youtube, Instagram, ExternalLink, ChevronRight, Award, Mic, BookOpen, Heart, Users, Calendar, MapPin } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -27,7 +27,7 @@ const IMAGE_URLS = {
 // as IMAGE_URLS keys. If a signed URL isn't available we'll fall back to the
 // original IMAGE_URLS value.
 
-// Memoized Image Component with lazy loading
+// Memoized Image Component with lazy loading and priority support
 const OptimizedImage = memo(({ src, alt, className, priority = false }: { src: string; alt: string; className: string; priority?: boolean }) => {
   return (
     <ImageWithFallback
@@ -35,7 +35,8 @@ const OptimizedImage = memo(({ src, alt, className, priority = false }: { src: s
       alt={alt}
       className={className}
       loading={priority ? "eager" : "lazy"}
-      decoding="async"
+      decoding={priority ? "sync" : "async"}
+      priority={priority}
     />
   );
 });
@@ -66,39 +67,45 @@ export function DirectorsPage() {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const router = useRouter();
 
-  // Previously we attempted to presign R2 objects for some image paths.
-  // To simplify and avoid presign failures on static/public assets, just
-  // use the values from `IMAGE_URLS` directly. If images are served from
-  // `/public/images/...` they will resolve without any server presign.
+  // Set up image URLs directly (static/public assets don't need presigning)
   useEffect(() => {
     const out: Record<string, string> = {};
     Object.entries(IMAGE_URLS).forEach(([k, v]) => {
       out[k] = v as string;
     });
     setSignedUrls(out);
-    // no cleanup required
+    
+    // Preload ALL director images on mount for instant tab switching
+    const preloadLinks: HTMLLinkElement[] = [];
+    Object.entries(IMAGE_URLS).forEach(([key, url], index) => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = url;
+      // First image (active tab) gets high priority
+      if (index === 0) {
+        link.setAttribute('fetchpriority', 'high');
+      }
+      document.head.appendChild(link);
+      preloadLinks.push(link);
+    });
+    
+    return () => {
+      preloadLinks.forEach(link => {
+        if (document.head.contains(link)) {
+          document.head.removeChild(link);
+        }
+      });
+    };
   }, []);
 
-  // Preload current tab image (prefer signed URL when available)
+  // Mark image as preloaded when tab changes
   useEffect(() => {
     const currentImage = signedUrls[activeTab as keyof typeof IMAGE_URLS] || IMAGE_URLS[activeTab as keyof typeof IMAGE_URLS];
     if (currentImage) {
       const img = new Image();
       img.src = currentImage;
       img.onload = () => setImagePreloaded(true);
-
-      // Preload link for faster loading
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'image';
-      link.href = currentImage;
-      document.head.appendChild(link);
-
-      return () => {
-        if (document.head.contains(link)) {
-          document.head.removeChild(link);
-        }
-      };
     }
   }, [activeTab, signedUrls]);
 
@@ -864,6 +871,7 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accent
                 src={signedUrls?.vijaya || IMAGE_URLS.vijaya}
                 alt="Ps. Vijaya Kumari Dandingi"
                 className="object-cover w-full h-auto rounded-xl"
+                priority={true}
               />
             </div>
           </div>
@@ -1039,6 +1047,7 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accen
                 src={signedUrls?.charles || IMAGE_URLS.charles}
                 alt="Charles Aaron Benedict"
                 className="object-cover w-full h-auto rounded-xl"
+                priority={true}
               />
             </div>
           </div>
@@ -1207,6 +1216,7 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentC
                 src={signedUrls?.nancy || IMAGE_URLS.nancy}
                 alt="Nancy Ophir Augustina"
                 className="object-cover w-full h-auto rounded-xl"
+                priority={true}
               />
             </div>
           </div>

@@ -64,13 +64,15 @@ export function HMSStudentFormAdmin({
   initialData,
   submitUrl,
   submitMethod,
-  onSubmitOverride
+  onSubmitOverride,
+  hideCloseButton
 }: {
   onClose?: () => void;
   initialData?: Partial<FormData>;
   submitUrl?: string;
   submitMethod?: 'POST' | 'PUT';
   onSubmitOverride?: (data: FormData) => Promise<any>;
+  hideCloseButton?: boolean;
 }) {
   const { t } = useTranslation('contact');
   const mergedDefaults: Partial<FormData> = {
@@ -272,7 +274,13 @@ export function HMSStudentFormAdmin({
                     required: t('studentForm.validation.dateOfBirthRequired'),
                     validate: (value: Date | string) => {
                       if (!value) return t('studentForm.validation.ageMinimum');
-                      const date = value instanceof Date ? value : (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(value) : null);
+                      let date: Date | null = null;
+                      if (value instanceof Date) {
+                        date = value;
+                      } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                        const [year, month, day] = value.split('-').map(Number);
+                        date = new Date(year, month - 1, day);
+                      }
                       if (!date || isNaN(date.getTime())) return 'Please select a valid date';
                       const today = new Date();
                       if (date > today) return 'Date of birth cannot be in the future';
@@ -283,18 +291,29 @@ export function HMSStudentFormAdmin({
                       return true;
                     }
                   }}
-                  render={({ field }) => (
+                  render={({ field }) => {
+                    // Parse date string without timezone to avoid date shifts
+                    let selectedDate: Date | null = null;
+                    if (field.value instanceof Date) {
+                      selectedDate = field.value;
+                    } else if (typeof field.value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(field.value)) {
+                      const [year, month, day] = field.value.split('-').map(Number);
+                      selectedDate = new Date(year, month - 1, day);
+                    }
+                    
+                    return (
                       <DatePicker
-                      selected={field.value instanceof Date ? field.value : (typeof field.value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(field.value) ? new Date(field.value) : null)}
-                      onChange={(d: Date | null) => field.onChange(d)}
-                      dateFormat="dd-MM-yyyy"
-                      maxDate={new Date()}
-                      placeholderText={display(field.value) === '-' ? '-' : t('studentForm.placeholders.dateOfBirth')}
-                      className={`w-full px-4 py-2 bg-black rounded-md border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
-                      showPopperArrow={false}
-                      disabled
-                    />
-                  )}
+                        selected={selectedDate}
+                        onChange={(d: Date | null) => field.onChange(d)}
+                        dateFormat="dd-MM-yyyy"
+                        maxDate={new Date()}
+                        placeholderText={display(field.value) === '-' ? '-' : t('studentForm.placeholders.dateOfBirth')}
+                        className={`w-full px-4 py-2 bg-black rounded-md border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                        showPopperArrow={false}
+                        disabled
+                      />
+                    );
+                  }}
                 />
               </div>
               {errors.dateOfBirth && (
@@ -960,15 +979,17 @@ export function HMSStudentFormAdmin({
         </section>
 
         {/* Close Button Only */}
-        <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={() => onClose && onClose()}
-            className="px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded border border-[#FDB813] text-center transition-colors"
-          >
-            Close
-          </button>
-        </div>
+        {!hideCloseButton && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => onClose && onClose()}
+              className="px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded border border-[#FDB813] text-center transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

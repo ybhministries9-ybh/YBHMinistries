@@ -19,11 +19,19 @@ export function HeaderNext() {
   const headerRef = useRef<HTMLElement>(null);
 
   // New menu structure based on client requirements with translations
-  const menuItems: MenuItem[] = [
-    {
-      label: t('header.menu.home'),
-      url: '/'
-    },
+  // Separate HOME and DONATE from the main menu items for custom positioning
+  const homeItem: MenuItem = {
+    label: t('header.menu.home'),
+    url: '/'
+  };
+
+  const donateItem: MenuItem = {
+    label: t('header.menu.donate'),
+    url: '/donate'
+  };
+
+  // Middle menu items (excluding HOME and DONATE)
+  const middleMenuItems: MenuItem[] = [
     {
       label: t('header.menu.about'),
       url: '/about'
@@ -59,12 +67,11 @@ export function HeaderNext() {
     {
       label: t('header.menu.contact'),
       url: '/contact'
-    },
-    {
-      label: t('header.menu.donate'),
-      url: '/donate'
     }
   ];
+
+  // All menu items for mobile (including HOME and DONATE)
+  const menuItems: MenuItem[] = [homeItem, ...middleMenuItems, donateItem];
 
   // Calculate header height on mount and resize
   useEffect(() => {
@@ -113,16 +120,27 @@ export function HeaderNext() {
       <nav className={`shadow-md ${isMenuOpen ? 'block' : 'hidden lg:block'}`} style={{ backgroundColor: '#2E2E2E' }}>
         <div className="container mx-auto px-4 py-4 lg:py-2">
           <div className="flex items-center justify-center lg:justify-between">
-            {/* Desktop Navigation - All menus evenly distributed */}
-            <div className="hidden lg:flex items-center justify-evenly w-full">
-              {menuItems.map((item) => (
+            {/* Desktop Navigation - All items evenly distributed from HOME to DONATE */}
+            <div className="hidden lg:flex items-center justify-between w-full">
+              {/* HOME */}
+              <Link
+                href={homeItem.url || '/'}
+                className={`px-3 py-1 text-sm ${
+                  isMenuItemActive(homeItem)
+                    ? 'text-yellow-400 bg-gray-800'
+                    : 'text-white hover:text-yellow-400 hover:bg-gray-800'
+                } rounded transition-colors cursor-pointer font-bold`}
+              >
+                {homeItem.label}
+              </Link>
+
+              {/* Middle menu items */}
+              {middleMenuItems.map((item) => (
                 <Link
                   key={item.label}
                   href={item.url || '/'}
                   className={`px-2 py-1 text-sm ${
-                    item.label === 'DONATE'
-                      ? 'text-black bg-[#FDB813] hover:bg-[#DAA520] animate-gentle-pulse'
-                      : isMenuItemActive(item)
+                    isMenuItemActive(item)
                       ? 'text-yellow-400 bg-gray-800'
                       : 'text-white hover:text-yellow-400 hover:bg-gray-800'
                   } rounded transition-colors cursor-pointer font-bold`}
@@ -130,6 +148,14 @@ export function HeaderNext() {
                   {item.label}
                 </Link>
               ))}
+
+              {/* DONATE */}
+              <Link
+                href={donateItem.url || '/'}
+                className="px-3 py-1 text-sm text-black bg-[#FDB813] hover:bg-[#DAA520] animate-gentle-pulse rounded transition-colors cursor-pointer font-bold"
+              >
+                {donateItem.label}
+              </Link>
             </div>
           </div>
         </div>

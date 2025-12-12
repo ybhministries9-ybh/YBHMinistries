@@ -489,7 +489,7 @@ export function EventsManager() {
         <Button
           title="Add a new event"
           onClick={handleAdd}
-          className="bg-[#2E2E2E] text-white border border-[#FDB813] hover:bg-[#2b2b2b] px-4 py-2 rounded-md font-semibold flex items-center gap-2"
+          className="bg-[#2E2E2E] text-white border border-[#FDB813] hover:bg-[#3E3E3E] px-4 py-2 rounded-md font-semibold flex items-center gap-2"
         >
           <Plus size={16} className="text-white mr-2" />
           Add Event

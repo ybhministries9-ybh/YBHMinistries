@@ -95,7 +95,12 @@ export async function sendMail(payload: MailPayload) {
   };
 
   if (!transporter) {
-    // No SMTP configured — return a dev-friendly result
+    // No SMTP configured — log a warning so deployed logs surface the issue.
+    try {
+      logger.warn('SMTP not configured; skipping sendMail', { to: payload.to, subject: payload.subject });
+    } catch (e) {
+      // ignore logging errors
+    }
     return { success: false, error: 'no_smtp', mailOptions };
   }
 
@@ -103,6 +108,7 @@ export async function sendMail(payload: MailPayload) {
     const result = await transporter.sendMail(mailOptions as any);
     return { success: true, result };
   } catch (err: any) {
+    try { logger.error('SMTP sendMail failed', { error: String(err?.message || err), to: payload.to, subject: payload.subject }); } catch (e) {}
     return { success: false, error: String(err?.message || err), details: err };
   }
 }

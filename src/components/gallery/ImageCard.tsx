@@ -19,6 +19,9 @@ type Props = {
 };
 
 function ImageCard({ image, index, title, onClick, eager = false }: Props) {
+  // First 4 images get priority loading for fastest LCP
+  const isPriority = eager && index < 4;
+  
   return (
     <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={onClick}>
       <ImageWithFallback
@@ -27,6 +30,7 @@ function ImageCard({ image, index, title, onClick, eager = false }: Props) {
         className="w-full h-auto object-cover hover:scale-105 transition-transform duration-300"
         loading={eager ? 'eager' : 'lazy'}
         enableResponsive={false}
+        priority={isPriority}
       />
     </div>
   );

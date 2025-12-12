@@ -1097,7 +1097,7 @@ export function StoriesManager() {
         <div className="flex gap-2">
           <Button
             onClick={handleAddTextStory}
-            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#0d0d0d] transition-colors cursor-pointer"
+            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#3E3E3E] transition-colors cursor-pointer"
           >
             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
               <Plus size={14} className="text-white" />
@@ -1106,7 +1106,7 @@ export function StoriesManager() {
           </Button>
           <Button
             onClick={handleAddVideoStory}
-            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#0d0d0d] transition-colors cursor-pointer"
+            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#3E3E3E] transition-colors cursor-pointer"
           >
             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
               <Plus size={14} className="text-white" />

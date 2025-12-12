@@ -68,6 +68,17 @@ export async function POST(request: Request) {
       }
       emailVal = v.normalized || null;
     }
+    // Log whether an email was provided (obfuscated) to help diagnose delivery issues
+    try {
+      const { logger } = await import('../../../src/lib/logger');
+      const obfuscate = (e: string | null) => {
+        if (!e) return null;
+        return e.replace(/(.{2}).+(@.+)/, '$1***$2');
+      };
+      logger.info('get-in-touch: email presence', { hasEmail: !!emailVal, email: obfuscate(emailVal) });
+    } catch (e) {
+      // ignore logging errors
+    }
     if (!messageClean || messageClean.length < 10) {
       return NextResponse.json({ error: 'Message is required and must be at least 10 characters.' }, { status: 400 });
     }
@@ -131,7 +142,7 @@ export async function POST(request: Request) {
     // Send confirmation email - must await to ensure it completes before function terminates
     if (emailVal) {
       try {
-        const { sendMail } = await import('../../../src/lib/smtpMailer');
+        const { sendTransactional } = await import('../../../src/lib/email');
         const subject = `YBH Ministries — We received your message`;
         const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
 
@@ -194,7 +205,12 @@ export async function POST(request: Request) {
           </div>
         `;
 
-        const res = await sendMail({
+        try {
+          const { logger } = await import('../../../src/lib/logger');
+          logger.info('get-in-touch: attempting confirmation send', { to: String(emailVal).replace(/(.{2}).+(@.+)/, '$1***$2') });
+        } catch (e) {}
+
+        const res = await sendTransactional({
           from: process.env.EMAIL_FROM || undefined,
           to: emailVal,
           replyTo: process.env.SMTP_USER || undefined,
