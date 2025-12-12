@@ -96,10 +96,9 @@ export async function POST(request: Request) {
     const created = rows[0];
 
     // Send a confirmation email to the submitter with only the filled fields.
-    // Non-blocking: do not delay the API response if email sending fails.
-    (async () => {
+    // Must await to ensure it completes before serverless function terminates.
+    if (email) {
       try {
-        if (!email) return;
         const { sendMail } = await import('@/lib/smtpMailer');
         const { logger } = await import('@/lib/logger');
 
@@ -149,11 +148,15 @@ export async function POST(request: Request) {
           html,
         });
 
-        if (process.env.ENABLE_VERBOSE_LOGS === 'true') logger.info('Stories email send result', { to: email, result: res });
+        if (res?.success) {
+          logger.info('Stories confirmation email sent', { to: email });
+        } else {
+          logger.error('Stories confirmation email failed', { to: email, error: res?.error });
+        }
       } catch (e) {
-        try { const { logger } = await import('@/lib/logger'); if (process.env.ENABLE_VERBOSE_LOGS === 'true') logger.error('Failed sending stories email', { error: (e as any)?.message || e }); } catch (_) {}
+        try { const { logger } = await import('@/lib/logger'); logger.error('Failed sending stories email', { error: (e as any)?.message || e }); } catch (_) {}
       }
-    })();
+    }
 
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (err) {

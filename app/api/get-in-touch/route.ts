@@ -128,9 +128,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to save submission', details: saved }, { status: 500 });
     }
 
-    // Use reusable SMTP mailer to send email; do not block response if it fails.
-    (async () => {
-      if (!emailVal) return;
+    // Send confirmation email - must await to ensure it completes before function terminates
+    if (emailVal) {
       try {
         const { sendMail } = await import('../../../src/lib/smtpMailer');
         const subject = `YBH Ministries — We received your message`;
@@ -204,12 +203,10 @@ export async function POST(request: Request) {
           html,
         });
         const { logger } = await import('../../../src/lib/logger');
-        if (process.env.ENABLE_VERBOSE_LOGS === 'true') {
-          if (res?.success) {
-            logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
-          } else {
-            logger.error('Failed to send confirmation email for get-in-touch', { error: res?.error });
-          }
+        if (res?.success) {
+          logger.info('Sent confirmation email for get-in-touch', { to: emailVal });
+        } else {
+          logger.error('Failed to send confirmation email for get-in-touch', { error: res?.error });
         }
       } catch (emailErr: any) {
         try {
@@ -219,7 +216,7 @@ export async function POST(request: Request) {
           // ignore
         }
       }
-    })();
+    }
 
     return NextResponse.json({ success: true, id: (saved as any).id });
   } catch (err: any) {

@@ -178,10 +178,9 @@ export async function POST(request: Request) {
     }
 
     // Send a confirmation/receipt email to the provided email address (if present).
-    // Do not block the API response on email delivery.
-    (async () => {
+    // Must await to ensure it completes before serverless function terminates.
+    if (email) {
       try {
-        if (!email) return;
         const { sendMail } = await import('@/lib/smtpMailer');
 
         // Build a list of filled fields only, and format labels/values to title case
@@ -314,16 +313,16 @@ export async function POST(request: Request) {
           html,
         });
 
-        try {
-          const { logger } = await import('@/lib/logger');
-          if (process.env.ENABLE_VERBOSE_LOGS === 'true') {
-            logger.info('HMS student email send result', { to: email, result: res });
-          }
-        } catch (e) {}
+        const { logger: emailLogger } = await import('@/lib/logger');
+        if (res?.success) {
+          emailLogger.info('HMS student email sent successfully', { to: email });
+        } else {
+          emailLogger.error('HMS student email send failed', { to: email, error: res?.error });
+        }
       } catch (e) {
         try { logger.error('Failed to send HMS student email', { error: (e as any)?.message || e }); } catch (_) {}
       }
-    })();
+    }
 
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (err) {
