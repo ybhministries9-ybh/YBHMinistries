@@ -84,5 +84,7 @@
             "build": "next build",
             "start": "next start",
             "lint": "next lint"
+            ,
+            "upgrade-next-check": "node ./scripts/upgrade-next-check.js"
       }
 }
