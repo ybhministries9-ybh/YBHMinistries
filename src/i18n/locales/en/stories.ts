@@ -16,39 +16,39 @@ export default {
   
   tabs: {
     guinness: {
-      label: "Guinness",
-      title: "Guinness World Records",
-      description: "Celebrating extraordinary achievements recognized by the global authority on record-breaking."
-    },
-    asian: {
-      label: "Asian Book",
-      title: "Asian Book of Records",
-      description: "Honoring remarkable accomplishments across Asia and preserving them for future generations."
-    },
-    ingenious: {
-      label: "Ingenious Charm",
-      title: "Ingenious Charm World Record",
-      description: "Celebrating creativity and innovation through record-breaking achievements."
-    },
-    international: {
-      label: "International Star",
-      title: "International Star Book of Records",
-      description: "Recognizing outstanding achievements and contributions to society across the globe."
-    },
-    songwriting: {
-      label: "Song Writing Classes",
-      title: "Song Writing Classes",
-      description: "Training and equipping worship leaders and songwriters to compose anointed worship music."
+      label: "Guinness Records",
+      title: "Guinness Records",
+      description: "Celebrating extraordinary achievements recognized by Guinness World Records"
     },
     bibleschool: {
-      label: "Bible School Training",
-      title: "Bible School Training",
-      description: "Equipping believers with biblical knowledge and spiritual formation for ministry."
+      label: "Hallel Bible School",
+      title: "Hallel Bible School",
+      description: "Bible School training that equips believers with solid biblical teaching and practical ministry formation."
+    },
+    international: {
+      label: "Hallel Conference",
+      title: "Hallel Conference",
+      description: "Testimonies from Hallel conferences that highlight outstanding achievements and contributions."
+    },
+    ingenious: {
+      label: "LCM Classes",
+      title: "LCM Classes",
+      description: "Training and equipping learners through the London College of Music (LCM) classes."
+    },
+    asian: {
+      label: "Online School",
+      title: "Online School",
+      description: "Online training and courses offered by Hallel's school and ministries."
+    },
+    songwriting: {
+      label: "Song Books",
+      title: "Song Books",
+      description: "Collections and classes focused on songwriting and worship composition."
     },
     hallel: {
-      label: "Kids Summer Training",
-      title: "Kids Summer Training",
-      description: "Nurturing the next generation of worshippers through music and biblical training."
+      label: "Summer Camp",
+      title: "Summer Camp",
+      description: "Nurturing the next generation of worshippers through Summer Camps."
     }
   },
   

@@ -21,7 +21,7 @@ export default {
   
   records: {
     guinness: {
-      name: "Guinness World Record",
+      name: "Guinness World Records",
       award: "Most Videos of People Playing a Keyboard Instrument Uploaded to Instagram in One Hour",
       year: "2024",
       participants: "1046 people",

@@ -32,7 +32,9 @@ export async function GET() {
         return { ...s };
       }
     }));
-    return NextResponse.json({ success: true, data: enhanced });
+    // Remove contact fields (email, phone) from public response to avoid exposing private data
+    const publicResponse = enhanced.map(({ email, phone, ...rest }: any) => rest);
+    return NextResponse.json({ success: true, data: publicResponse });
   } catch (err) {
     console.error('GET /api/stories error', err);
     return NextResponse.json({ success: false, error: 'Failed to fetch stories' }, { status: 500 });
