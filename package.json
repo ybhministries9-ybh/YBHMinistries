@@ -84,6 +84,10 @@
             "rimraf": "^4.0.1",
             "@fast-csv/format": "5.0.5",
             "unzipper": "0.12.3"
+      ,
+            "esbuild": "0.25.0",
+            "path-to-regexp": "6.3.0",
+            "undici": "5.29.0"
       },
       "scripts": {
             "dev": "next dev",
