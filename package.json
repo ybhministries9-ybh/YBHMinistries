@@ -79,6 +79,12 @@
             "typescript": "^5.9.3",
             "vite": "6.3.5"
       },
+      "overrides": {
+            "glob": "10.5.0",
+            "rimraf": "^4.0.1",
+            "@fast-csv/format": "5.0.5",
+            "unzipper": "0.12.3"
+      },
       "scripts": {
             "dev": "next dev",
             "build": "next build",
@@ -86,5 +92,7 @@
             "lint": "next lint"
             ,
             "upgrade-next-check": "node ./scripts/upgrade-next-check.js"
+            ,
+            "fuzz-app-router": "node ./scripts/fuzz-app-router.js"
       }
 }

@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     }));
 
     // Generate Excel file
-    const excelBuffer = generateExcelBuffer({
+    const excelBuffer = await generateExcelBuffer({
       data: exportData,
       sheetName: 'Get In Touch',
       filename: generateExportFilename('get-in-touch-export', month, year),
