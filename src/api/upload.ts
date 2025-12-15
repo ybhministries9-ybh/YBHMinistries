@@ -2,7 +2,7 @@
 // This handles image and video uploads to Vercel Blob Storage
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/vercelBlob';
 import { IncomingForm, Fields, Files, File } from 'formidable';
 
 // Disable body parsing, as formidable will handle it

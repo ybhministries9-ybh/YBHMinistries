@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { del } from '@vercel/blob';
+import { del } from '@/lib/vercelBlob';
 import { withApiGuard, safeParseJson } from '@/lib/apiGuard';
 
 export const dynamic = 'force-dynamic';

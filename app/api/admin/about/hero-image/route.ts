@@ -3,7 +3,7 @@ import { getActiveAboutHeroImage, upsertAboutHeroImage, deleteAboutHeroImage } f
 import { sql } from '@vercel/postgres';
 import { verifySession, getActorName } from '@/lib/sessions';
 import { uploadBuffer, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
-import { del } from '@vercel/blob';
+import { del } from '@/lib/vercelBlob';
 
 /**
  * GET /api/admin/about/hero-image

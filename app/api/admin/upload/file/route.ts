@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/vercelBlob';
 import { withApiGuard, streamUploadGuard, ApiError } from '@/lib/apiGuard';
 
 /**

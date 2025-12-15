@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put, del } from '@vercel/blob';
+import { put, del } from '@/lib/vercelBlob';
 import { sql } from '@vercel/postgres';
 import { withApiGuard, safeParseJson } from '@/lib/apiGuard';
 

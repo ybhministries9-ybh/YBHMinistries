@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllStories, createStory, updateStory, deleteStories } from '@/lib/db';
 import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl, deleteObject } from '@/lib/r2';
-import { del } from '@vercel/blob';
+import { del } from '@/lib/vercelBlob';
 import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 import { sql } from '@vercel/postgres';
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { del } from '@vercel/blob';
+import { del } from '@/lib/vercelBlob';
 import { uploadBuffer, getPublicUrl, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl } from '@/lib/r2';
 import { createHeroImage, updateHeroImage, deleteHeroImage, deleteHeroImages, reorderHeroImages, getActiveHeroImages } from '@/lib/db';
 import { sql } from '@vercel/postgres';
