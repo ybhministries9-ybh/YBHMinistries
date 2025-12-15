@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { del } from '@vercel/blob';
+import { del } from '@/lib/vercelBlob';
 import { uploadBuffer, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl, headObject } from '@/lib/r2';
 import { upsertHomeVideo, getActiveHomeVideo } from '@/lib/db';
 import { sql } from '@vercel/postgres';

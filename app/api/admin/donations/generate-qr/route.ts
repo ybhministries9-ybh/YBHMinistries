@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import QRCode from 'qrcode';
-import { del } from '@vercel/blob';
-import { put } from '@vercel/blob';
+import { del } from '@/lib/vercelBlob';
+import { put } from '@/lib/vercelBlob';
 import { sql } from '@vercel/postgres';
 
 export const dynamic = 'force-dynamic';

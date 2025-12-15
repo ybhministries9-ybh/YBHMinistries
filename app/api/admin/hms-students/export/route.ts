@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     }));
 
     // Generate Excel file
-    const excelBuffer = generateExcelBuffer({
+    const excelBuffer = await generateExcelBuffer({
       data: exportData,
       sheetName: 'HMS Enrollments',
       filename: generateExportFilename('hms-enrollments-export', month, year),

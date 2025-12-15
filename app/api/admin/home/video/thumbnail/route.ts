@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { del } from '@vercel/blob';
+import { del } from '@/lib/vercelBlob';
 import { sql } from '@vercel/postgres';
 import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 import { parseKeyFromUrl, deleteObject } from '@/lib/r2';

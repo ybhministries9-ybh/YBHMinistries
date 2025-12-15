@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { del } from '@vercel/blob';
+import { del } from '@/lib/vercelBlob';
 import { uploadBuffer, getPublicUrl, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl } from '@/lib/r2';
 import { createHeroImage, updateHeroImage, deleteHeroImage, deleteHeroImages, reorderHeroImages, getActiveHeroImages } from '@/lib/db';
 import { sql } from '@vercel/postgres';
 import { verifySession, getActorName } from '@/lib/sessions';
+import { withApiGuard, streamUploadGuard, safeParseJson, ApiError } from '@/lib/apiGuard';
 import processHeroImageById, { processBufferToVariants } from '@/lib/imageProcessor';
 
 /**
@@ -57,89 +58,82 @@ export async function GET(request: NextRequest) {
  * POST /api/admin/home/hero-images
  * Upload new hero image(s)
  */
-export async function POST(request: NextRequest) {
-  try {
-    const formData = await request.formData();
-    const files = formData.getAll('files') as File[];
-    // verify session and resolve actor
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    const createdBy = await getActorName(token);
-    
-    if (!files || files.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'No files provided' },
-        { status: 400 }
-      );
-    }
+export const POST = withApiGuard(async (request: NextRequest) => {
+  // Enforce upload limits for hero images and prevent slow parsing
+  await streamUploadGuard(request, 5_000_000);
+  const parsePromise = request.formData();
+  const timeout = new Promise((_, rej) => setTimeout(() => rej(new ApiError(408, 'Request timeout')), 20_000));
+  const formData = await Promise.race([parsePromise, timeout]) as FormData;
+  const files = formData.getAll('files') as File[];
+  // verify session and resolve actor
+  const auth = request.headers.get('authorization') || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
+  const session = await verifySession(token);
+  if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const createdBy = await getActorName(token);
 
-    const uploadedImages = [];
-
-    for (const file of files) {
-      // Upload to Cloudflare R2 using server-side helper
-      const originalName = file.name || `upload-${Date.now()}`;
-      const sanitized = originalName.replace(/[^a-zA-Z0-9.\-_/]/g, '_');
-      const baseKey = `home/hero/${Date.now()}-${sanitized}`;
-
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      // Convert uploaded image to WebP (resize to sensible max width) and upload as the canonical image
-      try {
-        const webpBuffer = await (await import('sharp')).default(buffer).resize({ width: 2000, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
-        const webpKey = `${baseKey}.webp`;
-        await uploadBuffer(webpKey, webpBuffer, 'image/webp', PRIVATE_BUCKET, 'public, max-age=31536000, immutable');
-        const storageRef = `r2://${PRIVATE_BUCKET}/${webpKey}`;
-
-        // Save to database using internal r2:// reference
-        const heroImage = await createHeroImage(storageRef, undefined, createdBy);
-
-        // Generate medium + thumb variants synchronously (webp) and store refs in DB
-        try {
-          const { thumbRef, mediumRef } = await processBufferToVariants(buffer, 'home/hero', PRIVATE_BUCKET);
-          try {
-            await sql.query(`UPDATE home_hero_images SET thumbnail_url = $1, medium_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`, [thumbRef, mediumRef, heroImage.id]);
-          } catch (updErr) {
-            console.error('Failed to update hero image with variant refs', heroImage.id, updErr);
-          }
-        } catch (variantErr) {
-          console.error('Failed to create medium/thumb variants', variantErr);
-        }
-
-        uploadedImages.push(heroImage);
-      } catch (convErr) {
-        console.error('Failed to convert/upload webp original for', sanitized, convErr);
-        // Fallback: upload original file as before so admin can still use it
-        const key = `${baseKey}${file.name?.includes('.') ? '' : ''}`;
-        await uploadBuffer(key, buffer, file.type || 'application/octet-stream', PRIVATE_BUCKET);
-        const storageRef = `r2://${PRIVATE_BUCKET}/${key}`;
-        const heroImage = await createHeroImage(storageRef, undefined, createdBy);
-        // enqueue older processing path for later
-        try {
-          const insertSql = `INSERT INTO image_processing_queue (hero_image_id, r2_bucket, r2_key, status) VALUES ($1, $2, $3, 'pending')`;
-          await sql.query(insertSql, [heroImage.id, PRIVATE_BUCKET, key]);
-        } catch (qerr) {
-          console.error('Failed to enqueue image processing for', heroImage.id, qerr);
-        }
-        uploadedImages.push(heroImage);
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: uploadedImages,
-      count: uploadedImages.length
-    });
-  } catch (error) {
-    console.error('Error in POST /api/admin/home/hero-images:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to upload hero images' },
-      { status: 500 }
-    );
+  if (!files || files.length === 0) {
+    return NextResponse.json({ success: false, error: 'No files provided' }, { status: 400 });
   }
-}
+
+  const uploadedImages = [];
+
+  for (const file of files) {
+    // Upload to Cloudflare R2 using server-side helper
+    const originalName = file.name || `upload-${Date.now()}`;
+    const sanitized = originalName.replace(/[^a-zA-Z0-9.\-_/]/g, '_');
+    const baseKey = `home/hero/${Date.now()}-${sanitized}`;
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Convert uploaded image to WebP (resize to sensible max width) and upload as the canonical image
+    try {
+      const webpBuffer = await (await import('sharp')).default(buffer).resize({ width: 2000, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+      const webpKey = `${baseKey}.webp`;
+      await uploadBuffer(webpKey, webpBuffer, 'image/webp', PRIVATE_BUCKET, 'public, max-age=31536000, immutable');
+      const storageRef = `r2://${PRIVATE_BUCKET}/${webpKey}`;
+
+      // Save to database using internal r2:// reference
+      const heroImage = await createHeroImage(storageRef, undefined, createdBy);
+
+      // Generate medium + thumb variants synchronously (webp) and store refs in DB
+      try {
+        const { thumbRef, mediumRef } = await processBufferToVariants(buffer, 'home/hero', PRIVATE_BUCKET);
+        try {
+          await sql.query(`UPDATE home_hero_images SET thumbnail_url = $1, medium_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`, [thumbRef, mediumRef, heroImage.id]);
+        } catch (updErr) {
+          console.error('Failed to update hero image with variant refs', heroImage.id, updErr);
+        }
+      } catch (variantErr) {
+        console.error('Failed to create medium/thumb variants', variantErr);
+      }
+
+      uploadedImages.push(heroImage);
+    } catch (convErr) {
+      console.error('Failed to convert/upload webp original for', sanitized, convErr);
+      // Fallback: upload original file as before so admin can still use it
+      const key = `${baseKey}${file.name?.includes('.') ? '' : ''}`;
+      await uploadBuffer(key, buffer, file.type || 'application/octet-stream', PRIVATE_BUCKET);
+      const storageRef = `r2://${PRIVATE_BUCKET}/${key}`;
+      const heroImage = await createHeroImage(storageRef, undefined, createdBy);
+      // enqueue older processing path for later
+      try {
+        const insertSql = `INSERT INTO image_processing_queue (hero_image_id, r2_bucket, r2_key, status) VALUES ($1, $2, $3, 'pending')`;
+        await sql.query(insertSql, [heroImage.id, PRIVATE_BUCKET, key]);
+      } catch (qerr) {
+        console.error('Failed to enqueue image processing for', heroImage.id, qerr);
+      }
+      uploadedImages.push(heroImage);
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: uploadedImages,
+    count: uploadedImages.length
+  });
+});
 
 /**
  * PATCH /api/admin/home/hero-images
@@ -147,7 +141,7 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await safeParseJson(request, 200 * 1024);
     
     // Handle reordering
     if (body.action === 'reorder' && body.images) {

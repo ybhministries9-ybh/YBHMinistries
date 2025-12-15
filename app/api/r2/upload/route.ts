@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { uploadBuffer, getPublicUrl } from "@/lib/r2";
+import { withApiGuard, streamUploadGuard, ApiError } from '@/lib/apiGuard';
 
-export async function POST(req: Request) {
+export const POST = withApiGuard(async (req: Request) => {
+  // stream guard
+  // @ts-ignore - Next's Request in this runtime supports formData
+  await streamUploadGuard(req as any, 5_000_000);
   try {
-    // Use Web FormData API which Next supports in App Router for server runtime
     const form = await req.formData();
     const file = form.get("file") as any;
     const keyFromBody = form.get("key") as string | null;
@@ -16,7 +19,7 @@ export async function POST(req: Request) {
     const url = getPublicUrl(filename);
     return NextResponse.json({ url, key: filename });
   } catch (err: any) {
-    console.error("/api/r2/upload error", err);
-    return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
+    console.error("/api/r2/upload error", err && err.message ? err.message : err);
+    return NextResponse.json({ error: 'Failed to upload' }, { status: 500 });
   }
-}
+});

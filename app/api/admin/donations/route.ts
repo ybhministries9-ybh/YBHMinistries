@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { del } from '@vercel/blob';
+import { del } from '@/lib/vercelBlob';
 import { verifySession, getActorName } from '@/lib/sessions';
 import { deleteObject, parseKeyFromUrl } from '@/lib/r2';
 
