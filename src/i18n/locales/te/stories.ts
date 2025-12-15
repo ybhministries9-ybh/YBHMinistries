@@ -16,38 +16,38 @@ export default {
   
   tabs: {
     guinness: {
-      label: "Guinness Records",
-      title: "Guinness Records",
-      description: "Guinness World Records ద్వారా గుర్తించబడిైన అసాధారణ విజయాలను జరుపుకునే విషయంలోకి ప్రత్యేకతలు." 
+      label: "గిన్నెస్ రికార్డులు",
+      title: "గిన్నెస్ రికార్డులు",
+      description: "Guinness World Records ద్వారా గుర్తించబడిైన అసాధారణ విజయాలను జరుపుకునే విషయంలోకి ప్రత్యేకతలు."
     },
     bibleschool: {
-      label: "Hallel Bible School",
-      title: "Hallel Bible School",
-      description: "బైబిల్ స్కూల్ శిక్షణ: బైబ్లీయన్గాన్నీ ఆచరణాత్మక సేవా నైపుణ్యాలనూ కలిగి విశ్వాసులను సన్నద్ధం చేయడం."
+      label: "హల్లెల్ బైబిల్ స్కూల్",
+      title: "హల్లెల్ బైబిల్ స్కూల్",
+      description: "బైబుల్ స్కూల్ శిక్షణ: బైబ్లీయన్ విజ్ఞానాన్ని మరియు సేవా నైపుణ్యాలను కలిగి విశ్వాసులను సిద్ధం చేయడం."
     },
     international: {
-      label: "Hallel Conference",
-      title: "Hallel Conference",
-      description: "ప్రపంచవ్యాప్తంగా Hallel కాన్ఫరెన్సుల నుంచి వచ్చిన, అసాధారణ విజయాలు మరియు సేవా మద్దతుల గురించి చెప్పే సాక్ష్యాలు."
+      label: "హల్లెల్ కాన్ఫరెన్స్",
+      title: "హల్లెల్ కాన్ఫరెన్స్",
+      description: "ప్రపంచవ్యాప్తంగా Hallel కాన్ఫరెన్స్‌ల నుంచి వచ్చిన సాక్ష్యాలు, అసాధారణ విజయాలు మరియు సంఘ సేవా గాథలను తెలుపుతున్నవి."
     },
     ingenious: {
-      label: "LCM Classes",
-      title: "LCM Classes",
-      description: "London College of Music (LCM) పాఠ్యక్రమం మరియు సంబంధిత తరగతుల ద్వారా విద్యార్థులను శిక్షణ ఇచ్చి సామర్థ్యాలను పెంపొందించడం."
+      label: "LCM తరగతులు",
+      title: "LCM తరగతులు",
+      description: "London College of Music (LCM) పాఠ్యక్రమం మరియు సంబంధిత తరగతుల ద్వారా విద్యార్థులను శిక్షణపరచడం."
     },
     asian: {
-      label: "Online School",
-      title: "Online School",
+      label: "ఆన్లైన్ స్కూల్",
+      title: "ఆన్లైన్ స్కూల్",
       description: "Hallel స్కూల్ మరియు మినిస్ట్రీలు అందించే ఆన్లైన్ శిక్షణలు మరియు కోర్సులు."
     },
     songwriting: {
-      label: "Song Books",
-      title: "Song Books",
-      description: "పాటల రచన మరియు ఆరాధన రచన పై దృష్టి పెట్టిన తరగతులు మరియు సేకరణలు."
+      label: "పాటల పుస్తకాలు",
+      title: "పాటల పుస్తకాలు",
+      description: "పాటల రచన మరియు ఆరాధన రచనపై దృష్టి పెట్టిన తరగతులు మరియు సేకరణలు."
     },
     hallel: {
-      label: "Summer Camp",
-      title: "Summer Camp",
+      label: "సమ్మర్ క్యాంప్",
+      title: "సమ్మర్ క్యాంప్",
       description: "సంగీతం మరియు బైబుల్ శిక్షణ ద్వారా తదుపరి తరం ఆరాధకులను పెంపొందించడం."
     }
   },
