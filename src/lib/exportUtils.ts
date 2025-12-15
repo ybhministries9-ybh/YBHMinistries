@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 /**
  * Configuration for Excel export
@@ -13,22 +13,31 @@ export interface ExcelExportConfig {
 /**
  * Generates an Excel file from data and returns it as a buffer
  */
-export function generateExcelBuffer(config: ExcelExportConfig): Buffer {
+export async function generateExcelBuffer(config: ExcelExportConfig): Promise<Buffer> {
   const { data, sheetName, columnWidths } = config;
-  
-  // Create workbook and worksheet
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet(data);
 
-  // Apply column widths if provided
-  if (columnWidths) {
-    worksheet['!cols'] = columnWidths;
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(sheetName || 'Sheet1');
+
+  if (data && data.length > 0) {
+    // Add header row from keys of first object
+    const headers = Object.keys(data[0]);
+    worksheet.addRow(headers);
+
+    // Add data rows
+    for (const row of data) {
+      const values = headers.map(h => (row as any)[h]);
+      worksheet.addRow(values);
+    }
   }
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  // Apply column widths if provided (convert { wch } -> exceljs width)
+  if (columnWidths && columnWidths.length > 0) {
+    worksheet.columns = columnWidths.map(col => ({ width: (col.wch || 10) }));
+  }
 
-  // Generate Excel file buffer
-  return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }
 
 /**
