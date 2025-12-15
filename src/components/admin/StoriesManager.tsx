@@ -1283,7 +1283,7 @@ export function StoriesManager() {
 
                       {/* Email (required) */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300">Email <span className="text-red-500">*</span> <span className="text-xs text-gray-500 ml-2">({(story.email||'').length}/{CHAR_LIMITS.email})</span></Label>
+                        <Label className="text-gray-300">Email <span className="text-xs text-gray-500 ml-2">({(story.email||'').length}/{CHAR_LIMITS.email})</span></Label>
                         <Input
                           value={story.email || ''}
                           onChange={(e) => handleUpdate(story.id, 'email', e.target.value.slice(0, CHAR_LIMITS.email))}
