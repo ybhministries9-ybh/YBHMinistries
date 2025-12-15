@@ -15,6 +15,24 @@ export function middleware(req: NextRequest) {
     res.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   }
 
+  // Immediate mitigations for RSC/Server Action related deserialization issues (CVE-2025-55184, CVE-2025-55183)
+  // - Reject overly large request bodies based on Content-Length header
+  // - Require POST bodies to be JSON or multipart/form-data for known upload endpoints
+  const contentLength = Number(req.headers.get('content-length') || '0');
+  const MAX_CONTENT_LENGTH = 1_000_000; // 1 MB limit — adjust as needed
+  if (contentLength > MAX_CONTENT_LENGTH) {
+    return new NextResponse('Request body too large', { status: 413 });
+  }
+
+  const method = req.method?.toUpperCase() || 'GET';
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+    const ct = (req.headers.get('content-type') || '').toLowerCase();
+    const allowMultipart = req.nextUrl.pathname.startsWith('/api/uploads') || req.nextUrl.pathname.startsWith('/api/admin/uploads');
+    if (!ct.includes('application/json') && !(allowMultipart && ct.includes('multipart/form-data'))) {
+      return new NextResponse('Unsupported content type', { status: 415 });
+    }
+  }
+
   // Minimal CSP that allows same-origin scripts/styles and essential inline for legacy. Adjust as needed when adding external CDNs.
   const csp = [
     "default-src 'self'",
