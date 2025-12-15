@@ -82,15 +82,15 @@ interface EventData {
 }
 
 // Tab configuration (used for the page tabs and the event select)
+// Tabs ordered by the new category display names (alphabetical by new label)
 const TAB_CONFIG = [
-  { key: "guinness", label: "Guinness", title: "Guinness World Records" },
-  { key: "asian", label: "Asian Book", title: "Asian Book of Records" },
-  { key: "ingenious", label: "Ingenious Charm", title: "Ingenious Charm World Record" },
-  { key: "international", label: "International Star Book", title: "International Star Book of Records" },
-  { key: "songwriting", label: "Song Writing Classes", title: "Song Writing Classes" },
-  { key: "bibleschool", label: "Bible School Training", title: "Bible School Training" },
-  { key: "hallel", label: "Hallel Summer Kids Training", title: "Hallel Summer Kids Training" },
-  
+  { key: "guinness", label: "Guinness Records", title: "Guinness Records" },
+  { key: "bibleschool", label: "Hallel Bible School", title: "Hallel Bible School" },
+  { key: "international", label: "Hallel Conference", title: "Hallel Conference" },
+  { key: "ingenious", label: "LCM Classes", title: "LCM Classes" },
+  { key: "asian", label: "Online School", title: "Online School" },
+  { key: "songwriting", label: "Song Books", title: "Song Books" },
+  { key: "hallel", label: "Summer Camp", title: "Summer Camp" }
 ] as const;
 
 
@@ -265,9 +265,7 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
           <div className="text-left">
             <h4 className="text-white font-medium">{testimonial.name}</h4>
             <p className="text-white text-sm">{testimonial.role}</p>
-            {testimonial.email ? (
-              <p className="text-gray-300 text-sm">{testimonial.email}</p>
-            ) : null}
+            {/* Do not display email or phone in public testimonial cards */}
             <div className="flex flex-col text-white text-xs mt-1 gap-0.5">
               <div className="flex items-center">
                 <Calendar size={12} className="mr-1" />
@@ -280,7 +278,7 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
             </div>
           </div>
         </div>
-        <p className="text-white text-sm text-left leading-relaxed flex-grow">{shortText}</p>
+        <p className="text-white text-sm text-left leading-relaxed flex-grow break-words break-all whitespace-normal overflow-hidden max-w-full">{shortText}</p>
         <button className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer self-start">
           Read more →
         </button>
@@ -783,7 +781,7 @@ export function StoriesPage() {
         // Prefer resolved previewUrls from r2 presign, fallback to thumbnail_url (signed or raw)
         image: (previewUrls && previewUrls[s.id]) || s.thumbnail_url || null,
         text: s.body || '',
-        email: s.email || undefined
+        // intentionally omit email/phone from public mapping
       }));
   }, [publicStories, previewUrls]);
 
@@ -805,12 +803,13 @@ export function StoriesPage() {
 
   // Map active tab key -> admin category display name
   const TAB_TO_CATEGORY: Record<string, string> = {
-    guinness: 'Guinness World Records',
-    asian: 'Asian Book of Records',
-    ingenious: 'Ingenious Charm World Record',
-    songwriting: 'Song Writing Classes',
-    bibleschool: 'Bible School Training',
-    hallel: 'Hallel Summer Kids Training'
+    guinness: 'Guinness Records',
+    bibleschool: 'Hallel Bible School',
+    international: 'Hallel Conference',
+    ingenious: 'LCM Classes',
+    asian: 'Online School',
+    songwriting: 'Song Books',
+    hallel: 'Summer Camp'
   };
 
   // Decide which data to display: only show DB-fed stories; do not fall back to mock data

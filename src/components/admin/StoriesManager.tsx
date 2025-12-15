@@ -65,12 +65,13 @@ interface ValidationErrors {
 }
 
 const CATEGORIES = [
-  'Guinness World Records',
-  'Asian Book of Records',
-  'Ingenious Charm World Record',
-  'Song Writing Classes',
-  'Bible School Training',
-  'Hallel Summer Kids Training'
+  'Guinness Records',
+  'LCM Classes',
+  'Online School',
+  'Summer Camp',
+  'Hallel Bible School',
+  'Song Books',
+  'Hallel Conference'
 ];
 
 // Date Picker Component
@@ -464,6 +465,8 @@ export function StoriesManager() {
 
       if (!story.text?.trim()) {
         errors.text = 'Testimony/Story text is required';
+      } else if ((story.text || '').trim().length < 50) {
+        errors.text = 'Testimony must be at least 50 characters';
       } else if (story.text.length > CHAR_LIMITS.text) {
         errors.text = `Text must be ${CHAR_LIMITS.text} characters or less`;
       }
@@ -730,8 +733,9 @@ export function StoriesManager() {
       location: '',
       image: '',
       text: '',
-      status: 'Submitted',
-      featured: false
+      status: 'Approved',
+      featured: false,
+      is_visible: true
     };
     setStories(prev => [newStory, ...prev]);
     setEditingId(newStory.id);
@@ -752,8 +756,9 @@ export function StoriesManager() {
       youtubeUrl: '',
       role: '',
       location: '',
-      status: 'Submitted',
-      featured: false
+      status: 'Approved',
+      featured: false,
+      is_visible: true
     };
     setStories(prev => [newStory, ...prev]);
     setEditingId(newStory.id);

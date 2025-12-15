@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       body: body.body || null,
       // include optional email for text stories
       email: body.email || null,
+      phone: body.phone || null,
       media_type: body.media_type === 'video' ? 'video' : 'text',
       video_url: body.video_url || null,
       thumbnail_url: body.thumbnail_url || null,

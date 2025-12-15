@@ -737,7 +737,7 @@ export async function getAllStories(): Promise<Story[]> {
 export async function getVisibleApprovedStories(): Promise<any[]> {
   try {
     const { rows } = await sql`
-      SELECT id, title, location, role, status, category, body, media_type, video_url, thumbnail_url, date, created_by, email
+      SELECT id, title, location, role, status, category, body, media_type, video_url, thumbnail_url, date, created_by, email, phone
       FROM stories
       WHERE is_active = true AND is_visible = true AND status = 'Approved'
       ORDER BY created_at DESC
@@ -756,6 +756,7 @@ export async function createStory(payload: {
   category?: string | null;
   body?: string | null;
   email?: string | null;
+  phone?: string | null;
   media_type?: 'text' | 'video';
   video_url?: string | null;
   thumbnail_url?: string | null;
@@ -768,9 +769,9 @@ export async function createStory(payload: {
   try {
     const { rows } = await sql<Story>`
       INSERT INTO stories (
-        title, date, location, category, role, body, email, media_type, video_url, thumbnail_url, status, is_visible, created_by, updated_by
+        title, date, location, category, role, body, email, phone, media_type, video_url, thumbnail_url, status, is_visible, created_by, updated_by
       ) VALUES (
-        ${payload.title}, ${payload.date || null}, ${payload.location || null}, ${payload.category || null}, ${payload.role || null}, ${payload.body || null}, ${payload.email || null}, ${payload.media_type || 'text'}, ${payload.video_url || null}, ${payload.thumbnail_url || null}, ${payload.status || 'Submitted'}, ${typeof payload.is_visible === 'boolean' ? payload.is_visible : true}, ${payload.createdBy || null}, ${payload.createdBy || null}
+        ${payload.title}, ${payload.date || null}, ${payload.location || null}, ${payload.category || null}, ${payload.role || null}, ${payload.body || null}, ${payload.email || null}, ${payload.phone || null}, ${payload.media_type || 'text'}, ${payload.video_url || null}, ${payload.thumbnail_url || null}, ${payload.status || 'Submitted'}, ${typeof payload.is_visible === 'boolean' ? payload.is_visible : true}, ${payload.createdBy || null}, ${payload.createdBy || null}
       ) RETURNING *
     `;
     return rows[0];
@@ -787,6 +788,7 @@ export async function updateStory(id: number, updates: Partial<{
   category: string | null;
   role: string | null;
   body: string | null;
+  phone: string | null;
   media_type: 'text' | 'video';
   video_url: string | null;
   thumbnail_url: string | null;
@@ -808,6 +810,7 @@ export async function updateStory(id: number, updates: Partial<{
     if (updates.video_url !== undefined) { setClauses.push(`video_url = $${idx++}`); values.push(updates.video_url); }
     if (updates.thumbnail_url !== undefined) { setClauses.push(`thumbnail_url = $${idx++}`); values.push(updates.thumbnail_url); }
     if ((updates as any).email !== undefined) { setClauses.push(`email = $${idx++}`); values.push((updates as any).email); }
+    if ((updates as any).phone !== undefined) { setClauses.push(`phone = $${idx++}`); values.push((updates as any).phone); }
     if (updates.status !== undefined) { setClauses.push(`status = $${idx++}`); values.push(updates.status); }
     if (updates.is_visible !== undefined) { setClauses.push(`is_visible = $${idx++}`); values.push(updates.is_visible); }
     // NOTE: the `featured` column may not exist in all deployments/databases.

@@ -7,8 +7,8 @@ export default {
   subtitle: "Moments of worship, training, and community captured through images and videos",
   tabs: {
     "guinness-events": {
-      label: "Guinness - 1",
-      title: "Guinness World Records Event - 1"
+      label: "Guinness Records",
+      title: "Guinness Records"
     },
     "asian-records": {
       label: "Asian Book",
@@ -16,19 +16,19 @@ export default {
     },
     "ingenious-record": {
       label: "Ingenious Charm",
-      title: "Ingenious Charm World Record"
+      title: "Ingenious Charm World Records"
     },
     "international-star-records": {
-      label: "International Star Book",
-      title: "International Star Book of Records"
+      label: "International Start Book",
+      title: "International Start Book of Records"
     },
     "hallel-conferences": {
       label: "Hallel Conferences",
       title: "Hallel Conferences"
     },
     "lcm-events": {
-      label: "LCM",
-      title: "LCM Events"
+      label: "LCM Classes",
+      title: "LCM Classes"
     },
     "anniversary": {
       label: "Anniversary (HMS)",
