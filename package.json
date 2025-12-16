@@ -35,7 +35,6 @@
             "@radix-ui/react-toggle-group": "^1.1.2",
             "@radix-ui/react-tooltip": "^1.1.8",
             "@upstash/redis": "^1.21.0",
-            
             "@vercel/node": "*",
             "@vercel/postgres": "*",
             "class-variance-authority": "^0.7.1",
@@ -44,6 +43,7 @@
             "date-fns": "*",
             "dompurify": "^3.0.4",
             "embla-carousel-react": "^8.6.0",
+            "exceljs": "^4.3.2",
             "formidable": "*",
             "fs": "*",
             "hono": "*",
@@ -69,13 +69,18 @@
             "sonner": "^2.0.3",
             "tailwind-merge": "*",
             "vaul": "^1.1.2",
-            "exceljs": "^4.3.2",
             "zod": "^3.23.2"
       },
       "devDependencies": {
             "@types/node": "^20.10.0",
             "@types/react": "^19.2.2",
+            "@typescript-eslint/eslint-plugin": "^8.50.0",
+            "@typescript-eslint/parser": "^8.50.0",
             "@vitejs/plugin-react-swc": "^3.10.2",
+            "eslint": "^8.57.1",
+            "eslint-plugin-jsx-a11y": "^6.10.2",
+            "eslint-plugin-react": "^7.37.5",
+            "eslint-plugin-react-hooks": "^7.0.1",
             "typescript": "^5.9.3",
             "vite": "6.4.1"
       },
@@ -83,8 +88,7 @@
             "glob": "10.5.0",
             "rimraf": "^4.0.1",
             "@fast-csv/format": "5.0.5",
-            "unzipper": "0.12.3"
-      ,
+            "unzipper": "0.12.3",
             "esbuild": "0.25.0",
             "path-to-regexp": "6.3.0",
             "undici": "5.29.0"
@@ -93,10 +97,8 @@
             "dev": "next dev",
             "build": "next build",
             "start": "next start",
-            "lint": "next lint"
-            ,
-            "upgrade-next-check": "node ./scripts/upgrade-next-check.js"
-            ,
+            "lint": "next lint",
+            "upgrade-next-check": "node ./scripts/upgrade-next-check.js",
             "fuzz-app-router": "node ./scripts/fuzz-app-router.js"
       }
 }

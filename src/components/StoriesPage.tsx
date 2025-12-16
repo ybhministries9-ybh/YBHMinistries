@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
+import { sanitizeInput } from '@/lib/security';
 
 interface Testimonial {
   id: number;
@@ -149,7 +150,7 @@ const TAB_CONFIG = [
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
       <motion.div 
         ref={modalRef}
-        className={`bg-[#2E2E2E] rounded-lg ${isFullscreen ? 'w-full h-full max-h-full' : 'max-w-3xl w-full max-h-[90vh]'} overflow-auto`} 
+        className={`bg-[#2E2E2E] rounded-lg ${isFullscreen ? 'w-full h-full max-h-full' : 'max-w-3xl w-full max-h-[90vh]'} overflow-y-auto overflow-x-hidden`} 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
@@ -208,13 +209,13 @@ const TAB_CONFIG = [
           
           <div className="text-left mt-6">
             <Quote className="text-gray-400 opacity-20 mb-4" size={48} />
-            <div className={`${isFullscreen ? 'max-w-4xl mx-auto' : ''}`}>
-              {paragraphs.map((paragraph, index) => (
-                <p key={index} className={`text-white ${isFullscreen ? 'text-lg md:text-xl' : 'text-base md:text-lg'} leading-relaxed mb-4`}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
+              <div className={`${isFullscreen ? 'max-w-4xl mx-auto' : ''}`}>
+                <div
+                  className={`text-white ${isFullscreen ? 'text-lg md:text-xl' : 'text-base md:text-lg'} leading-relaxed mb-4 break-words break-all whitespace-normal`}
+                  style={{ overflowWrap: 'anywhere' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeInput(testimonial.text) || '' }}
+                />
+              </div>
           </div>
         </div>
       </motion.div>
@@ -228,13 +229,8 @@ TestimonialModal.displayName = 'TestimonialModal';
 const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => {
   const [modalOpen, setModalOpen] = useState(false);
   
-  // Memoize the short text calculation
-  const shortText = useMemo(() => 
-    testimonial.text.length > 150 
-      ? testimonial.text.substring(0, 150) + "..." 
-      : testimonial.text,
-    [testimonial.text]
-  );
+  // Memoize sanitized short HTML for the card (keeps allowed tags)
+  const shortHtml = useMemo(() => sanitizeInput(testimonial.text, 200) || '', [testimonial.text]);
 
   const handleOpenModal = useCallback(() => {
     setModalOpen(true);
@@ -278,7 +274,7 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
             </div>
           </div>
         </div>
-        <p className="text-white text-sm text-left leading-relaxed flex-grow break-words break-all whitespace-normal overflow-hidden max-w-full">{shortText}</p>
+        <div className="text-white text-sm text-left leading-relaxed flex-grow break-words break-all whitespace-normal overflow-hidden max-w-full" dangerouslySetInnerHTML={{ __html: shortHtml }} />
         <button className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer self-start">
           Read more →
         </button>
@@ -368,6 +364,49 @@ const SubmitTestimonyForm = memo(() => {
     && Boolean((watched.testimony || '').toString().trim());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isTestimonyEmpty, setIsTestimonyEmpty] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+
+  const updateFormattingState = useCallback(() => {
+    try {
+      const sel = document.getSelection();
+      if (!sel || !sel.anchorNode || !testimonyRef.current) {
+        setIsBold(false);
+        setIsItalic(false);
+        setIsUnderline(false);
+        return;
+      }
+      // Only update state when selection is inside the testimony editor
+      if (!testimonyRef.current.contains(sel.anchorNode)) {
+        setIsBold(false);
+        setIsItalic(false);
+        setIsUnderline(false);
+        return;
+      }
+
+      // document.queryCommandState is deprecated but works for simple editors
+      setIsBold(Boolean((document as any).queryCommandState && (document as any).queryCommandState('bold')));
+      setIsItalic(Boolean((document as any).queryCommandState && (document as any).queryCommandState('italic')));
+      setIsUnderline(Boolean((document as any).queryCommandState && (document as any).queryCommandState('underline')));
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('selectionchange', updateFormattingState);
+    // also update on keyboard navigation inside editor
+    testimonyRef.current?.addEventListener('keyup', updateFormattingState);
+    testimonyRef.current?.addEventListener('mouseup', updateFormattingState);
+    return () => {
+      document.removeEventListener('selectionchange', updateFormattingState);
+      testimonyRef.current?.removeEventListener('keyup', updateFormattingState);
+      testimonyRef.current?.removeEventListener('mouseup', updateFormattingState);
+    };
+  }, [updateFormattingState]);
 
   // Register testimony as a form field with custom validation that counts
   // visible text (strip HTML) so rich text still validates against min length.
@@ -388,6 +427,12 @@ const SubmitTestimonyForm = memo(() => {
     if (testimonyRef.current && testimonyRef.current.innerHTML !== html) {
       testimonyRef.current.innerHTML = html;
     }
+  }, [watched.testimony]);
+
+  // Track whether the testimony content is empty (plain-text) to show placeholder
+  useEffect(() => {
+    const text = String(watched.testimony || '').replace(/<[^>]*>/g, '').trim();
+    setIsTestimonyEmpty(text.length === 0);
   }, [watched.testimony]);
 
   const onSubmit = useCallback(async (data: any) => {
@@ -586,27 +631,136 @@ const SubmitTestimonyForm = memo(() => {
                 <p className="text-sm text-gray-400">{String((watched.testimony || '')).replace(/<[^>]*>/g, '').length}/5000</p>
               </div>
               {/* Rich text editor using contentEditable to allow simple formatting and emojis */}
-              <div
-                id="testimony"
-                ref={testimonyRef}
-                contentEditable
-                role="textbox"
-                aria-multiline
-                data-placeholder={t('form.testimonyPlaceholder')}
-                onInput={(e) => {
-                  const html = (e.target as HTMLDivElement).innerHTML || '';
-                  // update form value with HTML (server will sanitize)
-                  setValue('testimony', html, { shouldValidate: true, shouldDirty: true });
-                }}
-                onBlur={(e) => {
-                  // ensure validation runs on blur
-                  const html = (e.target as HTMLDivElement).innerHTML || '';
-                  setValue('testimony', html, { shouldValidate: true });
-                }}
-                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.testimony ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none min-h-[9rem]`}
-                style={{ outline: 'none' }}
-                suppressContentEditableWarning
-              />
+              <div>
+                {/* Toolbar */}
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!testimonyRef.current) return;
+                      testimonyRef.current.focus();
+                      document.execCommand('bold');
+                      updateFormattingState();
+                    }}
+                    className={`px-2 py-1 rounded-md border ${isBold ? 'bg-[#FDB813] text-black border-[#e0a300]' : 'bg-[#1f1f1f] text-white border-gray-700'} hover:bg-[#2a2a2a]`}
+                    aria-label="Bold"
+                  >
+                    <strong>B</strong>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!testimonyRef.current) return;
+                      testimonyRef.current.focus();
+                      document.execCommand('italic');
+                      updateFormattingState();
+                    }}
+                    className={`px-2 py-1 rounded-md border ${isItalic ? 'bg-[#FDB813] text-black border-[#e0a300]' : 'bg-[#1f1f1f] text-white border-gray-700'} hover:bg-[#2a2a2a]`}
+                    aria-label="Italic"
+                  >
+                    <em>I</em>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!testimonyRef.current) return;
+                      testimonyRef.current.focus();
+                      document.execCommand('underline');
+                      updateFormattingState();
+                    }}
+                    className={`px-2 py-1 rounded-md border ${isUnderline ? 'bg-[#FDB813] text-black border-[#e0a300]' : 'bg-[#1f1f1f] text-white border-gray-700'} hover:bg-[#2a2a2a]`}
+                    aria-label="Underline"
+                  >
+                    <span style={{ textDecoration: 'underline' }}>U</span>
+                  </button>
+                  {/* Bullet list button removed per request */}
+
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(s => !s)}
+                      className="px-2 py-1 bg-[#1f1f1f] text-white rounded-md border border-gray-700 hover:bg-[#2a2a2a]"
+                      aria-label="Emoji picker"
+                    >
+                      😊
+                    </button>
+                    {showEmojiPicker && (
+                      <div className="absolute left-0 mt-2 bg-[#2E2E2E] border border-gray-700 rounded-md p-2 shadow-lg z-20 min-w-[380px]" role="dialog" aria-label="Emoji picker">
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 40px)', gap: '8px', maxHeight: '40vh', overflow: 'auto', padding: '4px' }}>
+                          {[
+                            "😀","😃","😄","😁","😆","😂","🤣","😊","🙂","😉",
+                            "😍","😘","😚","😇","🤩","🤗","🙌","👏","👍","👎",
+                            "🙏","🎉","🔥","✨","💯","❤️","💙","💚","💛","🧡",
+                            "💜","😅","😅","🤪","🤯","😴","😎","🤝","🤲","🤞"
+                          ].map((e, i) => (
+                            <button
+                              key={`${e}-${i}`}
+                              type="button"
+                              onClick={() => {
+                                if (!testimonyRef.current) return;
+                                testimonyRef.current.focus();
+                                try {
+                                  document.execCommand('insertText', false, e);
+                                } catch (err) {
+                                  const sel = document.getSelection();
+                                  if (!sel || !sel.rangeCount) return;
+                                  const range = sel.getRangeAt(0);
+                                  range.deleteContents();
+                                  range.insertNode(document.createTextNode(e));
+                                  range.setStartAfter(range.endContainer as Node);
+                                  sel.removeAllRanges();
+                                  sel.addRange(range);
+                                }
+                                const html = testimonyRef.current.innerHTML || '';
+                                setValue('testimony', html, { shouldValidate: true, shouldDirty: true });
+                                setIsTestimonyEmpty(false);
+                                setShowEmojiPicker(false);
+                              }}
+                              className="p-2 text-xl flex items-center justify-center"
+                              aria-label={`Insert ${e}`}
+                            >
+                              {e}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="relative">
+                  <div
+                    id="testimony"
+                    ref={testimonyRef}
+                    contentEditable
+                    role="textbox"
+                    aria-multiline
+                    data-placeholder={t('form.testimonyPlaceholder')}
+                    onInput={(e) => {
+                      const html = (e.target as HTMLDivElement).innerHTML || '';
+                      // update form value with HTML (server will sanitize)
+                      setValue('testimony', html, { shouldValidate: true, shouldDirty: true });
+                      const text = (e.target as HTMLDivElement).innerText || '';
+                      setIsTestimonyEmpty(String(text || '').trim().length === 0);
+                    }}
+                    onBlur={(e) => {
+                      // ensure validation runs on blur
+                      const html = (e.target as HTMLDivElement).innerHTML || '';
+                      setValue('testimony', html, { shouldValidate: true });
+                      const text = (e.target as HTMLDivElement).innerText || '';
+                      setIsTestimonyEmpty(String(text || '').trim().length === 0);
+                    }}
+                    className={`w-full px-4 py-2 bg-black rounded-md border ${errors.testimony ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none min-h-[12rem]`}
+                    style={{ outline: 'none', minHeight: '12rem' }}
+                    suppressContentEditableWarning
+                  />
+
+                  {isTestimonyEmpty && (
+                    <div className="absolute inset-0 pointer-events-none flex items-start">
+                      <div className="px-4 py-2 text-gray-400">{t('form.testimonyPlaceholder')}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
               {/* Preview removed per request */}
               {errors.testimony && <p className="text-red-400 text-xs mt-1">{errors.testimony.message as string}</p>}
             </div>
