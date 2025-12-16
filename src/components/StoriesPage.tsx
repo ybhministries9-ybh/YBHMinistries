@@ -84,13 +84,13 @@ interface EventData {
 // Tab configuration (used for the page tabs and the event select)
 // Tabs ordered by the new category display names (alphabetical by new label)
 const TAB_CONFIG = [
-  { key: "guinness", label: "Guinness Records", title: "Guinness Records" },
+  { key: "guinness", label: "Guinness World Records", title: "Guinness World Records" },
   { key: "bibleschool", label: "Hallel Bible School", title: "Hallel Bible School" },
-  { key: "international", label: "Hallel Conference", title: "Hallel Conference" },
-  { key: "ingenious", label: "LCM Classes", title: "LCM Classes" },
-  { key: "asian", label: "Online School", title: "Online School" },
-  { key: "songwriting", label: "Song Books", title: "Song Books" },
-  { key: "hallel", label: "Summer Camp", title: "Summer Camp" }
+  { key: "hallelconference", label: "Hallel Conference", title: "Hallel Conference" },
+  { key: "lcmclasses", label: "LCM Classes", title: "LCM Classes" },
+  { key: "onlineschool", label: "Online School", title: "Online School" },
+  { key: "songbooks", label: "Song Books", title: "Song Books" },
+  { key: "summercamp", label: "Summer Camp", title: "Summer Camp" }
 ] as const;
 
 
@@ -357,7 +357,8 @@ VideoCard.displayName = 'VideoCard';
 // Submit Testimony Form Component - Memoized for performance
 const SubmitTestimonyForm = memo(() => {
   const { t } = useTranslation('stories');
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm();
+  const testimonyRef = useRef<HTMLDivElement | null>(null);
   const watched = watch();
   const requiredFilled = Boolean((watched.name || '').toString().trim())
     && Boolean((watched.email || '').toString().trim())
@@ -367,6 +368,27 @@ const SubmitTestimonyForm = memo(() => {
     && Boolean((watched.testimony || '').toString().trim());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Register testimony as a form field with custom validation that counts
+  // visible text (strip HTML) so rich text still validates against min length.
+  useEffect(() => {
+    register('testimony', {
+      required: t('form.testimonyRequired'),
+      validate: (v: any) => {
+        const text = String(v || '').replace(/<[^>]*>/g, '').trim();
+        return text.length >= 50 || t('form.testimonyMinLength');
+      },
+      maxLength: { value: 5000, message: t('form.testimonyMaxLength') }
+    });
+  }, [register, t]);
+
+  // Keep the contentEditable element in sync with the form value
+  useEffect(() => {
+    const html = (watched.testimony as string) || '';
+    if (testimonyRef.current && testimonyRef.current.innerHTML !== html) {
+      testimonyRef.current.innerHTML = html;
+    }
+  }, [watched.testimony]);
 
   const onSubmit = useCallback(async (data: any) => {
     setIsSubmitting(true);
@@ -561,19 +583,29 @@ const SubmitTestimonyForm = memo(() => {
             <div>
               <div className="mb-1 flex items-center justify-between">
                 <label htmlFor="testimony" className="block text-white text-sm font-medium">{t('form.testimonyLabel')} <span className="text-[#FDB813]">*</span></label>
-                <p className="text-sm text-gray-400">{(watched.testimony || '').length}/5000</p>
+                <p className="text-sm text-gray-400">{String((watched.testimony || '')).replace(/<[^>]*>/g, '').length}/5000</p>
               </div>
-              <textarea
+              {/* Rich text editor using contentEditable to allow simple formatting and emojis */}
+              <div
                 id="testimony"
-                rows={6}
-                maxLength={5000}
-                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.testimony ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none`}
-                placeholder={t('form.testimonyPlaceholder')}
-                {...register("testimony", { 
-                  required: t('form.testimonyRequired'),
-                  minLength: { value: 50, message: t('form.testimonyMinLength') },
-                  maxLength: { value: 5000, message: t('form.testimonyMaxLength') }
-                })}
+                ref={testimonyRef}
+                contentEditable
+                role="textbox"
+                aria-multiline
+                data-placeholder={t('form.testimonyPlaceholder')}
+                onInput={(e) => {
+                  const html = (e.target as HTMLDivElement).innerHTML || '';
+                  // update form value with HTML (server will sanitize)
+                  setValue('testimony', html, { shouldValidate: true, shouldDirty: true });
+                }}
+                onBlur={(e) => {
+                  // ensure validation runs on blur
+                  const html = (e.target as HTMLDivElement).innerHTML || '';
+                  setValue('testimony', html, { shouldValidate: true });
+                }}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.testimony ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text resize-none min-h-[9rem]`}
+                style={{ outline: 'none' }}
+                suppressContentEditableWarning
               />
               {/* Preview removed per request */}
               {errors.testimony && <p className="text-red-400 text-xs mt-1">{errors.testimony.message as string}</p>}
@@ -803,13 +835,13 @@ export function StoriesPage() {
 
   // Map active tab key -> admin category display name
   const TAB_TO_CATEGORY: Record<string, string> = {
-    guinness: 'Guinness Records',
+    guinness: 'Guinness World Records',
     bibleschool: 'Hallel Bible School',
-    international: 'Hallel Conference',
-    ingenious: 'LCM Classes',
-    asian: 'Online School',
-    songwriting: 'Song Books',
-    hallel: 'Summer Camp'
+    hallelconference: 'Hallel Conference',
+    lcmclasses: 'LCM Classes',
+    onlineschool: 'Online School',
+    songbooks: 'Song Books',
+    summercamp: 'Summer Camp'
   };
 
   // Decide which data to display: only show DB-fed stories; do not fall back to mock data

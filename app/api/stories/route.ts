@@ -76,19 +76,34 @@ export async function POST(request: Request) {
     if (!role || role.length < 2) return NextResponse.json({ success: false, error: 'Invalid role' }, { status: 400 });
     if (!categoryKey) return NextResponse.json({ success: false, error: 'Category is required' }, { status: 400 });
     if (!location || location.length < 2) return NextResponse.json({ success: false, error: 'Invalid location' }, { status: 400 });
-    if (!testimony || testimony.length < 50) return NextResponse.json({ success: false, error: 'Testimony is too short' }, { status: 400 });
+    // Validate textual length (strip HTML tags) so rich text still meets min length
+    const testimonyText = String(testimony || '').replace(/<[^>]*>/g, '').trim();
+    if (!testimonyText || testimonyText.length < 50) return NextResponse.json({ success: false, error: 'Testimony is too short' }, { status: 400 });
 
-    // Map category key to display name (server-side canonical mapping)
-    const TAB_TO_CATEGORY: Record<string, string> = {
-      guinness: 'Guinness World Records',
-      asian: 'Asian Book of Records',
-      ingenious: 'Ingenious Charm World Record',
-      songwriting: 'Song Writing Classes',
-      bibleschool: 'Bible School Training',
-      hallel: 'Hallel Summer Kids Training'
-    };
+      // Map category (incoming key or raw string) to a canonical display name.
+      // Normalize incoming value to tolerate variations like 'hallelconference',
+      // 'Hallel Conference', or the key 'international'.
+      const TAB_TO_CATEGORY_NORMALIZED: Record<string, string> = {
+        guinness: 'Guinness World Records',
+        guinnessworldrecords: 'Guinness World Records',
+        onlineschool: 'Online School',
+        ingenious: 'Ingenious Charm World Record',
+        lcmclasses: 'LCM Classes',
+        songbooks: 'Song Books',
+        bibleschool: 'Bible School Training',
+        summercamp: 'Summer Camp',
+        hallelconference: 'Hallel Conference',
+        hallelconferences: 'Hallel Conference'
+      };
 
-    const category = TAB_TO_CATEGORY[categoryKey] || categoryKey;
+      const normalize = (s?: string) => (s || '').toString().toLowerCase().replace(/[\s_\-]+/g, '').replace(/[^a-z0-9]/g, '');
+      const normKey = normalize(categoryKey as string);
+      let category = TAB_TO_CATEGORY_NORMALIZED[normKey];
+      if (!category) {
+        // Fallback: try to title-case a human readable incoming value (replace dashes/underscores)
+        const human = (categoryKey || '').toString().replace(/[_\-]+/g, ' ').trim();
+        category = human.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || categoryKey || '';
+      }
 
     // reCAPTCHA removed: not enforced
 

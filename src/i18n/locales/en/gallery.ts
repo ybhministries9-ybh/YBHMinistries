@@ -7,8 +7,8 @@ export default {
   subtitle: "Moments of worship, training, and community captured through images and videos",
   tabs: {
     "guinness-events": {
-      label: "Guinness Records",
-      title: "Guinness Records"
+      label: "Guinness World Records",
+      title: "Guinness World Records"
     },
     "asian-records": {
       label: "Asian Book",

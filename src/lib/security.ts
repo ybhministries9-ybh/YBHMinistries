@@ -7,12 +7,45 @@ const RATE_LIMIT_STORE: Map<string, RateEntry> = (globalThis as any).__RATE_LIMI
 export function sanitizeInput(input: any, maxLength = 2000) {
   if (input === undefined || input === null) return null;
   let s = String(input);
-  // Basic HTML tag stripping (remove <...>), collapse whitespace and trim.
-  // This is intentionally simple and avoids introducing a new dependency.
-  s = s.replace(/<[^>]*>/g, '');
-  s = s.replace(/\s+/g, ' ').trim();
-  if (maxLength && s.length > maxLength) s = s.substring(0, maxLength);
-  return s;
+  // Allow a small whitelist of harmless formatting tags while stripping
+  // potentially dangerous tags and attributes. This keeps content simple
+  // but allows basic rich text like <b>, <i>, <em>, <strong>, <u>, <br>,
+  // <p>, <ul>, <ol>, <li>, <blockquote> so testimonies can be formatted.
+  try {
+    // Remove script/style blocks completely
+    s = s.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+    s = s.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '');
+
+    const allowed = new Set(['b','i','em','strong','u','br','p','ul','ol','li','blockquote']);
+
+    // Replace tags: keep allowed tags (without attributes), remove others
+    s = s.replace(/<\/?([a-zA-Z0-9-]+)([^>]*)>/g, (match, tagName) => {
+      const tn = String(tagName).toLowerCase();
+      if (allowed.has(tn)) {
+        // return a clean tag without attributes
+        return match.startsWith('</') ? `</${tn}>` : (tn === 'br' ? '<br/>' : `<${tn}>`);
+      }
+      return '';
+    });
+
+    // Collapse whitespace and trim
+    s = s.replace(/\s+/g, ' ').trim();
+    // Truncate the textual content to maxLength characters for safety
+    if (maxLength) {
+      // Strip tags to count text length, then truncate text and return.
+      const textOnly = s.replace(/<[^>]*>/g, '');
+      if (textOnly.length > maxLength) {
+        return textOnly.substring(0, maxLength);
+      }
+      return s;
+    }
+    return s;
+  } catch (e) {
+    let out = String(input).replace(/<[^>]*>/g, '');
+    out = out.replace(/\s+/g, ' ').trim();
+    if (maxLength && out.length > maxLength) out = out.substring(0, maxLength);
+    return out;
+  }
 }
 
 export function requireJson(request: Request) {

@@ -65,7 +65,7 @@ interface ValidationErrors {
 }
 
 const CATEGORIES = [
-  'Guinness Records',
+  'Guinness World Records',
   'LCM Classes',
   'Online School',
   'Summer Camp',
