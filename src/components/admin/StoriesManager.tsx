@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { sanitizeInput } from '@/lib/security';
 import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Star, Eye, EyeOff, Save, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -65,7 +66,7 @@ interface ValidationErrors {
 }
 
 const CATEGORIES = [
-  'Guinness Records',
+  'Guinness World Records',
   'LCM Classes',
   'Online School',
   'Summer Camp',
@@ -270,6 +271,55 @@ export function StoriesManager() {
   const [unsavedDialog, setUnsavedDialog] = useState<{ open: boolean; pendingType?: 'text' | 'video' | null }>(
     { open: false, pendingType: null }
   );
+
+  // WYSIWYG editor state for admin edit form (only one story edited at a time)
+  const testimonyRef = React.useRef<HTMLDivElement | null>(null);
+  const [isTestimonyEmpty, setIsTestimonyEmpty] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+
+  const updateFormattingState = useCallback(() => {
+    try {
+      const sel = document.getSelection();
+      if (!sel || !sel.anchorNode || !testimonyRef.current) {
+        setIsBold(false); setIsItalic(false); setIsUnderline(false); return;
+      }
+      if (!testimonyRef.current.contains(sel.anchorNode)) {
+        setIsBold(false); setIsItalic(false); setIsUnderline(false); return;
+      }
+      setIsBold(Boolean((document as any).queryCommandState && (document as any).queryCommandState('bold')));
+      setIsItalic(Boolean((document as any).queryCommandState && (document as any).queryCommandState('italic')));
+      setIsUnderline(Boolean((document as any).queryCommandState && (document as any).queryCommandState('underline')));
+    } catch (e) { /* ignore */ }
+  }, []);
+
+  React.useEffect(() => {
+    document.addEventListener('selectionchange', updateFormattingState);
+    testimonyRef.current?.addEventListener('keyup', updateFormattingState);
+    testimonyRef.current?.addEventListener('mouseup', updateFormattingState);
+    return () => {
+      document.removeEventListener('selectionchange', updateFormattingState);
+      testimonyRef.current?.removeEventListener('keyup', updateFormattingState);
+      testimonyRef.current?.removeEventListener('mouseup', updateFormattingState);
+    };
+  }, [updateFormattingState]);
+
+  // Sync the contentEditable when a story enters edit mode
+  React.useEffect(() => {
+    if (!editingId) return;
+    const s = stories.find(x => x.id === editingId);
+    const html = (s?.text as string) || '';
+    if (testimonyRef.current && testimonyRef.current.innerHTML !== html) {
+      testimonyRef.current.innerHTML = html;
+    }
+    const textOnly = String(html || '').replace(/<[^>]*>/g, '').trim();
+    setIsTestimonyEmpty(textOnly.length === 0);
+  }, [editingId, stories]);
+
+  // Debounce timer for admin content updates to avoid frequent state updates
+  const adminUpdateTimer = React.useRef<number | null>(null);
 
   // Authorization helper
   function getAuthHeaders(contentType?: string) {
@@ -1421,16 +1471,100 @@ export function StoriesManager() {
                           ({(story.text || '').length}/{CHAR_LIMITS.text})
                         </span>
                       </Label>
-                      <Textarea
-                        value={story.text || ''}
-                        onChange={(e) => handleUpdate(story.id, 'text', e.target.value.slice(0, CHAR_LIMITS.text))}
-                        placeholder="Testimony/Story Text"
-                        className={`!bg-[#2e2e2e] border-gray-600 text-white ${
-                          validationErrors[story.id]?.text ? 'border-red-500' : ''
-                        }`}
-                        rows={5}
-                        maxLength={CHAR_LIMITS.text}
-                      />
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <button
+                            type="button"
+                            onClick={() => { if (!testimonyRef.current) return; testimonyRef.current.focus(); document.execCommand('bold'); updateFormattingState(); }}
+                            className={`px-2 py-1 rounded-md border ${isBold ? 'bg-[#FDB813] text-black border-[#e0a300]' : 'bg-[#1f1f1f] text-white border-gray-700'}`}
+                          ><strong>B</strong></button>
+                          <button
+                            type="button"
+                            onClick={() => { if (!testimonyRef.current) return; testimonyRef.current.focus(); document.execCommand('italic'); updateFormattingState(); }}
+                            className={`px-2 py-1 rounded-md border ${isItalic ? 'bg-[#FDB813] text-black border-[#e0a300]' : 'bg-[#1f1f1f] text-white border-gray-700'}`}
+                          ><em>I</em></button>
+                          <button
+                            type="button"
+                            onClick={() => { if (!testimonyRef.current) return; testimonyRef.current.focus(); document.execCommand('underline'); updateFormattingState(); }}
+                            className={`px-2 py-1 rounded-md border ${isUnderline ? 'bg-[#FDB813] text-black border-[#e0a300]' : 'bg-[#1f1f1f] text-white border-gray-700'}`}
+                          ><span style={{ textDecoration: 'underline' }}>U</span></button>
+                          <div className="relative">
+                            <button type="button" onClick={() => setShowEmojiPicker(s => !s)} className="px-2 py-1 bg-[#1f1f1f] text-white rounded-md border border-gray-700">😊</button>
+                            {showEmojiPicker && (
+                              <div className="absolute left-0 mt-2 bg-[#2E2E2E] border border-gray-700 rounded-md p-2 shadow-lg z-20 min-w-[380px]">
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 40px)', gap: '8px', maxHeight: '40vh', overflow: 'auto', padding: '4px' }}>
+                                  {[
+                                    "😀","😃","😄","😁","😆","😂","🤣","😊","🙂","😉",
+                                    "😍","😘","😚","😇","🤩","🤗","🙌","👏","👍","👎",
+                                    "🙏","🎉","🔥","✨","💯","❤️","💙","💚","💛","🧡",
+                                    "💜","😅","🤪","🤯","😴","😎","🤝","🤲","🤞","🤟"
+                                  ].map((e, i) => (
+                                    <button key={`${e}-${i}`} type="button" onClick={() => {
+                                      if (!testimonyRef.current) return;
+                                      testimonyRef.current.focus();
+                                      try { document.execCommand('insertText', false, e); } catch (err) {
+                                        const sel = document.getSelection(); if (!sel || !sel.rangeCount) return; const range = sel.getRangeAt(0); range.deleteContents(); range.insertNode(document.createTextNode(e)); range.setStartAfter(range.endContainer as Node); sel.removeAllRanges(); sel.addRange(range);
+                                      }
+                                      const html = testimonyRef.current.innerHTML || '';
+                                      handleUpdate(story.id, 'text', html);
+                                      setIsTestimonyEmpty(false);
+                                      setShowEmojiPicker(false);
+                                    }} className="p-2 text-xl flex items-center justify-center">{e}</button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="relative">
+                          <div
+                            id={`admin-testimony-${story.id}`}
+                            ref={testimonyRef}
+                            contentEditable
+                            role="textbox"
+                            aria-multiline
+                            data-placeholder="Testimony/Story Text"
+                            onInput={(e) => {
+                              const html = (e.target as HTMLDivElement).innerHTML || '';
+                              const textOnly = String(html || '').replace(/<[^>]*>/g, '');
+                              if (textOnly.length > CHAR_LIMITS.text) {
+                                const truncated = textOnly.substring(0, CHAR_LIMITS.text);
+                                (e.target as HTMLDivElement).innerText = truncated;
+                                // flush immediately when truncated
+                                if (adminUpdateTimer.current) window.clearTimeout(adminUpdateTimer.current);
+                                handleUpdate(story.id, 'text', (e.target as HTMLDivElement).innerHTML);
+                                setIsTestimonyEmpty(truncated.trim().length === 0);
+                                return;
+                              }
+                              // debounce updates to reduce re-renders while typing
+                              if (adminUpdateTimer.current) window.clearTimeout(adminUpdateTimer.current);
+                              adminUpdateTimer.current = window.setTimeout(() => {
+                                handleUpdate(story.id, 'text', html);
+                                adminUpdateTimer.current = null;
+                              }, 300) as unknown as number;
+                              setIsTestimonyEmpty(String(textOnly).trim().length === 0);
+                            }}
+                            onBlur={(e) => {
+                              const html = (e.target as HTMLDivElement).innerHTML || '';
+                              // flush any pending debounced update
+                              if (adminUpdateTimer.current) { window.clearTimeout(adminUpdateTimer.current); adminUpdateTimer.current = null; }
+                              handleUpdate(story.id, 'text', html);
+                              const textOnly = String(html || '').replace(/<[^>]*>/g, '').trim();
+                              setIsTestimonyEmpty(textOnly.length === 0);
+                            }}
+                            className={`w-full px-3 py-2 bg-[#2e2e2e] rounded-md border ${validationErrors[story.id]?.text ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none`} 
+                            style={{ minHeight: '6rem', outline: 'none' }}
+                            suppressContentEditableWarning
+                          />
+
+                          {isTestimonyEmpty && (
+                            <div className="absolute inset-0 pointer-events-none flex items-start">
+                              <div className="px-3 py-2 text-gray-500">Testimony/Story Text</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       {validationErrors[story.id]?.text && (
                         <p className="text-xs text-red-500">{validationErrors[story.id].text}</p>
                       )}
@@ -1650,7 +1784,7 @@ export function StoriesManager() {
                       </div>
                     </div>
                     {story.type === 'text' && story.text && (
-                      <p className="text-gray-300 text-sm mb-3 italic">"{story.text}"</p>
+                      <div className="text-gray-300 text-sm mb-3 italic" dangerouslySetInnerHTML={{ __html: sanitizeInput(story.text) || '' }} />
                     )}
                     {story.type === 'video' && story.youtubeUrl && (
                       <p className="text-gray-300 text-sm mb-3">

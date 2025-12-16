@@ -16,36 +16,36 @@ export default {
   
   tabs: {
     guinness: {
-      label: "Guinness Records",
-      title: "Guinness Records",
+      label: "Guinness World Records",
+      title: "Guinness World Records",
       description: "Celebrating extraordinary achievements recognized by Guinness World Records"
     },
     bibleschool: {
       label: "Hallel Bible School",
       title: "Hallel Bible School",
-      description: "Bible School training that equips believers with solid biblical teaching and practical ministry formation."
+      description: "Hallel Bible School that equips believers with solid biblical teaching and practical ministry formation."
     },
-    international: {
+    hallelconference: {
       label: "Hallel Conference",
       title: "Hallel Conference",
       description: "Testimonies from Hallel conferences that highlight outstanding achievements and contributions."
     },
-    ingenious: {
+    lcmclasses: {
       label: "LCM Classes",
       title: "LCM Classes",
       description: "Training and equipping learners through the London College of Music (LCM) classes."
     },
-    asian: {
+    onlineschool: {
       label: "Online School",
       title: "Online School",
       description: "Online training and courses offered by Hallel's school and ministries."
     },
-    songwriting: {
+    songbooks: {
       label: "Song Books",
       title: "Song Books",
       description: "Collections and classes focused on songwriting and worship composition."
     },
-    hallel: {
+    summercamp: {
       label: "Summer Camp",
       title: "Summer Camp",
       description: "Nurturing the next generation of worshippers through Summer Camps."
