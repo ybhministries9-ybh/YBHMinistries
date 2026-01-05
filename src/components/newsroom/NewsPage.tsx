@@ -534,7 +534,7 @@ export function NewsPage() {
           const json = await resp.json();
           if (!cancelled && json && json.url) setResolvedImageUrl(json.url);
         } catch (e) {
-          console.warn('Failed to resolve event image URL', e);
+          if (process.env.NODE_ENV !== 'production') console.warn('Failed to resolve event image URL', e);
         }
       } else {
         // Fallback: use as-is

@@ -28,7 +28,7 @@ export default function SmartImage({ srcs, alt, className, ...rest }: SmartImage
 
   // If we've exhausted all sources, render a lightweight SVG placeholder instead of broken image
   if (!srcs || index >= srcs.length) {
-    console.warn('SmartImage: all sources failed for', srcs, 'failed:', failed);
+    if (process.env.NODE_ENV !== 'production') console.warn('SmartImage: all sources failed for', srcs, 'failed:', failed);
     return (
       <svg
         className={className}

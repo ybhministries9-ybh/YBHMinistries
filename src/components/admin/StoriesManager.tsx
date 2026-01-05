@@ -1525,6 +1525,110 @@ export function StoriesManager() {
                             role="textbox"
                             aria-multiline
                             data-placeholder="Testimony/Story Text"
+                            onPaste={(e: any) => {
+                              try {
+                                e.preventDefault();
+                                const clipboard = e.clipboardData || (window as any).clipboardData;
+                                const html = clipboard && clipboard.getData ? clipboard.getData('text/html') : null;
+                                const text = clipboard && clipboard.getData ? clipboard.getData('text/plain') : '';
+                                let insertHtml = '';
+
+                                // Helper: sanitize HTML but preserve basic inline tags
+                                const sanitizeHtml = (rawHtml: string) => {
+                                  try {
+                                    const parser = new DOMParser();
+                                    const doc = parser.parseFromString(rawHtml, 'text/html');
+                                    const allowed = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'BR', 'A']);
+
+                                    const cleanNode = (node: Node): Node | null => {
+                                      if (node.nodeType === Node.TEXT_NODE) {
+                                        return document.createTextNode(node.textContent || '');
+                                      }
+                                      if (node.nodeType === Node.ELEMENT_NODE) {
+                                        const el = node as HTMLElement;
+                                        const tag = el.tagName.toUpperCase();
+
+                                        if (tag === 'IMG') {
+                                          // skip images on paste
+                                          return null;
+                                        }
+
+                                        if (allowed.has(tag)) {
+                                          const newEl = document.createElement(tag.toLowerCase());
+                                          if (tag === 'A') {
+                                            const href = el.getAttribute('href');
+                                            if (href) newEl.setAttribute('href', href);
+                                            // open in same window by default; caller can handle target if needed
+                                          }
+                                          // recurse children
+                                          el.childNodes.forEach((c) => {
+                                            const cc = cleanNode(c);
+                                            if (cc) newEl.appendChild(cc);
+                                          });
+                                          return newEl;
+                                        }
+
+                                        // For other elements, unwrap their children (preserve text and inline formatting inside)
+                                        const frag = document.createDocumentFragment();
+                                        el.childNodes.forEach((c) => {
+                                          const cc = cleanNode(c);
+                                          if (cc) frag.appendChild(cc);
+                                        });
+                                        return frag;
+                                      }
+                                      return null;
+                                    };
+
+                                    const frag = document.createDocumentFragment();
+                                    doc.body.childNodes.forEach((c) => {
+                                      const cc = cleanNode(c);
+                                      if (cc) frag.appendChild(cc);
+                                    });
+
+                                    const wrapper = document.createElement('div');
+                                    wrapper.appendChild(frag);
+                                    return wrapper.innerHTML;
+                                  } catch (err) {
+                                    return rawHtml;
+                                  }
+                                };
+
+                                if (html) {
+                                  // Prefer sanitized HTML when available (preserves bold/italic/underline and links)
+                                  insertHtml = sanitizeHtml(html) || sanitizeHtml(text || '');
+                                } else {
+                                  // Plain text fallback: preserve line breaks and emojis
+                                  insertHtml = (text || '').replace(/\n/g, '<br/>');
+                                }
+
+                                // Wrap in a span to force white text color while allowing inline tags to apply
+                                const wrapped = `<span style="color:#fff">${insertHtml}</span>`;
+
+                                // Try to insert using execCommand; if not available, use Range API
+                                const success = document.execCommand && document.execCommand('insertHTML', false, wrapped);
+                                if (!success) {
+                                  const sel = document.getSelection();
+                                  if (sel && sel.rangeCount) {
+                                    const range = sel.getRangeAt(0);
+                                    range.deleteContents();
+                                    const frag = range.createContextualFragment(wrapped);
+                                    range.insertNode(frag);
+                                    range.collapse(false);
+                                    sel.removeAllRanges();
+                                    sel.addRange(range);
+                                  }
+                                }
+
+                                // Update component state after paste
+                                setTimeout(() => {
+                                  const htmlNow = (e.target as HTMLDivElement).innerHTML || '';
+                                  handleUpdate(story.id, 'text', htmlNow);
+                                  setIsTestimonyEmpty(String(htmlNow.replace(/<[^>]*>/g, '')).trim().length === 0);
+                                }, 0);
+                              } catch (err) {
+                                // ignore paste errors
+                              }
+                            }}
                             onInput={(e) => {
                               const html = (e.target as HTMLDivElement).innerHTML || '';
                               const textOnly = String(html || '').replace(/<[^>]*>/g, '');

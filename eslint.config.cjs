@@ -1,4 +1,4 @@
-const tsParser = require.resolve('@typescript-eslint/parser');
+const tsParser = require('@typescript-eslint/parser');
 module.exports = [
   { ignores: ['node_modules/**', '.next/**'] },
   {
