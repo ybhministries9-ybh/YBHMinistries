@@ -389,7 +389,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
               body: JSON.stringify({ key: t.key, expiresIn: 3600 })
             });
             if (!resp.ok) {
-              console.warn('[ResourceManager] presign-get failed status', resp.status, 'for key', t.key);
+              if (process.env.NODE_ENV !== 'production') console.warn('[ResourceManager] presign-get failed status', resp.status, 'for key', t.key);
               return null;
             }
             const json = await resp.json();

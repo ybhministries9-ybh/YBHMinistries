@@ -1,0 +1,156 @@
+@startuml
+' Notification system ER diagram
+hide circle
+skinparam linetype ortho
+
+entity "users" as users {
+  * id : uuid <<PK>>
+  --
+  username : text
+  email : text
+  org_id : uuid <<FK>>
+}
+
+entity "organizations" as orgs {
+  * id : uuid <<PK>>
+  --
+  name : text
+}
+
+entity "notification_channels" as channels {
+  * code : text <<PK>>
+  --
+  description : text
+}
+
+entity "notification_templates" as templates {
+  * id : uuid <<PK>>
+  --
+  name : text
+  scope : text
+  channel : text
+  subject_template : text
+  body_template : text
+  variables_schema : jsonb
+  is_default : boolean
+  version : int
+  metadata : jsonb
+  created_by : uuid <<FK users.id>>
+  org_id : uuid <<FK orgs.id>>
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "notification_template_versions" as tmpl_versions {
+  * id : uuid <<PK>>
+  --
+  template_id : uuid <<FK templates.id>>
+  version : int
+  subject_template : text
+  body_template : text
+  variables_schema : jsonb
+  created_by : uuid <<FK users.id>>
+  created_at : timestamptz
+}
+
+entity "notification_triggers" as triggers {
+  * id : uuid <<PK>>
+  --
+  name : text
+  type : text
+  event_key : text
+  conditions : jsonb
+  template_id : uuid <<FK templates.id>>
+  channels : text[]
+  active : boolean
+  schedule_cron : text
+  created_by : uuid <<FK users.id>>
+  org_id : uuid <<FK orgs.id>>
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "notification_preferences" as prefs {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK users.id>>
+  channels : text[]
+  channel_configs : jsonb
+  frequency : text
+  enabled : boolean
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "notifications" as notifications {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK users.id>>
+  recipient : jsonb
+  template_id : uuid <<FK templates.id>>
+  template_version_id : uuid <<FK tmpl_versions.id>>
+  trigger_id : uuid <<FK triggers.id>>
+  channel : text
+  payload : jsonb
+  status : text
+  error : text
+  attempts : int
+  sent_at : timestamptz
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "notification_queue" as queue {
+  * id : uuid <<PK>>
+  --
+  notification_id : uuid <<FK notifications.id>>
+  priority : int
+  scheduled_at : timestamptz
+  locked_by : text
+  locked_at : timestamptz
+  status : text
+  attempts : int
+  last_error : text
+  created_at : timestamptz
+}
+
+entity "notification_digests" as digests {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK users.id>>
+  frequency : text
+  period_start : timestamptz
+  period_end : timestamptz
+  items : jsonb
+  sent_at : timestamptz
+  created_at : timestamptz
+}
+
+entity "notification_audit" as audit {
+  * id : uuid <<PK>>
+  --
+  notification_id : uuid <<FK notifications.id>>
+  event : text
+  detail : jsonb
+  created_at : timestamptz
+}
+
+' relationships
+users }|..|{ prefs : "has"
+users }|..|| notifications : "received"
+users }|..|| digests : "has"
+users }|..|| templates : "created"
+users }|..|| tmpl_versions : "created"
+users }|..|| triggers : "created"
+orgs }|..|| templates : "owns"
+orgs }|..|| triggers : "owns"
+templates ||--o{ tmpl_versions : "versions"
+templates ||--o{ triggers : "default_for"
+templates ||--o{ notifications : "used_by"
+triggers ||--o{ notifications : "generates"
+notifications ||--o{ queue : "enqueued_as"
+notifications ||--o{ audit : "audited_by"
+digests ||--o{ notifications : "aggregates"
+channels ||--|| templates : "applies_to"
+
+@enduml

@@ -1,0 +1,151 @@
+{
+  "info": {
+    "name": "YBHMinistries - Admin APIs",
+    "_postman_id": "ybh-admin-collection",
+    "description": "Postman collection for admin API endpoints (use {{base_url}} and save auth token to {{auth_token}})",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"your_password\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/api/admin/auth/login", "host": ["{{base_url}}"], "path": ["api","admin","auth","login"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json && json.access_token) { pm.environment.set('auth_token', json.access_token); }",
+              "pm.test('login success', function () { pm.response.to.have.status(200); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Verify",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": { "raw": "{{base_url}}/api/admin/auth/verify", "host": ["{{base_url}}"], "path": ["api","admin","auth","verify"] }
+      }
+    },
+    {
+      "name": "Auth - Extend",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "url": { "raw": "{{base_url}}/api/admin/auth/extend", "host": ["{{base_url}}"], "path": ["api","admin","auth","extend"] }
+      }
+    },
+    {
+      "name": "Auth - Me",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "url": { "raw": "{{base_url}}/api/admin/auth/me", "host": ["{{base_url}}"], "path": ["api","admin","auth","me"] }
+      }
+    },
+    {
+      "name": "Users - List",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "url": { "raw": "{{base_url}}/api/admin/users", "host": ["{{base_url}}"], "path": ["api","admin","users"] }
+      }
+    },
+    {
+      "name": "Users - Create",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"name\": \"New User\",\n  \"role\": \"editor\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/api/admin/users", "host": ["{{base_url}}"], "path": ["api","admin","users"] }
+      }
+    },
+    {
+      "name": "HMS Students - List",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "url": { "raw": "{{base_url}}/api/admin/hms-students?limit=50&offset=0", "host": ["{{base_url}}"], "path": ["api","admin","hms-students"], "query": [ { "key": "limit", "value": "50" }, { "key": "offset", "value": "0" } ] }
+      }
+    },
+    {
+      "name": "HMS Students - Export",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "url": { "raw": "{{base_url}}/api/admin/hms-students/export", "host": ["{{base_url}}"], "path": ["api","admin","hms-students","export"] }
+      }
+    },
+    {
+      "name": "Get-In-Touch - List",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "url": { "raw": "{{base_url}}/api/admin/get-in-touch?limit=50&offset=0", "host": ["{{base_url}}"], "path": ["api","admin","get-in-touch"], "query": [ { "key": "limit", "value": "50" }, { "key": "offset", "value": "0" } ] }
+      }
+    },
+    {
+      "name": "Resources - List (books)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "url": { "raw": "{{base_url}}/api/admin/resources?type=books", "host": ["{{base_url}}"], "path": ["api","admin","resources"], "query": [ { "key": "type", "value": "books" } ] }
+      }
+    },
+    {
+      "name": "Upload File",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": "" },
+            { "key": "dest", "type": "text", "value": "uploads/tmp" }
+          ]
+        },
+        "url": { "raw": "{{base_url}}/api/admin/upload/file", "host": ["{{base_url}}"], "path": ["api","admin","upload","file"] }
+      }
+    },
+    {
+      "name": "Media - Confirm",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"key\": \"uploads/tmp/example.jpg\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/api/admin/media/confirm", "host": ["{{base_url}}"], "path": ["api","admin","media","confirm"] }
+      }
+    },
+    {
+      "name": "Donations - List (upi)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{auth_token}}" } ],
+        "url": { "raw": "{{base_url}}/api/admin/donations?type=upi", "host": ["{{base_url}}"], "path": ["api","admin","donations"], "query": [ { "key": "type", "value": "upi" } ] }
+      }
+    }
+  ],
+  "event": [],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "auth_token", "value": "" }
+  ]
+}

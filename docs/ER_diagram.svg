@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <style>
+    .box { fill:#ffffff; stroke:#2b2b2b; stroke-width:2; rx:6; }
+    .title { font: bold 16px Arial; fill:#111111 }
+    .col { font: 12px monospace; fill:#222222 }
+    .rel { stroke:#666666; stroke-width:1.5; marker-end:url(#arrow); }
+    .note { font:12px Arial; fill:#333333 }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#666666" />
+    </marker>
+  </defs>
+
+  <!-- Users -->
+  <g transform="translate(40,40)">
+    <rect class="box" width="300" height="120" />
+    <text class="title" x="16" y="28">users</text>
+    <text class="col" x="16" y="52">* id : serial</text>
+    <text class="col" x="16" y="70">name, email (unique), role, status</text>
+    <text class="col" x="16" y="88">created_at, updated_at</text>
+  </g>
+
+  <!-- Stories -->
+  <g transform="translate(420,40)">
+    <rect class="box" width="300" height="160" />
+    <text class="title" x="16" y="28">stories</text>
+    <text class="col" x="16" y="52">* id : serial</text>
+    <text class="col" x="16" y="70">title, date, location, category</text>
+    <text class="col" x="16" y="88">body, media_type, video_url, thumbnail_url</text>
+    <text class="col" x="16" y="106">status, is_visible, is_active</text>
+    <text class="col" x="16" y="124">created_by, updated_by</text>
+  </g>
+
+  <!-- Ministries -->
+  <g transform="translate(420,220)">
+    <rect class="box" width="300" height="120" />
+    <text class="title" x="16" y="28">ministries</text>
+    <text class="col" x="16" y="52">* id : serial</text>
+    <text class="col" x="16" y="70">name, slug (unique), is_active</text>
+    <text class="col" x="16" y="88">created_at, updated_at</text>
+  </g>
+
+  <!-- Events -->
+  <g transform="translate(820,40)">
+    <rect class="box" width="420" height="180" />
+    <text class="title" x="16" y="28">events</text>
+    <text class="col" x="16" y="52">* id : serial</text>
+    <text class="col" x="16" y="70">title, date, time, location, type</text>
+    <text class="col" x="16" y="88">description, extended_description, capacity</text>
+    <text class="col" x="16" y="106">image_url, speakers[], registration_enabled</text>
+    <text class="col" x="16" y="124">published, created_by, updated_by</text>
+  </g>
+
+  <!-- Gallery Items -->
+  <g transform="translate(820,260)">
+    <rect class="box" width="420" height="140" />
+    <text class="title" x="16" y="28">gallery_items</text>
+    <text class="col" x="16" y="52">* id : serial</text>
+    <text class="col" x="16" y="70">category, media_type, url, title</text>
+    <text class="col" x="16" y="88">bucket, date, created_at</text>
+  </g>
+
+  <!-- Resources group (books/worship/sermons/bible_studies) -->
+  <g transform="translate(40,220)">
+    <rect class="box" width="340" height="260" />
+    <text class="title" x="16" y="28">resources</text>
+    <text class="col" x="16" y="52">books: * id, title, author, price, published</text>
+    <text class="col" x="16" y="70">worship: * id, youtube_url, title, published</text>
+    <text class="col" x="16" y="88">sermons: * id, youtube_url, published</text>
+    <text class="col" x="16" y="106">bible_studies: * id, title, file_url, published</text>
+  </g>
+
+  <!-- Home / Hero Images -->
+  <g transform="translate(420,380)">
+    <rect class="box" width="300" height="140" />
+    <text class="title" x="16" y="28">home_hero_images</text>
+    <text class="col" x="16" y="52">* id : serial</text>
+    <text class="col" x="16" y="70">image_url, display_order, is_active</text>
+    <text class="col" x="16" y="88">created_by, updated_by</text>
+  </g>
+
+  <g transform="translate(820,420)">
+    <rect class="box" width="420" height="120" />
+    <text class="title" x="16" y="28">donations_upi / donations_bank</text>
+    <text class="col" x="16" y="52">donations_upi: id, label, upi_id, qr_image_url, visible</text>
+    <text class="col" x="16" y="70">donations_bank: id, account_name, account_number, bank_name</text>
+  </g>
+
+  <!-- Hero images table (separate file) -->
+  <g transform="translate(40,520)">
+    <rect class="box" width="300" height="120" />
+    <text class="title" x="16" y="28">hero_images</text>
+    <text class="col" x="16" y="52">* id, desktop_url, mobile_url</text>
+    <text class="col" x="16" y="70">alt_text, display_order, is_active</text>
+  </g>
+
+  <!-- Reports -->
+  <g transform="translate(420,560)">
+    <rect class="box" width="300" height="100" />
+    <text class="title" x="16" y="28">reports</text>
+    <text class="col" x="16" y="52">* id, year, class_type, monthly_data (jsonb)</text>
+  </g>
+
+  <!-- Relationships (implicit created_by/updated_by -> users) -->
+  <line class="rel" x1="340" y1="80" x2="420" y2="80" />
+  <line class="rel" x1="340" y1="120" x2="420" y2="140" />
+  <line class="rel" x1="340" y1="160" x2="420" y2="260" />
+  <line class="rel" x1="340" y1="200" x2="820" y2="100" />
+  <line class="rel" x1="340" y1="240" x2="820" y2="300" />
+  <line class="rel" x1="340" y1="280" x2="460" y2="440" />
+
+  <text class="note" x="16" y="860">Note: Many tables use string columns `created_by`/`updated_by` referencing `users` implicitly (no FK constraints in schema files).</text>
+
+</svg>

@@ -5,6 +5,29 @@ module.exports = {
     ecmaVersion: 2024,
     sourceType: 'module',
     ecmaFeatures: { jsx: true },
+    project: ['./tsconfig.json']
+  },
+  plugins: ['@typescript-eslint', 'react', 'jsx-a11y'],
+  settings: { react: { version: 'detect' } },
+  extends: [
+    'plugin:react/recommended',
+    'plugin:jsx-a11y/recommended',
+    'plugin:@typescript-eslint/recommended',
+    'next/core-web-vitals'
+  ],
+  rules: {
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    'react/prop-types': 'off',
+    'react/react-in-jsx-scope': 'off'
+  }
+};
+module.exports = {
+  root: true,
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaVersion: 2024,
+    sourceType: 'module',
+    ecmaFeatures: { jsx: true },
     project: ['./tsconfig.json'],
   },
   settings: {
