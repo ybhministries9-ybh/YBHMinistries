@@ -128,7 +128,8 @@ export function Header() {
 
   const handleMenuItemClick = (item: MenuItem) => {
     if (item.url) {
-      navigate(item.url);
+      const target = item.url === '/about' ? `${item.url}#about-hero` : item.url;
+      navigate(target);
       setCurrentPath(item.url);
       setIsMenuOpen(false);
     }

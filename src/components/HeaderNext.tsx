@@ -138,7 +138,7 @@ export function HeaderNext() {
               {middleMenuItems.map((item) => (
                 <Link
                   key={item.label}
-                  href={item.url || '/'}
+                  href={item.url === '/about' ? '/about#about-hero' : (item.url || '/')}
                   className={`px-2 py-1 text-sm ${
                     isMenuItemActive(item)
                       ? 'text-yellow-400 bg-gray-800'
@@ -169,7 +169,7 @@ export function HeaderNext() {
             {menuItems.map((item) => (
               <Link
                 key={item.label}
-                href={item.url || '/'}
+                href={item.url === '/about' ? '/about#about-hero' : (item.url || '/')}
                 onClick={handleMenuItemClick}
                 className={`block w-full text-left px-3 py-1.5 mb-1.5 ${
                   item.label === 'DONATE'
