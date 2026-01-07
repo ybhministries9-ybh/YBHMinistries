@@ -44,5 +44,5 @@ export default function SmartImage({ srcs, alt, className, ...rest }: SmartImage
     );
   }
 
-  return <img src={src} alt={alt} className={className} onError={handleError} {...rest} />;
+  return <img src={src} alt={alt} className={className} loading="lazy" decoding="async" onError={handleError} {...rest} />;
 }

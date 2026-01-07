@@ -29,15 +29,15 @@ export function FooterNext() {
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-8 mb-8">
           {/* Site Title Column */}
           <div itemScope itemType="https://schema.org/Organization">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3">
               <img 
                 src={ybhLogo} 
                 alt="YBH Logo" 
                 className="h-12 w-12 object-contain"
                 itemProp="logo"
               />
-              <h3 className="text-white" itemProp="name">{t('footer.siteTitle')}</h3>
             </div>
+            <h3 className="text-white font-bold" itemProp="name">{t('footer.siteTitle')}</h3>
             <p className="text-sm text-gray-400 mb-4" itemProp="description">
               {t('footer.about.description')}
             </p>
@@ -65,7 +65,7 @@ export function FooterNext() {
             <div className="grid grid-cols-2 gap-x-8">
               <ul className="space-y-2 text-sm">
                 <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
-                <li><Link href="/about" className="hover:text-white transition-colors">About</Link></li>
+                <li><Link href="/about#about-hero" className="hover:text-white transition-colors">About</Link></li>
                 <li><Link href="/ministries" className="hover:text-white transition-colors">Ministries</Link></li>
                 <li><Link href="/gallery" className="hover:text-white transition-colors">Gallery</Link></li>
                 <li><Link href="/news" className="hover:text-white transition-colors">News</Link></li>
@@ -86,8 +86,16 @@ export function FooterNext() {
             <h3 className="text-white mb-4">Ministries</h3>
             <ul className="space-y-2 text-sm">
               <li><Link href="/ministries?tab=hallel-music-school" className="hover:text-white transition-colors">Hallel Music School</Link></li>
-              <li><Link href="/ministries?tab=hallel-bible-college" className="hover:text-white transition-colors">Hallel Bible College</Link></li>
-              <li><Link href="/ministries?tab=hallel-bible-school" className="hover:text-white transition-colors">Hallel Bible School</Link></li>
+              <li>
+                <span className="text-gray-500 transition-colors cursor-not-allowed" aria-disabled="true" title="Currently unavailable">
+                  Hallel Bible College
+                </span>
+              </li>
+              <li>
+                <span className="text-gray-500 transition-colors cursor-not-allowed" aria-disabled="true" title="Currently unavailable">
+                  Hallel Bible School
+                </span>
+              </li>
               <li><Link href="/ministries?tab=hallel-conferences" className="hover:text-white transition-colors">Hallel Conferences</Link></li>
               <li><Link href="/ministries?tab=hallel-worship-day" className="hover:text-white transition-colors">Hallel Worship Day</Link></li>
               <li><Link href="/ministries?tab=hallel-music-school-summer-training" className="hover:text-white transition-colors">HMS Summer Training</Link></li>
@@ -100,7 +108,7 @@ export function FooterNext() {
             <h4 className="text-white mb-3">Follow Us</h4>
             <div className="flex gap-3 mb-6 justify-end">
               <a
-                href="https://www.facebook.com/profile.php?id=100089579084304"
+                href="https://www.facebook.com/profile.php?id=100063698651483"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center transition-colors"
@@ -118,7 +126,7 @@ export function FooterNext() {
                 <Instagram size={18} />
               </a>
               <a
-                href="https://www.youtube.com/@YBHMinistries"
+                href="https://www.youtube.com/@augustinedandingi6878"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center transition-colors"
