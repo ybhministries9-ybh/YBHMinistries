@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import { motion } from "motion/react";
 import {
@@ -172,7 +173,7 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
     if (matches.length === 0) return <span>{full}</span>;
     // Sort matches by index and stitch the pieces together, avoiding overlaps
     matches.sort((a, b) => a.idx - b.idx);
-    const nodes: Array<string | JSX.Element> = [];
+    const nodes: Array<string | ReactNode> = [];
     let cursor = 0;
     for (const m of matches) {
       if (m.idx < cursor) continue; // overlapping/previously consumed

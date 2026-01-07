@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { getUpcomingEvents, formatEventDate, Event } from '../utils/eventsData';
@@ -9,7 +10,7 @@ const ORDINAL_REGEX = /(\d+)(st|nd|rd|th)\b/gi;
 
 function renderTitleWithSuperscript(title: string) {
   const regex = new RegExp(ORDINAL_REGEX);
-  const parts: Array<string | JSX.Element> = [];
+  const parts: Array<string | ReactNode> = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -60,7 +61,7 @@ export function EventScrollBanner() {
   // Render titles with ordinal suffixes (1st, 2nd, 3rd, 4th) shown as superscript
   const renderTitleWithSuperscript = (title: string) => {
     const regex = /(\d+)(st|nd|rd|th)\b/gi;
-    const parts: Array<string | JSX.Element> = [];
+    const parts: Array<string | ReactNode> = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
 
