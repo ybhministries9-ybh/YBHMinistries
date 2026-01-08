@@ -182,18 +182,17 @@ function ImageCarousel({ images, interval = 3000 }) {
   // Preload the first image immediately
   useEffect(() => {
     if (images.length > 0 && typeof window !== 'undefined') {
-      // Preload first image with high priority
+      // Use prefetch for hero images to avoid browser warnings when signed
+      // URLs are generated dynamically and may not be used immediately.
       const link = document.createElement('link');
-      link.rel = 'preload';
+      link.rel = 'prefetch';
       link.as = 'image';
       link.href = images[0];
-      link.fetchPriority = 'high';
       document.head.appendChild(link);
-      
-      // Preload second image for smoother transition
+
       if (images.length > 1) {
         const link2 = document.createElement('link');
-        link2.rel = 'preload';
+        link2.rel = 'prefetch';
         link2.as = 'image';
         link2.href = images[1];
         document.head.appendChild(link2);
