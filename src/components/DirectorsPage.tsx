@@ -345,13 +345,13 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
         <div className="grid gap-8 md:grid-cols-2">
           <div className="px-4 md:px-0">
             <h3 className="mb-4 text-xl font-semibold text-white">{t('augustine.aboutSection.visionMissionTitle')}</h3>
-            <p className="mb-4 text-white">
+            <p className="mb-4 text-white text-justify">
               {t('augustine.aboutSection.paragraph1')}
             </p>
-            <p className="mb-4 text-white">
+            <p className="mb-4 text-white text-justify">
               {t('augustine.aboutSection.paragraph2')}
             </p>
-            <p className="text-white">
+            <p className="text-white text-justify">
               {t('augustine.aboutSection.paragraph3')}
             </p>
           </div>
@@ -894,16 +894,16 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accent
         <div className="grid gap-8 md:grid-cols-2">
           <div className="px-4 md:px-0">
             <h3 className="mb-4 text-xl font-semibold text-white">{t('vijaya.aboutSection.visionMissionTitle')}</h3>
-            <p className="mb-4 text-white">
+            <p className="mb-4 text-white text-justify">
               {t('vijaya.aboutSection.paragraph1')}
             </p>
-            <p className="mb-4 text-white">
+            <p className="mb-4 text-white text-justify">
               {t('vijaya.aboutSection.paragraph2')}
             </p>
-            <p className="text-white">
+            <p className="text-white text-justify">
               {t('vijaya.aboutSection.paragraph3')}
             </p>
-            <p className="text-white">
+            <p className="text-white text-justify">
               {t('vijaya.aboutSection.paragraph4')}
             </p>
           </div>
@@ -1070,13 +1070,13 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accen
         <div className="grid gap-8 md:grid-cols-2">
           <div className="px-4 md:px-0">
             <h3 className="mb-4 text-xl font-semibold text-white">{t('charles.aboutSection.visionMissionTitle')}</h3>
-            <p className="mb-4 text-white">
+            <p className="mb-4 text-white text-justify">
               {t('charles.aboutSection.paragraph1')}
             </p>
-            <p className="mb-4 text-white">
+            <p className="mb-4 text-white text-justify">
               {t('charles.aboutSection.paragraph2')}
             </p>
-            <p className="text-white">
+            <p className="text-white text-justify">
               {t('charles.aboutSection.paragraph3')}
             </p>
           </div>
@@ -1239,13 +1239,13 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentC
         <div className="grid gap-8 md:grid-cols-2">
           <div className="px-4 md:px-0">
             <h3 className="mb-4 text-xl font-semibold text-white">{t('nancy.aboutSection.visionMissionTitle')}</h3>
-            <p className="mb-4 text-white">
+            <p className="mb-4 text-white text-justify">
               {t('nancy.aboutSection.paragraph1')}
             </p>
-            <p className="mb-4 text-white">
+            <p className="mb-4 text-white text-justify">
               {t('nancy.aboutSection.paragraph2')}
             </p>
-            <p className="text-white">
+            <p className="text-white text-justify">
               {t('nancy.aboutSection.paragraph3')}
             </p>
           </div>
