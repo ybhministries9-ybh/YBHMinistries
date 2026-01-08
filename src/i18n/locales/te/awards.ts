@@ -8,9 +8,9 @@ export default {
   "comingSoon": "కంటెంట్ త్వరలో వస్తుంది...",
   
   buttons: {
-    viewPictures: "చిత్రాలను చూడండి",
-    viewVideos: "వీడియోలను చూడండి",
-    viewStories: "కథలను చూడండి"
+    viewPictures: "చిత్రాలను ",
+    viewVideos: "వీడియోలను ",
+    viewStories: "కథలను"
   },
   
   labels: {

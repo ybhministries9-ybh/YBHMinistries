@@ -50,14 +50,16 @@ export function AwardsPage() {
   const handleViewPictures = (recordId: string) => {
     const mapping = recordTabMapping[recordId];
     if (mapping) {
-      navigate(`/gallery#tab=${mapping.galleryTab}`);
+      // Use query params so the gallery page can read it on the server and client consistently
+      navigate(`/gallery?tab=${encodeURIComponent(mapping.galleryTab)}`);
     }
   };
 
   const handleViewVideos = (recordId: string) => {
     const mapping = recordTabMapping[recordId];
     if (mapping) {
-      navigate(`/gallery#tab=${mapping.galleryTab}&view=videos`);
+      // Use query params (not hash) to request the videos view for the gallery
+      navigate(`/gallery?tab=${encodeURIComponent(mapping.galleryTab)}&view=videos`);
     }
   };
 
