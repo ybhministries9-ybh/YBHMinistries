@@ -8,9 +8,9 @@ export default {
   "comingSoon": "Content coming soon...",
   
   buttons: {
-    viewPictures: "View Pictures",
-    viewVideos: "View Videos",
-    viewStories: "View Stories"
+    viewPictures: "Pictures",
+    viewVideos: "Videos",
+    viewStories: "Stories"
   },
   
   labels: {

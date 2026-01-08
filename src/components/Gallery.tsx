@@ -110,6 +110,13 @@ export function Gallery() {
 
   const getInitialTabAndView = () => {
   if (typeof window === 'undefined') return { tab: 'guinness-events', view: 'photos' };
+  // Prefer query string (works for SSR and client), fall back to hash params
+  const searchParams = new URLSearchParams(window.location.search);
+  const searchTab = searchParams.get('tab');
+  const searchView = searchParams.get('view');
+  if (searchTab || searchView) {
+    return { tab: searchTab || 'guinness-events', view: searchView || 'photos' };
+  }
   const hash = window.location.hash.substring(1);
   const params = new URLSearchParams(hash);
   return { tab: params.get('tab') || 'guinness-events', view: params.get('view') || 'photos' };
@@ -135,8 +142,9 @@ export function Gallery() {
   });
 
   useEffect(() => {
-    if (activeView === 'videos' && videoSectionRef.current) {
-      setTimeout(() => {
+    if (activeView === 'videos') {
+      // Wait for the video section to render and for any data to arrive, then scroll
+      const timeout = setTimeout(() => {
         const element = videoSectionRef.current;
         if (element) {
           const headerOffset = 180;
@@ -144,7 +152,8 @@ export function Gallery() {
           const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
           window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
         }
-      }, 300);
+      }, 400);
+      return () => clearTimeout(timeout);
     }
   }, [activeView, activeTab]);
 
@@ -211,15 +220,24 @@ export function Gallery() {
         // fall back to the photos view and update the URL so the gallery shows images.
         try {
           if (typeof window !== 'undefined') {
+            // Prefer query params, fall back to hash params when checking requested view/tab
+            const searchParams = new URLSearchParams(window.location.search);
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
-            const requestedView = hashParams.get('view') || initialView || 'photos';
-            const requestedTab = hashParams.get('tab') || initialTab || 'guinness-events';
+            const requestedView = searchParams.get('view') || hashParams.get('view') || initialView || 'photos';
+            const requestedTab = searchParams.get('tab') || hashParams.get('tab') || initialTab || 'guinness-events';
             const hasVideos = (videosMap[requestedTab] || []).length > 0;
             if (requestedView === 'videos' && !hasVideos) {
               setActiveView('photos');
-              // update URL hash to reflect fallback to photos without reloading
-              hashParams.set('view', 'photos');
-              window.history.replaceState(null, '', `#${hashParams.toString()}`);
+              // update URL search or hash to reflect fallback to photos without reloading
+              if (searchParams.get('view')) {
+                searchParams.set('view', 'photos');
+                const query = searchParams.toString();
+                const base = window.location.pathname;
+                window.history.replaceState(null, '', `${base}?${query}${window.location.hash}`);
+              } else {
+                hashParams.set('view', 'photos');
+                window.history.replaceState(null, '', `#${hashParams.toString()}`);
+              }
             }
           }
         } catch (e) {

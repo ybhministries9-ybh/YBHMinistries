@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import { motion } from "motion/react";
 import {
@@ -12,6 +13,7 @@ import {
 import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
+import logger from '@/lib/logger';
 
 // Default fallback image URL (derived from env; leave blank if not provided)
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
@@ -20,6 +22,7 @@ const FALLBACK_HERO_IMAGE = `${R2_BASE}/defaults/about-default.jpg`;
 // Tab configuration
 const TAB_CONFIG = [
   { key: "vision", labelKey: "tabs.vision" },
+  { key: "mission", labelKey: "tabs.mission" },
   { key: "coreValues", labelKey: "tabs.coreValues" }
 ] as const;
 
@@ -48,8 +51,8 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
             setHeroImageUrl(result.data.image_url);
           }
         }
-      } catch (error) {
-        console.error('Error fetching about hero image:', error);
+        } catch (error) {
+        logger.error('Error fetching about hero image', error);
         // Keep using fallback image on error
       }
     };
@@ -69,12 +72,15 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
         return (
           <button
             key={tab.key}
-            className={`px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-semibold transition-colors focus:outline-none ${
+              className={`px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-semibold transition-colors focus:outline-none ${
               isActive
                 ? "bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]"
                 : "bg-[#2E2E2E] text-white hover:bg-[#FDB813] hover:text-black focus:ring-2 focus:ring-offset-2 focus:ring-[#FDB813]"
             }`}
-            onClick={() => handleTabChange(tab.key)}
+              onClick={() => {
+                handleTabChange(tab.key);
+                scrollToSection(tab.key);
+              }}
             style={{ cursor: "pointer" }}
             aria-selected={isActive}
             role="tab"
@@ -86,13 +92,141 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
     [activeTab, handleTabChange, t]
   );
 
+  // Helper to scroll a given tab section into view (accounting for fixed header)
+  const scrollToSection = (tabKey: string) => {
+    if (typeof window === 'undefined') return;
+    const id = `${tabKey}-section`;
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const header = document.querySelector('header');
+    const headerHeight = header ? (header as HTMLElement).offsetHeight : 0;
+    const top = el.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+    window.scrollTo({ top, behavior: 'smooth' });
+  };
+
+  // Render a translation string with the leading phrase bolded.
+  // `rule` can be a substring or RegExp to split on; returns JSX with bold lead and normal rest.
+  const renderBoldLead = (full: string, rule: string | RegExp) => {
+    if (!full) return null;
+    let parts: string[] = [];
+    if (rule instanceof RegExp) {
+      const m = full.match(rule);
+      if (m && m.index !== undefined) {
+        const idx = m.index; // split before the matched token
+        parts = [full.slice(0, idx).trimEnd(), full.slice(idx).trimStart()];
+      }
+    } else {
+      const idx = full.toLowerCase().indexOf(rule.toLowerCase());
+      if (idx !== -1) {
+        // split before the rule occurrence
+        parts = [full.slice(0, idx).trimEnd(), full.slice(idx).trimStart()];
+      }
+    }
+
+    if (parts.length === 0) {
+      // fallback: split at first sentence end
+      const dot = full.indexOf('.');
+      if (dot !== -1) parts = [full.slice(0, dot + 1), full.slice(dot + 1)];
+    }
+
+    if (parts.length === 0) return <span>{full}</span>;
+    // Decide whether to inject a separating space between the bold lead and the rest.
+    // If the remainder begins with a dash-like character, don't add an extra space.
+    const needsSpace = parts[1] && !/^[—–-]/.test(parts[1]);
+    return (
+      <span>
+        <strong>{parts[0]}</strong>
+        {needsSpace ? ' ' : ''}
+        <span>{parts[1]}</span>
+      </span>
+    );
+  };
+
+  // Wrap a specific phrase in <strong> within the full text (first occurrence)
+  const renderWrapPhrase = (full: string, phrase: string) => {
+    if (!full || !phrase) return <span>{full}</span>;
+    const idx = full.indexOf(phrase);
+    if (idx === -1) return <span>{full}</span>;
+    const before = full.slice(0, idx);
+    const after = full.slice(idx + phrase.length);
+    return (
+      <span>
+        {before}
+        <strong>{phrase}</strong>
+        {after}
+      </span>
+    );
+  };
+
+  // Wrap multiple phrases (first occurrence of each) in <strong> within the full text
+  const renderWrapPhrases = (full: string, phrases: string[]) => {
+    if (!full || !phrases || phrases.length === 0) return <span>{full}</span>;
+    // Build a list of match positions for the phrases (case-insensitive)
+    const lower = full.toLowerCase();
+    const matches: { idx: number; phrase: string; len: number }[] = [];
+    phrases.forEach((p) => {
+      const lp = p.toLowerCase();
+      const i = lower.indexOf(lp);
+      if (i !== -1) matches.push({ idx: i, phrase: full.slice(i, i + lp.length), len: lp.length });
+    });
+    if (matches.length === 0) return <span>{full}</span>;
+    // Sort matches by index and stitch the pieces together, avoiding overlaps
+    matches.sort((a, b) => a.idx - b.idx);
+    const nodes: Array<string | ReactNode> = [];
+    let cursor = 0;
+    for (const m of matches) {
+      if (m.idx < cursor) continue; // overlapping/previously consumed
+      if (m.idx > cursor) nodes.push(full.slice(cursor, m.idx));
+      nodes.push(<strong key={m.idx}>{full.slice(m.idx, m.idx + m.len)}</strong>);
+      cursor = m.idx + m.len;
+    }
+    if (cursor < full.length) nodes.push(full.slice(cursor));
+    return <span>{nodes.map((n, i) => (typeof n === 'string' ? <span key={i}>{n}</span> : n))}</span>;
+  };
+  // Scroll selected section into view, accounting for fixed header
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const id = `${activeTab}-section`;
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    // Determine header height to offset the scroll so section sits below header
+    const header = document.querySelector('header');
+    const headerHeight = header ? (header as HTMLElement).offsetHeight : 0;
+    const top = el.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }, [activeTab]);
+
+  // If navigated with fragment `#about-hero`, focus and scroll to the hero section for accessibility
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    if (hash === '#about-hero') {
+      const el = document.getElementById('about-hero');
+      if (!el) return;
+      const header = document.querySelector('header');
+      const headerHeight = header ? (header as HTMLElement).offsetHeight : 0;
+      const top = el.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+      window.scrollTo({ top, behavior: 'smooth' });
+      setTimeout(() => {
+        try {
+          (el as HTMLElement).focus();
+        } catch (e) {
+          // ignore
+        }
+      }, 300);
+    }
+  }, []);
+
   return (
     <div
       className="min-h-screen text-white"
       style={{ backgroundColor: primaryBackground }}
     >
       {/* Hero Image */}
-      <div className="relative w-full h-screen overflow-hidden md:pt-20" style={{ backgroundColor: '#000' }}>
+      <div id="about-hero" tabIndex={-1} role="region" aria-label={t('hero.title') || 'About hero'} className="relative w-full h-screen overflow-hidden md:pt-20" style={{ backgroundColor: '#000' }}>
         {heroImageUrl ? (
           <div className="absolute inset-0 w-full h-full"> 
             <Image
@@ -112,22 +246,26 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
           // No hero image provided — show a stable background block to avoid layout shift
           <div className="absolute inset-0" style={{ backgroundColor: '#000' }} aria-hidden />
         )}
-      </div>
-
-      {/* Tabs - Centered with padding */}
-      <div className="pt-8 pb-1 md:py-12">
-        <div className="container mx-auto px-2 md:px-4">
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3" role="tablist">
-            {tabButtons}
+        {/* Tabs overlayed at specified position on the hero image */}
+        <div
+          className="absolute left-0 right-0 z-30 flex justify-center"
+          style={{ top: '90%' }}
+        >
+          <div className="bg-black/60 rounded-full px-4 py-2 backdrop-blur-md">
+            <div className="flex items-center justify-center gap-3 md:gap-6" role="tablist" aria-label={t('tabs.ariaLabel') || 'About tabs'}>
+              {tabButtons}
+            </div>
           </div>
         </div>
       </div>
+      
 
       {/* Tab Content - Full Width Sections */}
       <div role="tabpanel">
-        {/* Vision & Mission Tab */}
+        {/* Vision Tab */}
         {activeTab === "vision" && (
           <motion.div
+            id="vision-section"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -146,10 +284,16 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
 
                 <div className="max-w-4xl mx-auto space-y-6 text-white leading-relaxed">
                   <p className="text-lg">
-                    {t('vision.intro1')}
+                    {renderWrapPhrase(
+                      t('vision.intro1'),
+                      t('vision.intro1_highlight')
+                    )}
                   </p>
                   <p className="text-lg">
-                    {t('vision.intro2')}
+                    {renderWrapPhrase(
+                      t('vision.intro2'),
+                      t('vision.intro2_highlight')
+                    )}
                   </p>
                   <p className="text-lg">
                     {t('vision.intro3')}
@@ -165,12 +309,56 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
                     ))}
                   </ul>
                   <p className="text-lg">
-                    {t('vision.outro')}
+                    {renderWrapPhrases(
+                      t('vision.outro'),
+                      t('vision.outro_highlights', { returnObjects: true }) as string[]
+                    )}
                   </p>
                 </div>
               </div>
             </section>
 
+            {/* Our Commitment Section - Black (keep with Vision tab) */}
+            <section className="py-12 px-4 md:px-12" style={{ backgroundColor: '#000000' }}>
+              <div className="container mx-auto max-w-6xl">
+                <div className="text-center mb-10">
+                  <div className="flex items-center justify-center space-x-3 mb-4">
+                    <h2 className="text-3xl md:text-4xl text-white">
+                      {t('commitment.title')}
+                    </h2>
+                  </div>
+                  <div className="w-24 h-1 mx-auto rounded-full" style={{ backgroundColor: accentGold }}></div>
+                </div>
+
+                <div className="max-w-4xl mx-auto space-y-6 text-white leading-relaxed">
+                  <p className="text-lg text-center">
+                    {renderWrapPhrase(
+                      t('commitment.description'),
+                      t('commitment.description_highlight')
+                    )}
+                  </p>
+                  <p className="text-xl text-center text-white mt-8">
+                    <em>
+                      {renderWrapPhrase(
+                        t('commitment.quote'),
+                        t('commitment.quote_highlight')
+                      )}
+                    </em>
+                  </p>
+                </div>
+              </div>
+            </section>
+          </motion.div>
+        )}
+
+        {/* Mission Tab */}
+        {activeTab === "mission" && (
+          <motion.div
+            id="mission-section"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
             {/* Our Mission Section - Grey */}
             <section className="py-12 px-4 md:px-12" style={{ backgroundColor: '#2E2E2E' }}>
               <div className="container mx-auto max-w-6xl">
@@ -185,7 +373,10 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
 
                 <div className="max-w-4xl mx-auto space-y-8 text-white leading-relaxed">
                   <p className="text-lg">
-                    {t('mission.intro')}
+                    {renderWrapPhrase(
+                      t('mission.intro'),
+                      t('mission.intro_highlight')
+                    )}
                   </p>
 
                   {/* Evangelize */}
@@ -198,8 +389,11 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
                         <h3 className="text-2xl text-white mb-3">
                           {t('mission.evangelize.title')}
                         </h3>
-                        <p className="text-lg">
-                          {t('mission.evangelize.description')}
+                          <p className="text-lg">
+                          {renderWrapPhrase(
+                            t('mission.evangelize.description'),
+                            t('mission.evangelize.description_highlight')
+                          )}
                         </p>
                       </div>
                     </div>
@@ -219,7 +413,10 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
                           {t('mission.educate.title')}
                         </h3>
                         <p className="text-lg">
-                          {t('mission.educate.description')}
+                          {renderWrapPhrase(
+                            t('mission.educate.description'),
+                            t('mission.educate.description_highlight')
+                          )}
                         </p>
                       </div>
                     </div>
@@ -236,36 +433,14 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
                           {t('mission.execute.title')}
                         </h3>
                         <p className="text-lg">
-                          {t('mission.execute.description')}
+                          {renderWrapPhrase(
+                            t('mission.execute.description'),
+                            t('mission.execute.description_highlight')
+                          )}
                         </p>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Our Commitment Section - Black */}
-            <section className="py-12 px-4 md:px-12" style={{ backgroundColor: '#000000' }}>
-              <div className="container mx-auto max-w-6xl">
-                <div className="text-center mb-10">
-                  <div className="flex items-center justify-center space-x-3 mb-4">
-                    <h2 className="text-3xl md:text-4xl text-white">
-                      {t('commitment.title')}
-                    </h2>
-                  </div>
-                  <div className="w-24 h-1 mx-auto rounded-full" style={{ backgroundColor: accentGold }}></div>
-                </div>
-
-                <div className="max-w-4xl mx-auto space-y-6 text-white leading-relaxed">
-                  <p className="text-lg text-center">
-                    {t('commitment.description')}
-                  </p>
-                  <p className="text-xl text-center text-white mt-8">
-                    <em>
-                      {t('commitment.quote')}
-                    </em>
-                  </p>
                 </div>
               </div>
             </section>
@@ -275,6 +450,7 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
         {/* Core Values Tab */}
         {activeTab === "coreValues" && (
           <motion.div
+            id="coreValues-section"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -288,7 +464,7 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
                   </h2>
                   <div className="w-24 h-1 mx-auto rounded-full mb-6" style={{ backgroundColor: accentGold }}></div>
                   <p className="text-xl text-white max-w-2xl mx-auto">
-                    {t('coreValues.subtitle')}
+                    {renderWrapPhrase(t('coreValues.subtitle'), t('coreValues.subtitle_highlight'))}
                   </p>
                 </div>
 
@@ -350,13 +526,10 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
                     {t('beliefSystem.intro')}
                   </p>
 
-                  <p className="text-lg">
-                    {t('beliefSystem.trinity')}
-                  </p>
-
-                  <p className="text-lg">
-                    {t('beliefSystem.denominations')}
-                  </p>
+                  <ul className="space-y-4 list-disc pl-6">
+                    <li className="text-lg">{renderBoldLead(t('beliefSystem.trinity'), /[—–-]/)}</li>
+                    <li className="text-lg">{renderWrapPhrase(t('beliefSystem.denominations'), t('beliefSystem.denominations_lead'))}</li>
+                  </ul>
 
                   <p className="text-lg">
                     {t('beliefSystem.unity')}
@@ -377,7 +550,10 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
 
                 <div className="max-w-4xl mx-auto space-y-6 text-white leading-relaxed">
                   <p className="text-lg">
-                    {t('movementBeyondWalls.intro')}
+                    {renderWrapPhrases(
+                      t('movementBeyondWalls.intro'),
+                      t('movementBeyondWalls.intro_highlights', { returnObjects: true }) as string[]
+                    )}
                   </p>
 
                   <p className="text-lg">
@@ -394,7 +570,10 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
 
                   <p className="text-xl text-center mt-8 text-white">
                     <em>
-                      {t('movementBeyondWalls.callToAction')}
+                      {renderWrapPhrase(
+                        t('movementBeyondWalls.callToAction'),
+                        t('movementBeyondWalls.callToAction_highlight')
+                      )}
                     </em>
                   </p>
                 </div>

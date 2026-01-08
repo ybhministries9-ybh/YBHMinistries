@@ -17,8 +17,9 @@ export default {
     "submenu": {
       "about": {
         "aboutPage": "About Page",
-        "vision": "Vision & Mission",
-        "coreValues": "Core Values"
+          "vision": "Vision",
+          "mission": "Mission",
+          "coreValues": "Core Values"
       },
       "ministries": {
         "ministries": "Ministries",
@@ -46,9 +47,9 @@ export default {
     },
     "contact": {
       "title": "Contact Us",
-      "address": "123 Faith Street, Hopeville, ST 12345",
-      "phone": "(123) 456-7890",
-      "email": "info@ybhministries.org"
+      "address": "Vijayawada, Andhra Pradesh, India",
+      "phone": "+91 9494802288, +91 8558835888",
+      "email": "hallelmusicschoolybh@gmail.com"
     },
     "student": {
       "title": "HMS Student Form",

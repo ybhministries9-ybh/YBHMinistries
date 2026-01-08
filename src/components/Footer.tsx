@@ -1,11 +1,9 @@
-import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, Twitter, Heart, Languages } from 'lucide-react';
+import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, Twitter, Languages } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SmartImage from './SmartImage';
 
-// Build public image URLs from either local `public/` assets (recommended for a small set of logos)
-// or from an environment-provided R2 base URL. Set `NEXT_PUBLIC_USE_LOCAL_ASSETS=true`
-// in `.env.local` to prefer local files under `/logo/...` and `/Home/awards/...`.
-const USE_LOCAL_ASSETS = process.env.NEXT_PUBLIC_USE_LOCAL_ASSETS === 'true';
+// Build public image URLs from an environment-provided R2 public URL.
+// R2_BASE may be empty in local development.
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 
 // Local paths (place files under `public/logo/` and `public/Home/awards/`)
@@ -51,31 +49,33 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
       <div className="container mx-auto px-4 pt-8 pb-0">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Site Title Column */}
-          <div>
-            <div className="flex items-center gap-3 mb-3">
+          <div itemScope itemType="https://schema.org/Organization">
+            <div className="flex flex-col items-center mb-3">
               <SmartImage
                 srcs={[LOCAL_YBH_LOGO, '/logo/YBH.png', '/logo/YBH.jpg', ybhR2Png, ybhR2]}
                 alt="YBH Logo"
-                className="h-12 w-12 object-contain"
+                className="h-12 w-12 object-contain block"
+                itemProp="logo"
               />
-              <h3 className="text-white">{t('footer.siteTitle')}</h3>
+              <h3 className="text-white text-center mt-2 block w-full" itemProp="name">{t('footer.siteTitle')}</h3>
             </div>
             <p className="text-sm text-gray-400 mb-4">
               {t('footer.description')}
             </p>
+            
             <div className="space-y-2 text-sm">
               <div className="flex items-start gap-2">
                 <MapPin size={16} className="mt-1 flex-shrink-0 text-gray-400" />
-                <span>123 Faith Street, Hopeville, ST 12345</span>
+                <span>{t('footer.contact.address')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone size={16} className="flex-shrink-0 text-gray-400" />
-                <span>(123) 456-7890</span>
+                <span>{t('footer.contact.phone')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail size={16} className="flex-shrink-0 text-gray-400" />
-                <a href="mailto:info@ybhministries.org" className="hover:text-white transition-colors">
-                  info@ybhministries.org
+                <a href="mailto:hallelmusicschoolybh@gmail.com" className="hover:text-white transition-colors">
+                  {t('footer.contact.email')}
                 </a>
               </div>
             </div>
@@ -171,7 +171,7 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
             <h4 className="text-white mb-3">{t('footer.followUs')}</h4>
             <div className="flex gap-3">
               <a
-                href="https://facebook.com/ybhministries"
+                href="https://www.facebook.com/profile.php?id=100063698651483"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center transition-colors"
@@ -189,22 +189,13 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
                 <Instagram size={18} />
               </a>
               <a
-                href="https://youtube.com/@ybhministries"
+                href="https://www.youtube.com/@augustinedandingi6878"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center transition-colors"
                 aria-label="YouTube"
               >
                 <Youtube size={18} />
-              </a>
-              <a
-                href="https://twitter.com/ybhministries"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 bg-gray-800 hover:bg-purple-600 rounded-lg flex items-center justify-center transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter size={18} />
               </a>
             </div>
           </div>

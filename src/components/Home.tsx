@@ -384,7 +384,7 @@ export function Home({ initialHeroImages }: HomeProps) {
               <h2 className="text-3xl md:text-4xl mb-4">{t('about.title')}</h2>
               <div className="w-24 h-1 rounded-full mb-8" style={{ backgroundColor: accentGold }}></div>
               <button 
-                onClick={() => router.push('/about')}
+                onClick={() => router.push('/about#about-hero')}
                 className="mt-6 px-6 py-3 bg-[#FDB813] shadow-lg text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer"
               >
                 {t('about.learnMore')}

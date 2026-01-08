@@ -46,9 +46,9 @@ export default {
     },
     contact: {
       title: "సంప్రదించండి",
-      address: "123 Faith Street, Hopeville, ST 12345",
-      phone: "(123) 456-7890",
-      email: "info@ybhministries.org"
+      address: "విజయవాడ, ఆంధ్రప్రదేశ్, భారతదేశం",
+      phone: "+91 9494802288, +91 8558835888",
+      email: "hallelmusicschoolybh@gmail.com"
     },
     student: {
       title: "HMS విద్యార్థి ఫారం",

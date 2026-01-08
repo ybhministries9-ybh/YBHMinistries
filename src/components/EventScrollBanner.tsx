@@ -1,9 +1,34 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { getUpcomingEvents, formatEventDate, Event } from '../utils/eventsData';
+
+const ORDINAL_REGEX = /(\d+)(st|nd|rd|th)\b/gi;
+
+function renderTitleWithSuperscript(title: string) {
+  const regex = new RegExp(ORDINAL_REGEX);
+  const parts: Array<string | ReactNode> = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(title)) !== null) {
+    const [full, num, suffix] = match;
+    const idx = match.index;
+    if (idx > lastIndex) parts.push(title.slice(lastIndex, idx));
+    parts.push(
+      <span key={`ord-${idx}`}>
+        {num}<sup className="align-super text-xs">{suffix}</sup>
+      </span>
+    );
+    lastIndex = idx + full.length;
+  }
+
+  if (lastIndex < title.length) parts.push(title.slice(lastIndex));
+  return parts.map((p, i) => (typeof p === 'string' ? <span key={`s-${i}`}>{p}</span> : p));
+}
 
 export function EventScrollBanner() {
   const { t, i18n } = useTranslation('home');
@@ -33,6 +58,29 @@ export function EventScrollBanner() {
   const baseSpeedPerEvent = 10; // seconds per event (slower speed)
   const animationDuration = upcomingEvents.length * baseSpeedPerEvent;
 
+  // Render titles with ordinal suffixes (1st, 2nd, 3rd, 4th) shown as superscript
+  const renderTitleWithSuperscript = (title: string) => {
+    const regex = /(\d+)(st|nd|rd|th)\b/gi;
+    const parts: Array<string | ReactNode> = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(title)) !== null) {
+      const [full, num, suffix] = match;
+      const idx = match.index;
+      if (idx > lastIndex) parts.push(title.slice(lastIndex, idx));
+      parts.push(
+        <span key={`ord-${idx}`}>
+          {num}<sup className="align-super text-xs">{suffix}</sup>
+        </span>
+      );
+      lastIndex = idx + full.length;
+    }
+
+    if (lastIndex < title.length) parts.push(title.slice(lastIndex));
+    return parts.map((p, i) => (typeof p === 'string' ? <span key={`s-${i}`}>{p}</span> : p));
+  };
+
   return (
     <div 
       className="absolute bottom-0 left-0 right-0 z-30 cursor-pointer group"
@@ -49,10 +97,18 @@ export function EventScrollBanner() {
     >
       {/* Semi-transparent banner with golden top border */}
       <div className="bg-black/70 backdrop-blur-sm border-t-2 border-[#FDB813] overflow-hidden">
-        {/* Scrolling container */}
-        <div className="py-4">
+        {/* Scrolling container (reduced vertical padding to decrease banner height) */}
+        <div className="py-2">
           <div className="scroll-container">
-            <div className="scroll-content" style={{ animationDuration: `${animationDuration}s` }}>
+            <div
+              className="scroll-content"
+              style={{
+                animationDuration: `${animationDuration}s`,
+                animationDelay: '0s',
+                animationTimingFunction: 'linear',
+                animationPlayState: 'running',
+              }}
+            >
               {/* First set of events */}
               {upcomingEvents.map((event, index) => (
                 <div 
@@ -65,22 +121,13 @@ export function EventScrollBanner() {
                 >
                   {/* Event Name */}
                   <div className="text-white font-semibold text-base">
-                    {event.title}
+                    {renderTitleWithSuperscript(String(event.title))}
                   </div>
-                  
-                  {/* Date */}
-                  <div className="text-[#FDB813] text-sm">
-                    {formatEventDate(event.date, i18n.language)}
-                  </div>
-                  
-                  {/* Location */}
-                  <div className="text-gray-300 text-sm">
-                    {event.location}
-                  </div>
-                  
-                  {/* Click for more details */}
-                  <div className="text-gray-400 text-xs italic group-hover:text-[#FDB813] transition-colors">
-                    {t('eventBanner.clickForDetails')}
+                  {/* Meta line: date, location and details on a single (second) line */}
+                  <div className="event-meta flex items-center gap-4 text-sm">
+                    <div className="text-[#FDB813]">{formatEventDate(event.date, i18n.language)}</div>
+                    <div className="text-gray-300">{event.location}</div>
+                    <div className="text-gray-400 text-xs italic group-hover:text-[#FDB813] transition-colors">{t('eventBanner.clickForDetails')}</div>
                   </div>
                 </div>
               ))}
@@ -97,22 +144,12 @@ export function EventScrollBanner() {
                 >
                   {/* Event Name */}
                   <div className="text-white font-semibold text-base">
-                    {event.title}
+                    {renderTitleWithSuperscript(String(event.title))}
                   </div>
-                  
-                  {/* Date */}
-                  <div className="text-[#FDB813] text-sm">
-                    {formatEventDate(event.date, i18n.language)}
-                  </div>
-                  
-                  {/* Location */}
-                  <div className="text-gray-300 text-sm">
-                    {event.location}
-                  </div>
-                  
-                  {/* Click for more details */}
-                  <div className="text-gray-400 text-xs italic group-hover:text-[#FDB813] transition-colors">
-                    {t('eventBanner.clickForDetails')}
+                  <div className="event-meta flex items-center gap-4 text-sm">
+                    <div className="text-[#FDB813]">{formatEventDate(event.date, i18n.language)}</div>
+                    <div className="text-gray-300">{event.location}</div>
+                    <div className="text-gray-400 text-xs italic group-hover:text-[#FDB813] transition-colors">{t('eventBanner.clickForDetails')}</div>
                   </div>
                 </div>
               ))}
@@ -147,7 +184,7 @@ export function EventScrollBanner() {
 
         @keyframes scroll-left {
           0% {
-            transform: translateX(100%);
+            transform: translateX(0%);
           }
           100% {
             transform: translateX(-50%);
