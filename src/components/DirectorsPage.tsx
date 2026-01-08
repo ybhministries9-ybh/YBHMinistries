@@ -79,13 +79,19 @@ export function DirectorsPage() {
     const preloadLinks: HTMLLinkElement[] = [];
     Object.entries(IMAGE_URLS).forEach(([key, url], index) => {
       const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'image';
-      link.href = url;
-      // First image (active tab) gets high priority
+      // Preload only the first (active) image; use prefetch for others to avoid
+      // browser warnings about preloaded resources not used quickly.
       if (index === 0) {
+        link.rel = 'preload';
+        link.as = 'image';
+        // First image (active tab) gets high priority
         link.setAttribute('fetchpriority', 'high');
+      } else {
+        link.rel = 'prefetch';
+        // `as` is optional for prefetch, but set for clarity
+        link.as = 'image';
       }
+      link.href = url;
       document.head.appendChild(link);
       preloadLinks.push(link);
     });
