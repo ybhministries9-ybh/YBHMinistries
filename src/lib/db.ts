@@ -569,14 +569,29 @@ export async function getWorship24(opts?: { limit?: number; offset?: number; q?:
       valueIndex += 4;
     }
 
+    // Filter by booking_date (not created_at). Support month+year, year-only, and month-only filters.
     if (opts?.month && opts?.year) {
       const startDate = `${opts.year}-${String(opts.month).padStart(2, '0')}-01`;
       const nextMonth = parseInt(opts.month) === 12 ? 1 : parseInt(opts.month) + 1;
       const nextYear = parseInt(opts.month) === 12 ? parseInt(opts.year) + 1 : parseInt(opts.year);
       const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
-      conditions.push(`DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
+      conditions.push(`DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
       values.push(startDate, endDate);
       valueIndex += 2;
+    } else if (opts?.year) {
+      const startDate = `${opts.year}-01-01`;
+      const endDate = `${parseInt(opts.year) + 1}-01-01`;
+      conditions.push(`DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
+      values.push(startDate, endDate);
+      valueIndex += 2;
+    } else if (opts?.month) {
+      // month-only filter across all years
+      const m = parseInt(String(opts.month));
+      if (!Number.isNaN(m) && m >= 1 && m <= 12) {
+        conditions.push(`EXTRACT(MONTH FROM (booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')) = $${valueIndex}`);
+        values.push(m);
+        valueIndex += 1;
+      }
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -597,6 +612,36 @@ export async function getWorship24(opts?: { limit?: number; offset?: number; q?:
     return { rows: result.rows, total };
   } catch (error) {
     console.error('Error fetching worship24 records:', error);
+    throw error;
+  }
+}
+
+export async function getWorship24ById(id: number) {
+  try {
+    const { rows } = await sql`
+      SELECT id, name, email, phone, message, location, booking_date, timeslot, facebook_link, user_agent, status, created_at, updated_at
+      FROM worship24
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error fetching worship24 by id:', error);
+    throw error;
+  }
+}
+
+export async function getWorship24Years() {
+  try {
+    const result = await sql`
+      SELECT DISTINCT EXTRACT(YEAR FROM booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') AS year
+      FROM worship24
+      WHERE booking_date IS NOT NULL
+      ORDER BY year DESC
+    `;
+    return result.rows.map((r: any) => (r.year !== null ? Number(r.year) : null)).filter((y: any) => y != null);
+  } catch (error) {
+    console.error('Error fetching worship24 years:', error);
     throw error;
   }
 }

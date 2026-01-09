@@ -26,6 +26,23 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
   const searchParams = useSearchParams();
   const forcedType = forcedTypeProp || searchParams?.get('type');
 
+  const formatDatePretty = (raw?: string | null) => {
+    if (!raw) return '-';
+    try {
+      const dateStr = String(raw).split('T')[0];
+      const [year, month, day] = dateStr.split('-').map(Number);
+      if (year && month && day) {
+        const d = new Date(year, month - 1, day);
+        if (!Number.isNaN(d.getTime())) {
+          return new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).format(d);
+        }
+      }
+      return dateStr || String(raw);
+    } catch (e) {
+      return String(raw).split('T')[0] || String(raw);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     setLoading(true);
@@ -61,7 +78,27 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
           return;
         }
 
-        // Default behavior: try HMS first, then fallback to get-in-touch
+        // If forcedType is worship24 try that explicitly and DO NOT fallback to other types
+        if (forcedType === 'worship24') {
+          try {
+            const resp3 = await fetch(`/api/admin/worship24?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
+            if (resp3.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+            const j3 = await resp3.json();
+            if (mounted && j3 && j3.success && j3.data) {
+              setRecord(j3.data || null);
+              return;
+            }
+            // Explicitly set null and return so we don't accidentally load HMS/get-in-touch records
+            if (mounted) setRecord(null);
+            return;
+          } catch (err) {
+            console.error('Failed to load worship24 record', err);
+            if (mounted) setRecord(null);
+            return;
+          }
+        }
+
+        // Default behavior: try HMS first, then fallback to worship24, then get-in-touch
         try {
           const resp = await fetch(`/api/admin/hms-students?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
           if (resp.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
@@ -72,6 +109,19 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
           }
         } catch (err) {
           console.error('Failed to load hms record', err);
+        }
+
+        // fallback to worship24
+        try {
+          const resp3 = await fetch(`/api/admin/worship24?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
+          if (resp3.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+          const j3 = await resp3.json();
+          if (mounted && j3 && j3.success && j3.data) {
+            setRecord(j3.data || null);
+            return;
+          }
+        } catch (err) {
+          console.error('Failed to load worship24 record', err);
         }
 
         // fallback to get-in-touch
@@ -181,7 +231,8 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
   if (!record) return <div className="p-6 text-white">Record not found. <Link href="/admin/contacts">Back to list</Link></div>;
 
   // If the fetched record appears to be a Get In Touch submission (has `message` field), render a simple readonly view
-  const isGetInTouch = record && ('message' in record || 'phone' in record && !('full_name' in record && record.full_name));
+  const isGetInTouch = record && ('message' in record && !('booking_date' in record));
+  const isWorship = record && ('booking_date' in record || 'timeslot' in record);
 
   if (isGetInTouch) {
     const r: any = record;
@@ -223,7 +274,68 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Submitted</h3>
-                <input disabled value={(r.created_at || '').split('T')[0]} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+                <input disabled value={formatDatePretty(r.created_at)} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isWorship) {
+    const r: any = record;
+    return (
+      <div className="w-full text-white px-0">
+        <div className="max-w-6xl mx-auto mb-4 px-2">
+          <button onClick={() => router.push('/admin/contacts/worship24')} className="inline-flex items-center px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg shadow-sm cursor-pointer">
+            Back to list
+          </button>
+        </div>
+
+        <div className="mb-6 text-center px-2">
+          <h2 className="text-2xl font-bold">24hrs Worship #{r.id}</h2>
+          <div className="text-sm text-gray-300 mt-1">View the 24hrs Worship booking details.</div>
+        </div>
+
+        <div className="max-w-6xl mx-auto px-2">
+          <div className="bg-[#2e2e2e] rounded-lg p-6 border border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 w-full">
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Name</h3>
+                <input disabled value={r.name || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Email</h3>
+                <input disabled value={r.email || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Phone</h3>
+                <input disabled value={r.phone || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Location</h3>
+                <input disabled value={r.location || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Booking Date</h3>
+                <input disabled value={formatDatePretty(r.booking_date)} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Timeslot</h3>
+                <input disabled value={r.timeslot || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Facebook</h3>
+                <input disabled value={r.facebook_link || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+              </div>
+              <div className="md:col-span-2 min-w-0">
+                <h3 className="text-sm text-gray-300">Message</h3>
+                <textarea disabled value={r.message || '-'} rows={4} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600 resize-none" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">Submitted</h3>
+                <input disabled value={formatDatePretty(r.created_at)} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
             </div>
           </div>
