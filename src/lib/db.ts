@@ -489,7 +489,7 @@ export async function createHMSStudent(payload: {
 
     return rows[0];
   } catch (error) {
-    console.error('Error creating HMS student record:', error);
+    logger.error('Error creating HMS student record:', error);
     throw error;
   }
 }
@@ -517,7 +517,7 @@ export async function createGetInTouch(payload: {
     `;
     return rows[0];
   } catch (error) {
-    console.error('Error creating get_in_touch record:', error);
+    logger.error('Error creating get_in_touch record:', error);
     // Re-throw with additional context for the API route to surface in non-prod
     throw new Error(`DB createGetInTouch error: ${error && (error as any).message ? (error as any).message : String(error)}`);
   }
@@ -548,7 +548,7 @@ export async function createWorship24(payload: {
     `;
     return rows[0];
   } catch (error) {
-    console.error('Error creating worship24 record:', error);
+    logger.error('Error creating worship24 record:', error);
     throw new Error(`DB createWorship24 error: ${error && (error as any).message ? (error as any).message : String(error)}`);
   }
 }
@@ -611,7 +611,7 @@ export async function getWorship24(opts?: { limit?: number; offset?: number; q?:
     const result = await sql.query(query, values);
     return { rows: result.rows, total };
   } catch (error) {
-    console.error('Error fetching worship24 records:', error);
+    logger.error('Error fetching worship24 records:', error);
     throw error;
   }
 }
@@ -626,7 +626,7 @@ export async function getWorship24ById(id: number) {
     `;
     return rows[0] || null;
   } catch (error) {
-    console.error('Error fetching worship24 by id:', error);
+    logger.error('Error fetching worship24 by id:', error);
     throw error;
   }
 }
@@ -641,7 +641,7 @@ export async function getWorship24Years() {
     `;
     return result.rows.map((r: any) => (r.year !== null ? Number(r.year) : null)).filter((y: any) => y != null);
   } catch (error) {
-    console.error('Error fetching worship24 years:', error);
+    logger.error('Error fetching worship24 years:', error);
     throw error;
   }
 }
@@ -702,7 +702,7 @@ export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?
     const result = await sql.query(query, values);
     return { rows: result.rows, total };
   } catch (error) {
-    console.error('Error fetching get_in_touch records:', error);
+    logger.error('Error fetching get_in_touch records:', error);
     throw error;
   }
 }
@@ -717,7 +717,7 @@ export async function getGetInTouchById(id: number) {
     `;
     return rows[0] || null;
   } catch (error) {
-    console.error('Error fetching get_in_touch by id:', error);
+    logger.error('Error fetching get_in_touch by id:', error);
     throw error;
   }
 }
@@ -785,7 +785,7 @@ export async function getHMSStudents(opts?: { limit?: number; offset?: number; q
     const result = await sql.query(query, values);
     return { rows: result.rows, total };
   } catch (error) {
-    console.error('Error fetching HMS students:', error);
+    logger.error('Error fetching HMS students:', error);
     throw error;
   }
 }
@@ -795,7 +795,7 @@ export async function getHMSStudentById(id: number) {
     const { rows } = await sql<HMSStudentRecord>`SELECT * FROM hms_students WHERE id = ${id} LIMIT 1`;
     return rows[0] || null;
   } catch (error) {
-    console.error('Error fetching HMS student by id:', error);
+    logger.error('Error fetching HMS student by id:', error);
     throw error;
   }
 }
@@ -835,7 +835,7 @@ export async function updateHMSStudent(id: number, updates: Partial<any>) {
     const result = await sql.query<HMSStudentRecord>(query, values);
     return result.rows[0];
   } catch (error) {
-    console.error('Error updating HMS student:', error);
+    logger.error('Error updating HMS student:', error);
     throw error;
   }
 }
@@ -848,7 +848,7 @@ export async function getAllStories(): Promise<Story[]> {
     `;
     return rows;
   } catch (error) {
-    console.error('Error fetching stories:', error);
+    logger.error('Error fetching stories:', error);
     throw error;
   }
 }
@@ -867,7 +867,7 @@ export async function getVisibleApprovedStories(): Promise<any[]> {
     `;
     return rows;
   } catch (error) {
-    console.error('Error fetching visible approved stories:', error);
+    logger.error('Error fetching visible approved stories:', error);
     throw error;
   }
 }
@@ -899,7 +899,7 @@ export async function createStory(payload: {
     `;
     return rows[0];
   } catch (error) {
-    console.error('Error creating story:', error);
+    logger.error('Error creating story:', error);
     throw error;
   }
 }
@@ -955,7 +955,7 @@ export async function updateStory(id: number, updates: Partial<{
     const { rows } = await sql.query<Story>(query, values);
     return rows[0];
   } catch (error) {
-    console.error('Error updating story:', error);
+    logger.error('Error updating story:', error);
     throw error;
   }
 }
@@ -967,7 +967,7 @@ export async function deleteStories(ids: number[]): Promise<number> {
     const result = await sql.query(`DELETE FROM stories WHERE id IN (${placeholders})`, ids);
     return result.rowCount || 0;
   } catch (error) {
-    console.error('Error deleting stories:', error);
+    logger.error('Error deleting stories:', error);
     throw error;
   }
 }
@@ -983,7 +983,7 @@ export async function getAllGalleryItems(): Promise<GalleryItem[]> {
     `;
     return rows;
   } catch (error) {
-    console.error('Error fetching all gallery items:', error);
+    logger.error('Error fetching all gallery items:', error);
     throw error;
   }
 }
@@ -1000,7 +1000,7 @@ export async function getGalleryItemsByCategory(category: string): Promise<Galle
     `;
     return rows;
   } catch (error) {
-    console.error('Error fetching gallery items by category:', error);
+    logger.error('Error fetching gallery items by category:', error);
     throw error;
   }
 }
@@ -1046,7 +1046,7 @@ export async function addGalleryItems(
     
     return insertedItems;
   } catch (error) {
-    console.error('Error adding gallery items:', error);
+    logger.error('Error adding gallery items:', error);
     throw error;
   }
 }
@@ -1103,7 +1103,7 @@ export async function updateGalleryItem(
     const { rows } = await sql.query<GalleryItem>(query, values);
     return rows[0];
   } catch (error) {
-    console.error('Error updating gallery item:', error);
+    logger.error('Error updating gallery item:', error);
     throw error;
   }
 }
@@ -1124,7 +1124,7 @@ export async function deleteGalleryItems(ids: number[]): Promise<number> {
     const result = await sql.query(query, ids);
     return result.rowCount || 0;
   } catch (error) {
-    console.error('Error deleting gallery items:', error);
+    logger.error('Error deleting gallery items:', error);
     throw error;
   }
 }

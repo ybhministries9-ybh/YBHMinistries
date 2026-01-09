@@ -3,6 +3,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { sql } from '@vercel/postgres';
+import { logger } from '../../lib/logger';
 
 async function handleHeroImageById(req: VercelRequest, res: VercelResponse) {
   // CORS headers
@@ -127,7 +128,7 @@ async function handleHeroImageById(req: VercelRequest, res: VercelResponse) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('Hero image operation error:', error);
+    logger.error('Hero image operation error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

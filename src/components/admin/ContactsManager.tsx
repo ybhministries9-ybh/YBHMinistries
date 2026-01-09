@@ -701,7 +701,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.phone || '-'}</td>
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.email || '-'}</td>
         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.booking_date)}</td>
-        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{c.timeslot || '-'}</td>
+        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{c.timeslot ? String(c.timeslot).replace(/\b(am|pm)\b/gi, (m) => m.toUpperCase()) : '-'}</td>
         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.created_at)}</td>
         <td className="px-4 py-3 text-right">
           <Link href={`/admin/contacts/worship24/${c.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>

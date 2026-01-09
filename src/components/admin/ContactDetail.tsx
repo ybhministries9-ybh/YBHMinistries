@@ -323,7 +323,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Timeslot</h3>
-                <input disabled value={r.timeslot || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+                <input disabled value={(r.timeslot || '-').replace ? (r.timeslot || '-').replace(/\b(am|pm)\b/gi, (m) => m.toUpperCase()) : (r.timeslot || '-')} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Facebook</h3>

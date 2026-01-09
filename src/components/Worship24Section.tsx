@@ -12,7 +12,7 @@ function generateTimeslots(): string[] {
     for (let min = 0; min < 60; min += 30) {
       const start = new Date(0,0,0,hour,min,0);
       const end = new Date(0,0,0,hour, min + 30, 0);
-      const fmt = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+      const fmt = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase();
       slots.push(`${fmt(start)} to ${fmt(end)}`);
     }
   }

@@ -36,6 +36,7 @@ interface Event {
     nationalFee?: number;
     internationalFee?: number;
     registrationFee?: number;
+    enable24hrWorshipForm?: boolean;
   };
   published: boolean;
 }
@@ -118,7 +119,8 @@ export function EventsManager() {
           description: '',
           nationalFee: 0,
           internationalFee: 0,
-          registrationFee: 0
+          registrationFee: 0,
+          enable24hrWorshipForm: false
         },
         published: true
       };
@@ -862,6 +864,19 @@ export function EventsManager() {
                           disabled={!isEditing}
                         />
                         <label className="text-sm text-white">Enable Registration</label>
+                      </div>
+
+                      <div className="flex items-center gap-2 mb-3">
+                        <input
+                          type="checkbox"
+                          checked={!!event.registration.enable24hrWorshipForm}
+                          onChange={(e) => handleUpdate(event.id, {
+                            registration: { ...event.registration, enable24hrWorshipForm: e.target.checked }
+                          })}
+                          className="cursor-pointer"
+                          disabled={!isEditing}
+                        />
+                        <label className="text-sm text-white">Enable 24Hrs Worship Form (only for 24Hrs Worship Event)</label>
                       </div>
 
                       {event.registration.enabled && (

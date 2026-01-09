@@ -3,6 +3,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { sql } from '@vercel/postgres';
+import { logger } from '../../lib/logger';
 
 async function handleReorder(req: VercelRequest, res: VercelResponse) {
   // CORS headers
@@ -37,7 +38,7 @@ async function handleReorder(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ success: true, message: 'Images reordered successfully' });
   } catch (error) {
-    if (process.env.NODE_ENV !== 'production') console.error('Reorder error:', error);
+    logger.error('Reorder error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
