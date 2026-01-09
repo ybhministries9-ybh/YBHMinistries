@@ -876,7 +876,7 @@ export function EventsManager() {
                           className="cursor-pointer"
                           disabled={!isEditing}
                         />
-                        <label className="text-sm text-white">Enable 24Hrs Worship Form (only for 24Hrs Worship Event)</label>
+                        <label className="text-sm text-white">Enable 24 Hours Worship Form (only for 24 Hours Worship Event)</label>
                       </div>
 
                       {event.registration.enabled && (

@@ -572,7 +572,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.phone_number || '-'}</td>
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.email || '-'}</td>
         <td className="px-4 py-3 text-gray-200">{s.status || '-'}</td>
-        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDateShort(s.created_at)}</td>
+        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(s.created_at)}</td>
         <td className="px-4 py-3 text-right">
           <Link href={`/admin/contacts/${s.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
         </td>
@@ -593,7 +593,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             <div className="font-medium text-gray-100 truncate">{s.full_name}</div>
             <div className="text-sm text-gray-200 mt-1">{formatDatePretty(s.date_of_birth)} • {s.phone_number || '-'}</div>
             <div className="text-sm text-gray-200 truncate mt-1">{s.email || '-'}</div>
-            <div className="text-xs text-gray-400 mt-1">Submitted: {formatDateShort(s.created_at)}</div>
+            <div className="text-xs text-gray-400 mt-1">Submitted: {formatDatePretty(s.created_at)}</div>
           </div>
           <div className="flex-shrink-0">
             <Link href={`/admin/contacts/${s.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
@@ -791,7 +791,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
               style={activeTab === 'worship24' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
             >
               <Book size={16} />
-              <span className="font-medium">24hrs Worship</span>
+              <span className="font-medium">24 Hours Worship</span>
             </button>
 
             {/* Removed "Other" tab per design */}

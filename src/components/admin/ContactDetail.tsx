@@ -294,8 +294,8 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         </div>
 
         <div className="mb-6 text-center px-2">
-          <h2 className="text-2xl font-bold">24hrs Worship #{r.id}</h2>
-          <div className="text-sm text-gray-300 mt-1">View the 24hrs Worship booking details.</div>
+          <h2 className="text-2xl font-bold">24 Hours Worship #{r.id}</h2>
+          <div className="text-sm text-gray-300 mt-1">View the 24 Hours Worship booking details.</div>
         </div>
 
         <div className="max-w-6xl mx-auto px-2">

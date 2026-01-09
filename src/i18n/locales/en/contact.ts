@@ -16,7 +16,7 @@ export default {
     guinnessAttempt: "Guinness World Records Attempt-2",
     studentForm: "HMS Student Form",
     getInTouch: "Get In Touch",
-    worship24: "24hrs Worship",
+    worship24: "24 Hours Worship",
     conferenceRequest: "Offline Conference in Your City?",
     lsmStudent: "London School of Music Student?",
     sponsor: "Become a Sponsor for Event?",

@@ -150,9 +150,9 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   return (
     <section className="pt-6 pb-8">
       <div className="max-w-3xl mx-auto mb-12 text-center px-4">
-        <h2 className="mb-4 text-3xl md:text-4xl text-white">{t('tabs.worship24', { defaultValue: '24hrs Worship' })} Booking</h2>
+        <h2 className="mb-4 text-3xl md:text-4xl text-white">{t('tabs.worship24', { defaultValue: '24 Hours Worship' })} Booking</h2>
         <div className="w-20 h-1 mx-auto mb-6" style={{ backgroundColor: accentColor }}></div>
-        <p className="text-lg text-white">{t('contactForm.worship24_description', { name: t('tabs.worship24', { defaultValue: '24hrs Worship' }), defaultValue: `Book a slot for the ${t('tabs.worship24', { defaultValue: '24hrs Worship' })} event (2nd Saturday of each month).` })}</p>
+        <p className="text-lg text-white">{t('contactForm.worship24_description', { name: t('tabs.worship24', { defaultValue: '24 Hours Worship' }), defaultValue: `Book a slot for the ${t('tabs.worship24', { defaultValue: '24 Hours Worship' })} event (2nd Saturday of each month).` })}</p>
       </div>
 
       <div className="max-w-2xl mx-auto px-4">

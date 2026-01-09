@@ -89,11 +89,20 @@ export async function POST(request: Request) {
 
       const fields: Array<{ label: string; value: string }> = [];
       const push = (label: string, val?: any) => { if (val !== undefined && val !== null) fields.push({ label, value: String(val) }); };
+      // Format booking date for human-friendly emails: MMM DD, YYYY
+      const bookingDateFormatted = (() => {
+        try {
+          const dt = new Date(String(booking_date) + 'T00:00:00');
+          if (isNaN(dt.getTime())) return String(booking_date || '');
+          return dt.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+        } catch (e) { return String(booking_date || ''); }
+      })();
+
       push('Full name', name);
       push('Email', emailVal || '');
       push('Phone', phone);
       push('Location', location || '');
-      push('Booking date', booking_date);
+      push('Booking date', bookingDateFormatted);
       push('Timeslot', timeslot);
       push('Facebook', facebook_link || '');
       push('Message', message || '');
@@ -102,8 +111,8 @@ export async function POST(request: Request) {
 
       // Confirmation for submitter
       if (emailVal) {
-        const subject = `YBH Ministries — 24hrs Worship booking received`;
-        const plainLines = [`Hi ${name || ''},`, '', 'Thanks for booking a slot for 24hrs Worship. We received your booking and will review it shortly.', '', 'Booking details:', ''];
+        const subject = `YBH Ministries — 24 Hours Worship booking received`;
+        const plainLines = [`Hi ${name || ''},`, '', 'Thanks for booking a slot for 24 Hours Worship. We received your booking and will review it shortly.', '', 'Booking details:', ''];
         for (const f of fields) plainLines.push(`${f.label}: ${f.value}`);
         plainLines.push('', 'Regards,', 'YBH Ministries');
         const plain = plainLines.join('\n');
@@ -112,7 +121,7 @@ export async function POST(request: Request) {
           <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111;background:#f7f7f7;padding:18px;">
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
               <tr><td style="padding:18px;background:#000;text-align:center;color:#fff;">${logoUrl ? `<img src="${logoUrl}" alt="YBH" width="110" style="display:block;margin:0 auto;"/>` : ''}</td></tr>
-              <tr><td style="padding:18px;"><h2 style="margin:0 0 8px 0;">Hi ${name || ''},</h2><p style="margin:0 0 12px 0;color:#333;">Thanks for booking a slot for <strong>24hrs Worship</strong>. We received your booking and will review it shortly.</p>
+              <tr><td style="padding:18px;"><h2 style="margin:0 0 8px 0;">Hi ${name || ''},</h2><p style="margin:0 0 12px 0;color:#333;">Thanks for booking a slot for <strong>24 Hours Worship</strong>. We received your booking and will review it shortly.</p>
                 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:12px;">${htmlFields}</table>
                 <p style="margin:16px 0 0 0;color:#333;">Regards,<br/>YBH Ministries</p></td></tr>
               <tr><td style="padding:12px 18px;background:#101010;color:#fff;font-size:12px;text-align:center;">&copy; ${new Date().getFullYear()} YBH Ministries</td></tr>
