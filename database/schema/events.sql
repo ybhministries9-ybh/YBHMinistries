@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS events (
     speakers TEXT[], -- Array of speaker names
     what_to_bring TEXT[], -- Array of items to bring
     registration_enabled BOOLEAN DEFAULT false,
+    "24hrsworship_enabled" BOOLEAN DEFAULT false,
     registration_description TEXT,
     national_fee INTEGER, -- In rupees
     international_fee INTEGER, -- In rupees
@@ -68,6 +69,7 @@ INSERT INTO events (
     speakers,
     what_to_bring,
     registration_enabled,
+    "24hrsworship_enabled",
     registration_description,
     national_fee,
     international_fee,
@@ -86,6 +88,7 @@ INSERT INTO events (
     ARRAY['Ps. Augustine Dandingi', 'Master Charlie Aaron Benedict Dandingi', 'Master Nancy Augustina Dandingi'],
     ARRAY['Key Board', 'Key Board Stand', 'Smart Phone with Internet', 'HMS - Song Book'],
     true,
+    false,
     'Register early to secure your spot for this event.',
     5500,
     7000,

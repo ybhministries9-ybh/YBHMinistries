@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { logger } from './logger';
 
 // Use scrypt for password hashing (no external deps).
 export function hashPassword(password: string): string {
@@ -14,7 +15,7 @@ export function verifyPassword(password: string, stored: string): boolean {
     const derived = crypto.scryptSync(password, salt, 64).toString('hex');
     return crypto.timingSafeEqual(Buffer.from(derived, 'hex'), Buffer.from(hash, 'hex'));
   } catch (err) {
-    console.error('verifyPassword error', err);
+    logger.error('verifyPassword error', err);
     return false;
   }
 }

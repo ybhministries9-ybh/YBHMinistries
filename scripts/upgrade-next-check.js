@@ -32,9 +32,12 @@ function main() {
     // not installed in node_modules
   }
 
-  console.log('Currently installed Next.js:', installed);
+  // devLog prints only in non-production environments
+  const devLog = (...args) => { if (process.env.NODE_ENV !== 'production') console.log(...args); };
 
-  console.log('Querying npm for available Next.js versions...');
+  devLog('Currently installed Next.js:', installed);
+
+  devLog('Querying npm for available Next.js versions...');
   const out = execSync('npm view next versions --json', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
   let versions;
   try {
@@ -47,18 +50,18 @@ function main() {
   // Find latest stable 16.x (exclude canary/prerelease tags)
   const candidates = versions.filter(v => /^16\.\d+\.\d+$/.test(v));
   if (!candidates || candidates.length === 0) {
-    console.log('No stable 16.x release found yet.');
+    devLog('No stable 16.x release found yet.');
     process.exit(0);
   }
   const latest16 = candidates[candidates.length - 1];
-  console.log('Latest stable 16.x:', latest16);
+  devLog('Latest stable 16.x:', latest16);
 
   if (installed === latest16) {
-    console.log('Already up-to-date with', latest16);
+    devLog('Already up-to-date with', latest16);
     process.exit(0);
   }
 
-  console.log('Upgrading Next.js to', latest16);
+  devLog('Upgrading Next.js to', latest16);
   try {
     execSync(`npm install next@${latest16} --save`, { stdio: 'inherit', shell: true });
     try { execSync('npm audit fix', { stdio: 'inherit', shell: true }); } catch (e) {}
@@ -72,7 +75,7 @@ function main() {
       console.warn('Git commit/push step failed or nothing to commit');
     }
 
-    console.log('Upgrade attempt complete. Please run your test suite and perform manual validation.');
+    devLog('Upgrade attempt complete. Please run your test suite and perform manual validation.');
   } catch (e) {
     console.error('Upgrade failed:', e && e.message ? e.message : e);
     process.exit(1);

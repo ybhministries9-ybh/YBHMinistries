@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { useRouter } from 'next/navigation';
-import { Calendar, FileText, ChevronRight, Plus, Users, Music, Globe, BookOpen, X, Clock, MapPin, Calendar as CalendarIcon, User, Clock as ClockIcon, ArrowRight, ArrowLeft, MessageSquare, Star, Medal, Mic, UserCheck, BarChart3 } from "lucide-react";
+import { Calendar, CalendarPlus, FileText, ChevronRight, Plus, Users, Music, Globe, BookOpen, X, Clock, MapPin, User, ArrowRight, ArrowLeft, MessageSquare, Star, Medal, Mic, UserCheck, BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getEvents, type Event } from "../../utils/eventsData";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, LabelList } from 'recharts';
@@ -368,12 +368,12 @@ export function NewsPage() {
                   
                   <div className="flex flex-wrap gap-x-8 gap-y-3 text-gray-200">
                     <div className="flex items-center">
-                      <CalendarIcon size={18} className="text-[#FDB813] mr-2" />
+                      <Calendar size={18} className="text-[#FDB813] mr-2" />
                       <span className="text-lg">{parseLocalDate(selectedEvent.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                     </div>
                     
                     <div className="flex items-center">
-                      <ClockIcon size={18} className="text-[#FDB813] mr-2" />
+                      <Clock size={18} className="text-[#FDB813] mr-2" />
                       <span className="text-lg">{selectedEvent.time} {t('news:events.timezone')}</span>
                     </div>
                     
@@ -439,23 +439,18 @@ export function NewsPage() {
                   </div>
                 )}
                 
-                <div className="flex items-center gap-4 mt-6">
-                  {/* Show help prompt as plain text and Contact button as a pill */}
-                  <span className="text-white">{(() => {
-                    const full = t('news:events.needHelp');
-                    // Try to extract leading part (e.g. "Need help?") if translation contains '?'
-                    const idx = full.indexOf('?');
-                    return idx !== -1 ? full.slice(0, idx + 1) : full;
-                  })()}</span>
-
-                  <button
-                    onClick={handleContactClick}
-                    className="bg-[#FDB813] text-black cursor-pointer font-semibold text-sm px-4 py-2 rounded-full shadow-sm hover:bg-[#e5a711] transition-colors inline-flex items-center gap-2"
-                    aria-label={t('common:navigation.contactUs')}
-                  >
-                    <MessageSquare size={16} />
-                    <span>{t('common:navigation.contactUs')}</span>
-                  </button>
+                <div className="flex items-start gap-4 mt-6">
+                  {/* Replace help prompt + Contact with Book Worship Slot when enabled */}
+                  {selectedEvent && selectedEvent.registration?.enable24hrWorshipForm && (
+                    <button
+                      onClick={() => router.push('/contact?tab=worship24')}
+                      className="bg-[#FDB813] text-black cursor-pointer font-semibold text-sm px-4 py-2 rounded-full shadow-sm hover:bg-[#e5a711] transition-colors inline-flex items-center gap-2"
+                      aria-label="Book Worship Slot"
+                    >
+                      <CalendarPlus size={16} />
+                      <span>Book Worship Slot</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

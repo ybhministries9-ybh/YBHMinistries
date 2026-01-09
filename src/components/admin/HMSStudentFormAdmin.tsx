@@ -305,7 +305,7 @@ export function HMSStudentFormAdmin({
                       <DatePicker
                         selected={selectedDate}
                         onChange={(d: Date | null) => field.onChange(d)}
-                        dateFormat="dd-MM-yyyy"
+                        dateFormat="MMM dd, yyyy"
                         maxDate={new Date()}
                         placeholderText={display(field.value) === '-' ? '-' : t('studentForm.placeholders.dateOfBirth')}
                         className={`w-full px-4 py-2 bg-black rounded-md border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}

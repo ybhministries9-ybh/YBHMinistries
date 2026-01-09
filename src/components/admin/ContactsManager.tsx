@@ -17,15 +17,17 @@ function getAuthHeader() {
   }
 }
 
-export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' | 'getintouch' }) {
-  const [activeTab, setActiveTab] = useState<'hms' | 'getintouch'>(forcedActiveTab || 'hms');
+export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' | 'getintouch' | 'worship24' }) {
+  const [activeTab, setActiveTab] = useState<'hms' | 'getintouch' | 'worship24'>(forcedActiveTab || 'hms');
   // Pagination for Get In Touch
   const [page, setPage] = useState<number>(1);
   const pageSize = 20;
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchInputValue, setSearchInputValue] = useState<string>('');
   const [activeSearchQuery, setActiveSearchQuery] = useState<string>('');
   const [hmsSearchQuery, setHmsSearchQuery] = useState<string>('');
+  const [hmsInputValue, setHmsInputValue] = useState<string>('');
   const [activeHmsSearchQuery, setActiveHmsSearchQuery] = useState<string>('');
   const [searching, setSearching] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
@@ -36,6 +38,10 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   // Export filters for Get In Touch
   const [exportMonth, setExportMonth] = useState<string>('');
   const [exportYear, setExportYear] = useState<string>('');
+  // Export filters for Worship24
+  const [worshipExportMonth, setWorshipExportMonth] = useState<string>('');
+  const [worshipExportYear, setWorshipExportYear] = useState<string>('');
+  const [worshipYears, setWorshipYears] = useState<number[] | null>(null);
   
   // Export filters for HMS
   const [hmsExportMonth, setHmsExportMonth] = useState<string>('');
@@ -45,16 +51,20 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   // Applied filters for table data
   const [appliedMonth, setAppliedMonth] = useState<string>('');
   const [appliedYear, setAppliedYear] = useState<string>('');
+  const [worshipAppliedMonth, setWorshipAppliedMonth] = useState<string>('');
+  const [worshipAppliedYear, setWorshipAppliedYear] = useState<string>('');
   const [hmsAppliedMonth, setHmsAppliedMonth] = useState<string>('');
   const [hmsAppliedYear, setHmsAppliedYear] = useState<string>('');
   const [hmsAppliedStatus, setHmsAppliedStatus] = useState<string>('');
   
   const [students, setStudents] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [worship, setWorship] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [worshipTotalCount, setWorshipTotalCount] = useState<number>(0);
   const [hmsTotalCount, setHmsTotalCount] = useState<number>(0);
   // replaced modal flow with separate detail page; no selected state here
-  const [sortBy, setSortBy] = useState<string>('id');
+  const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
@@ -154,20 +164,126 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     return () => { aborted = true; controller.abort(); };
   }, [activeTab, page, activeSearchQuery, appliedMonth, appliedYear]);
 
+  // Fetch worship24 records for admin listing
+  useEffect(() => {
+    if (activeTab !== 'worship24') return;
+    let aborted = false;
+    const controller = new AbortController();
+    setLoading(true);
+
+    (async () => {
+      try {
+        const limit = pageSize + 1;
+        const offset = (page - 1) * pageSize;
+        const qParam = activeSearchQuery && activeSearchQuery.trim().length > 0 ? `&q=${encodeURIComponent(activeSearchQuery.trim())}` : '';
+        const monthParam = worshipAppliedMonth ? `&month=${worshipAppliedMonth}` : '';
+        const yearParam = worshipAppliedYear ? `&year=${worshipAppliedYear}` : '';
+        const resp = await fetch(`/api/admin/worship24?limit=${limit}&offset=${offset}${qParam}${monthParam}${yearParam}`, {
+          headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
+          signal: controller.signal,
+        });
+        if (aborted) return;
+        if (resp.status === 401) {
+          setUnauthorized(true);
+          setWorship([]);
+          return;
+        }
+        const j = await resp.json();
+        if (j && j.success) {
+          const arr = j.data || [];
+          if (arr.length > pageSize) {
+            setHasMore(true);
+            setWorship(arr.slice(0, pageSize));
+          } else {
+            setHasMore(false);
+            setWorship(arr);
+          }
+          setWorshipTotalCount(j.total || 0);
+          setUnauthorized(false);
+        }
+      } catch (err) {
+        if ((err as any)?.name === 'AbortError') return;
+      } finally {
+        if (!aborted) setLoading(false);
+      }
+    })();
+
+    return () => { aborted = true; controller.abort(); };
+  }, [activeTab, page, activeSearchQuery, worshipAppliedMonth, worshipAppliedYear]);
+
+  // Load distinct booking years for worship24 so the year dropdown shows real data years
+  useEffect(() => {
+    let aborted = false;
+    (async () => {
+      try {
+        const resp = await fetch('/api/admin/worship24/years', { headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) } });
+        if (aborted) return;
+        if (!resp.ok) return;
+        const j = await resp.json();
+        if (j && j.success) {
+          setWorshipYears(Array.isArray(j.data) ? j.data.map((y: any) => Number(y)) : []);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => { aborted = true; };
+  }, []);
+
   // Trigger search: updating `activeSearchQuery` will cause the effect above to re-run.
   const doSearch = useCallback(() => {
     setPage(1);
-    setActiveSearchQuery(searchQuery);
+    setActiveSearchQuery(searchInputValue);
+    setSearching(true);
+    setTimeout(() => setSearching(false), 300);
+  }, [searchInputValue]);
+
+  // Trigger worship search (reuse search input for now)
+  const doWorshipSearch = useCallback(() => {
+    setPage(1);
+    setActiveSearchQuery(searchInputValue);
     setSearching(true);
     setTimeout(() => setSearching(false), 300);
   }, [searchQuery]);
 
   const doHmsSearch = useCallback(() => {
     setPage(1);
-    setActiveHmsSearchQuery(hmsSearchQuery);
+    setActiveHmsSearchQuery(hmsInputValue);
     setSearching(true);
     setTimeout(() => setSearching(false), 300);
-  }, [hmsSearchQuery]);
+  }, [hmsInputValue]);
+
+  // Debounce helpers for search inputs to reduce rapid handlers
+  const searchTimer = React.useRef<number | null>(null);
+  const hmsSearchTimer = React.useRef<number | null>(null);
+
+  const handleSearchInputChange = useCallback((val: string) => {
+    setSearchInputValue(val);
+    if (searchTimer.current) window.clearTimeout(searchTimer.current);
+    searchTimer.current = window.setTimeout(() => {
+      setSearchQuery(val);
+      searchTimer.current = null;
+    }, 300) as unknown as number;
+  }, []);
+
+  const flushSearchInput = useCallback(() => {
+    if (searchTimer.current) { window.clearTimeout(searchTimer.current); searchTimer.current = null; }
+    setSearchQuery(searchInputValue);
+  }, [searchInputValue]);
+
+  const handleHmsInputChange = useCallback((val: string) => {
+    setHmsInputValue(val);
+    if (hmsSearchTimer.current) window.clearTimeout(hmsSearchTimer.current);
+    hmsSearchTimer.current = window.setTimeout(() => {
+      setHmsSearchQuery(val);
+      hmsSearchTimer.current = null;
+    }, 300) as unknown as number;
+  }, []);
+
+  const flushHmsInput = useCallback(() => {
+    if (hmsSearchTimer.current) { window.clearTimeout(hmsSearchTimer.current); hmsSearchTimer.current = null; }
+    setHmsSearchQuery(hmsInputValue);
+  }, [hmsInputValue]);
 
   // Apply filters for Get In Touch table
   const applyFilters = useCallback(() => {
@@ -175,6 +291,14 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     setAppliedYear(exportYear);
     setPage(1);
   }, [exportMonth, exportYear]);
+
+  // Apply filters for Worship24 table (do not auto-apply when dropdowns change)
+  const applyWorshipFilters = useCallback(() => {
+    setWorshipAppliedMonth(worshipExportMonth);
+    setWorshipAppliedYear(worshipExportYear);
+    setPage(1);
+    setActiveSearchQuery(searchQuery);
+  }, [worshipExportMonth, worshipExportYear, searchQuery]);
 
   // Apply filters for HMS table
   const applyHmsFilters = useCallback(() => {
@@ -248,6 +372,31 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
       setExporting(false);
     }
   }, [activeSearchQuery, exportMonth, exportYear]);
+
+  // Export worship24 data to Excel
+  const handleWorshipExport = useCallback(async () => {
+    try {
+      setExporting(true);
+      const params = new URLSearchParams();
+      if (activeSearchQuery && activeSearchQuery.trim().length > 0) params.append('q', activeSearchQuery.trim());
+      if (worshipExportMonth) params.append('month', worshipExportMonth);
+      if (worshipExportYear) params.append('year', worshipExportYear);
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const resp = await fetch(`/api/admin/worship24/export${queryString}`, {
+        headers: getAuthHeader(),
+      });
+      if (resp.status === 401) { alert('Unauthorized. Please log in again.'); return; }
+      if (!resp.ok) throw new Error('Export failed');
+      const contentDisposition = resp.headers.get('Content-Disposition');
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch?.[1] || `worship24-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      const blob = await resp.blob();
+      downloadExcelFile(blob, filename);
+    } catch (err) {
+      console.error('Worship export failed:', err);
+      alert('Failed to export data. Please try again.');
+    } finally { setExporting(false); }
+  }, [activeSearchQuery, worshipExportMonth, worshipExportYear]);
 
   // Memoize export button disabled state
   const isExportDisabled = useMemo(() => {
@@ -410,6 +559,50 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     return arr;
   }, [students, sortBy, sortDir]);
 
+  const studentsRowsDesktop = useMemo(() => {
+    return sortedStudents.map((s: any, i: number) => (
+      <tr
+        key={s.id}
+        className={`border-b border-gray-800 hover:bg-[#151515]`}
+        style={{ backgroundColor: i % 2 === 0 ? '#242424' : '#1a1a1a' }}
+      >
+        <td className="px-4 py-3 text-gray-200">{s.id}</td>
+        <td className="px-4 py-3 text-gray-100 truncate max-w-[1px]">{s.full_name}</td>
+        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(s.date_of_birth)}</td>
+        <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.phone_number || '-'}</td>
+        <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.email || '-'}</td>
+        <td className="px-4 py-3 text-gray-200">{s.status || '-'}</td>
+        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(s.created_at)}</td>
+        <td className="px-4 py-3 text-right">
+          <Link href={`/admin/contacts/${s.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+        </td>
+      </tr>
+    ));
+  }, [sortedStudents, formatDatePretty, formatDateShort]);
+
+  const studentsRowsMobile = useMemo(() => {
+    return sortedStudents.map((s: any) => (
+      <div key={s.id} className="bg-[#232323] rounded-md p-3 border border-gray-700">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+              <span>#{s.id}</span>
+              <span className="mx-1">•</span>
+              <span className="uppercase text-[11px] text-gray-300">{s.status || 'Submitted'}</span>
+            </div>
+            <div className="font-medium text-gray-100 truncate">{s.full_name}</div>
+            <div className="text-sm text-gray-200 mt-1">{formatDatePretty(s.date_of_birth)} • {s.phone_number || '-'}</div>
+            <div className="text-sm text-gray-200 truncate mt-1">{s.email || '-'}</div>
+            <div className="text-xs text-gray-400 mt-1">Submitted: {formatDatePretty(s.created_at)}</div>
+          </div>
+          <div className="flex-shrink-0">
+            <Link href={`/admin/contacts/${s.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+          </div>
+        </div>
+      </div>
+    ));
+  }, [sortedStudents, formatDatePretty, formatDateShort]);
+
   const sortedContacts = useMemo(() => {
     const arr = [...contacts];
     const dir = sortDir === 'asc' ? 1 : -1;
@@ -437,6 +630,119 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     });
     return arr;
   }, [contacts, sortBy, sortDir]);
+
+  const contactsRowsDesktop = useMemo(() => {
+    return sortedContacts.map((c: any, i: number) => (
+      <tr key={c.id} className={`border-b border-gray-800 hover:bg-[#151515]`} style={{ backgroundColor: i % 2 === 0 ? '#242424' : '#1a1a1a' }}>
+        <td className="px-4 py-3 text-gray-200">{c.id}</td>
+        <td className="px-4 py-3 text-gray-100 truncate max-w-[1px]">{c.name}</td>
+        <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.phone || '-'}</td>
+        <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.email || '-'}</td>
+        <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.location || '-'}</td>
+        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.created_at)}</td>
+        <td className="px-4 py-3 text-right">
+          <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+        </td>
+      </tr>
+    ));
+  }, [sortedContacts, formatDatePretty]);
+
+  const contactsRowsMobile = useMemo(() => {
+    return sortedContacts.map((c: any) => (
+      <div key={c.id} className="bg-[#232323] rounded-md p-3 border border-gray-700">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+              <span>#{c.id}</span>
+              <span className="mx-1">•</span>
+              <span className="uppercase text-[11px] text-gray-300">{c.status || 'Submitted'}</span>
+            </div>
+            <div className="font-medium text-gray-100 truncate">{c.name}</div>
+            <div className="text-sm text-gray-200 mt-1">{formatDatePretty(c.created_at)} • {c.phone || '-'}</div>
+            <div className="text-sm text-gray-200 truncate mt-1">{c.email || '-'}</div>
+            {c.location && <div className="text-sm text-gray-200 truncate mt-1">{c.location}</div>}
+          </div>
+          <div className="flex-shrink-0">
+            <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+          </div>
+        </div>
+      </div>
+    ));
+  }, [sortedContacts, formatDatePretty]);
+
+  const sortedWorship = useMemo(() => {
+    const arr = [...worship];
+    const dir = sortDir === 'asc' ? 1 : -1;
+    if (sortBy === 'id') {
+      arr.sort((a: any, b: any) => (Number(a.id || 0) - Number(b.id || 0)) * dir);
+      return arr;
+    }
+    if (sortBy === 'created_at' || sortBy === 'booking_date') {
+      arr.sort((a: any, b: any) => {
+        const dateA = String(a[sortBy] || '').split('T')[0];
+        const dateB = String(b[sortBy] || '').split('T')[0];
+        return dateA.localeCompare(dateB) * dir;
+      });
+      return arr;
+    }
+    arr.sort((a: any, b: any) => {
+      const sa = String(a?.[sortBy] || '').toLowerCase();
+      const sb = String(b?.[sortBy] || '').toLowerCase();
+      return sa.localeCompare(sb) * dir;
+    });
+    return arr;
+  }, [worship, sortBy, sortDir]);
+
+  const worshipRowsDesktop = useMemo(() => {
+    return sortedWorship.map((c: any, i: number) => (
+      <tr key={c.id} className={`border-b border-gray-800 hover:bg-[#151515]`} style={{ backgroundColor: i % 2 === 0 ? '#242424' : '#1a1a1a' }}>
+        <td className="px-4 py-3 text-gray-200">{c.id}</td>
+        <td className="px-4 py-3 text-gray-100 truncate max-w-[1px]">{c.name}</td>
+        <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.phone || '-'}</td>
+        <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.email || '-'}</td>
+        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.booking_date)}</td>
+        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{c.timeslot ? String(c.timeslot).replace(/\b(am|pm)\b/gi, (m) => m.toUpperCase()) : '-'}</td>
+        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.created_at)}</td>
+        <td className="px-4 py-3 text-right">
+          <Link href={`/admin/contacts/worship24/${c.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+        </td>
+      </tr>
+    ));
+  }, [sortedWorship, formatDatePretty]);
+
+  const worshipRowsMobile = useMemo(() => {
+    return sortedWorship.map((c: any) => (
+      <div key={c.id} className="bg-[#232323] rounded-md p-3 border border-gray-700">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+              <span>#{c.id}</span>
+            </div>
+            <div className="font-medium text-gray-100 truncate">{c.name}</div>
+            <div className="text-sm text-gray-200 mt-1">{formatDatePretty(c.booking_date)} • {c.phone || '-'}</div>
+            <div className="text-sm text-gray-200 truncate mt-1">{c.email || '-'}</div>
+            {c.location && <div className="text-sm text-gray-200 truncate mt-1">{c.location}</div>}
+          </div>
+          <div className="flex-shrink-0">
+            <Link href={`/admin/contacts/worship24/${c.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+          </div>
+        </div>
+      </div>
+    ));
+  }, [sortedWorship, formatDatePretty]);
+
+  const isWorshipExportDisabled = useMemo(() => {
+    if (exporting || worshipTotalCount === 0) return true;
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    if (worshipExportYear && worshipExportMonth) {
+      const selectedYear = parseInt(worshipExportYear);
+      const selectedMonth = parseInt(worshipExportMonth);
+      if (selectedYear === currentYear && selectedMonth > currentMonth) return true;
+      if (selectedYear > currentYear) return true;
+    }
+    return false;
+  }, [exporting, worshipTotalCount, worshipExportMonth, worshipExportYear]);
 
   const handleSort = useCallback((column: string) => {
     if (sortBy === column) {
@@ -479,6 +785,15 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
               <span className="font-medium">Get In Touch</span>
             </button>
 
+            <button
+              onClick={() => { setActiveTab('worship24'); setPage(1); }}
+              className={`flex items-center gap-2 transition-colors text-base ${activeTab === 'worship24' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
+              style={activeTab === 'worship24' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
+            >
+              <Book size={16} />
+              <span className="font-medium">24 Hours Worship</span>
+            </button>
+
             {/* Removed "Other" tab per design */}
           </div>
         </nav>
@@ -499,21 +814,21 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
               <div className="mb-3 flex gap-2 items-center flex-wrap">
                 <input
                   type="search"
-                  value={hmsSearchQuery}
-                  onChange={(e) => setHmsSearchQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') doHmsSearch(); }}
+                  value={hmsInputValue}
+                  onChange={(e) => handleHmsInputChange(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { flushHmsInput(); doHmsSearch(); } }}
                   placeholder="Search name, email or phone"
                   className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white w-full md:w-1/3"
                 />
                 <button
-                  onClick={doHmsSearch}
+                  onClick={() => { flushHmsInput(); doHmsSearch(); }}
                   disabled={searching}
                   className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer"
                 >
                   Search
                 </button>
                 <button
-                  onClick={() => { setHmsSearchQuery(''); setActiveHmsSearchQuery(''); setPage(1); }}
+                  onClick={() => { setHmsInputValue(''); setHmsSearchQuery(''); setActiveHmsSearchQuery(''); setPage(1); }}
                   className="px-3 py-2 rounded bg-[#333] text-white border border-[#FDB813] hover:bg-[#3E3E3E] transition-colors cursor-pointer"
                 >
                   Clear
@@ -648,54 +963,18 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                             Submitted <ArrowUpDown size={14} className={sortBy === 'created_at' ? 'text-[#FDB813]' : 'opacity-40'}/>
                           </div>
                         </th>
-                        <th style={{ width: '8%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
+                        <th style={{ width: '12%', minWidth: '110px' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedStudents.map((s, i) => (
-                        <tr
-                          key={s.id}
-                          className={`border-b border-gray-800 hover:bg-[#151515]`}
-                          style={{ backgroundColor: i % 2 === 0 ? '#242424' : '#1a1a1a' }}
-                        >
-                          <td className="px-4 py-3 text-gray-200">{s.id}</td>
-                          <td className="px-4 py-3 text-gray-100 truncate max-w-[1px]">{s.full_name}</td>
-                          <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(s.date_of_birth)}</td>
-                          <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.phone_number || '-'}</td>
-                          <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.email || '-'}</td>
-                          <td className="px-4 py-3 text-gray-200">{s.status || '-'}</td>
-                          <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDateShort(s.created_at)}</td>
-                            <td className="px-4 py-3 text-right">
-                              <Link href={`/admin/contacts/${s.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
-                          </td>
-                        </tr>
-                      ))}
+                      {studentsRowsDesktop}
                     </tbody>
                   </table>
                 </div>
 
                 {/* Mobile/card view (below md) */}
                 <div className="md:hidden space-y-3 mt-2">
-                  {sortedStudents.map((s) => (
-                    <div key={s.id} className="bg-[#232323] rounded-md p-3 border border-gray-700">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
-                            <span>#{s.id}</span>
-                            <span className="mx-1">•</span>
-                            <span className="uppercase text-[11px] text-gray-300">{s.status || 'Submitted'}</span>
-                          </div>
-                          <div className="font-medium text-gray-100 truncate">{s.full_name}</div>
-                          <div className="text-sm text-gray-200 mt-1">{formatDatePretty(s.date_of_birth)} • {s.phone_number || '-'}</div>
-                          <div className="text-sm text-gray-200 truncate mt-1">{s.email || '-'}</div>
-                          <div className="text-xs text-gray-400 mt-1">Submitted: {formatDateShort(s.created_at)}</div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <Link href={`/admin/contacts/${s.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  {studentsRowsMobile}
                 </div>
 
                 {/* Pagination controls (mobile) */}
@@ -752,21 +1031,21 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
               <div className="mb-3 flex gap-2 items-center flex-wrap">
                 <input
                   type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') doSearch(); }}
+                  value={searchInputValue}
+                  onChange={(e) => handleSearchInputChange(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { flushSearchInput(); doSearch(); } }}
                   placeholder="Search name, email, phone or location"
                   className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white w-full md:w-1/3"
                 />
                 <button
-                  onClick={doSearch}
+                  onClick={() => { flushSearchInput(); doSearch(); }}
                   disabled={searching}
                   className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer"
                 >
                   Search
                 </button>
                 <button
-                  onClick={() => { setSearchQuery(''); setActiveSearchQuery(''); setPage(1); }}
+                  onClick={() => { setSearchInputValue(''); setSearchQuery(''); setActiveSearchQuery(''); setPage(1); }}
                   className="px-3 py-2 rounded bg-[#333] text-white border border-[#FDB813] hover:bg-[#3E3E3E] transition-colors cursor-pointer"
                 >
                   Clear
@@ -885,48 +1164,17 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                                 Submitted {sortBy === 'created_at' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
                               </div>
                             </th>
-                            <th style={{ width: '9%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
+                            <th style={{ width: '12%', minWidth: '110px' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {sortedContacts.map((c: any, i) => (
-                            <tr key={c.id} className={`border-b border-gray-800 hover:bg-[#151515]`} style={{ backgroundColor: i % 2 === 0 ? '#242424' : '#1a1a1a' }}>
-                              <td className="px-4 py-3 text-gray-200">{c.id}</td>
-                              <td className="px-4 py-3 text-gray-100 truncate max-w-[1px]">{c.name}</td>
-                              <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.phone || '-'}</td>
-                              <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.email || '-'}</td>
-                              <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.location || '-'}</td>
-                              <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.created_at)}</td>
-                              <td className="px-4 py-3 text-right">
-                                <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
-                              </td>
-                            </tr>
-                          ))}
+                          {contactsRowsDesktop}
                         </tbody>
                       </table>
                     </div>
 
                     <div className="md:hidden space-y-3 mt-2">
-                      {sortedContacts.map((c: any) => (
-                        <div key={c.id} className="bg-[#232323] rounded-md p-3 border border-gray-700">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
-                                <span>#{c.id}</span>
-                                <span className="mx-1">•</span>
-                                <span className="uppercase text-[11px] text-gray-300">{c.status || 'Submitted'}</span>
-                              </div>
-                              <div className="font-medium text-gray-100 truncate">{c.name}</div>
-                              <div className="text-sm text-gray-200 mt-1">{formatDatePretty(c.created_at)} • {c.phone || '-'}</div>
-                              <div className="text-sm text-gray-200 truncate mt-1">{c.email || '-'}</div>
-                              {c.location && <div className="text-sm text-gray-200 truncate mt-1">{c.location}</div>}
-                            </div>
-                            <div className="flex-shrink-0">
-                              <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                      {contactsRowsMobile}
                     </div>
 
                     <div className="md:hidden flex items-center justify-between mt-3">
@@ -971,6 +1219,177 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
           )}
         </div>
       )}
+
+        {activeTab === 'worship24' && (
+          <div>
+            {loading ? (
+              <div>Loading...</div>
+            ) : (
+              <>
+                <div className="mb-3 flex gap-2 items-center flex-wrap">
+                  <input
+                    type="search"
+                    value={searchInputValue}
+                    onChange={(e) => handleSearchInputChange(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { flushSearchInput(); doWorshipSearch(); } }}
+                    placeholder="Search name, email, phone or location"
+                    className="px-3 py-2 rounded bg-[#111] border border-gray-700 text-sm text-white w-full md:w-1/3"
+                  />
+                  <button
+                    onClick={() => { flushSearchInput(); doWorshipSearch(); }}
+                    disabled={searching}
+                    className="px-3 py-2 rounded bg-[#FDB813] text-black font-semibold hover:bg-[#e5a711] transition-colors cursor-pointer"
+                  >
+                    Search
+                  </button>
+                  <button
+                    onClick={() => { setSearchInputValue(''); setSearchQuery(''); setActiveSearchQuery(''); setPage(1); }}
+                    className="px-3 py-2 rounded bg-[#333] text-white border border-[#FDB813] hover:bg-[#3E3E3E] transition-colors cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <div className="mb-3 flex gap-2 items-center flex-wrap">
+                  <span className="text-sm text-gray-300">Filters:</span>
+                  <select
+                    value={worshipExportMonth}
+                    onChange={(e) => setWorshipExportMonth(e.target.value)}
+                    className="px-3 py-2 rounded-md bg-[#2e2e2e] border-2 border-[#FDB813] text-sm text-white"
+                  >
+                    <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Months</option>
+                    {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1} style={{ background: '#2e2e2e', color: 'white' }}>{new Date(0, i).toLocaleString('en-US', { month: 'long' })}</option>)}
+                  </select>
+                  <select
+                    value={worshipExportYear}
+                    onChange={(e) => setWorshipExportYear(e.target.value)}
+                    className="px-3 py-2 rounded-md bg-[#2e2e2e] border-2 border-[#FDB813] text-sm text-white"
+                  >
+                    <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Years</option>
+                    {worshipYears && worshipYears.length > 0 ? (
+                      worshipYears.map(y => (<option key={y} value={y} style={{ background: '#2e2e2e', color: 'white' }}>{y}</option>))
+                    ) : (
+                      (() => { const currentYear = new Date().getFullYear(); const years = []; for (let year = currentYear; year >= 2020; year--) { years.push(year); } return years.map(year => (<option key={year} value={year} style={{ background: '#2e2e2e', color: 'white' }}>{year}</option>)); })()
+                    )}
+                  </select>
+                  <button
+                    onClick={applyWorshipFilters}
+                    className="px-3 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                  <button
+                    onClick={() => { setWorshipExportMonth(''); setWorshipExportYear(''); setWorshipAppliedMonth(''); setWorshipAppliedYear(''); setPage(1); }}
+                    className="px-3 py-2 rounded bg-[#333] text-white border border-gray-600 hover:bg-[#3E3E3E] transition-colors cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={handleWorshipExport}
+                    disabled={isWorshipExportDisabled}
+                    className="px-3 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
+                    title="Export worship24 to Excel file"
+                  >
+                    <Download size={16} />
+                    {exporting ? 'Exporting...' : 'Export to Excel'}
+                  </button>
+                </div>
+
+                <div className="mb-3 text-sm text-gray-300">
+                  {activeSearchQuery ? (
+                    worshipTotalCount === 0 ? (
+                      <span>No results found for &quot;{activeSearchQuery}&quot;</span>
+                    ) : (
+                      <span>Found {worshipTotalCount} result{worshipTotalCount !== 1 ? 's' : ''} for &quot;{activeSearchQuery}&quot;</span>
+                    )
+                  ) : (
+                    <span>Total: {worshipTotalCount} submission{worshipTotalCount !== 1 ? 's' : ''}</span>
+                  )}
+                </div>
+
+                {worshipTotalCount > 0 && (
+                  <div className="overflow-x-auto">
+                    <div className="w-full bg-[#1f1f1f] rounded-lg p-2 md:p-3 border border-gray-700">
+                      <div className="hidden md:block">
+                        <table className="w-full table-fixed text-left text-sm bg-[#232323] rounded-lg overflow-hidden">
+                          <thead>
+                            <tr style={{ backgroundColor: '#2e2e2e', color: '#e6e6e6' }}>
+                              <th onClick={() => handleSort('id')} style={{ width: '5%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                                <div className="flex items-center gap-1"># {sortBy === 'id' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>
+                              </th>
+                              <th onClick={() => handleSort('name')} style={{ width: '20%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                                <div className="flex items-center gap-1">Name {sortBy === 'name' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>
+                              </th>
+                              <th onClick={() => handleSort('phone')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                                <div className="flex items-center gap-1">Phone {sortBy === 'phone' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>
+                              </th>
+                              <th onClick={() => handleSort('email')} style={{ width: '14%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                                <div className="flex items-center gap-1">Email {sortBy === 'email' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>
+                              </th>
+                              <th onClick={() => handleSort('booking_date')} style={{ width: '15%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                                <div className="flex items-center gap-1">Booking Date {sortBy === 'booking_date' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>
+                              </th>
+                              <th onClick={() => handleSort('timeslot')} style={{ width: '18%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                                <div className="flex items-center gap-1">Timeslot {sortBy === 'timeslot' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>
+                              </th>
+                              <th onClick={() => handleSort('created_at')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                                <div className="flex items-center gap-1">Submitted {sortBy === 'created_at' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>
+                              </th>
+                              <th style={{ width: '12%', minWidth: '110px' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {worshipRowsDesktop}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="md:hidden space-y-3 mt-2">
+                        {worshipRowsMobile}
+                      </div>
+
+                      <div className="md:hidden flex items-center justify-between mt-3">
+                        <div className="text-sm text-gray-400">Page {page}</div>
+                        <div className="flex items-center gap-2">
+                          <button disabled={page <= 1} onClick={() => setPage(1)} className={goldBtnClass(page <= 1)} title="First Page">
+                            <ChevronsLeft size={16} />
+                          </button>
+                          <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className={goldBtnClass(page <= 1)} title="Previous Page">
+                            <ChevronLeft size={16} />
+                          </button>
+                          <button disabled={!hasMore} onClick={() => setPage(p => p + 1)} className={goldBtnClass(!hasMore)} title="Next Page">
+                            <ChevronRight size={16} />
+                          </button>
+                          <button disabled={!hasMore} onClick={() => setPage(Math.ceil(worshipTotalCount / pageSize))} className={goldBtnClass(!hasMore)} title="Last Page">
+                            <ChevronsRight size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="hidden md:flex items-center justify-between mt-3 px-2">
+                        <div className="text-sm text-gray-400">Page {page}</div>
+                        <div className="flex items-center gap-2">
+                          <button disabled={page <= 1} onClick={() => setPage(1)} className={goldBtnClass(page <= 1)} title="First Page">
+                            <ChevronsLeft size={16} />
+                          </button>
+                          <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className={goldBtnClass(page <= 1)} title="Previous Page">
+                            <ChevronLeft size={16} />
+                          </button>
+                          <button disabled={!hasMore} onClick={() => setPage(p => p + 1)} className={goldBtnClass(!hasMore)} title="Next Page">
+                            <ChevronRight size={16} />
+                          </button>
+                          <button disabled={!hasMore} onClick={() => setPage(Math.ceil(worshipTotalCount / pageSize))} className={goldBtnClass(!hasMore)} title="Last Page">
+                            <ChevronsRight size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
       {/* "Other" tab removed; only HMS Enrollments are shown here now */}
     </div>

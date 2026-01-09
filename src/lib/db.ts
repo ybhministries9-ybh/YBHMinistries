@@ -489,7 +489,7 @@ export async function createHMSStudent(payload: {
 
     return rows[0];
   } catch (error) {
-    console.error('Error creating HMS student record:', error);
+    logger.error('Error creating HMS student record:', error);
     throw error;
   }
 }
@@ -517,9 +517,132 @@ export async function createGetInTouch(payload: {
     `;
     return rows[0];
   } catch (error) {
-    console.error('Error creating get_in_touch record:', error);
+    logger.error('Error creating get_in_touch record:', error);
     // Re-throw with additional context for the API route to surface in non-prod
     throw new Error(`DB createGetInTouch error: ${error && (error as any).message ? (error as any).message : String(error)}`);
+  }
+}
+
+/**
+ * Persist a Worship24 booking submission
+ */
+export async function createWorship24(payload: {
+  name: string;
+  email?: string | null;
+  phone: string;
+  location?: string | null;
+  message: string;
+  booking_date: string; // YYYY-MM-DD
+  timeslot: string;
+  facebook_link?: string | null;
+  user_agent?: string | null;
+  createdBy?: string | null;
+}) {
+  try {
+    const { rows } = await sql`
+      INSERT INTO worship24 (
+        name, email, phone, location, message, booking_date, timeslot, facebook_link, user_agent, status, created_by, updated_by
+      ) VALUES (
+        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.location || null}, ${payload.message}, ${payload.booking_date}, ${payload.timeslot}, ${payload.facebook_link || null}, ${payload.user_agent || null}, 'new', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
+      ) RETURNING *
+    `;
+    return rows[0];
+  } catch (error) {
+    logger.error('Error creating worship24 record:', error);
+    throw new Error(`DB createWorship24 error: ${error && (error as any).message ? (error as any).message : String(error)}`);
+  }
+}
+
+export async function getWorship24(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string }) {
+  try {
+    const limit = opts?.limit || 50;
+    const offset = opts?.offset || 0;
+
+    const conditions: string[] = [];
+    const values: any[] = [];
+    let valueIndex = 1;
+
+    if (opts?.q && String(opts.q).trim().length > 0) {
+      const q = `%${String(opts.q).trim()}%`;
+      conditions.push(`(name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone ILIKE $${valueIndex + 2} OR location ILIKE $${valueIndex + 3})`);
+      values.push(q, q, q, q);
+      valueIndex += 4;
+    }
+
+    // Filter by booking_date (not created_at). Support month+year, year-only, and month-only filters.
+    if (opts?.month && opts?.year) {
+      const startDate = `${opts.year}-${String(opts.month).padStart(2, '0')}-01`;
+      const nextMonth = parseInt(opts.month) === 12 ? 1 : parseInt(opts.month) + 1;
+      const nextYear = parseInt(opts.month) === 12 ? parseInt(opts.year) + 1 : parseInt(opts.year);
+      const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      conditions.push(`DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
+      values.push(startDate, endDate);
+      valueIndex += 2;
+    } else if (opts?.year) {
+      const startDate = `${opts.year}-01-01`;
+      const endDate = `${parseInt(opts.year) + 1}-01-01`;
+      conditions.push(`DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
+      values.push(startDate, endDate);
+      valueIndex += 2;
+    } else if (opts?.month) {
+      // month-only filter across all years
+      const m = parseInt(String(opts.month));
+      if (!Number.isNaN(m) && m >= 1 && m <= 12) {
+        conditions.push(`EXTRACT(MONTH FROM (booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')) = $${valueIndex}`);
+        values.push(m);
+        valueIndex += 1;
+      }
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countQuery = `SELECT COUNT(*) as count FROM worship24 ${whereClause}`;
+    const countResult = await sql.query(countQuery, values.length > 0 ? values : undefined);
+    const total = Number(countResult.rows[0]?.count || 0);
+
+    values.push(limit, offset);
+    const query = `
+      SELECT id, name, email, phone, message, location, booking_date, timeslot, facebook_link, user_agent, status, created_at, updated_at
+      FROM worship24
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
+    `;
+    const result = await sql.query(query, values);
+    return { rows: result.rows, total };
+  } catch (error) {
+    logger.error('Error fetching worship24 records:', error);
+    throw error;
+  }
+}
+
+export async function getWorship24ById(id: number) {
+  try {
+    const { rows } = await sql`
+      SELECT id, name, email, phone, message, location, booking_date, timeslot, facebook_link, user_agent, status, created_at, updated_at
+      FROM worship24
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    return rows[0] || null;
+  } catch (error) {
+    logger.error('Error fetching worship24 by id:', error);
+    throw error;
+  }
+}
+
+export async function getWorship24Years() {
+  try {
+    const result = await sql`
+      SELECT DISTINCT EXTRACT(YEAR FROM booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') AS year
+      FROM worship24
+      WHERE booking_date IS NOT NULL
+      ORDER BY year DESC
+    `;
+    return result.rows.map((r: any) => (r.year !== null ? Number(r.year) : null)).filter((y: any) => y != null);
+  } catch (error) {
+    logger.error('Error fetching worship24 years:', error);
+    throw error;
   }
 }
 
@@ -579,7 +702,7 @@ export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?
     const result = await sql.query(query, values);
     return { rows: result.rows, total };
   } catch (error) {
-    console.error('Error fetching get_in_touch records:', error);
+    logger.error('Error fetching get_in_touch records:', error);
     throw error;
   }
 }
@@ -594,7 +717,7 @@ export async function getGetInTouchById(id: number) {
     `;
     return rows[0] || null;
   } catch (error) {
-    console.error('Error fetching get_in_touch by id:', error);
+    logger.error('Error fetching get_in_touch by id:', error);
     throw error;
   }
 }
@@ -662,7 +785,7 @@ export async function getHMSStudents(opts?: { limit?: number; offset?: number; q
     const result = await sql.query(query, values);
     return { rows: result.rows, total };
   } catch (error) {
-    console.error('Error fetching HMS students:', error);
+    logger.error('Error fetching HMS students:', error);
     throw error;
   }
 }
@@ -672,7 +795,7 @@ export async function getHMSStudentById(id: number) {
     const { rows } = await sql<HMSStudentRecord>`SELECT * FROM hms_students WHERE id = ${id} LIMIT 1`;
     return rows[0] || null;
   } catch (error) {
-    console.error('Error fetching HMS student by id:', error);
+    logger.error('Error fetching HMS student by id:', error);
     throw error;
   }
 }
@@ -712,7 +835,7 @@ export async function updateHMSStudent(id: number, updates: Partial<any>) {
     const result = await sql.query<HMSStudentRecord>(query, values);
     return result.rows[0];
   } catch (error) {
-    console.error('Error updating HMS student:', error);
+    logger.error('Error updating HMS student:', error);
     throw error;
   }
 }
@@ -725,7 +848,7 @@ export async function getAllStories(): Promise<Story[]> {
     `;
     return rows;
   } catch (error) {
-    console.error('Error fetching stories:', error);
+    logger.error('Error fetching stories:', error);
     throw error;
   }
 }
@@ -744,7 +867,7 @@ export async function getVisibleApprovedStories(): Promise<any[]> {
     `;
     return rows;
   } catch (error) {
-    console.error('Error fetching visible approved stories:', error);
+    logger.error('Error fetching visible approved stories:', error);
     throw error;
   }
 }
@@ -776,7 +899,7 @@ export async function createStory(payload: {
     `;
     return rows[0];
   } catch (error) {
-    console.error('Error creating story:', error);
+    logger.error('Error creating story:', error);
     throw error;
   }
 }
@@ -832,7 +955,7 @@ export async function updateStory(id: number, updates: Partial<{
     const { rows } = await sql.query<Story>(query, values);
     return rows[0];
   } catch (error) {
-    console.error('Error updating story:', error);
+    logger.error('Error updating story:', error);
     throw error;
   }
 }
@@ -844,7 +967,7 @@ export async function deleteStories(ids: number[]): Promise<number> {
     const result = await sql.query(`DELETE FROM stories WHERE id IN (${placeholders})`, ids);
     return result.rowCount || 0;
   } catch (error) {
-    console.error('Error deleting stories:', error);
+    logger.error('Error deleting stories:', error);
     throw error;
   }
 }
@@ -860,7 +983,7 @@ export async function getAllGalleryItems(): Promise<GalleryItem[]> {
     `;
     return rows;
   } catch (error) {
-    console.error('Error fetching all gallery items:', error);
+    logger.error('Error fetching all gallery items:', error);
     throw error;
   }
 }
@@ -877,7 +1000,7 @@ export async function getGalleryItemsByCategory(category: string): Promise<Galle
     `;
     return rows;
   } catch (error) {
-    console.error('Error fetching gallery items by category:', error);
+    logger.error('Error fetching gallery items by category:', error);
     throw error;
   }
 }
@@ -923,7 +1046,7 @@ export async function addGalleryItems(
     
     return insertedItems;
   } catch (error) {
-    console.error('Error adding gallery items:', error);
+    logger.error('Error adding gallery items:', error);
     throw error;
   }
 }
@@ -980,7 +1103,7 @@ export async function updateGalleryItem(
     const { rows } = await sql.query<GalleryItem>(query, values);
     return rows[0];
   } catch (error) {
-    console.error('Error updating gallery item:', error);
+    logger.error('Error updating gallery item:', error);
     throw error;
   }
 }
@@ -1001,7 +1124,7 @@ export async function deleteGalleryItems(ids: number[]): Promise<number> {
     const result = await sql.query(query, ids);
     return result.rowCount || 0;
   } catch (error) {
-    console.error('Error deleting gallery items:', error);
+    logger.error('Error deleting gallery items:', error);
     throw error;
   }
 }

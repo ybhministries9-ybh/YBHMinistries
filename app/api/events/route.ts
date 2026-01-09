@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         speakers,
         what_to_bring as "whatToBring",
         registration_enabled as "registrationEnabled",
+        "24hrsworship_enabled" as "enable24hrWorshipForm",
         registration_description as "registrationDescription",
         national_fee as "nationalFee",
         international_fee as "internationalFee",
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
       whatToBring: row.whatToBring || [],
       registration: {
         enabled: row.registrationEnabled || false,
+        enable24hrWorshipForm: row.enable24hrWorshipForm || false,
         description: row.registrationDescription,
         nationalFee: row.nationalFee,
         internationalFee: row.internationalFee,
