@@ -25,11 +25,17 @@ export default {
     emailPlaceholder: "yourname@example.com",
     locationPlaceholder: "నగరం, రాష్ట్రం లేదా దేశం (ఐచ్ఛికం)",
     messagePlaceholder: "ఇక్కడ మీ సందేశాన్ని రాయండి",
+    facebookPlaceholder: "https://facebook.com/yourpage",
     send: "పంపండి",
     sending: "పంపిస్తోంది...",
     sendMessage: "సందేశం పంపండి",
     resetButton: "ఫారమ్‌ను రీసెట్ చేయండి",
     sendAnother: "మరొక సందేశాన్ని పంపండి",
+    selectDateLabel: 'తేదీని ఎంచుకోండి (మాసంలో 2వ శనివారం)',
+    timeslot: 'సమయముహూరు',
+    timeslotPlaceholder: 'సమయాన్ని ఎంచుకోండి',
+    facebookLink: 'Facebook లింక్',
+    submitBooking: 'బుక్ చేయండి',
     success: "ధన్యవాదాలు — మేము త్వరలో మీకు తిరిగి స్పందిస్తాము!",
     error: "మీ సందేశాన్ని పంపడంలో లోపం ఉంది. దయచేసి మళ్లీ ప్రయత్నించండి.",
     validation: {
@@ -47,8 +53,21 @@ export default {
       messageMin: 'దయచేసి కనీసం 10 అక్షరాలు నమోదు చేయండి.',
       messageMax: 'గరిష్టం 1000 అక్షరాలు అనుమతించబడతాయి.',
       locationMin: 'దయచేసి స్థానం కోసం కనీసం 2 అక్షరాలు నమోదు చేయండి',
-      locationMax: 'స్థానం కోసం గరిష్టం 200 అక్షరాలు అనుమతించబడతాయి'
+      locationMax: 'స్థానం కోసం గరిష్టం 200 అక్షరాలు అనుమతించబడ్డాయి',
+      worship24_dateRequired: 'దయచేసి తేదీని ఎంచుకోండి (మాసంలో 2వ శనివారం)',
+      worship24_previousMonth: 'మునుపటి నెలలు అనుమతించబడవు',
+      worship24_secondSaturday: 'మాసంలో 2వ శనివారమే ఎంచుకోబడుతుంది',
+      worship24_timeslotRequired: 'దయచేసి టైమ్‌స్లాట్‌ని ఎంచుకోండి',
+      worship24_timeslotInvalid: 'చెల్లని టైమ్‌స్లాట్',
+      worship24_facebookRequired: 'Facebook లింక్ అవసరం',
+      worship24_facebookInvalid: 'దయచేసి చెల్లుబాటు అయ్యే Facebook URLని ఇవ్వండి',
+      worship24_facebookTooLong: 'Facebook లింక్ చాలా పొడవుగా ఉంది'
     }
+  ,
+  worship24: {
+    bookAnother: 'మరొకటి బుక్ చేయండి'
+  },
+  worship24_description: 'ప్రతి నెల 2వ శనివారం జరుగే {{name}} ఈవెంట్ కోసం ఒక స్లాట్‌ను బుక్ చేయండి.'
   },
   
   studentForm: {
@@ -212,7 +231,9 @@ export default {
   tabs: {
     guinnessAttempt: "గిన్నిస్ వరల్డ్ రికార్డ్స్ ప్రయత్నం-2",
     studentForm: "HMS విద్యార్థి ఫారం",
+    getInTouch: "మాతో సంప్రదించండి",
     conferenceRequest: "మీ నగరంలో ఆఫ్‌లైన్ కాన్ఫరెన్స్?",
+    worship24: "24 గంటల ఆరాధన",
     lsmStudent: "లండన్ స్కూల్ ఆఫ్ మ్యూజిక్ విద్యార్థి?",
     sponsor: "ఈవెంట్‌కు స్పాన్సర్ అవ్వాలా?",
     trustee: "ట్రస్టీ అవ్వాలా?"

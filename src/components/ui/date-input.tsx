@@ -7,7 +7,7 @@ import { Calendar } from './calendar';
 import { Input } from './input';
 
 // Reusable Date input with popover calendar. Value format is YYYY-MM-DD string.
-export function DateInput({ value, onChange, className, disabled = false, allowFuture = true }: { value?: string; onChange: (v: string) => void; className?: string; disabled?: boolean; allowFuture?: boolean }) {
+export function DateInput({ value, onChange, className, disabled = false, allowFuture = true, isDateDisabled }: { value?: string; onChange: (v: string) => void; className?: string; disabled?: boolean; allowFuture?: boolean; isDateDisabled?: (d: Date) => boolean }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState<string>(value || '');
 
@@ -37,11 +37,11 @@ export function DateInput({ value, onChange, className, disabled = false, allowF
   const today = new Date();
   today.setHours(23, 59, 59, 999);
 
-  const [displayMonth, setDisplayMonth] = useState<Date | undefined>(() => parseDateValue(value));
+  const [displayMonth, setDisplayMonth] = useState<Date>(() => parseDateValue(value) || new Date());
   useEffect(() => {
     const dv = parseDateValue(value);
     setDisplayMonth(prev => {
-      if (!dv) return undefined;
+      if (!dv) return prev || new Date();
       if (!prev || dv.getTime() !== prev.getTime()) return dv;
       return prev;
     });
@@ -141,21 +141,19 @@ export function DateInput({ value, onChange, className, disabled = false, allowF
           <div className="flex items-center gap-2">
             <div className="text-sm text-gray-300">Year</div>
             <select
-              value={displayMonth ? displayMonth.getFullYear() : ''}
+              value={displayMonth ? displayMonth.getFullYear() : new Date().getFullYear()}
               onChange={(e) => {
                 const y = Number(e.target.value);
                 if (!Number.isFinite(y)) return;
-                const m = displayMonth ? displayMonth.getMonth() : 0;
+                const m = displayMonth ? displayMonth.getMonth() : new Date().getMonth();
                 setDisplayMonth(new Date(y, m, 1));
               }}
               className="bg-[#1a1a1a] text-white border border-gray-700 rounded px-2 py-1"
             >
               {(() => {
-                const years: number[] = [];
                 const currentYear = new Date().getFullYear();
-                const start = Math.max(1900, currentYear - 100);
-                const end = currentYear + 1;
-                for (let y = end; y >= start; y--) years.push(y);
+                // show only current year and next year
+                const years = [currentYear, currentYear + 1];
                 return years.map((yr) => <option key={yr} value={yr}>{yr}</option>);
               })()}
             </select>
@@ -166,7 +164,11 @@ export function DateInput({ value, onChange, className, disabled = false, allowF
           selected={dateValue}
           month={displayMonth}
           onSelect={(d) => handleSelect(d as Date | undefined)}
-          disabled={(date) => !allowFuture ? date > today : false}
+          disabled={(date) => {
+            if (!allowFuture && date > today) return true;
+            if (typeof isDateDisabled === 'function') return isDateDisabled(date);
+            return false;
+          }}
           initialFocus
           className="!bg-[#2e2e2e] text-white"
         />

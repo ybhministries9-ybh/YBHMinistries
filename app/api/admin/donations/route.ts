@@ -3,6 +3,7 @@ import { sql } from '@vercel/postgres';
 import { del } from '@/lib/vercelBlob';
 import { verifySession, getActorName } from '@/lib/sessions';
 import { deleteObject, parseKeyFromUrl } from '@/lib/r2';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -187,24 +188,24 @@ export async function DELETE(request: NextRequest) {
             const qrUrl = row.qr_image_url;
             
             // Handle R2 URLs (r2://bucket/key)
-            if (qrUrl.startsWith('r2://')) {
+                  if (qrUrl.startsWith('r2://')) {
               try {
                 const parsed = parseKeyFromUrl(qrUrl);
-                if (parsed.key) {
-                  await deleteObject(parsed.key, parsed.bucket || undefined);
-                  console.log(`Deleted R2 QR image for UPI ${id}: ${qrUrl}`);
-                }
+                    if (parsed.key) {
+                      await deleteObject(parsed.key, parsed.bucket || undefined);
+                      logger.info(`Deleted R2 QR image for UPI ${id}`, { url: qrUrl });
+                    }
               } catch (err) {
-                console.error(`Failed to delete R2 QR image for UPI ${id}:`, err);
+                    logger.error(`Failed to delete R2 QR image for UPI ${id}`, err);
               }
             }
             // Handle Vercel Blob URLs
             else if (qrUrl.includes('blob.vercel-storage.com')) {
               try {
                 await del(qrUrl);
-                console.log(`Deleted Vercel Blob QR image for UPI ${id}: ${qrUrl}`);
+                      logger.info(`Deleted Vercel Blob QR image for UPI ${id}`, { url: qrUrl });
               } catch (err) {
-                console.error(`Failed to delete Vercel Blob QR for UPI ${id}:`, err);
+                      logger.error(`Failed to delete Vercel Blob QR for UPI ${id}`, err);
               }
             }
           }

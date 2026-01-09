@@ -16,6 +16,7 @@ export default {
     guinnessAttempt: "Guinness World Records Attempt-2",
     studentForm: "HMS Student Form",
     getInTouch: "Get In Touch",
+    worship24: "24hrs Worship",
     conferenceRequest: "Offline Conference in Your City?",
     lsmStudent: "London School of Music Student?",
     sponsor: "Become a Sponsor for Event?",
@@ -35,11 +36,17 @@ export default {
     emailPlaceholder: "yourname@example.com",
     locationPlaceholder: "City, State or Country (optional)",
     messagePlaceholder: "Write your message here",
+    facebookPlaceholder: "https://facebook.com/yourpage",
     send: "Send",
     sending: "Sending...",
     sendMessage: "Send Message",
     resetButton: "Reset Form",
     sendAnother: "Send another message",
+    selectDateLabel: "Select Date (2nd Saturday)",
+    timeslot: "Timeslot",
+    timeslotPlaceholder: "Select a timeslot",
+    facebookLink: "Facebook Link",
+    submitBooking: "Submit Booking",
     success: "Thanks — we'll get back to you soon!",
     error: "There was an error sending your message. Please try again."
     ,
@@ -58,8 +65,23 @@ export default {
       messageMin: 'Please enter at least 10 characters.',
       messageMax: 'Maximum 1000 characters allowed.',
       locationMin: 'Please enter at least 2 characters for location',
-      locationMax: 'Maximum 200 characters allowed for location'
+      locationMax: 'Maximum 200 characters allowed for location',
+      worship24_dateRequired: 'Please select a date (2nd Saturday of the month)',
+      worship24_previousMonth: 'Previous months are not allowed',
+      worship24_secondSaturday: 'Only the 2nd Saturday of the month is selectable',
+      worship24_timeslotRequired: 'Please select a timeslot',
+      worship24_timeslotInvalid: 'Invalid timeslot',
+      worship24_facebookRequired: 'Facebook link is required',
+      worship24_facebookInvalid: 'Please enter a valid Facebook URL',
+      worship24_facebookTooLong: 'Facebook link is too long'
     }
+    ,
+    worship24_description: 'Book a slot for the {{name}} event (2nd Saturday of each month).'
+  ,
+  // worship24 UI labels
+  worship24: {
+    bookAnother: 'Book Another'
+  },
   },
   
   guinnessAttempt: {

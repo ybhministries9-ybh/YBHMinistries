@@ -524,6 +524,84 @@ export async function createGetInTouch(payload: {
 }
 
 /**
+ * Persist a Worship24 booking submission
+ */
+export async function createWorship24(payload: {
+  name: string;
+  email?: string | null;
+  phone: string;
+  location?: string | null;
+  message: string;
+  booking_date: string; // YYYY-MM-DD
+  timeslot: string;
+  facebook_link?: string | null;
+  user_agent?: string | null;
+  createdBy?: string | null;
+}) {
+  try {
+    const { rows } = await sql`
+      INSERT INTO worship24 (
+        name, email, phone, location, message, booking_date, timeslot, facebook_link, user_agent, status, created_by, updated_by
+      ) VALUES (
+        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.location || null}, ${payload.message}, ${payload.booking_date}, ${payload.timeslot}, ${payload.facebook_link || null}, ${payload.user_agent || null}, 'new', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
+      ) RETURNING *
+    `;
+    return rows[0];
+  } catch (error) {
+    console.error('Error creating worship24 record:', error);
+    throw new Error(`DB createWorship24 error: ${error && (error as any).message ? (error as any).message : String(error)}`);
+  }
+}
+
+export async function getWorship24(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string }) {
+  try {
+    const limit = opts?.limit || 50;
+    const offset = opts?.offset || 0;
+
+    const conditions: string[] = [];
+    const values: any[] = [];
+    let valueIndex = 1;
+
+    if (opts?.q && String(opts.q).trim().length > 0) {
+      const q = `%${String(opts.q).trim()}%`;
+      conditions.push(`(name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone ILIKE $${valueIndex + 2} OR location ILIKE $${valueIndex + 3})`);
+      values.push(q, q, q, q);
+      valueIndex += 4;
+    }
+
+    if (opts?.month && opts?.year) {
+      const startDate = `${opts.year}-${String(opts.month).padStart(2, '0')}-01`;
+      const nextMonth = parseInt(opts.month) === 12 ? 1 : parseInt(opts.month) + 1;
+      const nextYear = parseInt(opts.month) === 12 ? parseInt(opts.year) + 1 : parseInt(opts.year);
+      const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      conditions.push(`DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${valueIndex} AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${valueIndex + 1}`);
+      values.push(startDate, endDate);
+      valueIndex += 2;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countQuery = `SELECT COUNT(*) as count FROM worship24 ${whereClause}`;
+    const countResult = await sql.query(countQuery, values.length > 0 ? values : undefined);
+    const total = Number(countResult.rows[0]?.count || 0);
+
+    values.push(limit, offset);
+    const query = `
+      SELECT id, name, email, phone, message, location, booking_date, timeslot, facebook_link, user_agent, status, created_at, updated_at
+      FROM worship24
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
+    `;
+    const result = await sql.query(query, values);
+    return { rows: result.rows, total };
+  } catch (error) {
+    console.error('Error fetching worship24 records:', error);
+    throw error;
+  }
+}
+
+/**
  * Get recent Get In Touch submissions for admin listing
  */
 export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string }) {
