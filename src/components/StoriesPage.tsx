@@ -211,8 +211,8 @@ const TAB_CONFIG = [
             <Quote className="text-gray-400 opacity-20 mb-4" size={48} />
               <div className={`${isFullscreen ? 'max-w-4xl mx-auto' : ''}`}>
                 <div
-                  className={`text-white ${isFullscreen ? 'text-lg md:text-xl' : 'text-base md:text-lg'} leading-relaxed mb-4 break-words break-all whitespace-normal`}
-                  style={{ overflowWrap: 'anywhere' }}
+                  className={`text-white ${isFullscreen ? 'text-lg md:text-xl' : 'text-base md:text-lg'} leading-relaxed mb-4 break-words whitespace-normal`}
+                  style={{ overflowWrap: 'break-word', wordBreak: 'normal' }}
                   dangerouslySetInnerHTML={{ __html: sanitizeInput(testimonial.text) || '' }}
                 />
               </div>
@@ -274,7 +274,7 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
             </div>
           </div>
         </div>
-        <div className="text-white text-sm text-left leading-relaxed flex-grow break-words break-all whitespace-normal overflow-hidden max-w-full" dangerouslySetInnerHTML={{ __html: shortHtml }} />
+        <div className="text-white text-sm text-left leading-relaxed flex-grow break-words whitespace-normal overflow-hidden max-w-full" style={{ wordBreak: 'normal', overflowWrap: 'break-word' }} dangerouslySetInnerHTML={{ __html: shortHtml }} />
         <button className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer self-start">
           Read more →
         </button>
