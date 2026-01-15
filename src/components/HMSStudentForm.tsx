@@ -1284,11 +1284,11 @@ export function HMSStudentForm({
                   })}
                   className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
                 >
-                  <option value="Parent">Parent</option>
-                  <option value="Spouse">Spouse</option>
-                  <option value="Child">Child</option>
-                  <option value="Sibling">Sibling</option>
-                  <option value="Other">Other</option>
+                  <option value="Parent">{t('studentForm.options.parent')}</option>
+                  <option value="Spouse">{t('studentForm.options.spouse')}</option>
+                  <option value="Child">{t('studentForm.options.child')}</option>
+                  <option value="Sibling">{t('studentForm.options.sibling')}</option>
+                  <option value="Other">{t('studentForm.options.other')}</option>
                 </select>
                 <div className="mt-1">
                   {errors.emergencyRelationship ? (

@@ -186,6 +186,12 @@ export default {
       male: "Male",
       female: "Female",
       preferNotToSay: "Prefer not to say"
+      ,
+      parent: "Parent",
+      spouse: "Spouse",
+      child: "Child",
+      sibling: "Sibling",
+      other: "Other"
     },
     buttons: {
       submit: "Submit Application",
