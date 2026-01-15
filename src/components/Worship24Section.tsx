@@ -201,8 +201,8 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
         <p className="text-lg text-white">{t('contactForm.worship24_description', { name: t('tabs.worship24', { defaultValue: '24 Hours Worship' }), defaultValue: `Book a slot for the ${t('tabs.worship24', { defaultValue: '24 Hours Worship' })} event (2nd Saturday of each month).` })}</p>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4">
-        <form ref={formRef} onSubmit={handleSubmit} className="p-8 rounded-lg bg-[#2E2E2E] border border-gray-800">
+      <div className="max-w-4xl mx-auto px-1 sm:px-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="p-3 sm:p-8 rounded-lg bg-[#2E2E2E] border border-gray-800">
           {status.submitted ? (
             <div ref={successRef} tabIndex={-1} className="py-8 text-center">
               <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4">
