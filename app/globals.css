@@ -21,3 +21,9 @@ body {
 .home-pill-buttons .inline-flex {
   border-radius: 9999px !important;
 }
+
+/* Global accent color for form controls (radios/checkboxes) */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #7C3AED;
+}

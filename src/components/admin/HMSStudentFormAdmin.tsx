@@ -106,6 +106,9 @@ export function HMSStudentFormAdmin({
 
   const volunteerInterested = watch('volunteerInterested');
 
+  // For admin view display, pick the first selected program (stored as array) to show a single radio selection
+  const selectedProgram = (programLevels && programLevels.length > 0) ? programLevels[0] : '';
+
   const handleCheckboxChange = (
     value: string,
     checked: boolean,
@@ -507,15 +510,15 @@ export function HMSStudentFormAdmin({
                 {PROGRAM_LEVELS.map((level) => (
                   <div key={level} className="flex items-center space-x-2">
                     <input
-                      type="checkbox"
+                      type="radio"
                       id={`program-${level}`}
-                      checked={programLevels.includes(level)}
-                      onChange={(e) => handleCheckboxChange(level, e.target.checked, programLevels, setProgramLevels)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
-                      style={{ accentColor: '#000000' }}
+                      name="programApplyingFor_admin_view"
+                      value={level}
+                      checked={selectedProgram === level}
                       disabled
+                      className="w-4 h-4 bg-white border-gray-600 rounded"
                     />
-                    <label htmlFor={`program-${level}`} className="text-white text-sm">
+                    <label htmlFor={`program-${level}`} className={`${selectedProgram === level ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
                       {t(`studentForm.options.${level}`)}
                     </label>
                   </div>
@@ -529,33 +532,34 @@ export function HMSStudentFormAdmin({
                 {t('studentForm.fields.instrumentSpecialization')} <span className="text-[#FDB813]">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
-                {INSTRUMENTS.map((instrument) => (
-                  <div key={instrument} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`instrument-${instrument}`}
-                      checked={instruments.includes(instrument)}
-                      onChange={(e) => handleCheckboxChange(instrument, e.target.checked, instruments, setInstruments)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
-                      style={{ accentColor: '#000000' }}
-                      disabled
-                    />
-                    <label htmlFor={`instrument-${instrument}`} className="text-white text-sm">
-                      {t(`studentForm.options.${instrument}`)}
-                    </label>
-                  </div>
-                ))}
+                {INSTRUMENTS.map((instrument) => {
+                  const selected = instruments.includes(instrument);
+                  return (
+                    <div key={instrument} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`instrument-${instrument}`}
+                        checked={selected}
+                        onChange={(e) => handleCheckboxChange(instrument, e.target.checked, instruments, setInstruments)}
+                        className="w-4 h-4 bg-white border-gray-600 rounded"
+                        disabled
+                      />
+                      <label htmlFor={`instrument-${instrument}`} className={`${selected ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
+                        {t(`studentForm.options.${instrument}`)}
+                      </label>
+                    </div>
+                  );
+                })}
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id="instrument-other"
                     checked={instruments.includes('other')}
                     onChange={(e) => handleCheckboxChange('other', e.target.checked, instruments, setInstruments)}
-                    className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
-                    style={{ accentColor: '#000000' }}
+                    className="w-4 h-4 bg-white border-gray-600 rounded"
                     disabled
                   />
-                  <label htmlFor="instrument-other" className="text-white text-sm">
+                  <label htmlFor="instrument-other" className={`${instruments.includes('other') ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
                     {t('studentForm.options.other')}:
                   </label>
                   {instruments.includes('other') && (
@@ -585,22 +589,24 @@ export function HMSStudentFormAdmin({
                 {t('studentForm.fields.preferredClassType')} <span className="text-[#FDB813]">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
-                {CLASS_TYPES.map((type) => (
-                  <div key={type} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`class-${type}`}
-                      checked={classTypes.includes(type)}
-                      onChange={(e) => handleCheckboxChange(type, e.target.checked, classTypes, setClassTypes)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
-                      style={{ accentColor: '#000000' }}
-                      disabled
-                    />
-                    <label htmlFor={`class-${type}`} className="text-white text-sm">
-                      {t(`studentForm.options.${type}`)}
-                    </label>
-                  </div>
-                ))}
+                {CLASS_TYPES.map((type) => {
+                  const selected = classTypes.includes(type);
+                  return (
+                    <div key={type} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`class-${type}`}
+                        checked={selected}
+                        onChange={(e) => handleCheckboxChange(type, e.target.checked, classTypes, setClassTypes)}
+                        className="w-4 h-4 bg-white border-gray-600 rounded"
+                        disabled
+                      />
+                      <label htmlFor={`class-${type}`} className={`${selected ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
+                        {t(`studentForm.options.${type}`)}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -610,22 +616,24 @@ export function HMSStudentFormAdmin({
                 {t('studentForm.fields.preferredSchedule')} <span className="text-[#FDB813]">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
-                {SCHEDULES.map((schedule) => (
-                  <div key={schedule} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`schedule-${schedule}`}
-                      checked={schedules.includes(schedule)}
-                      onChange={(e) => handleCheckboxChange(schedule, e.target.checked, schedules, setSchedules)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
-                      style={{ accentColor: '#000000' }}
-                      disabled
-                    />
-                    <label htmlFor={`schedule-${schedule}`} className="text-white text-sm">
-                      {t(`studentForm.options.${schedule}`)}
-                    </label>
-                  </div>
-                ))}
+                {SCHEDULES.map((schedule) => {
+                  const selected = schedules.includes(schedule);
+                  return (
+                    <div key={schedule} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`schedule-${schedule}`}
+                        checked={selected}
+                        onChange={(e) => handleCheckboxChange(schedule, e.target.checked, schedules, setSchedules)}
+                        className="w-4 h-4 bg-white border-gray-600 rounded"
+                        disabled
+                      />
+                      <label htmlFor={`schedule-${schedule}`} className={`${selected ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
+                        {t(`studentForm.options.${schedule}`)}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -641,22 +649,24 @@ export function HMSStudentFormAdmin({
           <p className="mb-4 text-gray-300">{t('studentForm.fields.courseTypePrompt')}</p>
           
           <div className="space-y-3">
-            {COURSE_TYPES.map((type) => (
-              <div key={type} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id={`course-${type}`}
-                  checked={courseTypes.includes(type)}
-                  onChange={(e) => handleCheckboxChange(type, e.target.checked, courseTypes, setCourseTypes)}
-                  className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
-                  style={{ accentColor: '#000000' }}
-                  disabled
-                />
-                <label htmlFor={`course-${type}`} className="text-white text-sm">
-                  {t(`studentForm.options.${type}`)}
-                </label>
-              </div>
-            ))}
+            {COURSE_TYPES.map((type) => {
+              const selected = courseTypes.includes(type);
+              return (
+                <div key={type} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`course-${type}`}
+                    checked={selected}
+                    onChange={(e) => handleCheckboxChange(type, e.target.checked, courseTypes, setCourseTypes)}
+                      className="w-4 h-4 bg-white border-gray-600 rounded"
+                    disabled
+                  />
+                  <label htmlFor={`course-${type}`} className={`${selected ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
+                    {t(`studentForm.options.${type}`)}
+                  </label>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -745,22 +755,25 @@ export function HMSStudentFormAdmin({
                 {t('studentForm.fields.performanceExperience')}
               </label>
               <div className="flex flex-wrap gap-4">
-                {PERFORMANCE_OPTIONS.map((perf) => (
-                  <div key={perf} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`performance-${perf}`}
-                      checked={performances.includes(perf)}
-                      onChange={(e) => handleCheckboxChange(perf, e.target.checked, performances, setPerformances)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
-                      style={{ accentColor: '#000000' }}
-                      disabled
-                    />
-                    <label htmlFor={`performance-${perf}`} className="text-white text-sm">
-                      {t(`studentForm.options.${perf}`)}
-                    </label>
-                  </div>
-                ))}
+                {PERFORMANCE_OPTIONS.map((perf) => {
+                  const selected = performances.includes(perf);
+                  return (
+                    <div key={perf} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`performance-${perf}`}
+                        checked={selected}
+                        onChange={(e) => handleCheckboxChange(perf, e.target.checked, performances, setPerformances)}
+                        className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
+                        style={{ accentColor: '#7C3AED' }}
+                        disabled
+                      />
+                      <label htmlFor={`performance-${perf}`} className={`${selected ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
+                        {t(`studentForm.options.${perf}`)}
+                      </label>
+                    </div>
+                  );
+                })}
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -768,10 +781,10 @@ export function HMSStudentFormAdmin({
                     checked={performances.includes('other')}
                     onChange={(e) => handleCheckboxChange('other', e.target.checked, performances, setPerformances)}
                     className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
-                    style={{ accentColor: '#000000' }}
+                    style={{ accentColor: '#7C3AED' }}
                     disabled
                   />
-                  <label htmlFor="performance-other" className="text-white text-sm">
+                  <label htmlFor="performance-other" className={`${performances.includes('other') ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
                     {t('studentForm.options.other')}:
                   </label>
                   {performances.includes('other') && (
@@ -844,11 +857,10 @@ export function HMSStudentFormAdmin({
                     id="volunteer-yes"
                     value="yes"
                     {...register('volunteerInterested')}
-                    className="w-4 h-4 bg-white border-gray-600 accent-black"
-                    style={{ accentColor: '#000000' }}
+                    className="w-4 h-4 bg-white border-gray-600"
                     disabled
                   />
-                  <label htmlFor="volunteer-yes" className="text-white text-sm cursor-pointer">
+                  <label htmlFor="volunteer-yes" className={`${volunteerInterested === 'yes' ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                     {t('studentForm.options.yes')}
                   </label>
                 </div>
@@ -858,11 +870,10 @@ export function HMSStudentFormAdmin({
                     id="volunteer-no"
                     value="no"
                     {...register('volunteerInterested')}
-                    className="w-4 h-4 bg-white border-gray-600 accent-black"
-                    style={{ accentColor: '#000000' }}
+                    className="w-4 h-4 bg-white border-gray-600"
                     disabled
                   />
-                  <label htmlFor="volunteer-no" className="text-white text-sm">
+                  <label htmlFor="volunteer-no" className={`${volunteerInterested === 'no' ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
                     {t('studentForm.options.no')}
                   </label>
                 </div>
@@ -874,22 +885,25 @@ export function HMSStudentFormAdmin({
                 <label className="block text-white text-sm font-medium mb-3">
                   {t('studentForm.fields.volunteerDetailsPrompt')}
                 </label>
-                {VOLUNTEER_AREAS.map((area) => (
-                  <div key={area} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={area}
-                      checked={volunteerAreas.includes(area)}
-                      onChange={(e) => handleCheckboxChange(area, e.target.checked, volunteerAreas, setVolunteerAreas)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
-                      style={{ accentColor: '#000000' }}
-                      disabled
-                    />
-                    <label htmlFor={area} className="text-white text-sm">
-                      {t(`studentForm.options.${area}`)}
-                    </label>
-                  </div>
-                ))}
+                {VOLUNTEER_AREAS.map((area) => {
+                  const selected = volunteerAreas.includes(area);
+                  return (
+                    <div key={area} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={area}
+                        checked={selected}
+                        onChange={(e) => handleCheckboxChange(area, e.target.checked, volunteerAreas, setVolunteerAreas)}
+                        className="w-4 h-4 bg-white border-gray-600 rounded accent-black"
+                        style={{ accentColor: '#000000' }}
+                        disabled
+                      />
+                      <label htmlFor={area} className={`${selected ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm`}>
+                        {t(`studentForm.options.${area}`)}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
