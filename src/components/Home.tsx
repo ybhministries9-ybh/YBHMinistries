@@ -355,7 +355,7 @@ export function Home({ initialHeroImages }: HomeProps) {
 
   return (
     <div className="w-full min-h-screen bg-black text-white home-pill-buttons">
-      <LanguageAwareSEO title={t('home.title')} description={t('home.description')} />
+      <LanguageAwareSEO pageKey="home" />
 
       {/* Hero Section - Image Slideshow */}
       <section className="relative h-screen overflow-hidden pt-16 md:pt-30">
