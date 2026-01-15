@@ -32,7 +32,7 @@ export default {
       worshipLeader: "ఆరాధన నాయకుడు",
       songWriter: "పాటల రచయిత",
       bibleTeacher: "బైబిల్ ఉపాధ్యాయుడు",
-      shofarInstructor: "షోఫార్ బోధకుడు"
+      shofarInstructor: "కొమ్ము బోధకుడు"
     },
     
     buttons: {
