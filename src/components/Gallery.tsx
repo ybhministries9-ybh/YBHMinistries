@@ -8,6 +8,7 @@ import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Button } from "./ui/button";
 import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
+import logger from '../lib/logger';
 import VideoCard from './gallery/VideoCard';
 import ImageCard from './gallery/ImageCard';
 
@@ -243,8 +244,8 @@ export function Gallery() {
         } catch (e) {
           // ignore
         }
-      } catch (err) {
-          console.error('Error fetching gallery data:', err);
+          } catch (err) {
+          logger.error('Error fetching gallery data', err);
           setError('Failed to load gallery. Please try again later.');
         } finally {
           setLoading(false);

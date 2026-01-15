@@ -43,7 +43,9 @@ export default {
     orderTitle: "Order books",
     orderText: "Contact Ps. Augustine Dandingi over WhatsApp or call to order books.",
     whatsappLabel: "WhatsApp",
-    callLabel: "Call"
+    callLabel: "Call",
+    contactHeading: "Get in touch with",
+    contactName: "Ps. Augustine Dandingi"
   },
   worship: {
     title: "Worship Songs",

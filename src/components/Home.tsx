@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
+import logger from '../lib/logger';
 import { ScrollToTop } from './ScrollToTop';
 import { EventScrollBanner } from './EventScrollBanner';
 import { getUpcomingEvents, Event } from '../utils/eventsData';
@@ -61,7 +62,7 @@ function VideoSection() {
           setHasVideo(false);
         }
       } catch (error) {
-        console.error('Error fetching video:', error);
+        logger.error('Error fetching video', error);
         setVideoData(null);
         setHasVideo(false);
       }

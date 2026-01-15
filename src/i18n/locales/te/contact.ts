@@ -167,6 +167,11 @@ export default {
       male: "పురుషుడు",
       female: "మహిళ",
       preferNotToSay: "చెప్పకూడదనుకుంటున్నాను"
+        ,
+        parent: "తల్లిదండ్రి",
+        spouse: "భర్త/భార్య",
+        child: "పిల్ల",
+        sibling: "సోదరుడు/సోదరి"
     },
     buttons: {
       submit: "దరఖాస్తు సమర్పించండి",
