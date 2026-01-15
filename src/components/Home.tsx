@@ -178,6 +178,17 @@ function VideoSection() {
 function ImageCarousel({ images, interval = 3000 }) {
   const { t } = useTranslation('home');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize(); // Check on mount
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (images.length > 0 && typeof window !== 'undefined') {
@@ -219,11 +230,8 @@ function ImageCarousel({ images, interval = 3000 }) {
             alt={t('hero.slideAlt', { number: index + 1 })}
             className="w-full h-full object-cover sm:object-center md:object-center lg:object-center"
             style={{
-              objectFit: 'cover',
+              objectFit: isMobile ? 'contain' : 'cover',
               objectPosition: 'center',
-              ...(window.innerWidth <= 768 && {
-                objectFit: 'contain',
-              }),
             }}
             loading={index === 0 ? 'eager' : 'lazy'}
             fetchPriority={index === 0 ? 'high' : undefined}
@@ -371,9 +379,9 @@ export function Home({ initialHeroImages }: HomeProps) {
           <ImageCarousel images={heroImages} interval={3000} />
         )}
         
-        {/* Event Scroll Banner - Only show below carousel on mobile */}
+        {/* Event Scroll Banner - Ensure it displays at the bottom of the page on mobile */}
         {upcomingEvents.length > 0 && (
-          <div className="block md:hidden">
+          <div className="block md:hidden fixed bottom-0 left-0 w-full">
             <EventScrollBanner />
           </div>
         )}
