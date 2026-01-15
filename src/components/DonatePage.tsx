@@ -7,6 +7,7 @@ import QRCode from 'qrcode';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { accentGold } from '../utils/theme';
 import { useTranslation } from 'react-i18next';
+import logger from '../lib/logger';
 
 export function DonatePage() {
   const { t } = useTranslation('donate');
@@ -41,7 +42,7 @@ export function DonatePage() {
         }
         if (bjson && bjson.success) setBankList(bjson.data || []);
       } catch (err) {
-        console.error('Failed to fetch donations', err);
+        logger.error('Failed to fetch donations', err);
       }
     };
 
@@ -66,13 +67,13 @@ export function DonatePage() {
         const pairs = await Promise.all(
           itemsToGenerate.map(async (u) => {
             const upiUri = `upi://pay?pa=${encodeURIComponent(u.upi_id)}&pn=${encodeURIComponent('YBH Ministries')}&cu=INR`;
-            try {
-              const dataUrl = await QRCode.toDataURL(upiUri, { width: 300, margin: 1 });
-              return [String(u.id), dataUrl] as const;
-            } catch (e) {
-              console.error('QR generation failed for', u.upi_id, e);
-              return null;
-            }
+                try {
+                  const dataUrl = await QRCode.toDataURL(upiUri, { width: 300, margin: 1 });
+                  return [String(u.id), dataUrl] as const;
+                } catch (e) {
+                  logger.error('QR generation failed for ' + u.upi_id, e);
+                  return null;
+                }
           })
         );
 
@@ -85,7 +86,7 @@ export function DonatePage() {
           setQrDataMap((prev) => ({ ...prev, ...newEntries }));
         }
       } catch (err) {
-        console.error('Failed to generate QR codes', err);
+        logger.error('Failed to generate QR codes', err);
       }
     };
 

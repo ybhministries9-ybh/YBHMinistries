@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { ShoppingCart, Plus, Minus, X, Calendar, Phone } from "lucide-react";
+import { ShoppingCart, Plus, MessageCircle, ArrowUpRight, Minus, X, Calendar, Phone } from "lucide-react";
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
+import logger from '../lib/logger';
 
 // Utility function to extract YouTube thumbnail from video URL
 function getYouTubeThumbnail(url: string, quality: 'maxres' | 'sd' | 'hq' = 'sd'): string {
@@ -173,7 +174,7 @@ export function ResourcesPage() {
           }));
           setResources(prev => ({ ...prev, books: transformedBooks }));
         } catch (error) {
-          console.error('Error parsing books:', error);
+          logger.error('Error parsing books', error);
         }
       }
       setLoading(prev => ({ ...prev, books: false }));
@@ -206,7 +207,7 @@ export function ResourcesPage() {
 
           setResources(prev => ({ ...prev, worship: transformedWorship }));
         } catch (error) {
-          console.error('Error parsing worship:', error);
+          logger.error('Error parsing worship', error);
         }
       }
       setLoading(prev => ({ ...prev, worship: false }));
@@ -239,7 +240,7 @@ export function ResourcesPage() {
 
           setResources(prev => ({ ...prev, sermons: transformedSermons }));
         } catch (error) {
-          console.error('Error parsing sermons:', error);
+          logger.error('Error parsing sermons', error);
         }
       }
       setLoading(prev => ({ ...prev, sermons: false }));
@@ -550,31 +551,44 @@ export function ResourcesPage() {
                   <p className="text-gray-300">{t('books.pagesLabel')}: {selectedBook.pages}</p>
                   <p className="text-gray-300">{t('books.publishedLabel')}: {formatYear(selectedBook.publishDate)}</p>
                 </div>
-                {/* Order books (localized) */}
+                {/* Order books (design update) - separator above, non-card layout */}
                 <div className="mt-8 border-t border-gray-700 pt-6">
-                  <h3 className="text-xl font-semibold mb-3">{t('books.orderTitle')}</h3>
-                  <p className="text-gray-300 mb-4">{t('books.orderText')}</p>
-                  <div className="flex flex-wrap items-center gap-3">
+                  <h3 className="text-white text-xl font-semibold mb-4">{t('books.contactHeading')}<br/>
+                  <span className="text-2xl font-bold">{t('books.contactName')}</span></h3>
+
+                  <div className="flex flex-col items-start gap-4">
                     <a
                       href="https://wa.me/918309655233"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] rounded-full font-bold hover:opacity-90"
-                      style={{ color: '#000000' }}
+                      className="w-full md:w-1/3 flex items-center justify-between p-4 bg-gray-800 bg-opacity-30 rounded-lg border border-gray-700 hover:border-[#FDB813] transition-colors shadow-sm"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
-                        <path d="M20.52 3.48A11.94 11.94 0 0012 0C5.373 0 0 5.373 0 12c0 2.11.55 4.08 1.6 5.84L0 24l6.35-1.59A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12 0-3.19-1.24-6.17-3.48-8.52zM12 21.5a9.5 9.5 0 01-4.89-1.27l-.35-.21-3.77.95.96-3.69-.22-.37A9.5 9.5 0 1121.5 12 9.5 9.5 0 0112 21.5zM17.3 14.9c-.3-.15-1.77-.87-2.05-.97-.28-.11-.48-.16-.69.16-.21.33-.78.97-.96 1.17-.18.21-.37.24-.68.08-.3-.16-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.08-.17-.31-.02-.48.13-.63.13-.12.3-.33.45-.5.15-.17.2-.28.3-.46.09-.18.04-.34-.02-.49-.06-.14-.69-1.65-.95-2.25-.25-.59-.51-.51-.69-.52-.18-.01-.39-.01-.59-.01-.2 0-.52.07-.79.34-.27.27-1.02 1-1.02 2.45 0 1.45 1.05 2.85 1.2 3.04.15.19 2.07 3.34 5.02 4.68 2.95 1.34 2.95.89 3.48.83.53-.06 1.77-.72 2.02-1.41.25-.69.25-1.28.18-1.41-.07-.13-.27-.21-.57-.36z" />
-                      </svg>
-                      <span>{t('books.whatsappLabel')}</span>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#12323a]">
+                          <MessageCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-400">WhatsApp</div>
+                          <div className="text-sm text-white font-medium">+91 83096 55233</div>
+                        </div>
+                      </div>
+                      <ArrowUpRight className="w-5 h-5 text-slate-500 group-hover:text-white transition-colors" />
                     </a>
 
                     <a
                       href="tel:+918309655233"
-                      className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] rounded-full font-bold hover:opacity-90"
-                      style={{ color: '#000000' }}
+                      className="w-full md:w-1/3 flex items-center justify-between p-4 bg-gray-800 bg-opacity-30 rounded-lg border border-gray-700 hover:border-[#FDB813] transition-colors shadow-sm"
                     >
-                      <Phone size={16} />
-                      <span>{t('books.callLabel')}</span>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#0b1530]">
+                          <Phone size={18} className="text-[#60A5FA]" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-400">Voice Call</div>
+                          <div className="text-sm text-white font-medium">+91 83096 55233</div>
+                        </div>
+                      </div>
+                      <ArrowUpRight className="w-5 h-5 text-slate-500 group-hover:text-white transition-colors" />
                     </a>
                   </div>
                 </div>

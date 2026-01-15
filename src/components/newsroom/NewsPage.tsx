@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { useRouter } from 'next/navigation';
 import { Calendar, CalendarPlus, FileText, ChevronRight, Plus, Users, Music, Globe, BookOpen, X, Clock, MapPin, User, ArrowRight, ArrowLeft, MessageSquare, Star, Medal, Mic, UserCheck, BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import logger from '../../lib/logger';
 import { getEvents, type Event } from "../../utils/eventsData";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, LabelList } from 'recharts';
 
@@ -131,9 +132,9 @@ export function NewsPage() {
         const fetchedEvents = await getEvents();
         setEvents(fetchedEvents);
       } catch (error) {
-        console.error('Error fetching events:', error);
-        setEvents([]);
-      } finally {
+          logger.error('Error fetching events', error);
+          setEvents([]);
+        } finally {
         setIsLoadingEvents(false);
       }
     };
@@ -185,7 +186,7 @@ export function NewsPage() {
           setEnrollmentData({});
         }
       } catch (error) {
-        console.error('Error fetching reports:', error);
+        logger.error('Error fetching reports', error);
         setEnrollmentData({});
       } finally {
         setIsLoadingReports(false);

@@ -5,6 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 // Use shared DateInput (DayPicker-based) instead of react-datepicker
 import DatePicker from './ui/date-input';
 import { useTranslation } from 'react-i18next';
+import logger from '../lib/logger';
 import { motion } from 'motion/react';
 
 // Static option lists extracted to top-level constants to avoid re-creating arrays on each render
@@ -88,6 +89,7 @@ export function HMSStudentForm({
     volunteerAreas: [],
     volunteerInterested: 'no',
     countryCode: '+91',
+    emergencyRelationship: 'Parent',
     ...initialData
   };
 
@@ -368,7 +370,7 @@ export function HMSStudentForm({
             return;
           }
 
-          console.error('Server error response', { status: resp.status, body: result });
+          logger.error('Server error response', { status: resp.status, body: result });
           setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
           return;
         }
@@ -399,7 +401,7 @@ export function HMSStudentForm({
             return;
           }
 
-          console.error('API returned failure', result);
+          logger.error('API returned failure', result);
           setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
           return;
         }
@@ -411,8 +413,8 @@ export function HMSStudentForm({
       handleReset(true);
       // clear any alert messages
       setFormAlert({});
-    } catch (error) {
-      console.error('Form submission error:', error);
+      } catch (error) {
+      logger.error('Form submission error', error);
       setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
     }
   };
@@ -1274,17 +1276,20 @@ export function HMSStudentForm({
                   </label>
                   <p className="text-sm text-gray-400">{(watched.emergencyRelationship || '').length}/50</p>
                 </div>
-                <input
+                <select
                   id="emergencyRelationship"
-                  type="text"
                   {...register('emergencyRelationship', { 
                     required: t('studentForm.validation.emergencyRelationshipRequired'),
                     maxLength: { value: 50, message: t('studentForm.validation.relationshipMax') }
                   })}
-                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                  placeholder={t('studentForm.placeholders.emergencyRelationship')}
-                  maxLength={50}
-                />
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.emergencyRelationship ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-pointer`}
+                >
+                  <option value="Parent">Parent</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Child">Child</option>
+                  <option value="Sibling">Sibling</option>
+                  <option value="Other">Other</option>
+                </select>
                 <div className="mt-1">
                   {errors.emergencyRelationship ? (
                     <p className="text-red-400 text-xs">{errors.emergencyRelationship.message}</p>
