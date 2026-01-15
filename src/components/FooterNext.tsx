@@ -8,7 +8,7 @@ import SmartImage from './SmartImage';
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 const ybhLogo = `${R2_BASE}/logo/ybh.png`;
 const guinnessWorldRecords = `${R2_BASE}/logo/awards/guiness.png`;
-const asianBookOfRecords = `${R2_BASE}/logo/awards/Asian%20book%20of%20records.png`;
+const asiaBookOfRecords = `${R2_BASE}/logo/awards/AsiaBookOfRecords.png`;
 const ingeniousWorldRecords = `${R2_BASE}/logo/awards/ingenious.png`;
 const internationalStarBookOfRecords = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
 const internationalStarBookOfRecordsFinal = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
@@ -146,8 +146,8 @@ export function FooterNext() {
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
           <SmartImage
-            srcs={[`/logo/awards/Asian%20book%20of%20records.png`, asianBookOfRecords]}
-            alt="Asian Book of Records 2024"
+            srcs={[`/logo/awards/AsiaBookOfRecords.png`, asiaBookOfRecords]}
+            alt="Asia Book of Records 2024"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
           <SmartImage

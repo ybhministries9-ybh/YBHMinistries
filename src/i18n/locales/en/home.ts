@@ -24,7 +24,7 @@ export default {
     learnMore: "Learn More",
     awards: {
       guinness: "Guinness World Records Award",
-      asian: "Asian Book of Records Award",
+      asia: "Asia Book of Records Award",
       ingenious: "Ingenious Award",
       star: "Star Book of Records Award"
     }

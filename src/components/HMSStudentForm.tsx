@@ -30,6 +30,7 @@ interface FormData {
   address: string;
   cityStateZip: string;
   phoneNumber: string;
+  countryCode?: string;
   emailId: string;
   parentGuardianName: string;
   parentGuardianContact: string;
@@ -87,6 +88,7 @@ export function HMSStudentForm({
     performanceExperience: [],
     volunteerAreas: [],
     volunteerInterested: 'no',
+    countryCode: '+91',
     ...initialData
   };
 
@@ -270,13 +272,16 @@ export function HMSStudentForm({
           return;
         }
       } else {
-        // Submit to server API (default behavior)
-        const debug = process.env.NODE_ENV !== 'production';
-        if (debug) {
-          try {
-            // dev debug removed
-          } catch (e) { /* ignore debug errors */ }
+        // Before submitting, combine country code + phone digits if present
+        try {
+          const cc = (data as any).countryCode || '';
+          const pn = String((data as any).phoneNumber || '').replace(/\D/g, '');
+          (data as any).phoneNumber = `${cc}${pn}`;
+        } catch (e) {
+          // ignore, server will validate
         }
+
+        // Submit to server API (default behavior)
 
         const resp = await fetch(effectiveSubmitUrl, {
           method: effectiveSubmitMethod,
@@ -296,17 +301,11 @@ export function HMSStudentForm({
           } catch (tErr) {
             txt = null;
           }
-          // non-JSON response (dev debug removed)
+          // non-JSON response
           setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
           return;
         }
-
-        if (debug) {
-          try {
-            const ct = resp.headers?.get ? resp.headers.get('content-type') : undefined;
-            // response parsed (dev debug removed)
-          } catch (e) { /* ignore */ }
-        }
+        
 
         if (!resp.ok) {
           // API returned an error status. If it's a validation error (zod), map to field errors.
@@ -519,7 +518,7 @@ export function HMSStudentForm({
                       return true;
                     }
                   }}
-                    render={({ field }) => (
+                        render={({ field }) => (
                         <DatePicker
                           value={typeof field.value === 'string' ? field.value : (field.value instanceof Date ? (() => {
                             const d = field.value as Date;
@@ -542,6 +541,8 @@ export function HMSStudentForm({
                           }}
                           className="bg-black border-gray-600 text-white w-full"
                           allowFuture={false}
+                          yearStart={1900}
+                          yearEnd={new Date().getFullYear()}
                         />
                     )}
                 />
@@ -631,28 +632,51 @@ export function HMSStudentForm({
                   <label htmlFor="phoneNumber" className="block text-white text-sm font-medium cursor-pointer">
                     {t('studentForm.fields.phoneNumber')} <span className="text-[#FDB813]">*</span>
                   </label>
-                  <p className="text-sm text-gray-400">{(watched.phoneNumber || '').length}/15</p>
+                  <p className="text-sm text-gray-400">{(watched.phoneNumber || '').replace(/\D/g,'').length}/10</p>
                 </div>
-                <input
-                  id="phoneNumber"
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="^[0-9]{7,15}$"
-                  {...register('phoneNumber', { 
-                    required: t('studentForm.validation.phoneRequired'),
-                    pattern: { 
-                      value: /^[0-9]{7,15}$/, 
-                      message: t('studentForm.validation.phonePattern') 
-                    }
-                  })}
-                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
-                  maxLength={15}
-                  placeholder={t('studentForm.placeholders.phone')}
-                  onInput={(e) => {
-                    const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '');
-                    setValue('phoneNumber', cleaned, { shouldValidate: true, shouldDirty: true });
-                  }}
-                />
+                <div className="flex gap-4">
+                  <select
+                    id="countryCode"
+                    {...register('countryCode')}
+                    defaultValue={mergedDefaults.countryCode}
+                    className="bg-black border border-gray-600 text-white rounded-md px-3 py-2 focus:outline-none w-40"
+                  >
+                    <option value="+91">India (+91)</option>
+                    <option value="+1">United States (+1)</option>
+                    <option value="+44">United Kingdom (+44)</option>
+                    <option value="+61">Australia (+61)</option>
+                    <option value="+49">Germany (+49)</option>
+                    <option value="+33">France (+33)</option>
+                    <option value="+81">Japan (+81)</option>
+                    <option value="+7">Russia (+7)</option>
+                    <option value="+86">China (+86)</option>
+                    <option value="+55">Brazil (+55)</option>
+                    <option value="+27">South Africa (+27)</option>
+                    <option value="+92">Pakistan (+92)</option>
+                    <option value="+971">UAE (+971)</option>
+                    <option value="+234">Nigeria (+234)</option>
+                  </select>
+
+                  <input
+                    id="phoneNumber"
+                    type="tel"
+                    inputMode="numeric"
+                    {...register('phoneNumber', {
+                      required: t('studentForm.validation.phoneRequired'),
+                      pattern: {
+                        value: /^[0-9]{10}$/, 
+                        message: t('studentForm.validation.phonePattern')
+                      }
+                    })}
+                    className={`w-full px-4 py-2 bg-black rounded-md border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
+                    maxLength={10}
+                    placeholder={t('studentForm.placeholders.phone', { defaultValue: 'e.g. 1234567890' })}
+                    onInput={(e) => {
+                      const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, '').slice(0, 10);
+                      setValue('phoneNumber', cleaned, { shouldValidate: true, shouldDirty: true });
+                    }}
+                  />
+                </div>
                 <div className="mt-1">
                   {errors.phoneNumber ? (
                     <p className="text-red-400 text-xs">{errors.phoneNumber.message}</p>

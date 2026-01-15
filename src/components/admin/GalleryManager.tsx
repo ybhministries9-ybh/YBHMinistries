@@ -22,7 +22,7 @@ interface GalleryItem {
 }
 
 const CATEGORIES = [
-  'asian-records',
+  'asia-records',
   'international-star-records',
   'ingenious-record',
   'anniversary',
@@ -33,7 +33,7 @@ const CATEGORIES = [
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
-  'asian-records': 'Asian Records',
+  'asia-records': 'Asia Records',
   'international-star-records': 'International Star Records',
   'ingenious-record': 'Ingenious Record',
   'anniversary': 'Anniversary',
@@ -186,7 +186,7 @@ export function GalleryManager() {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('asian-records');
+  const [activeCategory, setActiveCategory] = useState('asia-records');
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   
   // Memoize filtered items by type for performance
@@ -196,7 +196,7 @@ export function GalleryManager() {
   // Upload states
   const [uploadType, setUploadType] = useState<'file' | 'url'>('file');
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [uploadCategory, setUploadCategory] = useState('asian-records');
+  const [uploadCategory, setUploadCategory] = useState('asia-records');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ isOpen: false, current: 0, total: 0 });
   const [deleteProgress, setDeleteProgress] = useState({ isOpen: false, message: '', current: 0, total: 0 });

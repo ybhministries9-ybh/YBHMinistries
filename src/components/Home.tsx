@@ -336,21 +336,25 @@ export function Home({ initialHeroImages }: HomeProps) {
     {
       src: `${R2_BASE}/logo/awards/guiness.png`,
       alt: "Guinness World Records Award",
+      translationKey: 'achievements.awards.guinness',
       year: 2024
     },
     {
-      src: `${R2_BASE}/logo/awards/Asian%20book%20of%20records.png`,
-      alt: "Asian Book of Records Award",
+      src: `${R2_BASE}/logo/awards/AsiaBookOfRecords.png`,
+      alt: "Asia Book of Records Award",
+      translationKey: 'achievements.awards.asia',
       year: 2024
     },
     {
       src: `${R2_BASE}/logo/awards/ingenious.png`,
       alt: "Ingenious Charm World Records Award",
+      translationKey: 'achievements.awards.ingenious',
       year: 2024
     },
     {
       src: `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`,
       alt: "International Star Book of Records Award",
+      translationKey: 'achievements.awards.star',
       year: 2023
     }
   ];
@@ -428,7 +432,7 @@ export function Home({ initialHeroImages }: HomeProps) {
                     className="h-40 w-auto object-contain"
                   />
                 </div>
-                <h3 className="text-lg font-semibold text-center">{award.alt}</h3>
+                <h3 className="text-lg font-semibold text-center">{t(award.translationKey) || award.alt}</h3>
                 <p className="text-sm font-bold text-white mt-0.5">{award.year}</p>
               </div>
             ))}

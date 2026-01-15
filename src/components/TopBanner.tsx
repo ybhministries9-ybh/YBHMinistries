@@ -7,7 +7,7 @@ const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 
 const LOCAL_YBH_LOGO = '/logo/ybh.png';
 const LOCAL_GUINNESS = '/logo/awards/guiness.png';
-const LOCAL_ASIAN_BOOK = '/logo/awards/Asian%20book%20of%20records.png';
+const LOCAL_ASIA_BOOK = '/logo/awards/AsiaBookOfRecords.png';
 const LOCAL_INGENIOUS = '/logo/awards/ingenious.png';
 const LOCAL_INTERNATIONAL_STAR = '/logo/awards/Star%20book%20of%20records.png';
 const LOCAL_INTERNATIONAL_STAR_FINAL = '/logo/awards/Star%20book%20of%20records.png';
@@ -16,7 +16,7 @@ const ybhR2 = `${R2_BASE}/logo/ybh.png`;
 const ybhR2Png = `${R2_BASE}/logo/ybh.png`;
 const ybhR2Jpg = `${R2_BASE}/logo/ybh.png`;
 const guinnessR2 = `${R2_BASE}/logo/awards/guiness.png`;
-const asianBookR2 = `${R2_BASE}/logo/awards/Asian%20book%20of%20records.png`;
+const asiaBookR2 = `${R2_BASE}/logo/awards/AsiaBookOfRecords.png`;
 const ingeniousR2 = `${R2_BASE}/logo/awards/ingenious.png`;
 const internationalStarR2 = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
 
@@ -92,8 +92,8 @@ export function TopBanner({ isMenuOpen = false, onMenuToggle }: TopBannerProps) 
               className="h-12 w-auto object-contain"
             />
             <SmartImage
-              srcs={[LOCAL_ASIAN_BOOK, asianBookR2]}
-              alt="Asian Book of Records"
+              srcs={[LOCAL_ASIA_BOOK, asiaBookR2]}
+              alt="Asia Book of Records"
               className="h-12 w-auto object-contain"
             />
             <SmartImage

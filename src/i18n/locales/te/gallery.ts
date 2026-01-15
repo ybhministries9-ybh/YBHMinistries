@@ -10,9 +10,9 @@ export default {
       label: "గిన్నిస్ - 1",
       title: "గిన్నిస్ వరల్డ్ రికార్డ్స్ ఈవెంట్ - 1"
     },
-    "asian-records": {
-      label: "ఆసియన్ బుక్",
-      title: "ఆసియన్ బుక్ ఆఫ్ రికార్డ్స్"
+    "asia-records": {
+      label: "ఆసియా బుక్",
+      title: "ఆసియా రికార్డుల పుస్తకం"
     },
     "ingenious-record": {
       label: "ఇంజినియస్ చార్మ్",

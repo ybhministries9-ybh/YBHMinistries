@@ -219,7 +219,7 @@ index 92bb3c3..ec35a60 100644
 +// Tab configuration (used for the page tabs and the event select)
  const TAB_CONFIG = [
    { key: "guinness", label: "Guinness", title: "Guinness World Records" },
-   { key: "asian", label: "Asian Book", title: "Asian Book of Records" },
+   { key: "asia", label: "Asia Book", title: "Asia Book of Records" },
 @@ -61,640 +88,6 @@ const TAB_CONFIG = [
    { key: "hallel", label: "Hallel Summer Kids Training", title: "Hallel Summer Kids Training" }
  ] as const;
@@ -318,9 +318,9 @@ index 92bb3c3..ec35a60 100644
 -    ]
 -  },
 -  {
--    id: "asian",
--    title: "Asian Book of Records",
--    description: "Recognizing exceptional achievements across the Asian continent.",
+-    id: "asia",
+-    title: "Asia Book of Records",
+-    description: "Recognizing exceptional achievements across the Asia continent.",
 -    testimonials: [
 -      {
 -        id: 1,
@@ -329,7 +329,7 @@ index 92bb3c3..ec35a60 100644
 -        date: "10-Apr-2023",
 -        location: "Beijing, China",
 -        image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
--        text: "Being recognized by the Asian Book of Records was a dream come true. The validation of years of practice and dedication meant everything to me. The ceremony was beautifully organized, and meeting other record holders was inspiring. This achievement has opened many doors for me professionally and personally. I'm grateful for the platform that the Asian Book of Records provides to showcase unique talents from across Asia."
+-        text: "Being recognized by the Asia Book of Records was a dream come true. The validation of years of practice and dedication meant everything to me. The ceremony was beautifully organized, and meeting other record holders was inspiring. This achievement has opened many doors for me professionally and personally. I'm grateful for the platform that the Asia Book of Records provides to showcase unique talents from across Asia."
 -      },
 -      {
 -        id: 2,
@@ -338,7 +338,7 @@ index 92bb3c3..ec35a60 100644
 -        date: "25-May-2023",
 -        location: "Kuala Lumpur, Malaysia",
 -        image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
--        text: "The Asian Book of Records event was meticulously organized and professionally executed. I felt honored to be among such talented individuals from across Asia. The cultural exchange was as valuable as the recognition itself. I would highly recommend others to participate in future events."
+-        text: "The Asia Book of Records event was meticulously organized and professionally executed. I felt honored to be among such talented individuals from across Asia. The cultural exchange was as valuable as the recognition itself. I would highly recommend others to participate in future events."
 -      },
 -      {
 -        id: 3,
@@ -347,7 +347,7 @@ index 92bb3c3..ec35a60 100644
 -        date: "15-May-2023",
 -        location: "Tokyo, Japan",
 -        image: null,
--        text: "Being a judge for the Asian Book of Records was a profound honor. The talent and dedication displayed by the participants was nothing short of extraordinary. I was particularly impressed by how the event celebrated diversity while highlighting excellence across various disciplines. It was inspiring to see so many individuals pushing the boundaries of what's possible."
+-        text: "Being a judge for the Asia Book of Records was a profound honor. The talent and dedication displayed by the participants was nothing short of extraordinary. I was particularly impressed by how the event celebrated diversity while highlighting excellence across various disciplines. It was inspiring to see so many individuals pushing the boundaries of what's possible."
 -      },
 -      {
 -        id: 4,
@@ -356,7 +356,7 @@ index 92bb3c3..ec35a60 100644
 -        date: "30-May-2023",
 -        location: "New Delhi, India",
 -        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
--        text: "Organizing the Asian Book of Records event was a challenging but incredibly rewarding experience. Coordinating participants from across Asia required meticulous planning and cultural sensitivity, but seeing the joy on the faces of record holders made every challenge worthwhile. The event truly showcased the exceptional talents that Asia has to offer to the world."
+-        text: "Organizing the Asia Book of Records event was a challenging but incredibly rewarding experience. Coordinating participants from across Asia required meticulous planning and cultural sensitivity, but seeing the joy on the faces of record holders made every challenge worthwhile. The event truly showcased the exceptional talents that Asia has to offer to the world."
 -      },
 -      {
 -        id: 5,
@@ -365,7 +365,7 @@ index 92bb3c3..ec35a60 100644
 -        date: "22-May-2023",
 -        location: "Seoul, South Korea",
 -        image: null,
--        text: "Achieving recognition in the Asian Book of Records has been the pinnacle of my career. The rigorous verification process gave me a deep appreciation for the prestige associated with this achievement. The ceremony was conducted with utmost professionalism, and the networking opportunities with fellow record holders have led to exciting collaborations. I'm proud to represent my country in this prestigious publication."
+-        text: "Achieving recognition in the Asia Book of Records has been the pinnacle of my career. The rigorous verification process gave me a deep appreciation for the prestige associated with this achievement. The ceremony was conducted with utmost professionalism, and the networking opportunities with fellow record holders have led to exciting collaborations. I'm proud to represent my country in this prestigious publication."
 -      },
 -      {
 -        id: 6,
@@ -374,16 +374,16 @@ index 92bb3c3..ec35a60 100644
 -        date: "18-May-2023",
 -        location: "Ho Chi Minh City, Vietnam",
 -        image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
--        text: "The Asian Book of Records event exceeded all my expectations. From the application process to the final ceremony, everything was handled with professionalism and respect for all participants. The event provided excellent visibility for my work and connected me with like-minded individuals from across Asia. I'm grateful for the recognition and the doors it has opened for my future endeavors."
+-        text: "The Asia Book of Records event exceeded all my expectations. From the application process to the final ceremony, everything was handled with professionalism and respect for all participants. The event provided excellent visibility for my work and connected me with like-minded individuals from across Asia. I'm grateful for the recognition and the doors it has opened for my future endeavors."
 -      }
 -    ],
 -    videos: [
 -      {
 -        id: "video-1",
 -        videoId: "jfKfPfyJRdk",
--        title: "Asian Book of Records Annual Ceremony 2023",
+-        title: "Asia Book of Records Annual Ceremony 2023",
 -        date: "05-Jun-2023",
--        description: "Highlights from the annual Asian Book of Records ceremony in Singapore."
+-        description: "Highlights from the annual Asia Book of Records ceremony in Singapore."
 -      },
 -      {
 -        id: "video-2",
@@ -397,7 +397,7 @@ index 92bb3c3..ec35a60 100644
 -        videoId: "kJQP7kiw5Fk",
 -        title: "Cultural Performances at the Award Ceremony",
 -        date: "07-Jun-2023",
--        description: "Traditional performances from various Asian countries during the award ceremony."
+-        description: "Traditional performances from various Asia countries during the award ceremony."
 -      }
 -    ]
 -  },
@@ -1050,7 +1050,7 @@ index 92bb3c3..ec35a60 100644
 +  // Map active tab key -> admin category display name
 +  const TAB_TO_CATEGORY: Record<string, string> = {
 +    guinness: 'Guinness World Records',
-+    asian: 'Asian Book of Records',
++    asia: 'Asia Book of Records',
 +    ingenious: 'Ingenious Charm World Record',
 +    songwriting: 'Song Writing Classes',
 +    bibleschool: 'Bible School Training',

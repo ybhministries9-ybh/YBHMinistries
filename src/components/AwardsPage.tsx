@@ -37,9 +37,9 @@ export function AwardsPage() {
       galleryTab: 'ingenious-record',
       storiesTab: 'ingenious'
     },
-    asian: {
-      galleryTab: 'asian-records',
-      storiesTab: 'asian'
+    asia: {
+      galleryTab: 'asia-records',
+      storiesTab: 'asia'
     },
     international: {
       galleryTab: 'international-star-records',
@@ -95,16 +95,16 @@ export function AwardsPage() {
       description: t('records.ingenious.description')
     },
     {
-      id: "asian",
-      name: t('records.asian.name'),
-     // image: `${R2_BASE}/awards/asian/asian.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
-      image: '/images/awards/asian.jpg',
-      award: t('records.asian.award'),
-      year: t('records.asian.year'),
-      participants: t('records.asian.participants'),
-      location: t('records.asian.location'),
+      id: "asia",
+      name: t('records.asia.name'),
+     // image: `${R2_BASE}/awards/asia/asia.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
+      image: '/images/awards/asia.jpg',
+      award: t('records.asia.award'),
+      year: t('records.asia.year'),
+      participants: t('records.asia.participants'),
+      location: t('records.asia.location'),
       imagePosition: "left",
-      description: t('records.asian.description')
+      description: t('records.asia.description')
     },
     {
       id: "international",
