@@ -292,12 +292,13 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
               >
                 Terms of Service
               </a>
-              <a 
+              <a
                 href="/accessibility"
+                data-no-loader="true"
                 onClick={(e) => {
                   e.preventDefault();
-                  window.history.pushState({}, '', '/accessibility');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
+                  // Use full navigation so RouteLoaderClient doesn't show overlay
+                  window.location.href = '/accessibility';
                 }}
                 className="hover:text-white transition-colors"
               >

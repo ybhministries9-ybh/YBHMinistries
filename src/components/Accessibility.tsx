@@ -1,4 +1,5 @@
-import { ArrowLeft, Church } from 'lucide-react';
+"use client";
+import { ArrowLeft } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,34 +11,36 @@ export function Accessibility() {
   }, []);
 
   const handleBack = () => {
-    window.history.pushState({}, '', '/');
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    
-    // Wait for navigation, then scroll to footer
-    setTimeout(() => {
-      const footer = document.getElementById('contact');
-      if (footer) {
-        footer.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
+    // Navigate to the site's home page
+    try {
+      window.location.href = '/';
+    } catch (e) {
+      // fallback: use history API
+      window.history.pushState({}, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
   };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#2E2E2E' }}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-12">
+      <div className="bg-black text-white py-12">
         <div className="container mx-auto px-4">
           {/* Logo and Name */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
-              <Church className="text-white" size={28} />
-            </div>
+            <img
+              src="/logo/ybh.png"
+              alt="YBH Ministries Logo"
+              className="w-18 h-12 rounded-lg object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).src = '/logo/YBH.png'; }}
+            />
             <h2 className="text-2xl">Yeshua Beth Hallel Ministries</h2>
           </div>
           
           <button
             onClick={handleBack}
-            className="flex items-center gap-2 text-white/90 hover:text-white hover:gap-3 mb-4 transition-all"
+            className="flex items-center gap-2 text-white/90 hover:text-white hover:gap-3 mb-4 transition-all cursor-pointer"
+            aria-label="Go back to home"
           >
             <ArrowLeft size={20} />
             {t('common:back', { defaultValue: 'Back' })}
@@ -75,9 +78,9 @@ export function Accessibility() {
 
             <div className="bg-gray-700/30 p-4 rounded-lg mt-8 border border-gray-600">
               <p className="text-gray-200 mb-2"><strong>{t('accessibility.contact')}</strong></p>
-              <p className="text-gray-300 mb-1">Email: accessibility@ybhministries.org</p>
-              <p className="text-gray-300 mb-1">Phone: +1 (555) 123-4567</p>
-              <p className="text-gray-300">Address: 123 Worship Street, City, State 12345</p>
+              <p className="text-gray-300 mb-1">Email: hallelmusicschoolybh@gmail.com</p>
+              <p className="text-gray-300 mb-1">Phone: +91 9494802288, +91 8558835888</p>
+              <p className="text-gray-300">Address: Vijayawada, Andhra Pradesh, India</p>
             </div>
           </div>
         </div>
