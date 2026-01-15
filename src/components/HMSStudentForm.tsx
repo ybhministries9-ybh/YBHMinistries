@@ -17,7 +17,6 @@ const PERFORMANCE_OPTIONS = ['schoolEvents', 'competitions', 'choir'];
 const VOLUNTEER_AREAS = ['volunteerOnlineTeacher', 'volunteerOfflineConferences', 'volunteerSummerKids', 'volunteerEvents'];
 
 // Shared constants to avoid recreating inline objects / regexes
-const ACCENT_STYLE = { accentColor: '#000000' } as const;
 const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const PHONE_PATTERN = /^[0-9]{7,15}$/;
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -103,7 +102,12 @@ export function HMSStudentForm({
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [formAlert, setFormAlert] = useState<{ type?: 'error' | 'info'; message?: string }>({});
   
-  const [programLevels, setProgramLevels] = useState<string[]>(() => (mergedDefaults.programApplyingFor as string[]) || []);
+  const [programLevels, setProgramLevels] = useState<string>(() => {
+    try {
+      const arr = (mergedDefaults.programApplyingFor as string[]) || [];
+      return Array.isArray(arr) && arr.length > 0 ? arr[0] : '';
+    } catch (e) { return ''; }
+  });
   const [instruments, setInstruments] = useState<string[]>(() => (mergedDefaults.instrumentSpecialization as string[]) || []);
   const [classTypes, setClassTypes] = useState<string[]>(() => (mergedDefaults.preferredClassType as string[]) || []);
   const [schedules, setSchedules] = useState<string[]>(() => (mergedDefaults.preferredSchedule as string[]) || []);
@@ -138,7 +142,7 @@ export function HMSStudentForm({
 
   const handleReset = (keepSuccess = false) => {
     reset();
-    setProgramLevels([]);
+    setProgramLevels('');
     setInstruments([]);
     setClassTypes([]);
     setSchedules([]);
@@ -181,7 +185,7 @@ export function HMSStudentForm({
     try {
       // Validate checkbox arrays (show inline alert instead of toast)
       setFormAlert({});
-      if (programLevels.length === 0) {
+      if (!programLevels) {
         setFormAlert({ type: 'error', message: String(t('studentForm.validation.programRequired')) });
         return;
       }
@@ -203,7 +207,8 @@ export function HMSStudentForm({
       }
 
       // Add the state arrays to form data
-      data.programApplyingFor = programLevels;
+      // send as array for server compatibility (previously multi-select)
+      data.programApplyingFor = programLevels ? [programLevels] : [];
       data.instrumentSpecialization = instruments;
       data.preferredClassType = classTypes;
       data.preferredSchedule = schedules;
@@ -803,14 +808,15 @@ export function HMSStudentForm({
                 {PROGRAM_LEVELS.map((level) => (
                   <div key={level} className="flex items-center space-x-2">
                     <input
-                      type="checkbox"
+                      type="radio"
                       id={`program-${level}`}
-                      checked={programLevels.includes(level)}
-                      onChange={(e) => handleCheckboxChange(level, e.target.checked, programLevels, setProgramLevels)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
-                      style={{ accentColor: '#000000' }}
+                      name="programApplyingFor"
+                      value={level}
+                      checked={programLevels === level}
+                      onChange={(e) => setProgramLevels(e.target.value)}
+                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer"
                     />
-                    <label htmlFor={`program-${level}`} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={`program-${level}`} className={`${programLevels === level ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                       {t(`studentForm.options.${level}`)}
                     </label>
                   </div>
@@ -838,10 +844,9 @@ export function HMSStudentForm({
                       id={`instrument-${instrument}`}
                       checked={instruments.includes(instrument)}
                       onChange={(e) => handleCheckboxChange(instrument, e.target.checked, instruments, setInstruments)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
-                      style={{ accentColor: '#000000' }}
+                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer"
                     />
-                    <label htmlFor={`instrument-${instrument}`} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={`instrument-${instrument}`} className={`${instruments.includes(instrument) ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                       {t(`studentForm.options.${instrument}`)}
                     </label>
                   </div>
@@ -853,9 +858,9 @@ export function HMSStudentForm({
                     checked={instruments.includes('other')}
                     onChange={(e) => handleCheckboxChange('other', e.target.checked, instruments, setInstruments)}
                     className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
-                    style={{ accentColor: '#000000' }}
+                    style={{ accentColor: '#7C3AED' }}
                   />
-                  <label htmlFor="instrument-other" className="text-white text-sm cursor-pointer">
+                  <label htmlFor="instrument-other" className={`${instruments.includes('other') ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                     {t('studentForm.options.other')}:
                   </label>
                   {instruments.includes('other') && (
@@ -901,10 +906,9 @@ export function HMSStudentForm({
                       id={`class-${type}`}
                       checked={classTypes.includes(type)}
                       onChange={(e) => handleCheckboxChange(type, e.target.checked, classTypes, setClassTypes)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
-                      style={{ accentColor: '#000000' }}
+                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer"
                     />
-                    <label htmlFor={`class-${type}`} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={`class-${type}`} className={`${classTypes.includes(type) ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                       {t(`studentForm.options.${type}`)}
                     </label>
                   </div>
@@ -932,10 +936,9 @@ export function HMSStudentForm({
                       id={`schedule-${schedule}`}
                       checked={schedules.includes(schedule)}
                       onChange={(e) => handleCheckboxChange(schedule, e.target.checked, schedules, setSchedules)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
-                      style={{ accentColor: '#000000' }}
+                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer"
                     />
-                    <label htmlFor={`schedule-${schedule}`} className="text-white text-sm cursor-pointer">
+                    <label htmlFor={`schedule-${schedule}`} className={`${schedules.includes(schedule) ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                       {t(`studentForm.options.${schedule}`)}
                     </label>
                   </div>
@@ -969,10 +972,9 @@ export function HMSStudentForm({
                   id={`course-${type}`}
                   checked={courseTypes.includes(type)}
                   onChange={(e) => handleCheckboxChange(type, e.target.checked, courseTypes, setCourseTypes)}
-                  className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
-                  style={{ accentColor: '#000000' }}
+                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer"
                 />
-                <label htmlFor={`course-${type}`} className="text-white text-sm cursor-pointer">
+                <label htmlFor={`course-${type}`} className={`${courseTypes.includes(type) ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                   {t(`studentForm.options.${type}`)}
                 </label>
               </div>
@@ -1071,21 +1073,23 @@ export function HMSStudentForm({
                 {t('studentForm.fields.performanceExperience')}
               </label>
               <div className="flex flex-wrap gap-4">
-                {PERFORMANCE_OPTIONS.map((perf) => (
-                  <div key={perf} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`performance-${perf}`}
-                      checked={performances.includes(perf)}
-                      onChange={(e) => handleCheckboxChange(perf, e.target.checked, performances, setPerformances)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
-                      style={{ accentColor: '#000000' }}
-                    />
-                    <label htmlFor={`performance-${perf}`} className="text-white text-sm cursor-pointer">
-                      {t(`studentForm.options.${perf}`)}
-                    </label>
-                  </div>
-                ))}
+                {PERFORMANCE_OPTIONS.map((perf) => {
+                  const selected = performances.includes(perf);
+                  return (
+                    <div key={perf} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`performance-${perf}`}
+                        checked={selected}
+                        onChange={(e) => handleCheckboxChange(perf, e.target.checked, performances, setPerformances)}
+                        className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer"
+                      />
+                      <label htmlFor={`performance-${perf}`} className={`${selected ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
+                        {t(`studentForm.options.${perf}`)}
+                      </label>
+                    </div>
+                  );
+                })}
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -1093,9 +1097,9 @@ export function HMSStudentForm({
                     checked={performances.includes('other')}
                     onChange={(e) => handleCheckboxChange('other', e.target.checked, performances, setPerformances)}
                     className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
-                    style={{ accentColor: '#000000' }}
+                    style={{ accentColor: '#7C3AED' }}
                   />
-                  <label htmlFor="performance-other" className="text-white text-sm cursor-pointer">
+                  <label htmlFor="performance-other" className={`${performances.includes('other') ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                     {t('studentForm.options.other')}:
                   </label>
                   {performances.includes('other') && (
@@ -1106,14 +1110,14 @@ export function HMSStudentForm({
                           maxLength: { value: 100, message: t('studentForm.validation.performanceOtherMax') }
                         })}
                         placeholder={t('studentForm.placeholders.performanceOther')}
-                        className="px-3 py-1 bg-black rounded-md border border-gray-600 text-white text-sm focus:outline-none focus:border-[#FDB813] w-32 cursor-text"
+                        className="px-3 py-1 bg-black rounded-md border border-gray-600 text-white text-sm focus:outline-none focus;border-[#FDB813] w-32 cursor-text"
                         maxLength={100}
                       />
                       <p className="text-sm text-gray-400">{(watched.performanceOther || '').length}/100</p>
                     </div>
                   )}
                   {performances.includes('other') && (
-                    (errors as any).performanceOther ? (
+                    errors.performanceOther ? (
                       <p className="text-red-400 text-xs mt-1">{(errors as any).performanceOther?.message}</p>
                     ) : null
                   )}
@@ -1168,7 +1172,7 @@ export function HMSStudentForm({
               <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
                 {t('studentForm.fields.volunteerPrompt')}
               </label>
-              <div className="flex gap-4">
+                <div className="flex gap-4">
                 <div className="flex items-center space-x-2">
                   <input
                     type="radio"
@@ -1176,9 +1180,9 @@ export function HMSStudentForm({
                     value="yes"
                     {...register('volunteerInterested')}
                     className="w-4 h-4 bg-white border-gray-600 cursor-pointer accent-black"
-                    style={{ accentColor: '#000000' }}
+                    style={{ accentColor: '#7C3AED' }}
                   />
-                  <label htmlFor="volunteer-yes" className="text-white text-sm cursor-pointer">
+                  <label htmlFor="volunteer-yes" className={`${volunteerInterested === 'yes' ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                     {t('studentForm.options.yes')}
                   </label>
                 </div>
@@ -1189,9 +1193,9 @@ export function HMSStudentForm({
                     value="no"
                     {...register('volunteerInterested')}
                     className="w-4 h-4 bg-white border-gray-600 cursor-pointer accent-black"
-                    style={{ accentColor: '#000000' }}
+                    style={{ accentColor: '#7C3AED' }}
                   />
-                  <label htmlFor="volunteer-no" className="text-white text-sm cursor-pointer">
+                  <label htmlFor="volunteer-no" className={`${volunteerInterested === 'no' ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
                     {t('studentForm.options.no')}
                   </label>
                 </div>
@@ -1203,21 +1207,24 @@ export function HMSStudentForm({
                 <label className="block text-white text-sm font-medium mb-3 cursor-pointer">
                   {t('studentForm.fields.volunteerDetailsPrompt')}
                 </label>
-                {VOLUNTEER_AREAS.map((area) => (
-                  <div key={area} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={area}
-                      checked={volunteerAreas.includes(area)}
-                      onChange={(e) => handleCheckboxChange(area, e.target.checked, volunteerAreas, setVolunteerAreas)}
-                      className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
-                      style={{ accentColor: '#000000' }}
-                    />
-                    <label htmlFor={area} className="text-white text-sm cursor-pointer">
-                      {t(`studentForm.options.${area}`)}
-                    </label>
-                  </div>
-                ))}
+                {VOLUNTEER_AREAS.map((area) => {
+                  const selected = volunteerAreas.includes(area);
+                  return (
+                    <div key={area} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={area}
+                        checked={selected}
+                        onChange={(e) => handleCheckboxChange(area, e.target.checked, volunteerAreas, setVolunteerAreas)}
+                        className="w-4 h-4 bg-white border-gray-600 rounded cursor-pointer accent-black"
+                        style={{ accentColor: '#7C3AED' }}
+                      />
+                      <label htmlFor={area} className={`${selected ? 'text-[#FDB813] font-semibold' : 'text-white'} text-sm cursor-pointer`}>
+                        {t(`studentForm.options.${area}`)}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

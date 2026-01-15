@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Music, Globe, Mail, Youtube, Instagram, ExternalLink, ChevronRight, Award, Mic, BookOpen, Heart, Users, Calendar, MapPin } from 'lucide-react';
+import { Music, Globe, Mail, Youtube, Instagram, ExternalLink, ChevronRight, Award, Mic, BookOpen, Heart, Users, Calendar, MapPin, Wind } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
@@ -238,50 +238,31 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                 <p className="text-white">{t('augustine.organization2')}</p>
               </div>
               
-              {/* All Titles with Grey Design */}
-              <div className="space-y-2 mt-8 md:mt-4 md:mb-4">
-                {/* Guinness World Record */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
+              {/* Titles list with separator (muted chips, vertical layout per design) */}
+              <div className="mt-8 md:mt-4 md:mb-4">
+                <div className="border-t border-gray-800 my-6"></div>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3">
                     <Award className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-sm md:text-base">{t('augustine.titles.guinnessRecord')}</span>
-                  </div>
-                </div>
-                
-                {/* Worship Leader */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <Music className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('augustine.titles.worshipLeader')}</span>
-                  </div>
-                </div>
-                
-                {/* Song Writer */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <Mic className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('augustine.titles.songWriter')}</span>
-                  </div>
-                </div>
-                
-                {/* Bible Teacher */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('augustine.titles.bibleTeacher')}</span>
-                  </div>
-                </div>
-                
-                {/* Shofar Instructor */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M15 9.7V5a3 3 0 0 0-5.3-1.9l-6 6a3 3 0 0 0 0 4.2l6 6a3 3 0 0 0 5.3-1.9V14" />
-                      <path d="M20 4v16" />
-                    </svg>
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('augustine.titles.shofarInstructor')}</span>
-                  </div>
-                </div>
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('augustine.titles.guinnessRecord')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Music className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('augustine.titles.worshipLeader')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Mic className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('augustine.titles.songWriter')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <BookOpen className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('augustine.titles.bibleTeacher')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Wind className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('augustine.titles.shofarInstructor')}</span>
+                  </li>
+                </ul>
               </div>
             </div>
             
@@ -811,51 +792,35 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accent
                 <p className="text-white">{t('vijaya.organization')}</p>
               </div>
               
-              {/* All Titles with Grey Design */}
-              <div className="space-y-2 mt-8 md:mt-4 md:mb-4">
-                {/* Women's Ministry Leader */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
+              {/* Titles list with muted icon + label style */}
+              <div className="mt-8 md:mt-4 md:mb-4">
+                <div className="border-t border-gray-800 my-6"></div>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3">
                     <Heart className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-sm md:text-base">{t('vijaya.titles.womensMinistry')}</span>
-                  </div>
-                </div>
-                
-                {/* Intercessor */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('vijaya.titles.womensMinistry')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 2L2 7l10 5 10-5-10-5z"/>
                       <path d="M2 17l10 5 10-5"/>
                       <path d="M2 12l10 5 10-5"/>
                     </svg>
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('vijaya.titles.intercessor')}</span>
-                  </div>
-                </div>
-                
-                {/* Counselor */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('vijaya.titles.counselor')}</span>
-                  </div>
-                </div>
-                
-                {/* Mentor */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('vijaya.titles.mentor')}</span>
-                  </div>
-                </div>
-                
-                {/* Speaker */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <Mic className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('vijaya.titles.speaker')}</span>
-                  </div>
-                </div>
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('vijaya.titles.intercessor')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('vijaya.titles.counselor')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <BookOpen className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('vijaya.titles.mentor')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Mic className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('vijaya.titles.speaker')}</span>
+                  </li>
+                </ul>
               </div>
             </div>
             
@@ -999,39 +964,27 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accen
                 <p className="text-white">{t('charles.organization')}</p>
               </div>
               
-              {/* All Titles with Grey Design */}
-              <div className="space-y-2 mt-8 md:mt-4 md:mb-4">
-                {/* Worship Leader */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
+              {/* Titles list with muted icon + label style */}
+              <div className="mt-8 md:mt-4 md:mb-4">
+                <div className="border-t border-gray-800 my-6"></div>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3">
                     <Music className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-sm md:text-base">{t('charles.titles.worshipLeader')}</span>
-                  </div>
-                </div>
-                
-                {/* Youth Ministry */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('charles.titles.youthMinistry')}</span>
-                  </div>
-                </div>
-                
-                {/* Music Production */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <Mic className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('charles.titles.musicProduction')}</span>
-                  </div>
-                </div>
-                
-                {/* Songwriting */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('charles.titles.songwriting')}</span>
-                  </div>
-                </div>
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('charles.titles.worshipLeader')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('charles.titles.youthMinistry')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Mic className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('charles.titles.musicProduction')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <BookOpen className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('charles.titles.songwriting')}</span>
+                  </li>
+                </ul>
               </div>
             </div>
             
@@ -1168,39 +1121,27 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentC
                 <p className="text-white">{t('nancy.organization')}</p>
               </div>
               
-              {/* All Titles with Grey Design */}
-              <div className="space-y-2 mt-8 md:mt-4 md:mb-4">
-                {/* Children's Ministry */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
+              {/* Titles list with muted icon + label style */}
+              <div className="mt-8 md:mt-4 md:mb-4">
+                <div className="border-t border-gray-800 my-6"></div>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3">
                     <Heart className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-sm md:text-base">{t('nancy.titles.childrensMinistry')}</span>
-                  </div>
-                </div>
-                
-                {/* Music Education */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <Music className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('nancy.titles.musicEducation')}</span>
-                  </div>
-                </div>
-                
-                {/* Curriculum Development */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('nancy.titles.curriculumDevelopment')}</span>
-                  </div>
-                </div>
-                
-                {/* Creative Arts */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2E2E2E] border border-gray-600/40">
-                    <Award className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-300 font-bold text-xs md:text-sm">{t('nancy.titles.creativeArts')}</span>
-                  </div>
-                </div>
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('nancy.titles.childrensMinistry')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Music className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('nancy.titles.musicEducation')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <BookOpen className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('nancy.titles.curriculumDevelopment')}</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Award className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-300 text-sm uppercase tracking-wide">{t('nancy.titles.creativeArts')}</span>
+                  </li>
+                </ul>
               </div>
             </div>
             
