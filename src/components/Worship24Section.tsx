@@ -53,8 +53,35 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   const [status, setStatus] = useState<{ submitted: boolean; message?: string }>({ submitted: false });
 
   // use shared country-code list from lib
-
   const [form, setForm] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
+  // selected country option index to avoid duplicate option values (e.g. +1)
+  const [selectedCountryIndex, setSelectedCountryIndex] = useState<number>(() => {
+    const idx = COUNTRY_CODES.findIndex(c => c.code === '+91');
+    return idx >= 0 ? idx : 0;
+  });
+  // mobile detection for short labels
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const onChange = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(!!('matches' in e ? e.matches : mq.matches));
+    onChange(mq);
+    if (mq.addEventListener) mq.addEventListener('change', onChange as any);
+    else mq.addListener(onChange as any);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', onChange as any);
+      else mq.removeListener(onChange as any);
+    };
+  }, []);
+
+  const shortCountry = (name: string) => {
+    const trimmed = name.trim();
+    if (trimmed.length <= 12) return trimmed;
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length === 1) return trimmed.slice(0, 12);
+    const acronym = words.map(w => w[0].toUpperCase()).join('');
+    if (acronym.length <= 4) return acronym;
+    return acronym.slice(0, 4);
+  };
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string,string>>({});
 
@@ -104,6 +131,14 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
     let value = e.target.value;
     if (field === 'phone') {
       value = String(value).replace(/\D/g, '').slice(0, LIMITS.phone);
+    }
+    // if countryCode select changed, expect numeric index
+    if (field === 'countryCode') {
+      const idx = parseInt(String(value), 10);
+      if (!isNaN(idx) && COUNTRY_CODES[idx]) {
+        setSelectedCountryIndex(idx);
+        value = COUNTRY_CODES[idx].code;
+      }
     }
     setForm((s) => ({ ...s, [field]: value }));
     const next = { ...form, [field]: value };
@@ -213,13 +248,16 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                   <label className="font-medium text-white">{t('contactForm.phone', { defaultValue: 'Phone' })} <span className="text-yellow-400">*</span></label>
                   <p className="text-sm text-gray-400">{String(form.phone).replace(/\D/g,'').length}/{LIMITS.phone}</p>
                 </div>
-                <div className="flex gap-4">
-                  <select value={form.countryCode} onChange={handleChange('countryCode')} className="bg-black border border-gray-700 text-white rounded-md px-3 py-3 focus:outline-none w-40">
-                    {COUNTRY_CODES.map((c, idx) => <option key={`${c.code}-${idx}`} value={c.code}>{c.label}</option>)}
+                <div className="flex gap-4 items-center">
+                  <select value={String(selectedCountryIndex)} onChange={handleChange('countryCode')} className="bg-black border border-gray-700 text-white rounded-md px-3 py-3 focus:outline-none w-40 md:w-1/2 lg:w-1/2 flex-shrink-0">
+                    {COUNTRY_CODES.map((c, idx) => {
+                      const label = c.label;
+                      return <option key={`${c.code}-${idx}`} value={String(idx)}>{label}</option>;
+                    })}
                   </select>
                   <input value={form.phone} onChange={handleChange('phone')} onBlur={handleBlur('phone')}
                     inputMode="numeric" pattern="[0-9]*" placeholder={t('contactForm.phonePlaceholder', { defaultValue: 'e.g. 1234567890' })}
-                    className={`flex-1 px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}/>
+                    className={`flex-1 min-w-0 md:w-1/2 px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}/>
                 </div>
                 <p className="text-sm text-red-400">{touched.phone && errors.phone ? errors.phone : ''}</p>
               </div>

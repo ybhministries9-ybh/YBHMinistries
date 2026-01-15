@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, memo } from 'react';
+import { useRef, useState, useEffect, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { COUNTRY_CODES } from '../lib/countryCodes';
 
@@ -13,6 +13,11 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
   // use shared country-code list from lib
 
   const [formData, setFormData] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '' });
+  // Track selected country by index so option values are unique and stable
+  const [selectedCountryIndex, setSelectedCountryIndex] = useState<number>(() => {
+    const idx = COUNTRY_CODES.findIndex(c => c.code === '+91');
+    return idx >= 0 ? idx : 0;
+  });
   const [touched, setTouched] = useState({ name: false, email: false, phone: false, location: false, message: false });
   const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string; location?: string; message?: string }>({});
 
@@ -60,10 +65,22 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
   };
 
   const handleChange = (field: 'name' | 'email' | 'countryCode' | 'phone' | 'location' | 'message') => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    let value = e.target.value;
+    const rawValue = e.target.value;
+    let value = rawValue;
     // For phone field enforce digits-only and max length
     if (field === 'phone') {
       value = value.replace(/\D/g, '').slice(0, LIMITS.phone);
+    }
+    // If the countryCode select changed, rawValue will be the option index (string)
+    if (field === 'countryCode') {
+      const idx = parseInt(rawValue, 10);
+      if (!isNaN(idx) && COUNTRY_CODES[idx]) {
+        setSelectedCountryIndex(idx);
+        value = COUNTRY_CODES[idx].code;
+      } else {
+        // fallback: support legacy raw code value
+        value = rawValue;
+      }
     }
     setFormData((s) => ({ ...s, [field]: value }));
     // live-validate only that field for responsiveness
@@ -79,6 +96,30 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
   };
 
   const isValid = Object.keys(validate(formData)).length === 0;
+
+  // Detect small screens (Tailwind `sm` breakpoint = 640px)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const onChange = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(!!('matches' in e ? e.matches : mq.matches));
+    onChange(mq);
+    if (mq.addEventListener) mq.addEventListener('change', onChange as any);
+    else mq.addListener(onChange as any);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', onChange as any);
+      else mq.removeListener(onChange as any);
+    };
+  }, []);
+
+  const shortCountry = (name: string) => {
+    const trimmed = name.trim();
+    if (trimmed.length <= 12) return trimmed;
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length === 1) return trimmed.slice(0, 12);
+    const acronym = words.map(w => w[0].toUpperCase()).join('');
+    if (acronym.length <= 4) return acronym;
+    return acronym.slice(0, 4);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,6 +148,9 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
       if (contactFormRef.current) contactFormRef.current.reset();
       // reset all form fields (include `phone` and `location`) to avoid undefined values
       setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '' });
+      // reset selected index to default (+91)
+      const defaultIdx = COUNTRY_CODES.findIndex(c => c.code === '+91');
+      setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
     } catch (err) {
       setFormStatus({ submitted: false, message: t('contactForm.error') });
     } finally {
@@ -117,6 +161,8 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
   const handleResetForm = () => {
     if (contactFormRef.current) contactFormRef.current.reset();
     setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '' });
+    const defaultIdx = COUNTRY_CODES.findIndex(c => c.code === '+91');
+    setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
     setTouched({ name: false, email: false, phone: false, location: false, message: false });
     setErrors({});
     setFormStatus({ submitted: false, message: '' });
@@ -185,18 +231,21 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   </label>
                   <p className="text-sm text-gray-400">{formData.phone.replace(/\D/g, '').length}/{LIMITS.phone}</p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-4 items-center">
                   <select
                     id="countryCode"
                     name="countryCode"
-                    value={formData.countryCode}
+                    value={String(selectedCountryIndex)}
                     onChange={handleChange('countryCode')}
-                    className="bg-black border border-gray-700 text-white rounded-md px-3 py-3 focus:outline-none w-40"
+                    className="bg-black border border-gray-700 text-white rounded-md px-3 py-3 focus:outline-none w-40 md:w-1/2 lg:w-1/2 flex-shrink-0"
                     aria-label={t('contactForm.countryCode', { defaultValue: 'Country code' })}
                   >
-                      {COUNTRY_CODES.map((c, idx) => (
-                        <option key={`${c.code}-${idx}`} value={c.code}>{c.label}</option>
-                      ))}
+                      {COUNTRY_CODES.map((c, idx) => {
+                        const label = c.label;
+                        return (
+                          <option key={`${c.code}-${idx}`} value={String(idx)}>{label}</option>
+                        );
+                      })}
                   </select>
 
                   <input
@@ -211,7 +260,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                     aria-describedby={errors.phone ? 'phone-error' : 'phone-help'}
                     aria-required={true}
                     required
-                    className={`flex-1 px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
+                    className={`flex-1 min-w-0 md:w-1/2 px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
                     placeholder={t('contactForm.phonePlaceholder', { defaultValue: 'e.g. 1234567890' })}
                   />
                 </div>
