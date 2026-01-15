@@ -171,8 +171,7 @@ export default {
         parent: "తల్లిదండ్రి",
         spouse: "భర్త/భార్య",
         child: "పిల్ల",
-        sibling: "సోదరుడు/సోదరి",
-        other: "ఇతర"
+        sibling: "సోదరుడు/సోదరి"
     },
     buttons: {
       submit: "దరఖాస్తు సమర్పించండి",

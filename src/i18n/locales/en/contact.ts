@@ -190,8 +190,7 @@ export default {
       parent: "Parent",
       spouse: "Spouse",
       child: "Child",
-      sibling: "Sibling",
-      other: "Other"
+      sibling: "Sibling"
     },
     buttons: {
       submit: "Submit Application",
