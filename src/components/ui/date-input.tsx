@@ -7,7 +7,7 @@ import { Calendar } from './calendar';
 import { Input } from './input';
 
 // Reusable Date input with popover calendar. Value format is YYYY-MM-DD string.
-export function DateInput({ value, onChange, className, disabled = false, allowFuture = true, isDateDisabled }: { value?: string; onChange: (v: string) => void; className?: string; disabled?: boolean; allowFuture?: boolean; isDateDisabled?: (d: Date) => boolean }) {
+export function DateInput({ value, onChange, className, disabled = false, allowFuture = true, isDateDisabled, yearStart, yearEnd }: { value?: string; onChange: (v: string) => void; className?: string; disabled?: boolean; allowFuture?: boolean; isDateDisabled?: (d: Date) => boolean; yearStart?: number; yearEnd?: number }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState<string>(value || '');
 
@@ -152,8 +152,12 @@ export function DateInput({ value, onChange, className, disabled = false, allowF
             >
               {(() => {
                 const currentYear = new Date().getFullYear();
-                // show only current year and next year
-                const years = [currentYear, currentYear + 1];
+                let start = yearStart;
+                let end = yearEnd;
+                if (!Number.isFinite(start as number)) start = currentYear - 5; // default: show a few past years
+                if (!Number.isFinite(end as number)) end = currentYear + 1; // default: current and next year
+                const years: number[] = [];
+                for (let y = start as number; y <= (end as number); y++) years.push(y);
                 return years.map((yr) => <option key={yr} value={yr}>{yr}</option>);
               })()}
             </select>

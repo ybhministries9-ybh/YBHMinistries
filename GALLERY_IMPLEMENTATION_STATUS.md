@@ -91,7 +91,7 @@ Update to fetch from `/api/gallery?category={activeTab}` instead of hardcoded `g
 
 ## Categories Supported
 1. `guinness-events` - Guinness World Records Events
-2. `asian-records` - Asian Book of Records
+2. `asia-records` - Asia Book of Records
 3. `ingenious-record` - Ingenious Charm World Record
 4. `international-star-records` - International Star Book of Records
 5. `hallel-conferences` - Hallel Conferences

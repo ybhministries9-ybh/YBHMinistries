@@ -2,6 +2,7 @@
 
 import { useRef, useState, memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { COUNTRY_CODES } from '../lib/countryCodes';
 
 export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'contact' }: { accentColor?: string; contactId?: string }) => {
   const { t } = useTranslation('contact');
@@ -9,12 +10,13 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
   const [formStatus, setFormStatus] = useState({ submitted: false, message: "" });
   const [submitting, setSubmitting] = useState(false);
 
-  // Form state + validation
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', location: '', message: '' });
+  // use shared country-code list from lib
+
+  const [formData, setFormData] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '' });
   const [touched, setTouched] = useState({ name: false, email: false, phone: false, location: false, message: false });
   const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string; location?: string; message?: string }>({});
 
-  const LIMITS = { name: 100, email: 254, phone: 15, location: 200, message: 1000 };
+  const LIMITS = { name: 100, email: 254, phone: 10, location: 200, message: 1000 };
 
   const validate = (data: { name: string; email: string; phone?: string; location?: string; message: string }) => {
     const errs: { name?: string; email?: string; phone?: string; location?: string; message?: string } = {};
@@ -39,17 +41,14 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
       else if (data.location.length > LIMITS.location) errs.location = t('contactForm.validation.locationMax');
     }
 
-    // Phone (required)
+    // Phone (required) - must be exactly 10 digits (no spaces or special chars) and country code chosen separately
     if (!data.phone || data.phone.trim().length === 0) {
       errs.phone = t('contactForm.validation.phoneRequired') || 'Phone is required.';
     } else {
       const phoneTrim = data.phone.trim();
-      if (phoneTrim.length < 7) errs.phone = t('contactForm.validation.phoneMin') || 'Phone number is too short.';
-      else if (phoneTrim.length > LIMITS.phone) errs.phone = t('contactForm.validation.phoneMax') || 'Phone number is too long.';
-      else {
-        const phoneRe = /^[0-9+()\-\.\s]+$/;
-        if (!phoneRe.test(phoneTrim)) errs.phone = t('contactForm.validation.phoneInvalid') || 'Phone number contains invalid characters.';
-      }
+      const digitsOnly = phoneTrim.replace(/\D/g, '');
+      if (digitsOnly.length !== LIMITS.phone) errs.phone = t('contactForm.validation.phoneExact', { count: LIMITS.phone }) || `Phone number must be ${LIMITS.phone} digits.`;
+      else if (!/^\d{10}$/.test(digitsOnly)) errs.phone = t('contactForm.validation.phoneInvalid') || 'Phone number contains invalid characters.';
     }
 
     // Message
@@ -60,8 +59,12 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     return errs;
   };
 
-  const handleChange = (field: 'name' | 'email' | 'phone' | 'location' | 'message') => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const value = e.target.value;
+  const handleChange = (field: 'name' | 'email' | 'countryCode' | 'phone' | 'location' | 'message') => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    let value = e.target.value;
+    // For phone field enforce digits-only and max length
+    if (field === 'phone') {
+      value = value.replace(/\D/g, '').slice(0, LIMITS.phone);
+    }
     setFormData((s) => ({ ...s, [field]: value }));
     // live-validate only that field for responsiveness
     const newData = { ...formData, [field]: value };
@@ -86,12 +89,13 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
 
     setSubmitting(true);
             try {
-      const payload = { ...formData };
-      const res = await fetch('/api/get-in-touch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+              const combinedPhone = `${formData.countryCode || ''}${(formData.phone || '').replace(/\D/g, '')}`;
+              const payload = { ...formData, phone: combinedPhone };
+              const res = await fetch('/api/get-in-touch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
       const data = await res.json();
       if (!res.ok) {
         setFormStatus({ submitted: false, message: data?.error || t('contactForm.error') });
@@ -102,7 +106,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
       setFormStatus({ submitted: true, message: t('contactForm.success') });
       if (contactFormRef.current) contactFormRef.current.reset();
       // reset all form fields (include `phone` and `location`) to avoid undefined values
-      setFormData({ name: '', email: '', phone: '', location: '', message: '' });
+      setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '' });
     } catch (err) {
       setFormStatus({ submitted: false, message: t('contactForm.error') });
     } finally {
@@ -112,7 +116,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
 
   const handleResetForm = () => {
     if (contactFormRef.current) contactFormRef.current.reset();
-    setFormData({ name: '', email: '', phone: '', location: '', message: '' });
+    setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '' });
     setTouched({ name: false, email: false, phone: false, location: false, message: false });
     setErrors({});
     setFormStatus({ submitted: false, message: '' });
@@ -179,22 +183,38 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   <label htmlFor="phone">
                     <span className="font-medium text-white">{t('contactForm.phone', { defaultValue: 'Phone Number' })} <span className="text-yellow-400">*</span></span>
                   </label>
-                  <p className="text-sm text-gray-400">{formData.phone.length}/{LIMITS.phone}</p>
+                  <p className="text-sm text-gray-400">{formData.phone.replace(/\D/g, '').length}/{LIMITS.phone}</p>
                 </div>
-                <input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange('phone')}
-                  onBlur={handleBlur('phone')}
-                  maxLength={LIMITS.phone}
-                  aria-invalid={!!errors.phone}
-                  aria-describedby={errors.phone ? 'phone-error' : 'phone-help'}
-                  aria-required={true}
-                  required
-                  className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
-                  placeholder={t('contactForm.phonePlaceholder', { defaultValue: 'e.g. +1 555 555 5555' })}
-                />
+                <div className="flex gap-4">
+                  <select
+                    id="countryCode"
+                    name="countryCode"
+                    value={formData.countryCode}
+                    onChange={handleChange('countryCode')}
+                    className="bg-black border border-gray-700 text-white rounded-md px-3 py-3 focus:outline-none w-40"
+                    aria-label={t('contactForm.countryCode', { defaultValue: 'Country code' })}
+                  >
+                      {COUNTRY_CODES.map((c, idx) => (
+                        <option key={`${c.code}-${idx}`} value={c.code}>{c.label}</option>
+                      ))}
+                  </select>
+
+                  <input
+                    id="phone"
+                    name="phone"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={formData.phone}
+                    onChange={handleChange('phone')}
+                    onBlur={handleBlur('phone')}
+                    aria-invalid={!!errors.phone}
+                    aria-describedby={errors.phone ? 'phone-error' : 'phone-help'}
+                    aria-required={true}
+                    required
+                    className={`flex-1 px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
+                    placeholder={t('contactForm.phonePlaceholder', { defaultValue: 'e.g. 1234567890' })}
+                  />
+                </div>
                 <div className="mt-1">
                   <p id="phone-error" className={`text-sm ${touched.phone && errors.phone ? 'text-red-400' : 'text-gray-400'}`}>
                     {touched.phone && errors.phone ? errors.phone : ''}

@@ -28,7 +28,7 @@ interface Video {
 
 const TAB_CONFIG = [
   { key: "guinness-events" },
-  { key: "asian-records" },
+  { key: "asia-records" },
   { key: "ingenious-record" },
   { key: "international-star-records" },
   { key: "hallel-conferences" },
@@ -133,11 +133,11 @@ export function Gallery() {
   const [galleryVideos, setGalleryVideos] = useState<Record<string, Video[]>>({});
   const videoSectionRef = useRef<HTMLDivElement>(null);
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({
-    "guinness-events": 8, "asian-records": 8, "ingenious-record": 8, "international-star-records": 8,
+    "guinness-events": 8, "asia-records": 8, "ingenious-record": 8, "international-star-records": 8,
     "hallel-conferences": 8, "lcm-events": 8, anniversary: 8, "kids-training": 8,
   });
   const [visibleVideoCounts, setVisibleVideoCounts] = useState<Record<string, number>>({
-    "guinness-events": 8, "asian-records": 8, "ingenious-record": 8, "international-star-records": 8,
+    "guinness-events": 8, "asia-records": 8, "ingenious-record": 8, "international-star-records": 8,
     "hallel-conferences": 8, "lcm-events": 8, anniversary: 8, "kids-training": 8,
   });
 

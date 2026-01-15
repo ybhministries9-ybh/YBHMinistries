@@ -32,7 +32,7 @@ export default {
     location: "Location",
     message: "Message",
     namePlaceholder: "Enter your name",
-    phonePlaceholder: "e.g. +1 555 555 5555",
+    phonePlaceholder: "e.g. 1234567890",
     emailPlaceholder: "yourname@example.com",
     locationPlaceholder: "City, State or Country (optional)",
     messagePlaceholder: "Write your message here",

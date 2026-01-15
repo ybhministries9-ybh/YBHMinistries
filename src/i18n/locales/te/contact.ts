@@ -21,7 +21,7 @@ export default {
     location: "స్థానం",
     message: "సందేశం",
     namePlaceholder: "మీ పేరు నమోదు చేయండి",
-    phonePlaceholder: "ఉదా: +1 555 555 5555",
+    phonePlaceholder: "ఉదా: 1234567890",
     emailPlaceholder: "yourname@example.com",
     locationPlaceholder: "నగరం, రాష్ట్రం లేదా దేశం (ఐచ్ఛికం)",
     messagePlaceholder: "ఇక్కడ మీ సందేశాన్ని రాయండి",

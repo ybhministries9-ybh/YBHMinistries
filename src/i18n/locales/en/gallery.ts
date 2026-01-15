@@ -10,9 +10,9 @@ export default {
       label: "Guinness World Records",
       title: "Guinness World Records"
     },
-    "asian-records": {
-      label: "Asian Book",
-      title: "Asian Book of Records"
+    "asia-records": {
+      label: "Asia Book",
+      title: "Asia Book of Records"
     },
     "ingenious-record": {
       label: "Ingenious Charm",

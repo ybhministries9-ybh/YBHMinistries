@@ -36,8 +36,8 @@ export default {
       location: "Vijayawada, Andhra Pradesh, India & Online",
       description: "TBD"
     },
-    asian: {
-      name: "Asian Book of Records",
+    asia: {
+      name: "Asia Book of Records",
       award: "TBD",
       year: "2024",
       participants: "200 people",

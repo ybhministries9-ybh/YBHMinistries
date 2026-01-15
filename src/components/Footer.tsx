@@ -9,7 +9,7 @@ const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 // Local paths (place files under `public/logo/` and `public/Home/awards/`)
 const LOCAL_YBH_LOGO = '/logo/ybh.png';
 const LOCAL_GUINNESS = '/logo/awards/guiness.png';
-const LOCAL_ASIAN_BOOK = '/logo/awards/Asian%20book%20of%20records.png';
+const LOCAL_ASIA_BOOK = '/logo/awards/AsiaBookOfRecords.png';
 const LOCAL_INGENIOUS = '/logo/awards/ingenious.png';
 const LOCAL_INTERNATIONAL_STAR = '/logo/awards/Star%20book%20of%20records.png';
 const LOCAL_INTERNATIONAL_STAR_FINAL = '/logo/awards/Star%20book%20of%20records.png';
@@ -17,7 +17,7 @@ const LOCAL_INTERNATIONAL_STAR_FINAL = '/logo/awards/Star%20book%20of%20records.
 const ybhR2 = `${R2_BASE}/logo/YBH.jpg`;
 const ybhR2Png = `${R2_BASE}/logo/ybh.png`;
 const guinnessR2 = `${R2_BASE}/logo/awards/guiness.png`;
-const asianBookR2 = `${R2_BASE}/logo/awards/Asian%20book%20of%20records.png`;
+const asiaBookR2 = `${R2_BASE}/logo/awards/AsiaBookOfRecords.png`;
 const ingeniousR2 = `${R2_BASE}/logo/awards/ingenious.png`;
 const internationalStarR2 = `${R2_BASE}/logo/awards/Star%20book%20of%20records.png`;
 
@@ -209,8 +209,8 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
           <SmartImage
-            srcs={[LOCAL_ASIAN_BOOK, asianBookR2]}
-            alt="Asian Book of Records 2024"
+            srcs={[LOCAL_ASIA_BOOK, asiaBookR2]}
+            alt="Asia Book of Records 2024"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
           <SmartImage

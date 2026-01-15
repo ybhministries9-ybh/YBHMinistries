@@ -7,7 +7,7 @@
 -- ============================================
 CREATE TABLE IF NOT EXISTS gallery_items (
     id SERIAL PRIMARY KEY,
-    category VARCHAR(100) NOT NULL, -- Category key: guinness-events, asian-records, etc.
+    category VARCHAR(100) NOT NULL, -- Category key: guinness-events, asia-records, etc.
     media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('image', 'video')), -- Type of media
     url TEXT NOT NULL, -- URL for image or YouTube video
     title TEXT, -- Title for videos, optional for images
@@ -56,12 +56,12 @@ INSERT INTO gallery_items (category, media_type, url) VALUES
 ('guinness-events', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Guinness/10.jpg'),
 ('guinness-events', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Guinness/15.jpg'),
 
--- Asian Records
-('asian-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asian%20Book/1.jpg?w=1200'),
-('asian-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asian%20Book/2.jpg?w=1200'),
-('asian-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asian%20Book/3.jpg?w=1200'),
-('asian-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asian%20Book/4.jpg?w=1200'),
-('asian-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asian%20Book/5.jpg?w=1200'),
+-- Asia Records
+('asia-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asia%20Book/1.jpg?w=1200'),
+('asia-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asia%20Book/2.jpg?w=1200'),
+('asia-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asia%20Book/3.jpg?w=1200'),
+('asia-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asia%20Book/4.jpg?w=1200'),
+('asia-records', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Asia%20Book/5.jpg?w=1200'),
 
 -- Ingenious Record
 ('ingenious-record', 'image', 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/Gallery/Ingenious%20Charm/1.JPG?w=1200'),
@@ -100,8 +100,8 @@ INSERT INTO gallery_items (category, media_type, url, title, date) VALUES
 ('guinness-events', 'video', 'https://www.youtube.com/live/kj3JWuoFLrg', 'GUINNESS WORLD RECORD CERTIFICATES DISTRUBUTION CEREMONY - BANGALORE', '02-May-2025'),
 ('guinness-events', 'video', 'https://www.youtube.com/live/xCqagJW1Mcc', 'GUINNESS WORLD RECORD CERTIFICATES DISTRUBUTION CEREMONY VIJAYAWADA - PART 1', '24-Apr-2025'),
 
--- Asian Records Videos
-('asian-records', 'video', 'https://www.youtube.com/watch?v=q-oB60TT9_Y', 'HMS Asia Book Records', '10-Apr-2024'),
+-- Asia Records Videos
+('asia-records', 'video', 'https://www.youtube.com/watch?v=q-oB60TT9_Y', 'HMS Asia Book Records', '10-Apr-2024'),
 
 -- Ingenious Record Videos
 ('ingenious-record', 'video', 'https://www.youtube.com/live/qL0FXMxWmAk', 'INGENIOUS CHARM WORLD RECORD', '30-May-2024'),

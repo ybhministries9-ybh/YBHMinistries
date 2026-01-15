@@ -3,8 +3,9 @@
 import { useRef, useState, memo, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import DateInput from './ui/date-input';
+import { COUNTRY_CODES } from '../lib/countryCodes';
 
-const LIMITS = { name: 100, email: 254, phone: 30, location: 200, message: 2000, facebook: 300 };
+const LIMITS = { name: 100, email: 254, phone: 10, location: 200, message: 2000, facebook: 300 };
 
 function generateTimeslots(): string[] {
   const slots: string[] = [];
@@ -51,7 +52,9 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<{ submitted: boolean; message?: string }>({ submitted: false });
 
-  const [form, setForm] = useState({ name: '', email: '', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
+  // use shared country-code list from lib
+
+  const [form, setForm] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string,string>>({});
 
@@ -71,7 +74,10 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
     }
 
     if (!data.phone || data.phone.trim().length === 0) errs.phone = t('contactForm.validation.phoneRequired');
-    else if (data.phone.trim().length < 7) errs.phone = t('contactForm.validation.phoneMin');
+    else {
+      const digits = String(data.phone).replace(/\D/g, '');
+      if (digits.length !== LIMITS.phone) errs.phone = t('contactForm.validation.phoneExact', { count: LIMITS.phone }) || t('contactForm.validation.phoneMin');
+    }
 
     // Date validation
     if (!data.date) errs.date = String(t('contactForm.validation.worship24_dateRequired'));
@@ -95,7 +101,10 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   };
 
   const handleChange = (field: keyof typeof form) => (e: any) => {
-    const value = e.target.value;
+    let value = e.target.value;
+    if (field === 'phone') {
+      value = String(value).replace(/\D/g, '').slice(0, LIMITS.phone);
+    }
     setForm((s) => ({ ...s, [field]: value }));
     const next = { ...form, [field]: value };
     setErrors(validate(next));
@@ -114,10 +123,12 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
     if (Object.keys(next).length > 0) return;
     setSubmitting(true);
     try {
+      const combinedPhone = `${form.countryCode || ''}${String(form.phone || '').replace(/\D/g, '')}`;
+      const payload = { ...form, phone: combinedPhone };
       const res = await fetch('/api/worship24', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -125,7 +136,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
       } else {
         setStatus({ submitted: true, message: 'Request received' });
         if (formRef.current) formRef.current.reset();
-        setForm({ name: '', email: '', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
+        setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
       }
     } catch (err) {
       setStatus({ submitted: false, message: 'Server error' });
@@ -168,9 +179,9 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
               <p className="mb-4 text-xl font-semibold text-white">{status.message}</p>
               <button
                 type="button"
-                onClick={() => {
+                  onClick={() => {
                   if (formRef.current) formRef.current.reset();
-                  setForm({ name: '', email: '', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
+                  setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
                   setTouched({});
                   setErrors({});
                   setStatus({ submitted: false, message: '' });
@@ -200,11 +211,16 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
               <div>
                 <div className="mb-1 flex items-center justify-between">
                   <label className="font-medium text-white">{t('contactForm.phone', { defaultValue: 'Phone' })} <span className="text-yellow-400">*</span></label>
-                  <p className="text-sm text-gray-400">{form.phone.length}/{LIMITS.phone}</p>
+                  <p className="text-sm text-gray-400">{String(form.phone).replace(/\D/g,'').length}/{LIMITS.phone}</p>
                 </div>
-                <input value={form.phone} onChange={handleChange('phone')} onBlur={handleBlur('phone')} maxLength={LIMITS.phone}
-                  placeholder={t('contactForm.phonePlaceholder', { defaultValue: 'e.g. +1 555 555 5555' })}
-                  className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}/>
+                <div className="flex gap-4">
+                  <select value={form.countryCode} onChange={handleChange('countryCode')} className="bg-black border border-gray-700 text-white rounded-md px-3 py-3 focus:outline-none w-40">
+                    {COUNTRY_CODES.map((c, idx) => <option key={`${c.code}-${idx}`} value={c.code}>{c.label}</option>)}
+                  </select>
+                  <input value={form.phone} onChange={handleChange('phone')} onBlur={handleBlur('phone')}
+                    inputMode="numeric" pattern="[0-9]*" placeholder={t('contactForm.phonePlaceholder', { defaultValue: 'e.g. 1234567890' })}
+                    className={`flex-1 px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}/>
+                </div>
                 <p className="text-sm text-red-400">{touched.phone && errors.phone ? errors.phone : ''}</p>
               </div>
 
@@ -233,10 +249,14 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
               <div>
                 <label className="font-medium text-white">{t('contactForm.selectDateLabel', { defaultValue: 'Select Date (2nd Saturday)' })} <span className="text-yellow-400">*</span></label>
                 <DateInput value={form.date} onChange={(v) => { setForm((s) => ({ ...s, date: v })); setErrors(validate({ ...form, date: v })); }}
+                  yearStart={new Date().getFullYear()}
+                  yearEnd={new Date().getFullYear() + 1}
                   isDateDisabled={(d: Date) => {
                     const now = new Date();
                     // disable previous months
                     if (d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth())) return true;
+                    // disable past dates in current month (even if they are second Saturday)
+                    if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() < now.getDate()) return true;
                     // must be Saturday
                     if (d.getDay() !== 6) return true;
                     // compute second saturday
@@ -288,7 +308,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                   {submitting ? t('contactForm.sending', { defaultValue: 'Sending...' }) : t('contactForm.submitBooking', { defaultValue: 'Submit Booking' })}
                 </button>
 
-                <button type="button" onClick={() => { if (formRef.current) formRef.current.reset(); setForm({ name: '', email: '', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' }); }}
+                <button type="button" onClick={() => { if (formRef.current) formRef.current.reset(); setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' }); }}
                   className="flex-1 py-2 px-4 text-sm bg-black cursor-pointer font-semibold text-white rounded-full border-2 border-[#FDB813] transition-colors duration-200 hover:bg-[#111]">
                   {t('contactForm.resetButton', { defaultValue: 'Reset Form' })}
                 </button>
