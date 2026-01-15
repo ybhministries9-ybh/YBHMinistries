@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
+import logger from '../lib/logger';
 import { ScrollToTop } from './ScrollToTop';
 import { EventScrollBanner } from './EventScrollBanner';
 import { getUpcomingEvents, Event } from '../utils/eventsData';
-import { LanguageAwareSEO } from './seo/LanguageAwareSEO';
 
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 
@@ -62,6 +62,7 @@ function VideoSection() {
           setHasVideo(false);
         }
       } catch (error) {
+        logger.error('Error fetching video', error);
         setVideoData(null);
         setHasVideo(false);
       }
@@ -174,24 +175,16 @@ function VideoSection() {
   );
 }
 
-// Updated ImageCarousel component to handle full-screen desktop and mobile-specific styles
+// Custom ImageCarousel component with optimized image positioning
 function ImageCarousel({ images, interval = 3000 }) {
   const { t } = useTranslation('home');
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    handleResize(); // Check on mount
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
+  
+  // Preload the first image immediately
   useEffect(() => {
     if (images.length > 0 && typeof window !== 'undefined') {
+      // Use prefetch for hero images to avoid browser warnings when signed
+      // URLs are generated dynamically and may not be used immediately.
       const link = document.createElement('link');
       link.rel = 'prefetch';
       link.as = 'image';
@@ -207,15 +200,15 @@ function ImageCarousel({ images, interval = 3000 }) {
       }
     }
   }, [images]);
-
+  
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
     }, interval);
-
+    
     return () => clearInterval(timer);
   }, [images.length, interval]);
-
+  
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {images.map((image, index) => (
@@ -228,18 +221,15 @@ function ImageCarousel({ images, interval = 3000 }) {
           <ImageWithFallback
             src={image}
             alt={t('hero.slideAlt', { number: index + 1 })}
-            className="w-full h-full object-cover sm:object-center md:object-center lg:object-center"
-            style={{
-              objectFit: isMobile ? 'contain' : 'cover',
-              objectPosition: 'center',
-            }}
+            className="w-full h-full object-cover sm:object-center transition-transform duration-[10000ms] scale-100"
+            style={{ objectPosition: 'center 20%' }}
             loading={index === 0 ? 'eager' : 'lazy'}
             fetchPriority={index === 0 ? 'high' : undefined}
             decoding={index === 0 ? 'sync' : 'async'}
           />
         </div>
       ))}
-
+      
       {/* Navigation dots */}
       <div className="absolute bottom-16 left-0 right-0 z-20 flex justify-center">
         <div className="flex space-x-2">
@@ -286,11 +276,14 @@ export function Home({ initialHeroImages }: HomeProps) {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [heroImages, setHeroImages] = useState<string[]>(initialHeroImages || []);
   const [isLoading, setIsLoading] = useState(!initialHeroImages || initialHeroImages.length === 0);
-
+  
+  // Default image when no images are in database
   const defaultHeroImage = `${R2_BASE}/home/hero/default.jpg`;
 
+  // Fetch hero images and events from API (skip if initialHeroImages provided)
   useEffect(() => {
     const fetchHeroImages = async () => {
+      // Skip fetching if we already have initial images from SSR
       if (initialHeroImages && initialHeroImages.length > 0) {
         setIsLoading(false);
         return;
@@ -298,27 +291,33 @@ export function Home({ initialHeroImages }: HomeProps) {
       try {
         const response = await fetch('/api/home/hero-images');
         const result = await response.json();
+        
+            if (result.success && result.data && result.data.length > 0) {
+              // Prefer the signed original (converted to WebP at upload time) so the hero shows the highest-quality WebP.
+                const imageUrls = result.data.map((img: any) => {
+                  // Prefer the DB `image_url` (original) when it's not the same as medium/thumb.
+                  try {
+                    if (img.image_url && img.image_url !== img.medium_url && img.image_url !== img.thumbnail_url) {
+                      return img.signedUrl || img.image_url;
+                    }
+                  } catch (e) {
+                    // fallback silently
+                  }
+                  // If signedUrl points to a medium/thumb path, prefer medium only as a fallback.
+                  if (img.signedUrl && !/(\/medium\/|\/thumbs\/)/.test(String(img.signedUrl))) {
+                    return img.signedUrl;
+                  }
+                  return img.signedUrl || img.signedMediumUrl || img.signedThumbUrl || img.image_url || img.medium_url || img.thumbnail_url || img.url;
+                }).filter(Boolean) as string[];
 
-        if (result.success && result.data && result.data.length > 0) {
-          const imageUrls = result.data.map((img: any) => {
-            try {
-              if (img.image_url && img.image_url !== img.medium_url && img.image_url !== img.thumbnail_url) {
-                return img.signedUrl || img.image_url;
-              }
-            } catch (e) {
-              // fallback silently
-            }
-            if (img.signedUrl && !/(\/medium\/|\/thumbs\/)/.test(String(img.signedUrl))) {
-              return img.signedUrl;
-            }
-            return img.signedUrl || img.signedMediumUrl || img.signedThumbUrl || img.image_url || img.medium_url || img.thumbnail_url || img.url;
-          }).filter(Boolean) as string[];
-
-          setHeroImages(imageUrls.length > 0 ? imageUrls : [defaultHeroImage]);
+              setHeroImages(imageUrls.length > 0 ? imageUrls : [defaultHeroImage]);
         } else {
+          // Use default image if no images in database
           setHeroImages([defaultHeroImage]);
         }
-      } catch {
+      } catch (error) {
+        console.error('Error fetching hero images:', error);
+        // Use default image on error
         setHeroImages([defaultHeroImage]);
       } finally {
         setIsLoading(false);
@@ -363,8 +362,6 @@ export function Home({ initialHeroImages }: HomeProps) {
 
   return (
     <div className="w-full min-h-screen bg-black text-white home-pill-buttons">
-      <LanguageAwareSEO pageKey="home" />
-
       {/* Hero Section - Image Slideshow */}
       <section className="relative h-screen overflow-hidden pt-16 md:pt-30">
         {isLoading ? (
@@ -379,12 +376,8 @@ export function Home({ initialHeroImages }: HomeProps) {
           <ImageCarousel images={heroImages} interval={3000} />
         )}
         
-        {/* Event Scroll Banner - Ensure it displays at the bottom of the page on mobile */}
-        {upcomingEvents.length > 0 && (
-          <div className="block md:hidden fixed bottom-0 left-0 w-full">
-            <EventScrollBanner />
-          </div>
-        )}
+        {/* Event Scroll Banner - Only show when there are upcoming events */}
+        {upcomingEvents.length > 0 && <EventScrollBanner />}
       </section>
 
       {/* About Section */}
