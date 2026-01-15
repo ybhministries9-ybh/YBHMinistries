@@ -168,6 +168,7 @@ export function DateInput({ value, onChange, className, disabled = false, allowF
           selected={dateValue}
           month={displayMonth}
           onSelect={(d) => handleSelect(d as Date | undefined)}
+          onMonthChange={(m: Date) => setDisplayMonth(m)}
           disabled={(date) => {
             if (!allowFuture && date > today) return true;
             if (typeof isDateDisabled === 'function') return isDateDisabled(date);
