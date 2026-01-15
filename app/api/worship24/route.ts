@@ -107,7 +107,27 @@ export async function POST(request: Request) {
       push('Facebook', facebook_link || '');
       push('Message', message || '');
 
-      const htmlFields = fields.map(f => `<tr><td style="padding:8px 10px;font-weight:600;background:#fafafa;width:40%;border-bottom:1px solid #eee;">${f.label}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;color:#444;">${f.value}</td></tr>`).join('');
+      const htmlFields = fields.map(f => `
+                    <div style="margin-bottom:12px;">
+                      <div style="font-weight:600; color:#333;">${f.label}</div>
+                      <div style="color:#555;">${f.value}</div>
+                    </div>`).join('');
+
+      const html = `
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111;padding:9px;">
+              <div style="text-align:center;background:#000;padding:20px;color:#fff;">
+                ${logoUrl ? `<img src="${logoUrl}" alt="YBH" width="110" style="display:block;margin:0 auto;"/>` : ''}
+              </div>
+              <div style="margin-top:24px;">
+                <h2 style="margin:0 0 8px 0;">Hi ${name || ''},</h2>
+                <p style="margin:0 0 12px 0;color:#333;">Thanks for booking a slot for <strong>24 Hours Worship</strong>. We received your booking and will review it shortly.</p>
+
+                ${htmlFields}
+
+                <p style="margin:16px 0 0 0;color:#333;">Regards,<br/>YBH Ministries</p>
+                <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system-generated confirmation of your message. Please do not reply to this email.</p>            
+              </div>
+          </div>`;
 
       // Confirmation for submitter
       if (emailVal) {
@@ -117,17 +137,6 @@ export async function POST(request: Request) {
         plainLines.push('', 'Regards,', 'YBH Ministries');
         const plain = plainLines.join('\n');
 
-        const html = `
-          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111;background:#f7f7f7;padding:18px;">
-            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
-              <tr><td style="padding:18px;background:#000;text-align:center;color:#fff;">${logoUrl ? `<img src="${logoUrl}" alt="YBH" width="110" style="display:block;margin:0 auto;"/>` : ''}</td></tr>
-              <tr><td style="padding:18px;"><h2 style="margin:0 0 8px 0;">Hi ${name || ''},</h2><p style="margin:0 0 12px 0;color:#333;">Thanks for booking a slot for <strong>24 Hours Worship</strong>. We received your booking and will review it shortly.</p>
-                <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:12px;">${htmlFields}</table>
-                <p style="margin:16px 0 0 0;color:#333;">Regards,<br/>YBH Ministries</p></td></tr>
-              <tr><td style="padding:12px 18px;background:#101010;color:#fff;font-size:12px;text-align:center;">&copy; ${new Date().getFullYear()} YBH Ministries</td></tr>
-            </table>
-          </div>
-        `;
 
         try {
           await sendTransactional({ to: emailVal, subject, text: plain, html, from: process.env.EMAIL_FROM });

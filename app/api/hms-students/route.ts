@@ -262,44 +262,28 @@ export async function POST(request: Request) {
         const plain = plainLines.join('\n');
 
         // HTML
-        const htmlFields = fields.map(f => `<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;background:#fafafa;font-weight:600;width:40%;">${f.label}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;background:#ffffff;color:#555;">${f.value}</td></tr>`).join('');
+        const htmlFields = fields.map(f => `
+                    <div style="margin-bottom:12px;">
+                      <div style="font-weight:600; color:#333;">${f.label}</div>
+                      <div style="color:#555;">${f.value}</div>
+                    </div>`).join('');
         const html = `
-          <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#111; background-color:#f7f7f7; padding:18px;">
-            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;">
-              <tr>
-                <td bgcolor="#000000" style="padding:20px 24px; text-align:center; background-color:#000000;">
-                  <!--[if mso]>
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="background-color:#000000;padding:20px 24px;text-align:center;">
-                  <![endif]-->
-                  ${logoUrl ? `<img src="${logoUrl}" alt="YBH Ministries" width="140" style="display:block;margin:0 auto;border:0;"/>` : ''}
-                  <!--[if mso]>
-                    </td></tr></table>
-                  <![endif]-->
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:24px;">
-                  <h2 style="margin:0 0 12px 0; color:#333; font-size:15px;">Dear ${fullName || ''},</h2>
-                  <p style="margin:0 0 12px 0;color:#333; font-size:15px;">Thank you for applying to HMS at <strong>YBH Ministries</strong>. Below are the details you submitted.</p>
+          <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#111; padding:9px;">
+              <div style="text-align:center; background-color:#000000; padding:20px;">
+                ${logoUrl ? `<img src="${logoUrl}" alt="YBH Ministries" width="140" style="display:block;margin:0 auto;border:0;"/>` : ''}
+              </div>
+              <div style="margin-top:24px;">
+                <h2 style="margin:0 0 12px 0; color:#111; font-size:20px;">Dear ${fullName || ''},</h2>
+                <p style="margin:0 0 12px 0;color:#333; font-size:15px; line-height:1.5;">Thank you for applying to HMS at <strong>YBH Ministries</strong>. Below are the details you submitted:</p>
 
-                  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse; margin-top:12px; background:#fafafa; border-radius:4px;">
-                    ${htmlFields}
-                  </table>
+                ${htmlFields}
 
-                  <p style="margin:12px 0 0 0;color:#333; font-size:15px;">We will contact you soon with next steps.</p>
+                <p style="margin:12px 0 0 0;color:#333; font-size:15px;">We will contact you soon with next steps.</p>
 
-                  <p style="margin:18px 0 0 0;color:#333; font-size:15px;">Regards,<br/><span style="color:#333; font-size:15px;">YBH Ministries</span></p>
-                  <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system‑generated confirmation of your message. Please do not reply to this email.</p>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:12px 24px; text-align:center; background:#101010; color:#fff; font-size:12px;">
-                  <div style="max-width:560px;margin:0 auto;">&copy; ${new Date().getFullYear()} YBH Ministries. All rights reserved.</div>
-                </td>
-              </tr>
-            </table>
-          </div>
-        `;
+                <p style="margin:18px 0 0 0;color:#333; font-size:15px;">Regards,<br/><span style="color:#333; font-size:15px;">YBH Ministries</span></p>
+                <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system-generated confirmation of your message. Please do not reply to this email.</p>
+              </div>
+          </div>`;
 
         const subject = `YBH Ministries — HMS Student Application Received`;
 
