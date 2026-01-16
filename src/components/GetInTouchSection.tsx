@@ -18,7 +18,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     const idx = COUNTRY_CODES.findIndex(c => c.code === '+91');
     return idx >= 0 ? idx : 0;
   });
-  const [touched, setTouched] = useState({ name: false, email: false, phone: false, location: false, message: false });
+  const [touched, setTouched] = useState({ name: false, email: false, phone: false, location: false, message: false, hearAboutUs: false, otherHearAboutUs: false });
   const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string; location?: string; message?: string; hearAboutUs?: string; otherHearAboutUs?: string }>({});
 
   const LIMITS = { name: 100, email: 254, phone: 10, location: 200, message: 1000 };
@@ -172,7 +172,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '' });
     const defaultIdx = COUNTRY_CODES.findIndex(c => c.code === '+91');
     setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
-    setTouched({ name: false, email: false, phone: false, location: false, message: false });
+    setTouched({ name: false, email: false, phone: false, location: false, message: false, hearAboutUs: false, otherHearAboutUs: false });
     setErrors({});
     setFormStatus({ submitted: false, message: '' });
   };
