@@ -202,7 +202,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
       </div>
 
       <div className="max-w-4xl mx-auto px-1 sm:px-4">
-        <form ref={formRef} onSubmit={handleSubmit} className="p-3 sm:p-8 rounded-lg bg-[#2E2E2E] border border-gray-800">
+        <form ref={formRef} onSubmit={handleSubmit} className="p-3 md:p-8 rounded-lg bg-[#2E2E2E] border border-gray-800">
           {status.submitted ? (
             <div ref={successRef} tabIndex={-1} className="py-8 text-center">
               <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4">
