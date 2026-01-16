@@ -60,7 +60,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
               return;
             }
           } catch (err) {
-            console.error('Failed to load get-in-touch record', err);
+            if (process.env.NODE_ENV !== 'production') console.error('Failed to load get-in-touch record', err);
           }
           // fallback to HMS if get-in-touch not found
           try {
@@ -72,7 +72,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
               return;
             }
           } catch (err) {
-            console.error('Failed to load hms record', err);
+            if (process.env.NODE_ENV !== 'production') console.error('Failed to load hms record', err);
           }
           if (mounted) setRecord(null);
           return;
@@ -92,7 +92,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             if (mounted) setRecord(null);
             return;
           } catch (err) {
-            console.error('Failed to load worship24 record', err);
+            if (process.env.NODE_ENV !== 'production') console.error('Failed to load worship24 record', err);
             if (mounted) setRecord(null);
             return;
           }
@@ -138,9 +138,9 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         }
 
         if (mounted) setRecord(null);
-      } catch (err) {
-        console.error('Failed to load record', err);
-      } finally {
+        } catch (err) {
+          if (process.env.NODE_ENV !== 'production') console.error('Failed to load record', err);
+        } finally {
         if (mounted) setLoading(false);
       }
     })();
@@ -267,6 +267,10 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-300">Location</h3>
                 <input disabled value={r.location || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm text-gray-300">How did you hear about us?</h3>
+                <input disabled value={r.hear_about_us ? (r.hear_about_us + (r.other_hear_about_us ? `: ${r.other_hear_about_us}` : '')) : '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
               <div className="md:col-span-2 min-w-0">
                 <h3 className="text-sm text-gray-300">Message</h3>

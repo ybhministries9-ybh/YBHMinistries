@@ -137,11 +137,11 @@ export function DonatePage() {
                                       <button
                                         onClick={async () => {
                                           try {
-                                            await navigator.clipboard.writeText(String(b.account_name));
-                                            toast.success('Account holder copied');
-                                          } catch (e) {
-                                            console.error('copy failed', e);
-                                            toast.error('Copy failed');
+                                              await navigator.clipboard.writeText(String(b.account_name));
+                                              toast.success('Account holder copied');
+                                            } catch (e) {
+                                              if (process.env.NODE_ENV !== 'production') console.error('copy failed', e);
+                                              toast.error('Copy failed');
                                           }
                                         }}
                                         aria-label="Copy account holder"
@@ -162,11 +162,11 @@ export function DonatePage() {
                                       <button
                                         onClick={async () => {
                                           try {
-                                            await navigator.clipboard.writeText(String(b.bank_name));
-                                            toast.success('Bank copied');
-                                          } catch (e) {
-                                            console.error('copy failed', e);
-                                            toast.error('Copy failed');
+                                              await navigator.clipboard.writeText(String(b.bank_name));
+                                              toast.success('Bank copied');
+                                            } catch (e) {
+                                              if (process.env.NODE_ENV !== 'production') console.error('copy failed', e);
+                                              toast.error('Copy failed');
                                           }
                                         }}
                                         aria-label="Copy bank"
@@ -187,11 +187,11 @@ export function DonatePage() {
                                       <button
                                         onClick={async () => {
                                           try {
-                                            await navigator.clipboard.writeText(String(b.branch_name));
-                                            toast.success('Branch copied');
-                                          } catch (e) {
-                                            console.error('copy failed', e);
-                                            toast.error('Copy failed');
+                                              await navigator.clipboard.writeText(String(b.branch_name));
+                                              toast.success('Branch copied');
+                                            } catch (e) {
+                                              if (process.env.NODE_ENV !== 'production') console.error('copy failed', e);
+                                              toast.error('Copy failed');
                                           }
                                         }}
                                         aria-label="Copy branch"
@@ -212,11 +212,11 @@ export function DonatePage() {
                                       <button
                                         onClick={async () => {
                                           try {
-                                            await navigator.clipboard.writeText(String(b.account_number));
-                                            toast.success('Account number copied');
-                                          } catch (e) {
-                                            console.error('copy failed', e);
-                                            toast.error('Copy failed');
+                                              await navigator.clipboard.writeText(String(b.account_number));
+                                              toast.success('Account number copied');
+                                            } catch (e) {
+                                              if (process.env.NODE_ENV !== 'production') console.error('copy failed', e);
+                                              toast.error('Copy failed');
                                           }
                                         }}
                                         aria-label="Copy account number"
@@ -237,11 +237,11 @@ export function DonatePage() {
                                       <button
                                         onClick={async () => {
                                           try {
-                                            await navigator.clipboard.writeText(String(b.ifsc_code));
-                                            toast.success('IFSC copied');
-                                          } catch (e) {
-                                            console.error('copy failed', e);
-                                            toast.error('Copy failed');
+                                              await navigator.clipboard.writeText(String(b.ifsc_code));
+                                              toast.success('IFSC copied');
+                                            } catch (e) {
+                                              if (process.env.NODE_ENV !== 'production') console.error('copy failed', e);
+                                              toast.error('Copy failed');
                                           }
                                         }}
                                         aria-label="Copy IFSC"
@@ -262,11 +262,11 @@ export function DonatePage() {
                                         <button
                                           onClick={async () => {
                                             try {
-                                              await navigator.clipboard.writeText(String(b.swift_code));
-                                              toast.success('SWIFT copied');
-                                            } catch (e) {
-                                              console.error('copy failed', e);
-                                              toast.error('Copy failed');
+                                                await navigator.clipboard.writeText(String(b.swift_code));
+                                                toast.success('SWIFT copied');
+                                              } catch (e) {
+                                                if (process.env.NODE_ENV !== 'production') console.error('copy failed', e);
+                                                toast.error('Copy failed');
                                             }
                                           }}
                                           aria-label="Copy SWIFT"

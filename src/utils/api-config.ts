@@ -45,7 +45,7 @@ export async function apiCall<T>(
       mod.logger.error('API call error', error);
     } catch (e) {
       // fallback to console if logger import fails in some environments
-      console.error('API call error:', error);
+      if (process.env.NODE_ENV !== 'production') console.error('API call error:', error);
     }
     return { error: error instanceof Error ? error.message : 'Network error' };
   }

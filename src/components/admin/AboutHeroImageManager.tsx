@@ -38,7 +38,7 @@ export function AboutHeroImageManager() {
         setHeroImage(result.data);
       }
     } catch (error) {
-      console.error('Error fetching hero image:', error);
+      if (process.env.NODE_ENV !== 'production') console.error('Error fetching hero image:', error);
       toast.error('Failed to fetch hero image');
     }
   }, []);
@@ -127,7 +127,7 @@ export function AboutHeroImageManager() {
         toast.error(result.error || 'Failed to upload image');
       }
     } catch (error) {
-      console.error('Error uploading hero image:', error);
+      if (process.env.NODE_ENV !== 'production') console.error('Error uploading hero image:', error);
       toast.error('Failed to upload hero image');
     } finally {
       setIsLoading(false);
@@ -163,7 +163,7 @@ export function AboutHeroImageManager() {
         toast.error(result.error || 'Failed to delete image');
       }
     } catch (error) {
-      console.error('Error deleting hero image:', error);
+      if (process.env.NODE_ENV !== 'production') console.error('Error deleting hero image:', error);
       toast.error('Failed to delete hero image');
     } finally {
       setIsLoading(false);

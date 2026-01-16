@@ -22,15 +22,16 @@ export async function GET(request: NextRequest) {
     const year = url.searchParams.get('year') || undefined;
 
     // Build query with filters
-    let query = 'SELECT id, name, email, phone, message, location, created_at FROM get_in_touch';
+    let query = 'SELECT id, name, email, phone, message, location, hear_about_us, other_hear_about_us, created_at FROM get_in_touch';
     const values: any[] = [];
     const conditions: string[] = [];
 
     // Add search filter
     if (q && q.trim().length > 0) {
       const searchPattern = `%${q.trim()}%`;
-      conditions.push(`(name ILIKE $${values.length + 1} OR email ILIKE $${values.length + 2} OR phone ILIKE $${values.length + 3} OR location ILIKE $${values.length + 4})`);
-      values.push(searchPattern, searchPattern, searchPattern, searchPattern);
+      // include hear_about_us and other_hear_about_us in searchable fields
+      conditions.push(`(name ILIKE $${values.length + 1} OR email ILIKE $${values.length + 2} OR phone ILIKE $${values.length + 3} OR location ILIKE $${values.length + 4} OR hear_about_us ILIKE $${values.length + 5} OR other_hear_about_us ILIKE $${values.length + 6})`);
+      values.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
     }
 
     // Add date range filter
@@ -58,6 +59,7 @@ export async function GET(request: NextRequest) {
       'Email': record.email || '',
       'Phone': record.phone || '',
       'Location': record.location || '',
+      'How did you hear about us?': (record.hear_about_us || '') + (record.other_hear_about_us ? `: ${record.other_hear_about_us}` : ''),
       'Message': record.message || '',
       'Submitted Date': formatISTDate(record.created_at)
     }));
@@ -73,6 +75,7 @@ export async function GET(request: NextRequest) {
         { wch: 30 }, // Email
         { wch: 15 }, // Phone
         { wch: 20 }, // Location
+        { wch: 30 }, // How did you hear about us?
         { wch: 50 }, // Message
         { wch: 15 }  // Submitted Date
       ]
