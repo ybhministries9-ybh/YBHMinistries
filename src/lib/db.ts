@@ -466,6 +466,8 @@ export async function createHMSStudent(payload: {
   emergency_name: string;
   emergency_relationship: string;
   emergency_contact: string;
+  hear_about_us?: string | null;
+  other_hear_about_us?: string | null;
   createdBy?: string | null;
 }): Promise<HMSStudentRecord> {
   try {
@@ -476,6 +478,7 @@ export async function createHMSStudent(payload: {
         years_of_experience, previous_training, music_exam_certifications, performance_experience, performance_other,
         goals, volunteer_interested, volunteer_areas,
         emergency_name, emergency_relationship, emergency_contact,
+        hear_about_us, other_hear_about_us,
         status, created_by, updated_by
       ) VALUES (
         ${payload.full_name}, ${payload.date_of_birth}, ${payload.gender}, ${payload.address || null}, ${payload.city_state_zip || null}, ${payload.phone_number || null}, ${payload.email || null}, ${payload.parent_guardian_name || null}, ${payload.parent_guardian_contact || null},
@@ -483,6 +486,7 @@ export async function createHMSStudent(payload: {
         ${payload.years_of_experience || null}, ${payload.previous_training || null}, ${payload.music_exam_certifications || null}, ${payload.performance_experience ? JSON.stringify(payload.performance_experience) : null}, ${payload.performance_other || null},
         ${payload.goals || null}, ${payload.volunteer_interested || false}, ${payload.volunteer_areas ? JSON.stringify(payload.volunteer_areas) : null},
         ${payload.emergency_name}, ${payload.emergency_relationship}, ${payload.emergency_contact},
+        ${payload.hear_about_us || 'Unknown'}, ${payload.other_hear_about_us || null},
         'Submitted', ${payload.createdBy || null}, ${payload.createdBy || null}
       ) RETURNING *
     `;
@@ -813,7 +817,7 @@ export async function updateHMSStudent(id: number, updates: Partial<any>) {
       'full_name','date_of_birth','gender','address','city_state_zip','phone_number','email','parent_guardian_name','parent_guardian_contact',
       'program_applying_for','instrument_specialization','instrument_other','preferred_class_type','preferred_schedule','course_type',
       'years_of_experience','previous_training','music_exam_certifications','performance_experience','performance_other','goals',
-      'volunteer_interested','volunteer_areas','emergency_name','emergency_relationship','emergency_contact','status','updated_by'
+      'volunteer_interested','volunteer_areas','emergency_name','emergency_relationship','emergency_contact','hear_about_us','other_hear_about_us','status','updated_by'
     ];
 
     for (const key of Object.keys(updates)) {

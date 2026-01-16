@@ -63,6 +63,9 @@ interface FormData {
   emergencyName: string;
   emergencyRelationship: string;
   emergencyContact: string;
+  // Referral
+  hearAboutUs: string;
+  otherHearAboutUs?: string;
 }
 
 export function HMSStudentForm({
@@ -90,6 +93,8 @@ export function HMSStudentForm({
     volunteerInterested: 'no',
     countryCode: '+91',
     emergencyRelationship: 'Parent',
+    hearAboutUs: '',
+    otherHearAboutUs: '',
     ...initialData
   };
 
@@ -100,6 +105,15 @@ export function HMSStudentForm({
 
   // watch current values for live character counts
   const watched = watch();
+
+  // Clear `otherHearAboutUs` whenever the selected option is not Other
+  useEffect(() => {
+    try {
+      if ((watched as any).hearAboutUs !== 'Other') {
+        setValue('otherHearAboutUs', '')
+      }
+    } catch (e) {}
+  }, [watched?.hearAboutUs, setValue]);
 
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [formAlert, setFormAlert] = useState<{ type?: 'error' | 'info'; message?: string }>({});
@@ -788,9 +802,9 @@ export function HMSStudentForm({
 
         {/* 2. Course Information */}
         <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
-          <h3 className="text-2xl text-white font-normal mb-2">
-            {t('studentForm.sections.courseInfo')}
-          </h3>
+            <h3 className="text-2xl text-white font-normal mb-2">
+              {t('studentForm.sections.courseInfo')}
+            </h3>
           <div className="w-24 h-1 bg-[#FDB813] mb-6"></div>
           
           <div className="space-y-6">
@@ -949,6 +963,8 @@ export function HMSStudentForm({
             </div>
           </div>
         </section>
+
+        
 
         {/* 3. Course Type / Certification Options */}
         <section className={`bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg ${courseTypeError ? 'ring-2 ring-red-500 border border-red-500' : ''}`}>
@@ -1333,6 +1349,64 @@ export function HMSStudentForm({
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* 8. Referral Information */}
+        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">
+          <h3 className="text-2xl text-white font-normal mb-2">{t('studentForm.sections.referralInfo', { defaultValue: '8. Referral Information' })}</h3>
+          <div className="w-24 h-1 bg-[#FDB813] mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label htmlFor="hearAboutUs" className="block text-white text-sm font-medium mb-1">
+                {t('contactForm.hearAboutUs', { defaultValue: 'How did you hear about us?' })} <span className="text-[#FDB813]">*</span>
+              </label>
+              <select
+                id="hearAboutUs"
+                {...register('hearAboutUs', { required: t('hearAboutUsRequired', { defaultValue: 'This field is required.' }) })}
+                className={`w-full px-4 py-2 bg-black rounded-md border ${errors.hearAboutUs ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+              >
+                <option value="">{t('contactForm.selectOption', { defaultValue: 'Select an option' })}</option>
+                <option value="Facebook">{t('contactForm.hearOptions.facebook')}</option>
+                <option value="Instagram">{t('contactForm.hearOptions.instagram')}</option>
+                <option value="YouTube">{t('contactForm.hearOptions.youtube')}</option>
+                <option value="TV Program">{t('contactForm.hearOptions.tvProgram')}</option>
+                <option value="Friend or Family">{t('contactForm.hearOptions.friend')}</option>
+                <option value="Event or Conference">{t('contactForm.hearOptions.event')}</option>
+                <option value="Flyer or Poster">{t('contactForm.hearOptions.flyer')}</option>
+                <option value="YBH Website">{t('contactForm.hearOptions.website')}</option>
+                <option value="Other">{t('contactForm.hearOptions.other')}</option>
+              </select>
+              {errors.hearAboutUs ? (
+                <p className="text-red-400 text-xs mt-1">{(errors as any).hearAboutUs?.message}</p>
+              ) : null}
+            </div>
+
+            {/* Other text when 'Other' selected */}
+            {(watched as any).hearAboutUs === 'Other' && (
+              <div className="md:col-span-2">
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="otherHearAboutUs" className="block text-white text-sm font-medium">
+                    {t('otherHearAboutUs', { defaultValue: 'Other (Please specify)' })}
+                  </label>
+                  <p className="text-sm text-gray-400">{(watched.otherHearAboutUs || '').length}/20</p>
+                </div>
+                <input
+                  id="otherHearAboutUs"
+                  type="text"
+                  {...register('otherHearAboutUs', {
+                    required: t('otherHearAboutUsRequired', { defaultValue: 'Please specify.' }),
+                    maxLength: { value: 20, message: t('otherHearAboutUsMax', { defaultValue: 'Maximum 20 characters allowed.' }) }
+                  })}
+                  className={`w-full px-4 py-2 bg-black rounded-md border ${errors.otherHearAboutUs ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
+                  maxLength={20}
+                  placeholder={t('otherHearAboutUs', { defaultValue: 'Other (Please specify)' })}
+                />
+                {errors.otherHearAboutUs ? (
+                  <p className="text-red-400 text-xs mt-1">{(errors as any).otherHearAboutUs?.message}</p>
+                ) : null}
+              </div>
+            )}
           </div>
         </section>
 

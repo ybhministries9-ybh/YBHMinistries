@@ -77,6 +77,7 @@ export function SetupHelper() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             className="w-full px-4 py-2 bg-black border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FDB813]"
             required
           />
@@ -88,6 +89,7 @@ export function SetupHelper() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
             className="w-full px-4 py-2 bg-black border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FDB813]"
             placeholder="Choose a strong password"
             required

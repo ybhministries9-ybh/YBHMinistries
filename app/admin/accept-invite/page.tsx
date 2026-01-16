@@ -38,11 +38,11 @@ export default function AcceptInvitePage() {
         </div>
         <div>
           <label className="block text-sm text-gray-300 mb-1">Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded" />
+          <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded" />
         </div>
         <div>
           <label className="block text-sm text-gray-300 mb-1">Confirm Password</label>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded" />
+          <input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded" />
         </div>
         <div className="flex items-center gap-3">
           <button type="submit" className="px-4 py-2 bg-[#FDB813] text-black rounded">Set Password</button>

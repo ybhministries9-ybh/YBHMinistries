@@ -190,6 +190,9 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
       emergencyName: rec.emergency_name || '',
       emergencyRelationship: rec.emergency_relationship || '',
       emergencyContact: rec.emergency_contact || ''
+      ,
+      hearAboutUs: rec.hear_about_us || '',
+      otherHearAboutUs: rec.other_hear_about_us || ''
     };
   };
 
@@ -269,7 +272,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                 <input disabled value={r.location || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm text-gray-300">How did you hear about us?</h3>
+                <label className="block text-white text-sm font-medium mb-1">How did you hear about us? <span className="text-[#FDB813]">*</span></label>
                 <input disabled value={r.hear_about_us ? (r.hear_about_us + (r.other_hear_about_us ? `: ${r.other_hear_about_us}` : '')) : '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
               <div className="md:col-span-2 min-w-0">
@@ -404,6 +407,8 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
               updates.emergency_name = formData.emergencyName;
               updates.emergency_relationship = formData.emergencyRelationship;
               updates.emergency_contact = formData.emergencyContact;
+              updates.hear_about_us = formData.hearAboutUs;
+              updates.other_hear_about_us = formData.otherHearAboutUs;
 
               try {
                 const resp = await fetch('/api/admin/hms-students', {

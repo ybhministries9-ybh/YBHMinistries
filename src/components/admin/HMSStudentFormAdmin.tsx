@@ -57,6 +57,9 @@ interface FormData {
   emergencyName: string;
   emergencyRelationship: string;
   emergencyContact: string;
+  // Referral
+  hearAboutUs?: string;
+  otherHearAboutUs?: string;
 }
 
 export function HMSStudentFormAdmin({
@@ -84,6 +87,8 @@ export function HMSStudentFormAdmin({
     performanceExperience: [],
     volunteerAreas: [],
     volunteerInterested: 'no',
+    hearAboutUs: '',
+    otherHearAboutUs: '',
     ...initialData
   };
 
@@ -692,11 +697,15 @@ export function HMSStudentFormAdmin({
                   min: { value: 0, message: t('studentForm.validation.yearsMin') },
                   max: { value: 100, message: t('studentForm.validation.yearsMax') }
                 })}
-                value={display(watch('yearsOfExperience'))}
+                value={((): string => {
+                  const val = watch('yearsOfExperience');
+                  if (val === null || val === undefined || val === '') return '';
+                  return String(val);
+                })()}
                 className={`w-full px-4 py-2 bg-black rounded-md border ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813]`}
                 min={0}
                 max={100}
-                placeholder={t('studentForm.placeholders.yearsOfExperience')}
+                placeholder={display(watch('yearsOfExperience')) === '-' ? '-' : t('studentForm.placeholders.yearsOfExperience')}
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/[^0-9]/g, '');
                   // clamp
@@ -988,6 +997,23 @@ export function HMSStudentFormAdmin({
               {errors.emergencyContact && (
                 <p className="text-red-400 text-xs mt-1">{errors.emergencyContact.message}</p>
               )}
+            </div>
+            {/* Referral info moved to its own section (see below) */}
+          </div>
+        </section>
+
+        {/* 8. Referral Information (read-only) */}
+        <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg border border-gray-700 mt-6">
+          <h3 className="text-2xl text-white font-normal mb-2">8. Referral Information</h3>
+          <div className="w-24 h-1 bg-[#FDB813] mb-6"></div>
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-[#2e2e2e] rounded-lg p-0">
+              <div className="grid grid-cols-1 gap-6 min-w-0 w-full">
+                <div className="min-w-0">
+                  <label className="block text-white text-sm font-medium mb-1">How did you hear about us? <span className="text-[#FDB813]">*</span></label>
+                  <input disabled value={display(watch('hearAboutUs')) + (watch('otherHearAboutUs') ? (': ' + watch('otherHearAboutUs')) : '')} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+                </div>
+              </div>
             </div>
           </div>
         </section>

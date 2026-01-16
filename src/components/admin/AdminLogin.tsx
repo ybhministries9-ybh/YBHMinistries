@@ -128,6 +128,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 className="w-full pl-10 pr-4 py-3 bg-black border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent"
                 placeholder="admin@ybhministries.org"
                 required
@@ -148,6 +149,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 className="w-full pl-10 pr-4 py-3 bg-black border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent"
                 placeholder="••••••••"
                 required
@@ -174,11 +176,11 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
           <form onSubmit={handleReset} className="space-y-4 mt-6">
             <div>
               <label className="block text-sm text-gray-300 mb-2">New Password</label>
-              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
             </div>
             <div>
               <label className="block text-sm text-gray-300 mb-2">Confirm Password</label>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
             </div>
             <div>
               <button type="submit" className="w-full py-3.5 bg-green-600 text-white rounded-xl">Set New Password</button>

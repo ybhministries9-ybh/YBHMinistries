@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     description: 'Transforming lives through worship, faith, and ministry. Offering Bible college, music school, church services, and conferences.',
     images: [
       {
-        url: `${siteUrl}/og-image.jpg`,
+        url: `${siteUrl}/logo/ybh.png`,
         width: 1200,
         height: 630,
         alt: 'Yeshua Beth Hallel Ministries',
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Yeshua Beth Hallel Ministries - Empowering Worship & Faith',
     description: 'Transforming lives through worship, faith, and ministry. Offering Bible college, music school, church services, and conferences.',
-    images: [`${siteUrl}/og-image.jpg`],
+    images: [`${siteUrl}/logo/ybh.png`],
     creator: '@ybhministries', // Update with actual Twitter handle
   },
   robots: {
@@ -115,7 +115,7 @@ export default function RootLayout({
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
-            <link rel="preload" as="image" href="/og-image.jpg" />
+            {/* og-image.jpg was not present in public/; remove preload to avoid 404 and preload warning */}
           </head>
           <body suppressHydrationWarning>
         {children}
