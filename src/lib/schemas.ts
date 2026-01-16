@@ -48,6 +48,9 @@ export const hmsStudentSchema = z.object({
   volunteerInterested: z.string().optional(),
   volunteerAreas: z.array(z.string()).optional(),
 
+  hearAboutUs: z.string().min(1).max(50),
+  otherHearAboutUs: z.string().max(20).optional().nullable(),
+
   emergencyName: z.string().min(2).max(200),
   emergencyRelationship: z.string().min(1).max(100),
   emergencyContact: z.string().min(7).max(50).regex(/^[0-9+()\-\.\s]+$/),

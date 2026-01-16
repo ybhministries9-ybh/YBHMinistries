@@ -84,11 +84,11 @@ export default function ChangePasswordPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-gray-300 mb-2">New Password</label>
-            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+            <input type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
           </div>
           <div>
             <label className="block text-sm text-gray-300 mb-2">Confirm Password</label>
-            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+            <input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
           </div>
 
           {error && (

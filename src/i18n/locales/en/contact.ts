@@ -114,7 +114,8 @@ export default {
       musicBackground: "4. Music Background (if any)",
       goalsInterests: "5. Goals & Interests",
       volunteer: "6. Volunteer Opportunity",
-      emergencyContact: "7. Emergency Contact"
+      emergencyContact: "7. Emergency Contact",
+      referralInfo: "8. Referral Information"
     },
     fields: {
       fullName: "Full Name",

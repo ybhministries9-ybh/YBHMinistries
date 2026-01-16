@@ -54,6 +54,12 @@ export async function POST(request: Request) {
     const performanceExperience = Array.isArray(body.performanceExperience) ? body.performanceExperience : body.performanceExperience ? [body.performanceExperience] : [];
     const performanceOther = sanitizeInput(body.performanceOther, 200);
 
+    // Accept both camelCase and snake_case keys from clients to be robust
+    const hearAboutUsRaw = body.hearAboutUs ?? body.hear_about_us ?? '';
+    const otherHearAboutUsRaw = body.otherHearAboutUs ?? body.other_hear_about_us ?? '';
+    const hearAboutUs = sanitizeInput(hearAboutUsRaw, 50);
+    const otherHearAboutUs = sanitizeInput(otherHearAboutUsRaw, 20);
+
     const goals = sanitizeInput(body.goals, 2000);
 
     const volunteerInterested = sanitizeInput(body.volunteerInterested, 10) === 'yes';
@@ -88,6 +94,8 @@ export async function POST(request: Request) {
       goals,
       volunteerInterested: volunteerInterested ? 'yes' : 'no',
       volunteerAreas,
+      hearAboutUs,
+      otherHearAboutUs,
       emergencyName,
       emergencyRelationship,
       emergencyContact
@@ -164,6 +172,8 @@ export async function POST(request: Request) {
       emergency_name: emergencyName,
       emergency_relationship: emergencyRelationship,
       emergency_contact: emergencyContact,
+      hear_about_us: hearAboutUs || 'Unknown',
+      other_hear_about_us: hearAboutUs === 'Other' ? otherHearAboutUs || null : null,
       createdBy: 'public'
     });
 
@@ -251,6 +261,9 @@ export async function POST(request: Request) {
         pushIf('Emergency contact name', emergencyName);
         pushIf('Emergency relationship', emergencyRelationship);
         pushIf('Emergency contact', emergencyContact);
+        // Include the 'How did you hear about us' field (show other text when provided)
+        const hearVal = hearAboutUs ? (hearAboutUs === 'Other' ? `Other: ${otherHearAboutUs || ''}` : hearAboutUs) : '';
+        pushIf('How did you hear about us?', hearVal);
 
         // Use public logo URL and MSO-safe header/footer so clients like Outlook render correctly
         const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';

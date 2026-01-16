@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         performance_experience, performance_other, goals,
         volunteer_interested, volunteer_areas,
         emergency_name, emergency_relationship, emergency_contact,
+        hear_about_us, other_hear_about_us,
         status, created_at
       FROM hms_students
     `;
@@ -105,6 +106,7 @@ export async function GET(request: NextRequest) {
       'Emergency Contact Name': record.emergency_name || '',
       'Emergency Relationship': record.emergency_relationship || '',
       'Emergency Contact': record.emergency_contact || '',
+      'How Did You Hear About us': record.hear_about_us ? (record.hear_about_us + (record.other_hear_about_us ? `: ${record.other_hear_about_us}` : '')) : '',
       'Status': record.status || 'Submitted',
       'Enrollment Date': formatISTDate(record.created_at)
     }));
@@ -142,6 +144,7 @@ export async function GET(request: NextRequest) {
         { wch: 25 }, // Emergency Contact Name
         { wch: 20 }, // Emergency Relationship
         { wch: 15 }, // Emergency Contact
+        { wch: 25 }, // How Did You Hear
         { wch: 12 }, // Status
         { wch: 15 }  // Enrollment Date
       ]

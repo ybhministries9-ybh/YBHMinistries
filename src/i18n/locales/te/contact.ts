@@ -96,6 +96,8 @@ export default {
       goalsInterests: "5. లక్ష్యాలు & ఆసక్తులు",
       volunteer: "6. వాలంటీర్ అవకాశం",
       emergencyContact: "7. అత్యవసర సంప్రదింపు"
+      ,
+      referralInfo: "8. సూచన సమాచారం"
     },
     fields: {
       fullName: "పూర్తి పేరు",
