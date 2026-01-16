@@ -355,6 +355,8 @@ const SubmitTestimonyForm = memo(() => {
   const { t } = useTranslation('stories');
   const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm();
   const testimonyRef = useRef<HTMLDivElement | null>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement | null>(null);
+  const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const watched = watch();
   const requiredFilled = Boolean((watched.name || '').toString().trim())
     && Boolean((watched.email || '').toString().trim())
@@ -434,6 +436,22 @@ const SubmitTestimonyForm = memo(() => {
     const text = String(watched.testimony || '').replace(/<[^>]*>/g, '').trim();
     setIsTestimonyEmpty(text.length === 0);
   }, [watched.testimony]);
+
+  // Close emoji picker when clicking outside of it or the emoji button
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const onDown = (ev: MouseEvent) => {
+      const target = ev.target as Node | null;
+      if (!target) return;
+      const picker = emojiPickerRef.current;
+      const btn = emojiButtonRef.current;
+      if (picker && picker.contains(target)) return; // click inside picker
+      if (btn && btn.contains(target)) return; // click on button
+      setShowEmojiPicker(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [showEmojiPicker]);
 
   const onSubmit = useCallback(async (data: any) => {
     setIsSubmitting(true);
@@ -677,6 +695,7 @@ const SubmitTestimonyForm = memo(() => {
 
                   <div className="relative">
                     <button
+                      ref={emojiButtonRef}
                       type="button"
                       onClick={() => setShowEmojiPicker(s => !s)}
                       className="px-2 py-1 bg-[#1f1f1f] text-white rounded-md border border-gray-700 hover:bg-[#2a2a2a]"
@@ -685,7 +704,7 @@ const SubmitTestimonyForm = memo(() => {
                       😊
                     </button>
                     {showEmojiPicker && (
-                      <div className="absolute left-0 mt-2 bg-[#2E2E2E] border border-gray-700 rounded-md p-2 shadow-lg z-20 min-w-[380px]" role="dialog" aria-label="Emoji picker">
+                      <div ref={emojiPickerRef} className="absolute left-0 mt-2 bg-[#2E2E2E] border border-gray-700 rounded-md p-2 shadow-lg z-20 min-w-[380px]" role="dialog" aria-label="Emoji picker">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 40px)', gap: '8px', maxHeight: '40vh', overflow: 'auto', padding: '4px' }}>
                           {[
                             "😀","😃","😄","😁","😆","😂","🤣","😊","🙂","😉",
