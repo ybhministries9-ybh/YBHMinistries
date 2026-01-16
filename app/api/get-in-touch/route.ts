@@ -41,15 +41,25 @@ export async function POST(request: Request) {
       }
       return NextResponse.json({ error: 'Invalid JSON body', details: parseErr.message, rawBody }, { status: 400 });
     }
-    const { name, email, message, phone } = body || {};
+    const { name, email, message, phone, hearAboutUs, otherHearAboutUs } = body || {};
 
     // Sanitize inputs early
     const nameClean = sanitizeInput(name, 100);
     const messageClean = sanitizeInput(message, 4000);
     const phoneClean = sanitizeInput(phone, 50);
     const locationClean = sanitizeInput(body?.location, 200);
+    const hearAboutUsClean = sanitizeInput(hearAboutUs, 50);
+    const otherHearAboutUsClean = sanitizeInput(otherHearAboutUs, 20);
 
-    const parsed = getInTouchSchema.safeParse({ name: nameClean, email: email ? sanitizeInput(String(email).trim(), 254) : undefined, phone: phoneClean, message: messageClean, location: locationClean });
+    const parsed = getInTouchSchema.safeParse({
+      name: nameClean,
+      email: email ? sanitizeInput(String(email).trim(), 254) : undefined,
+      phone: phoneClean,
+      message: messageClean,
+      location: locationClean,
+      hearAboutUs: hearAboutUsClean,
+      otherHearAboutUs: otherHearAboutUsClean,
+    });
     if (!parsed.success) {
       return NextResponse.json({ error: 'validation_error', details: parsed.error.format() }, { status: 400 });
     }
@@ -124,6 +134,8 @@ export async function POST(request: Request) {
         message: messageClean,
         phone: phoneVal,
         location,
+        hearAboutUs: hearAboutUsClean,
+        otherHearAboutUs: hearAboutUsClean === 'Other' ? otherHearAboutUsClean : null,
         user_agent: userAgent,
       });
     } catch (dbErr: any) {
@@ -160,6 +172,11 @@ export async function POST(request: Request) {
         pushIf('Email', emailVal);
         pushIf('Phone', phoneVal);
         pushIf('Location', location);
+        // Include the 'How did you hear about us' field (show other text when provided)
+        const hearVal = hearAboutUsClean ? (hearAboutUsClean === 'Other' ? `Other: ${otherHearAboutUsClean || ''}` : hearAboutUsClean) : '';
+        if (hearVal && hearVal.trim()) {
+          fields.push({ label: 'How did you hear about us?', value: hearVal });
+        }
         pushIf('Message', messageClean ? messageClean.replace(/\n/g, '<br/>') : '');
 
         const plainLines = [`Hi ${nameClean || ''},`, '', 'Thanks for reaching out to YBH Ministries. We received your message and our team will review it shortly.', '', 'Submission details:', ''];

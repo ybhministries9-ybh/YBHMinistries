@@ -12,19 +12,19 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
 
   // use shared country-code list from lib
 
-  const [formData, setFormData] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '' });
   // Track selected country by index so option values are unique and stable
   const [selectedCountryIndex, setSelectedCountryIndex] = useState<number>(() => {
     const idx = COUNTRY_CODES.findIndex(c => c.code === '+91');
     return idx >= 0 ? idx : 0;
   });
   const [touched, setTouched] = useState({ name: false, email: false, phone: false, location: false, message: false });
-  const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string; location?: string; message?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string; location?: string; message?: string; hearAboutUs?: string; otherHearAboutUs?: string }>({});
 
   const LIMITS = { name: 100, email: 254, phone: 10, location: 200, message: 1000 };
 
-  const validate = (data: { name: string; email: string; phone?: string; location?: string; message: string }) => {
-    const errs: { name?: string; email?: string; phone?: string; location?: string; message?: string } = {};
+  const validate = (data: { name: string; email: string; phone?: string; location?: string; message: string; hearAboutUs?: string; otherHearAboutUs?: string }) => {
+    const errs: { name?: string; email?: string; phone?: string; location?: string; message?: string; hearAboutUs?: string; otherHearAboutUs?: string } = {};
 
     // Name
     if (!data.name || data.name.trim().length === 0) errs.name = t('contactForm.validation.nameRequired');
@@ -61,10 +61,19 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     else if (data.message.trim().length < 10) errs.message = t('contactForm.validation.messageMin');
     else if (data.message.length > LIMITS.message) errs.message = t('contactForm.validation.messageMax');
 
+    // How did you hear about us? (required)
+    if (!data.hearAboutUs) {
+      errs.hearAboutUs = t('contactForm.validation.hearAboutUsRequired', { defaultValue: 'This field is required.' });
+    } else if (data.hearAboutUs === 'Other' && (!data.otherHearAboutUs || data.otherHearAboutUs.trim().length === 0)) {
+      errs.otherHearAboutUs = t('contactForm.validation.otherHearAboutUsRequired', { defaultValue: 'Please specify.' });
+    } else if (data.otherHearAboutUs && data.otherHearAboutUs.length > 20) {
+      errs.otherHearAboutUs = t('contactForm.validation.otherHearAboutUsMax', { defaultValue: 'Maximum 20 characters allowed.' });
+    }
+
     return errs;
   };
 
-  const handleChange = (field: 'name' | 'email' | 'countryCode' | 'phone' | 'location' | 'message') => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (field: 'name' | 'email' | 'countryCode' | 'phone' | 'location' | 'message' | 'hearAboutUs' | 'otherHearAboutUs') => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const rawValue = e.target.value;
     let value = rawValue;
     // For phone field enforce digits-only and max length
@@ -89,7 +98,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     setErrors(nextErrors);
   };
 
-  const handleBlur = (field: 'name' | 'email' | 'phone' | 'location' | 'message') => () => {
+  const handleBlur = (field: 'name' | 'email' | 'phone' | 'location' | 'message' | 'hearAboutUs' | 'otherHearAboutUs') => () => {
     setTouched((s) => ({ ...s, [field]: true }));
     const nextErrors = validate(formData);
     setErrors(nextErrors);
@@ -123,7 +132,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({ name: true, email: true, phone: true, location: true, message: true });
+    setTouched({ name: true, email: true, phone: true, location: true, message: true, hearAboutUs: true, otherHearAboutUs: true });
     const nextErrors = validate(formData);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -147,7 +156,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
       setFormStatus({ submitted: true, message: t('contactForm.success') });
       if (contactFormRef.current) contactFormRef.current.reset();
       // reset all form fields (include `phone` and `location`) to avoid undefined values
-      setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '' });
+      setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '' });
       // reset selected index to default (+91)
       const defaultIdx = COUNTRY_CODES.findIndex(c => c.code === '+91');
       setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
@@ -160,7 +169,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
 
   const handleResetForm = () => {
     if (contactFormRef.current) contactFormRef.current.reset();
-    setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '' });
+    setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '' });
     const defaultIdx = COUNTRY_CODES.findIndex(c => c.code === '+91');
     setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
     setTouched({ name: false, email: false, phone: false, location: false, message: false });
@@ -323,6 +332,65 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   </p>
                 </div>
               </div>
+
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="hearAboutUs">
+                    <span className="font-medium text-white">{t('contactForm.hearAboutUs', { defaultValue: 'How did you hear about us?' })} <span className="text-yellow-400">*</span></span>
+                  </label>
+                </div>
+                <select
+                  id="hearAboutUs"
+                  name="hearAboutUs"
+                  value={formData.hearAboutUs}
+                  onChange={handleChange('hearAboutUs')}
+                  onBlur={handleBlur('hearAboutUs')}
+                  aria-invalid={!!errors.hearAboutUs}
+                  className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.hearAboutUs ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
+                >
+                  <option value="">{t('contactForm.selectOption', { defaultValue: 'Select an option' })}</option>
+                  <option value="Facebook">{t('contactForm.hearOptions.facebook', { defaultValue: 'Facebook' })}</option>
+                  <option value="Instagram">{t('contactForm.hearOptions.instagram', { defaultValue: 'Instagram' })}</option>
+                  <option value="YouTube">{t('contactForm.hearOptions.youtube', { defaultValue: 'YouTube' })}</option>
+                  <option value="TV Program">{t('contactForm.hearOptions.tvProgram', { defaultValue: 'TV Program' })}</option>
+                  <option value="Friend or Family">{t('contactForm.hearOptions.friend', { defaultValue: 'Friend or Family' })}</option>
+                  <option value="Event or Conference">{t('contactForm.hearOptions.event', { defaultValue: 'Event or Conference' })}</option>
+                  <option value="Flyer or Poster">{t('contactForm.hearOptions.flyer', { defaultValue: 'Flyer or Poster' })}</option>
+                  <option value="YBH Website">{t('contactForm.hearOptions.website', { defaultValue: 'YBH Website' })}</option>
+                  <option value="Other">{t('contactForm.hearOptions.other', { defaultValue: 'Other (Please specify)' })}</option>
+                </select>
+                <div className="mt-1">
+                  <p id="hearAboutUs-error" className={`text-sm ${touched.hearAboutUs && errors.hearAboutUs ? 'text-red-400' : 'text-gray-400'}`}>
+                    {touched.hearAboutUs && errors.hearAboutUs ? errors.hearAboutUs : ''}
+                  </p>
+                </div>
+              </div>
+
+              {formData.hearAboutUs === 'Other' && (
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <label htmlFor="otherHearAboutUs">
+                      <span className="font-medium text-white">{t('contactForm.otherHearAboutUs', { defaultValue: 'Please specify' })} <span className="text-yellow-400">*</span></span>
+                    </label>
+                    <p className="text-sm text-gray-400">{formData.otherHearAboutUs.length}/20</p>
+                  </div>
+                  <input
+                    id="otherHearAboutUs"
+                    name="otherHearAboutUs"
+                    value={formData.otherHearAboutUs}
+                    onChange={handleChange('otherHearAboutUs')}
+                    onBlur={handleBlur('otherHearAboutUs')}
+                    maxLength={20}
+                    aria-invalid={!!errors.otherHearAboutUs}
+                    className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.otherHearAboutUs ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}
+                  />
+                  <div className="mt-1">
+                    <p id="otherHearAboutUs-error" className={`text-sm ${touched.otherHearAboutUs && errors.otherHearAboutUs ? 'text-red-400' : 'text-gray-400'}`}>
+                      {touched.otherHearAboutUs && errors.otherHearAboutUs ? errors.otherHearAboutUs : ''}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <div className="mb-1 flex items-center justify-between">

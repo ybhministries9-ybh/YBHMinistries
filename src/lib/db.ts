@@ -504,15 +504,17 @@ export async function createGetInTouch(payload: {
   phone: string;
   location?: string | null;
   user_agent?: string | null;
+  hearAboutUs?: string | null;
+  otherHearAboutUs?: string | null;
   createdBy?: string | null;
 }) {
   try {
     // No debug logging here to avoid leaking data in logs.
     const { rows } = await sql`
       INSERT INTO get_in_touch (
-        name, email, phone, message, location, user_agent, status, created_by, updated_by
+        name, email, phone, message, location, hear_about_us, other_hear_about_us, user_agent, status, created_by, updated_by
       ) VALUES (
-        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.message}, ${payload.location || null}, ${payload.user_agent || null}, 'new', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
+        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.message}, ${payload.location || null}, ${payload.hearAboutUs || 'Unknown'}, ${payload.otherHearAboutUs || null}, ${payload.user_agent || null}, 'new', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
       ) RETURNING *
     `;
     return rows[0];
@@ -564,9 +566,10 @@ export async function getWorship24(opts?: { limit?: number; offset?: number; q?:
 
     if (opts?.q && String(opts.q).trim().length > 0) {
       const q = `%${String(opts.q).trim()}%`;
-      conditions.push(`(name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone ILIKE $${valueIndex + 2} OR location ILIKE $${valueIndex + 3})`);
-      values.push(q, q, q, q);
-      valueIndex += 4;
+      // Search name, email, phone, location, hear_about_us and other_hear_about_us
+      conditions.push(`(name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone ILIKE $${valueIndex + 2} OR location ILIKE $${valueIndex + 3} OR hear_about_us ILIKE $${valueIndex + 4} OR other_hear_about_us ILIKE $${valueIndex + 5})`);
+      values.push(q, q, q, q, q, q);
+      valueIndex += 6;
     }
 
     // Filter by booking_date (not created_at). Support month+year, year-only, and month-only filters.
@@ -693,7 +696,7 @@ export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?
     // Get paginated results
     values.push(limit, offset);
     const query = `
-      SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
+      SELECT id, name, email, phone, message, location, hear_about_us, other_hear_about_us, user_agent, status, created_at, updated_at
       FROM get_in_touch
       ${whereClause}
       ORDER BY created_at DESC
@@ -710,7 +713,7 @@ export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?
 export async function getGetInTouchById(id: number) {
   try {
     const { rows } = await sql`
-      SELECT id, name, email, phone, message, location, user_agent, status, created_at, updated_at
+      SELECT id, name, email, phone, message, location, hear_about_us, other_hear_about_us, user_agent, status, created_at, updated_at
       FROM get_in_touch
       WHERE id = ${id}
       LIMIT 1

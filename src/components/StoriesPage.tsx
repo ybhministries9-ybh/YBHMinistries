@@ -853,7 +853,7 @@ export function StoriesPage() {
       } catch (err) {
         // fail silently — keep UI unchanged
         setPublicStories([]);
-        console.error('Failed to load public stories', err);
+        if (process.env.NODE_ENV !== 'production') console.error('Failed to load public stories', err);
       }
     };
 

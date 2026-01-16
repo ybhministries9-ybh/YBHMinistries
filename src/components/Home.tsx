@@ -316,7 +316,7 @@ export function Home({ initialHeroImages }: HomeProps) {
           setHeroImages([defaultHeroImage]);
         }
       } catch (error) {
-        console.error('Error fetching hero images:', error);
+        if (process.env.NODE_ENV !== 'production') console.error('Error fetching hero images:', error);
         // Use default image on error
         setHeroImages([defaultHeroImage]);
       } finally {

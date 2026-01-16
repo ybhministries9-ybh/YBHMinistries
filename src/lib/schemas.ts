@@ -6,6 +6,8 @@ export const getInTouchSchema = z.object({
   phone: z.string().min(7).max(30).regex(/^[0-9+()\-\.\s]+$/),
   message: z.string().min(10).max(4000),
   location: z.string().max(200).optional().nullable().or(z.literal('')).optional(),
+  hearAboutUs: z.string().min(1).max(50),
+  otherHearAboutUs: z.string().max(20).optional().nullable(),
 });
 
 export const storySchema = z.object({

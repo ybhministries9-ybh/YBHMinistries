@@ -40,6 +40,9 @@ export default {
     error: "మీ సందేశాన్ని పంపడంలో లోపం ఉంది. దయచేసి మళ్లీ ప్రయత్నించండి.",
     validation: {
       nameRequired: 'పేరు అవసరం.',
+      hearAboutUsRequired: 'ఈ ఫీల్డ్ అవసరం.',
+      otherHearAboutUsRequired: 'దయచేసి వివరించండి.',
+      otherHearAboutUsMax: 'గరిష్టం 20 అక్షరాలు అనుమతించబడతాయి.',
       nameMin: 'దయచేసి కనీసం 2 అక్షరాలు నమోదు చేయండి.',
       nameMax: 'గరిష్టం 100 అక్షరాలు అనుమతించబడతాయి.',
       emailRequired: 'ఇమెయిల్ అవసరం.',
@@ -64,6 +67,19 @@ export default {
       worship24_facebookTooLong: 'Facebook లింక్ చాలా పొడవుగా ఉంది'
     }
   ,
+    hearAboutUs: 'మీలోనిది ద్వారా ఎలా తెలిసింది?',
+    selectOption: 'ఒక ఎంపికను ఎంచుకోండి',
+    hearOptions: {
+      facebook: 'ఫేస్‌బుక్',
+      instagram: 'ఇన్‌స్టాగ్రామ్',
+      youtube: 'యూట్యూబ్',
+      tvProgram: 'టీవీ ప్రోగ్రామ్',
+      friend: 'స్నేహితుడు లేదా కుటుంబం',
+      event: 'ఈవెంట్ లేదా కాన్ఫరెన్సు',
+      flyer: 'ఫ్లైయర్ లేదా పోస్టర్',
+      website: 'YBH వెబ్‌సైట్',
+      other: 'ఇతరం (దయచేసి వివరించండి)'
+    },
   worship24: {
     bookAnother: 'మరొకటి బుక్ చేయండి'
   },

@@ -661,6 +661,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             <div className="text-sm text-gray-200 mt-1">{formatDatePretty(c.created_at)} • {c.phone || '-'}</div>
             <div className="text-sm text-gray-200 truncate mt-1">{c.email || '-'}</div>
             {c.location && <div className="text-sm text-gray-200 truncate mt-1">{c.location}</div>}
+            {c.hear_about_us && <div className="text-sm text-gray-200 truncate mt-1">{c.hear_about_us + (c.other_hear_about_us ? `: ${c.other_hear_about_us}` : '')}</div>}
           </div>
           <div className="flex-shrink-0">
             <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
