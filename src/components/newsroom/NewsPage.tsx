@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { useRouter } from 'next/navigation';
-import { Calendar, CalendarPlus, FileText, ChevronRight, Plus, Users, Music, Globe, BookOpen, X, Clock, MapPin, User, ArrowRight, ArrowLeft, MessageSquare, Star, Medal, Mic, UserCheck, BarChart3 } from "lucide-react";
+import { Calendar, CalendarPlus, FileText, ChevronRight, Plus, Users, Music, Globe, BookOpen, X, Clock, MapPin, User, ArrowRight, ArrowLeft, MessageSquare, Star, Medal, Mic, UserCheck, BarChart3, Share2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import logger from '../../lib/logger';
+import SharePopup from '../SharePopup';
 import { getEvents, type Event } from "../../utils/eventsData";
+import { hidePageLoader } from '../../utils/pageLoader';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, LabelList } from 'recharts';
 
 // Helper function to parse date string correctly (avoiding timezone issues)
@@ -120,6 +122,9 @@ export function NewsPage() {
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [enrollmentData, setEnrollmentData] = useState<any>({});
   const [isLoadingReports, setIsLoadingReports] = useState(true);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [showSharePopup, setShowSharePopup] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
   
   const EVENTS_PER_PAGE = 10;
   const timelineRef = useRef(null);
@@ -285,10 +290,49 @@ export function NewsPage() {
     window.scrollTo(0, 0);
   }, []);
 
+  // Update URL when opening an event detail so the link can be shared
+  const handleViewDetailsWithUrl = useCallback((event: any) => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('section', 'upcoming-events');
+      url.searchParams.set('eventId', String(event.id));
+      window.history.replaceState({}, '', url.toString());
+      try { hidePageLoader(); } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
+    handleViewDetails(event);
+  }, [handleViewDetails]);
+
   const goBackToList = useCallback(() => {
     setViewMode('list');
     setSelectedEvent(null);
   }, []);
+
+  // Remove event query params when going back to list
+  const goBackToListWithUrl = useCallback(() => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('eventId');
+      url.searchParams.delete('section');
+      window.history.replaceState({}, '', url.toString());
+      try { hidePageLoader(); } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
+    goBackToList();
+  }, [goBackToList]);
+
+  const handleShare = useCallback(() => {
+    if (!selectedEvent) return;
+    try {
+      const url = window.location.href;
+      setShareUrl(url);
+      setShowSharePopup(true);
+    } catch (e) {
+      // ignore
+    }
+  }, [selectedEvent]);
 
   const router = useRouter();
 
@@ -381,6 +425,17 @@ export function NewsPage() {
                     <div className="flex items-center">
                       <MapPin size={18} className="text-[#FDB813] mr-2" />
                       <span className="text-lg">{selectedEvent.locationLabel || selectedEvent.location}</span>
+                    </div>
+                    <div className="w-full" />
+                    <div className="mt-4 flex items-center gap-3">
+                      <button
+                        onClick={handleShare}
+                        className="bg-[#1a1a1a] border border-gray-700 text-[#FDB813] px-3 py-2 rounded-full inline-flex items-center gap-2 hover:bg-[#2e2e2e]"
+                        aria-label="Share event link"
+                      >
+                        <Share2 size={16} />
+                        <span className="text-sm">{copiedLink ? 'Copied' : 'Share'}</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -543,6 +598,7 @@ export function NewsPage() {
 
   return (
     <div className="min-h-full w-full bg-black text-white font-sans pt-16 md:pt-34">
+      <SharePopup open={showSharePopup} url={shareUrl} onClose={() => setShowSharePopup(false)} />
       {/* Tabs */}
       <div className="w-full bg-black p-4">
         <div className="max-w-6xl mx-auto flex flex-wrap justify-center gap-2 md:gap-3">
@@ -603,7 +659,7 @@ export function NewsPage() {
                     >
                       {paginatedEvents.map((event) => (
                         <div key={event.id} id={`event-${event.id}`}>
-                          <EventCard event={event} onViewDetails={handleViewDetails} t={t} />
+                          <EventCard event={event} onViewDetails={handleViewDetailsWithUrl} t={t} />
                         </div>
                       ))}
                     </div>
