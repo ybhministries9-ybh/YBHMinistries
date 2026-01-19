@@ -430,7 +430,7 @@ export function NewsPage() {
                     <div className="mt-4 flex items-center gap-3">
                       <button
                         onClick={handleShare}
-                        className="bg-[#1a1a1a] border border-gray-700 text-[#FDB813] px-3 py-2 rounded-full inline-flex items-center gap-2 hover:bg-[#2e2e2e]"
+                        className="bg-[#1a1a1a] border border-gray-700 text-[#FDB813] px-3 py-2 rounded-full inline-flex items-center gap-2 hover:bg-[#2e2e2e] cursor-pointer transition transform hover:scale-105"
                         aria-label="Share event link"
                       >
                         <Share2 size={16} />
@@ -646,7 +646,7 @@ export function NewsPage() {
                 {/* Loading State */}
                 {isLoadingEvents ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-400">{t('common:loading')}</p>
+                    <p className="text-gray-400">Loading...</p>
                   </div>
                 ) : null}
 

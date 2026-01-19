@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import styles from './SharePopup.module.css';
-import { X, Copy, Check, Facebook, Instagram, MessageCircle } from 'lucide-react';
+import copyToClipboard from '../utils/clipboard';
+import { X, Facebook, Instagram, MessageCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 type Props = {
   open: boolean;
@@ -17,20 +19,16 @@ export default function SharePopup({ open, url, onClose }: Props) {
 
   const onCopy = async () => {
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url);
+      const ok = await copyToClipboard(url);
+      if (ok) {
+        setCopied(true);
+        toast.success('Link copied to clipboard');
+        setTimeout(() => setCopied(false), 2500);
       } else {
-        const tmp = document.createElement('input');
-        tmp.value = url;
-        document.body.appendChild(tmp);
-        tmp.select();
-        document.execCommand('copy');
-        document.body.removeChild(tmp);
+        toast.error('Copy failed');
       }
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
     } catch (e) {
-      // ignore
+      toast.error('Copy failed');
     }
   };
 
@@ -42,21 +40,48 @@ export default function SharePopup({ open, url, onClose }: Props) {
     }
   };
 
+  const shareText = `Join us for 24 hours of non-stop worship this Saturday as we lift His name high and experience His presence together! 🙌✨🔥`;
+  // use shared clipboard util for copying text
+
   const socials = [
     {
       name: 'Facebook',
-      icon: <Facebook />, 
-      onClick: () => openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`),
+      icon: <Facebook />,
+      className: styles.facebook,
+      onClick: async () => {
+        // copy message+url so user can paste if Facebook composer doesn't prefill
+        const ok = await copyToClipboard(`${shareText}\n${url}`);
+        if (ok) toast.success('Message copied to clipboard');
+        else toast.error('Copy failed');
+        openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`);
+      },
     },
     {
       name: 'Instagram',
       icon: <Instagram />,
-      onClick: () => openShareWindow('https://www.instagram.com'),
+      className: styles.instagram,
+      onClick: async () => {
+        const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+        if (isMobile && navigator.share) {
+          try {
+            await navigator.share({ text: shareText, url });
+            return;
+          } catch (e) {
+            // ignore and fallback
+          }
+        }
+        // Desktop fallback: copy message + URL and open Instagram create page
+        const ok = await copyToClipboard(`${shareText}\n${url}`);
+        if (ok) toast.success('Message copied to clipboard');
+        else toast.error('Copy failed');
+        openShareWindow('https://www.instagram.com/create/style/');
+      },
     },
     {
       name: 'WhatsApp',
       icon: <MessageCircle />,
-      onClick: () => openShareWindow(`https://api.whatsapp.com/send?text=${encodeURIComponent(url)}`),
+      className: styles.whatsapp,
+      onClick: () => openShareWindow(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + '\n' + url)}`),
     },
   ];
 
@@ -72,7 +97,13 @@ export default function SharePopup({ open, url, onClose }: Props) {
 
         <div className={styles.icons}>
           {socials.map((s) => (
-            <button key={s.name} className={styles.iconBtn} onClick={s.onClick} aria-label={`Share to ${s.name}`}>
+            <button
+              key={s.name}
+              className={`${styles.iconBtn} ${s.className ?? ''}`}
+              onClick={s.onClick}
+              aria-label={`Share to ${s.name}`}
+              title={`Share to ${s.name}`}
+            >
               {React.cloneElement(s.icon as React.ReactElement<any>, { size: 22 } as any)}
             </button>
           ))}
