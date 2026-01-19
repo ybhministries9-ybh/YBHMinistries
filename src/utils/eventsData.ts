@@ -96,6 +96,31 @@ export async function getEvents(): Promise<Event[]> {
 }
 
 /**
+ * Fetch a single event by id from the API (public).
+ * Falls back to cached events or fallback data if API doesn't return the event.
+ */
+export async function getEventById(id: number): Promise<Event | null> {
+  try {
+    const resp = await fetch(`/api/events/${id}`);
+    if (resp.ok) {
+      const json = await resp.json();
+      if (json && json.success && json.data) return json.data as Event;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // Fallback: look up in cached events or fallback list
+  try {
+    const all = await getEvents();
+    const found = all.find(ev => ev.id === id);
+    return found || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
  * Get upcoming events sorted by date (soonest first)
  * @param limit - Maximum number of events to return
  * @returns Promise<Event[]> Array of upcoming events
