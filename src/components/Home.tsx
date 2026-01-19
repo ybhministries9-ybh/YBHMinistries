@@ -210,7 +210,7 @@ function ImageCarousel({ images, interval = 3000 }) {
   }, [images.length, interval]);
   
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div className="relative w-full h-screen overflow-hidden image-carousel-root">
       {images.map((image, index) => (
         <div
           key={index}
@@ -363,7 +363,7 @@ export function Home({ initialHeroImages }: HomeProps) {
   return (
     <div className="w-full min-h-screen bg-black text-white home-pill-buttons">
       {/* Hero Section - Image Slideshow */}
-      <section className="relative h-screen overflow-hidden pt-16 md:pt-30">
+      <section className="relative h-screen overflow-hidden pt-16 md:pt-30 home-hero">
         {isLoading ? (
           <div className="w-full h-full flex items-center justify-center bg-black">
             <div className="flex space-x-3">
@@ -452,6 +452,26 @@ export function Home({ initialHeroImages }: HomeProps) {
       </section>
 
       {/* Floating Scroll to Top Button */}
+      {/* Mobile-only adjustment: reduce hero height to leave space for event banner */}
+      <style jsx>{`
+        @media (max-width: 420px) {
+          .home-hero {
+            height: calc(100vh - 72px) !important;
+            min-height: calc(100vh - 72px) !important;
+          }
+
+          .image-carousel-root {
+            height: calc(100vh - 72px) !important;
+            min-height: calc(100vh - 72px) !important;
+          }
+
+          .image-carousel-root img {
+            height: 100% !important;
+            object-fit: cover !important;
+          }
+        }
+      `}</style>
+
       <ScrollToTop />
     </div>
   );
