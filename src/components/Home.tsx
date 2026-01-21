@@ -179,6 +179,7 @@ function VideoSection() {
 function ImageCarousel({ images, interval = 3000 }) {
   const { t } = useTranslation('home');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const showNav = images && images.length > 1;
   
   // Preload the first image immediately
   useEffect(() => {
@@ -246,22 +247,26 @@ function ImageCarousel({ images, interval = 3000 }) {
         </div>
       </div>
 
-      {/* Left / Right navigation buttons */}
-      <button
-        onClick={() => setCurrentIndex((currentIndex - 1 + images.length) % images.length)}
-        aria-label="Previous slide"
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
-      >
-        <ChevronLeft size={20} color="#FDB813" />
-      </button>
+      {/* Left / Right navigation buttons (only when more than one image) */}
+      {showNav && (
+        <>
+          <button
+            onClick={() => setCurrentIndex((currentIndex - 1 + images.length) % images.length)}
+            aria-label="Previous slide"
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
+          >
+            <ChevronLeft size={20} color="#FDB813" />
+          </button>
 
-      <button
-        onClick={() => setCurrentIndex((currentIndex + 1) % images.length)}
-        aria-label="Next slide"
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
-      >
-        <ChevronRight size={20} color="#FDB813" />
-      </button>
+          <button
+            onClick={() => setCurrentIndex((currentIndex + 1) % images.length)}
+            aria-label="Next slide"
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
+          >
+            <ChevronRight size={20} color="#FDB813" />
+          </button>
+        </>
+      )}
     </div>
   );
 }
