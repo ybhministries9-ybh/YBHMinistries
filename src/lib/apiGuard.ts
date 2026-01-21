@@ -39,7 +39,7 @@ export function validateContentType(req: NextRequest, expected: string[]) {
   throw new ApiError(415, `Unsupported content type`);
 }
 
-export function withApiGuard(handler: (req: NextRequest) => Promise<Response | NextResponse> | Response | NextResponse, options?: { maxJsonBytes?: number, allowMultipartPaths?: string[] }) {
+export function withApiGuard(handler: (req: NextRequest) => Promise<Response | NextResponse> | Response | NextResponse, options?: { maxJsonBytes?: number, allowMultipartPaths?: string[], multipartMaxBytes?: number }) {
   return async function (req: NextRequest) {
     try {
       // Pre-validate content length header
@@ -48,8 +48,9 @@ export function withApiGuard(handler: (req: NextRequest) => Promise<Response | N
       const max = options?.maxJsonBytes || 100 * 1024;
       // per-path adjustment
       if (options?.allowMultipartPaths && options.allowMultipartPaths.some(p => path.startsWith(p))) {
-        // allow larger uploads (5MB)
-        if (cl && cl > 5_000_000) throw new ApiError(413, 'Payload too large');
+        // allow larger uploads for multipart paths; size configurable via options.multipartMaxBytes
+        const multipartMax = options?.multipartMaxBytes || 5_000_000;
+        if (cl && cl > multipartMax) throw new ApiError(413, 'Payload too large');
       } else {
         if (cl && cl > max) throw new ApiError(413, 'Payload too large');
       }

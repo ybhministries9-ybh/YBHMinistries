@@ -179,6 +179,7 @@ function VideoSection() {
 function ImageCarousel({ images, interval = 3000 }) {
   const { t } = useTranslation('home');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const showNav = images && images.length > 1;
   
   // Preload the first image immediately
   useEffect(() => {
@@ -210,7 +211,7 @@ function ImageCarousel({ images, interval = 3000 }) {
   }, [images.length, interval]);
   
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div className="relative w-full h-screen overflow-hidden image-carousel-root">
       {images.map((image, index) => (
         <div
           key={index}
@@ -246,22 +247,26 @@ function ImageCarousel({ images, interval = 3000 }) {
         </div>
       </div>
 
-      {/* Left / Right navigation buttons */}
-      <button
-        onClick={() => setCurrentIndex((currentIndex - 1 + images.length) % images.length)}
-        aria-label="Previous slide"
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
-      >
-        <ChevronLeft size={20} color="#FDB813" />
-      </button>
+      {/* Left / Right navigation buttons (only when more than one image) */}
+      {showNav && (
+        <>
+          <button
+            onClick={() => setCurrentIndex((currentIndex - 1 + images.length) % images.length)}
+            aria-label="Previous slide"
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
+          >
+            <ChevronLeft size={20} color="#FDB813" />
+          </button>
 
-      <button
-        onClick={() => setCurrentIndex((currentIndex + 1) % images.length)}
-        aria-label="Next slide"
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
-      >
-        <ChevronRight size={20} color="#FDB813" />
-      </button>
+          <button
+            onClick={() => setCurrentIndex((currentIndex + 1) % images.length)}
+            aria-label="Next slide"
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
+          >
+            <ChevronRight size={20} color="#FDB813" />
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -283,34 +288,53 @@ export function Home({ initialHeroImages }: HomeProps) {
   // Fetch hero images and events from API (skip if initialHeroImages provided)
   useEffect(() => {
     const fetchHeroImages = async () => {
-      // Skip fetching if we already have initial images from SSR
-      if (initialHeroImages && initialHeroImages.length > 0) {
-        setIsLoading(false);
-        return;
-      }
+      // Always fetch fresh hero image metadata on the client so we can prefer
+      // mobile-specific URLs when the viewer is on a small screen. `initialHeroImages`
+      // is still used to avoid layout shift before the fetch completes.
       try {
         const response = await fetch('/api/home/hero-images');
         const result = await response.json();
         
-            if (result.success && result.data && result.data.length > 0) {
+                if (result.success && result.data && result.data.length > 0) {
               // Prefer the signed original (converted to WebP at upload time) so the hero shows the highest-quality WebP.
-                const imageUrls = result.data.map((img: any) => {
-                  // Prefer the DB `image_url` (original) when it's not the same as medium/thumb.
-                  try {
-                    if (img.image_url && img.image_url !== img.medium_url && img.image_url !== img.thumbnail_url) {
-                      return img.signedUrl || img.image_url;
-                    }
-                  } catch (e) {
-                    // fallback silently
-                  }
-                  // If signedUrl points to a medium/thumb path, prefer medium only as a fallback.
-                  if (img.signedUrl && !/(\/medium\/|\/thumbs\/)/.test(String(img.signedUrl))) {
-                    return img.signedUrl;
-                  }
-                  return img.signedUrl || img.signedMediumUrl || img.signedThumbUrl || img.image_url || img.medium_url || img.thumbnail_url || img.url;
-                }).filter(Boolean) as string[];
+                const isMobileClient = typeof window !== 'undefined' && window.innerWidth <= 640;
 
-              setHeroImages(imageUrls.length > 0 ? imageUrls : [defaultHeroImage]);
+                let imageUrls: string[] = [];
+
+                if (isMobileClient) {
+                  // For mobile clients, include ONLY images that have a mobile-specific source.
+                  imageUrls = result.data
+                    .map((img: any) => {
+                      const mobileUrl = img.signedMobileUrl || img.mobile_image_url || img.signedMobileMediumUrl || img.mobile_medium_url || img.signedMobileThumbUrl || img.mobile_thumbnail_url;
+                      return mobileUrl || null;
+                    })
+                    .filter(Boolean) as string[];
+                } else {
+                  // Desktop / fallback behavior: prefer original/signed URLs, then medium/thumb
+                  imageUrls = result.data
+                    .map((img: any) => {
+                      try {
+                        if (img.image_url && img.image_url !== img.medium_url && img.image_url !== img.thumbnail_url) {
+                          return img.signedUrl || img.image_url;
+                        }
+                      } catch (e) {}
+                      if (img.signedUrl && !/(\/medium\/|\/thumbs\/)/.test(String(img.signedUrl))) return img.signedUrl;
+                      return img.signedUrl || img.signedMediumUrl || img.signedThumbUrl || img.image_url || img.medium_url || img.thumbnail_url || img.url || null;
+                    })
+                    .filter(Boolean) as string[];
+                }
+
+                // Deduplicate while preserving order
+                const seen = new Set<string>();
+                const deduped: string[] = [];
+                for (const u of imageUrls) {
+                  if (!seen.has(u)) {
+                    seen.add(u);
+                    deduped.push(u);
+                  }
+                }
+
+              setHeroImages(deduped.length > 0 ? deduped : [defaultHeroImage]);
         } else {
           // Use default image if no images in database
           setHeroImages([defaultHeroImage]);
@@ -363,7 +387,7 @@ export function Home({ initialHeroImages }: HomeProps) {
   return (
     <div className="w-full min-h-screen bg-black text-white home-pill-buttons">
       {/* Hero Section - Image Slideshow */}
-      <section className="relative h-screen overflow-hidden pt-16 md:pt-30">
+      <section className="relative h-screen overflow-hidden pt-16 md:pt-30 home-hero">
         {isLoading ? (
           <div className="w-full h-full flex items-center justify-center bg-black">
             <div className="flex space-x-3">
@@ -452,6 +476,26 @@ export function Home({ initialHeroImages }: HomeProps) {
       </section>
 
       {/* Floating Scroll to Top Button */}
+      {/* Mobile-only adjustment: reduce hero height to leave space for event banner */}
+      <style jsx>{`
+        @media (max-width: 420px) {
+          .home-hero {
+            height: calc(100vh - 72px) !important;
+            min-height: calc(100vh - 72px) !important;
+          }
+
+          .image-carousel-root {
+            height: calc(100vh - 72px) !important;
+            min-height: calc(100vh - 72px) !important;
+          }
+
+          .image-carousel-root img {
+            height: 100% !important;
+            object-fit: cover !important;
+          }
+        }
+      `}</style>
+
       <ScrollToTop />
     </div>
   );

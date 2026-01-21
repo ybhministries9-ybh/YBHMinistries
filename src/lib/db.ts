@@ -91,6 +91,7 @@ export async function getActiveHomeVideo(): Promise<HomeVideo | null> {
  */
 export async function createHeroImage(
   blobUrl: string,
+  mobileBlobUrl?: string | null,
   displayOrder?: number,
   createdBy?: string
 ): Promise<HeroImage> {
@@ -106,9 +107,10 @@ export async function createHeroImage(
 
     const { rows } = await sql<HeroImage>`
       INSERT INTO home_hero_images (
-        image_url, display_order, created_by, updated_by
+        image_url, mobile_image_url, display_order, created_by, updated_by
       ) VALUES (
         ${blobUrl}, 
+        ${mobileBlobUrl || null},
         ${displayOrder},
         ${createdBy || null},
         ${createdBy || null}

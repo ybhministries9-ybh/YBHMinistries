@@ -8,6 +8,9 @@
 CREATE TABLE IF NOT EXISTS home_hero_images (
     id SERIAL PRIMARY KEY,
     image_url TEXT NOT NULL, -- Vercel Blob URL for display and management
+    mobile_image_url TEXT, -- Optional mobile-specific image (internal r2:// or public URL)
+    mobile_thumbnail_url TEXT,
+    mobile_medium_url TEXT,
     display_order INTEGER NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

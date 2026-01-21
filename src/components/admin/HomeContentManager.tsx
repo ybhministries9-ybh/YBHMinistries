@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Upload, Plus, Trash2, Video as VideoIcon, Image as ImageIcon, GripVertical, X, Save, Loader2 } from 'lucide-react';
+import { Trash2, Video as VideoIcon, Image as ImageIcon, GripVertical, X, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { MultipleImageUpload } from './MultipleImageUpload';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
@@ -14,6 +15,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 interface HeroImage {
   id: number;
   image_url: string;
+  mobile_image_url?: string | null;
   signedUrl?: string | null;
   display_order: number;
   is_active: boolean;
@@ -49,11 +51,12 @@ function getAuthHeaders(contentType?: string) {
   return headers;
 }
 
-function SortableImageCard({ image, onDelete, isSelected, onToggleSelect }: { 
+function SortableImageCard({ image, onDelete, isSelected, onToggleSelect, isMobilePreview = false }: { 
   image: HeroImage;
   onDelete: (id: number) => void;
   isSelected: boolean;
   onToggleSelect: (id: number) => void;
+  isMobilePreview?: boolean;
 }) {
   const {
     attributes,
@@ -80,10 +83,13 @@ function SortableImageCard({ image, onDelete, isSelected, onToggleSelect }: {
     >
       {/* Image */}
       <div className="relative aspect-video bg-black">
-        <img 
-          src={(image as any).signedThumbUrl || (image as any).signedUrl || image.image_url} 
-          alt="Hero image" 
-          className="w-full h-full object-cover"
+        <img
+          src={
+            (image as any).signedMobileThumbUrl || (image as any).signedMobileUrl || (image as any).mobile_image_url ||
+            (image as any).signedThumbUrl || (image as any).signedUrl || image.image_url || ''
+          }
+          alt="Hero image"
+          className={isMobilePreview ? 'w-full h-full object-contain' : 'w-full h-full object-cover'}
         />
         
         {/* Drag Handle Overlay */}
@@ -122,33 +128,17 @@ function SortableImageCard({ image, onDelete, isSelected, onToggleSelect }: {
 
 export function HomeContentManager() {
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
+  const [showUploader, setShowUploader] = useState(false);
+  const [uploaderCategory, setUploaderCategory] = useState<'desktop' | 'mobile'>('desktop');
   const [homeVideo, setHomeVideo] = useState<HomeVideo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Hero Image Upload State
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  // Hero Image Upload State (modal uploader used)
   const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const [isDragActive, setIsDragActive] = useState(false);
-    const [MAX_IMAGE_SIZE] = [2 * 1024 * 1024]; // 2MB
-    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
-    const [filePreviews, setFilePreviews] = useState<string[]>([]);
-
-    // create object URLs for previews and clean up
-    useEffect(() => {
-      // cleanup old previews
-      setFilePreviews(prev => {
-        prev.forEach(u => { try { URL.revokeObjectURL(u); } catch {} });
-        return [];
-      });
-      const urls = imageFiles.map(f => URL.createObjectURL(f));
-      setFilePreviews(urls);
-      return () => {
-        urls.forEach(u => { try { URL.revokeObjectURL(u); } catch {} });
-      };
-    }, [imageFiles]);
   
   // Selection State for bulk delete
   const [selectedImageIds, setSelectedImageIds] = useState<Set<number>>(new Set());
+  const [activeTab, setActiveTab] = useState<'desktop' | 'mobile'>('desktop');
   
   // Dialog State
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -223,42 +213,41 @@ export function HomeContentManager() {
     loadData();
   }, []);
 
-  // Upload hero images
-  const handleUploadImages = async () => {
-    if (imageFiles.length === 0) {
-      toast.error('Please select at least one image file');
-      return;
-    }
+  // Handle files selected from MultipleImageUpload modal
+  const handleModalUploadComplete = async (images: { url: string; file?: File; category: string }[]) => {
+    setShowUploader(false);
+    if (!images || images.length === 0) return;
 
     setIsUploadingImages(true);
     try {
       const formData = new FormData();
-      imageFiles.forEach(file => {
-        formData.append('files', file);
+      images.forEach(img => {
+        if (img.file) formData.append('files', img.file);
       });
+      // mark mobile uploads
+      if (uploaderCategory === 'mobile') formData.append('isMobile', 'true');
 
       const response = await fetch('/api/admin/home/hero-images', {
         method: 'POST',
         body: formData,
-        headers: getAuthHeaders() // FormData: helper will not set Content-Type so browser sets boundary
+        headers: getAuthHeaders(),
       });
-
       const result = await response.json();
-      
       if (result.success) {
         toast.success(`Uploaded ${result.data.length} image(s) successfully`);
-        setImageFiles([]);
         await fetchHeroImages();
       } else {
         toast.error(result.error || 'Failed to upload images');
       }
-    } catch (error) {
-      console.error('Error uploading images:', error);
+    } catch (err) {
+      console.error('Error uploading images from modal:', err);
       toast.error('Error uploading images');
     } finally {
       setIsUploadingImages(false);
     }
   };
+
+  // Uploads are handled via the `MultipleImageUpload` modal; use `handleModalUploadComplete`.
 
   // Delete hero image
   const handleDeleteImage = async (id: number) => {
@@ -293,22 +282,27 @@ export function HomeContentManager() {
     });
   };
 
-  // Bulk delete images
+  // Bulk delete images (only those selected in the current tab)
   const handleBulkDelete = async () => {
-    if (selectedImageIds.size === 0) {
-      toast.error('No images selected');
+    // Determine currently visible image IDs for the active tab
+    const visible = heroImages.filter(img => activeTab === 'mobile' ? Boolean(img.mobile_image_url) : !img.mobile_image_url);
+    const visibleIdsSet = new Set(visible.map(v => v.id));
+    const selectedInVisible = Array.from(selectedImageIds).filter(id => visibleIdsSet.has(id));
+
+    if (selectedInVisible.length === 0) {
+      toast.error('No images selected in the current tab');
       return;
     }
 
     setConfirmDialog({
       isOpen: true,
       title: 'Delete Multiple Images',
-      message: `Are you sure you want to delete ${selectedImageIds.size} image(s)? This action cannot be undone.`,
+      message: `Are you sure you want to delete ${selectedInVisible.length} image(s)? This action cannot be undone.`,
       type: 'danger',
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         try {
-          const ids = Array.from(selectedImageIds).join(',');
+          const ids = selectedInVisible.join(',');
           const response = await fetch(`/api/admin/home/hero-images?ids=${ids}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
@@ -318,7 +312,10 @@ export function HomeContentManager() {
           
           if (result.success) {
             toast.success(result.message || 'Images deleted successfully');
-            setSelectedImageIds(new Set()); // Clear selection
+            // Remove only the deleted IDs from the existing selection set
+            const newSel = new Set(selectedImageIds);
+            selectedInVisible.forEach(id => newSel.delete(id));
+            setSelectedImageIds(newSel);
             await fetchHeroImages();
           } else {
             toast.error(result.error || 'Failed to delete images');
@@ -344,10 +341,21 @@ export function HomeContentManager() {
 
   // Select all images
   const handleSelectAll = () => {
-    if (selectedImageIds.size === heroImages.length) {
-      setSelectedImageIds(new Set()); // Deselect all
+    // Only operate on currently visible images (respect activeTab)
+    const visible = heroImages.filter(img => activeTab === 'mobile' ? Boolean(img.mobile_image_url) : !img.mobile_image_url);
+    const visibleIds = visible.map(v => v.id);
+    const allVisibleSelected = visibleIds.every(id => selectedImageIds.has(id));
+
+    if (allVisibleSelected) {
+      // Deselect only visible ids
+      const newSet = new Set(selectedImageIds);
+      visibleIds.forEach(id => newSet.delete(id));
+      setSelectedImageIds(newSet);
     } else {
-      setSelectedImageIds(new Set(heroImages.map(img => img.id))); // Select all
+      // Add visible ids to selection
+      const newSet = new Set(selectedImageIds);
+      visibleIds.forEach(id => newSet.add(id));
+      setSelectedImageIds(newSet);
     }
   };
 
@@ -629,114 +637,60 @@ export function HomeContentManager() {
 
       {/* Hero Images Section */}
       <div className="bg-[#2E2E2E] rounded-lg p-6 border border-[#3a3a3a]">
-        <div className="flex items-center gap-2 mb-6">
-          <ImageIcon className="h-6 w-6" style={{ color: accentGold }} />
-          <h2 className="text-2xl font-bold text-white">Hero Images</h2>
-          <span className="text-sm text-gray-400 ml-2">({heroImages.length} images)</span>
-        </div>
-
-        {/* Upload Form */}
-        <div className="bg-black rounded-lg p-6 mb-6 border border-[#3a3a3a]">
-          <h3 className="text-lg font-semibold mb-4 text-white">Upload New Images</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="imageFiles" className="text-white mb-2 block">Image Files (Multiple)</Label>
-              <div>
-                <div
-                  className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md ${isDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 bg-black'} text-gray-300 cursor-pointer`}
-                  onClick={() => document.getElementById('imageFiles')?.click()}
-                  onDragOver={(e) => { e.preventDefault(); setIsDragActive(true); }}
-                  onDragEnter={(e) => { e.preventDefault(); setIsDragActive(true); }}
-                  onDragLeave={(e) => { e.preventDefault(); setIsDragActive(false); }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDragActive(false);
-                    const files = Array.from(e.dataTransfer?.files || []);
-                    if (files.length > 0) {
-                      const images = files.filter(f => ALLOWED_IMAGE_TYPES.includes(f.type) && f.size <= MAX_IMAGE_SIZE);
-                      setImageFiles(images);
-                    }
-                  }}
-                >
-                  <input
-                    id="imageFiles"
-                    type="file"
-                    accept=".jpg,.jpeg,.png"
-                    multiple
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      const images = files.filter(f => ALLOWED_IMAGE_TYPES.includes(f.type) && f.size <= MAX_IMAGE_SIZE);
-                      setImageFiles(images);
-                    }}
-                    className="hidden"
-                  />
-
-                  <div className="text-center">
-                    <div className="mb-1 font-medium">Click or drag image here to upload</div>
-                    <div className="text-xs text-gray-500">PNG or JPG, max 2MB</div>
-                  </div>
-                </div>
-
-                {/* Previews of selected files */}
-                {imageFiles.length > 0 && (
-                  <div className="mt-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-3">
-                      {imageFiles.map((file, idx) => (
-                        <div key={idx} className="relative bg-black border border-gray-700 rounded overflow-hidden flex flex-col">
-                          {/* Square preview area */}
-                          <div className="w-full aspect-square bg-gray-900 overflow-hidden relative">
-                            {filePreviews[idx] ? (
-                              <img src={filePreviews[idx]} alt={file.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <ImageIcon className="text-gray-500" />
-                              </div>
-                            )}
-
-                            {/* Bottom overlay with filename and delete button */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-2 py-1 flex items-center justify-between">
-                              <div className="text-xs text-white truncate" title={file.name}>{file.name}</div>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); const newFiles = [...imageFiles]; newFiles.splice(idx, 1); setImageFiles(newFiles); }}
-                                className="p-1 bg-red-600 hover:bg-red-700 text-white rounded ml-2"
-                                aria-label={`Remove ${file.name}`}
-                                title="Remove"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+        <div className="flex items-center justify-between gap-2 mb-6">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-6 w-6" style={{ color: accentGold }} />
+            <h2 className="text-2xl font-bold text-white">Hero Images</h2>
+            <span className="text-sm text-gray-400 ml-2">({heroImages.length} images)</span>
           </div>
 
-          <button
-            onClick={handleUploadImages}
-            disabled={isUploadingImages || imageFiles.length === 0}
-            className="mt-4 px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center gap-2"
-            style={{ backgroundColor: accentGold }}
-          >
-            {isUploadingImages ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Uploading Images...
-              </>
-            ) : (
-              'Upload Images'
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => { setUploaderCategory('desktop'); setShowUploader(true); }}
+              className="px-4 py-2 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+            >
+              Upload Desktop Files
+            </Button>
+
+            <Button
+              onClick={() => { setUploaderCategory('mobile'); setShowUploader(true); }}
+              className="px-4 py-2 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+            >
+              Upload Mobile Files
+            </Button>
+          </div>
         </div>
+
+        {/* Upload handled via modal uploader buttons above; inline upload form removed */}
 
         {/* Images List */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white">Current Images (Drag to Reorder)</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Current Images (Drag to Reorder)</h3>
+              <div className="mt-2">
+                <div className="border-b border-gray-700">
+                  <div className="flex gap-1 overflow-x-auto">
+                    {[
+                      { key: 'desktop', label: `Desktop (${heroImages.filter(img => !img.mobile_image_url).length})` },
+                      { key: 'mobile', label: `Mobile (${heroImages.filter(img => img.mobile_image_url).length})` }
+                    ].map((tab) => {
+                      const isActive = activeTab === (tab.key as 'desktop' | 'mobile');
+                      return (
+                        <button
+                          key={tab.key}
+                          onClick={() => setActiveTab(tab.key as 'desktop' | 'mobile')}
+                          className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors whitespace-nowrap cursor-pointer ${isActive ? 'border-[#FDB813] text-[#FDB813] bg-[#2E2E2E]' : 'border-transparent text-gray-400 hover:text-white hover:bg-[#2E2E2E]'}`}
+                        >
+                          <ImageIcon size={17} />
+                          <span className="text-md font-medium">{tab.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
             {heroImages.length > 0 && (
               <div className="flex items-center gap-2">
                 <button
@@ -744,17 +698,27 @@ export function HomeContentManager() {
                   className="px-4 py-2 text-black rounded transition-all cursor-pointer"
                   style={{ backgroundColor: accentGold }}
                 >
-                  {selectedImageIds.size === heroImages.length ? 'Deselect All' : 'Select All'}
+                  {(() => {
+                    const visible = heroImages.filter(img => activeTab === 'mobile' ? Boolean(img.mobile_image_url) : !img.mobile_image_url);
+                    const visibleIds = visible.map(v => v.id);
+                    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedImageIds.has(id));
+                    return allVisibleSelected ? 'Deselect All' : 'Select All';
+                  })()}
                 </button>
-                {selectedImageIds.size > 0 && (
-                  <button
-                    onClick={handleBulkDelete}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Selected ({selectedImageIds.size})
-                  </button>
-                )}
+                {(() => {
+                  const visible = heroImages.filter(img => activeTab === 'mobile' ? Boolean(img.mobile_image_url) : !img.mobile_image_url);
+                  const visibleIdsSet = new Set(visible.map(v => v.id));
+                  const selectedInVisible = Array.from(selectedImageIds).filter(id => visibleIdsSet.has(id));
+                  return selectedInVisible.length > 0 ? (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete Selected ({selectedInVisible.length})
+                    </button>
+                  ) : null;
+                })()}
               </div>
             )}
           </div>
@@ -772,20 +736,30 @@ export function HomeContentManager() {
                 strategy={rectSortingStrategy}
               >
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                  {heroImages.map((image) => (
-                    <SortableImageCard
-                      key={image.id}
-                      image={image}
-                      onDelete={handleDeleteImage}
-                      isSelected={selectedImageIds.has(image.id)}
-                      onToggleSelect={handleToggleSelect}
-                    />
-                  ))}
+                  {heroImages
+                    .filter(img => activeTab === 'mobile' ? Boolean(img.mobile_image_url) : !img.mobile_image_url)
+                    .map((image) => (
+                      <SortableImageCard
+                        key={image.id}
+                        image={image}
+                        onDelete={handleDeleteImage}
+                        isSelected={selectedImageIds.has(image.id)}
+                        onToggleSelect={handleToggleSelect}
+                        isMobilePreview={activeTab === 'mobile'}
+                      />
+                    ))}
                 </div>
               </SortableContext>
             </DndContext>
           )}
         </div>
+        {showUploader && (
+          <MultipleImageUpload
+            onUploadComplete={handleModalUploadComplete}
+            onClose={() => setShowUploader(false)}
+            category={uploaderCategory}
+          />
+        )}
       </div>
 
       {/* Video Section */}

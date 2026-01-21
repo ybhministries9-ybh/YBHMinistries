@@ -83,7 +83,7 @@ export function EventScrollBanner() {
 
   return (
     <div 
-      className="absolute bottom-0 left-0 right-0 z-30 cursor-pointer group"
+      className="event-banner absolute bottom-0 left-0 right-0 z-30 cursor-pointer group"
       onClick={handleBannerClick}
       role="button"
       tabIndex={0}
@@ -96,7 +96,7 @@ export function EventScrollBanner() {
       }}
     >
       {/* Semi-transparent banner with golden top border */}
-      <div className="bg-black/70 backdrop-blur-sm border-t-2 border-[#FDB813] overflow-hidden">
+      <div className="banner-inner bg-black/70 backdrop-blur-sm border-t-2 border-[#FDB813] overflow-hidden">
         {/* Scrolling container (reduced vertical padding to decrease banner height) */}
         <div className="py-2">
           <div className="scroll-container">
@@ -201,6 +201,32 @@ export function EventScrollBanner() {
           .scroll-content {
             animation: none;
             transform: translateX(0);
+          }
+        }
+
+        /* Mobile-only adjustments: reduce height/font-size; keep banner at hero bottom */
+        @media (max-width: 420px) {
+          .event-banner {
+            bottom: 0; /* align to bottom of hero section */
+          }
+
+          .banner-inner {
+            padding-top: 6px;
+            padding-bottom: 6px;
+          }
+
+          .event-item {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+          }
+
+          .event-item .text-base {
+            font-size: 0.9rem;
+          }
+
+          .event-item .event-meta {
+            font-size: 0.7rem;
+            gap: 0.5rem;
           }
         }
       `}</style>
