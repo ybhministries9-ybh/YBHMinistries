@@ -51,11 +51,12 @@ function getAuthHeaders(contentType?: string) {
   return headers;
 }
 
-function SortableImageCard({ image, onDelete, isSelected, onToggleSelect }: { 
+function SortableImageCard({ image, onDelete, isSelected, onToggleSelect, isMobilePreview = false }: { 
   image: HeroImage;
   onDelete: (id: number) => void;
   isSelected: boolean;
   onToggleSelect: (id: number) => void;
+  isMobilePreview?: boolean;
 }) {
   const {
     attributes,
@@ -82,13 +83,13 @@ function SortableImageCard({ image, onDelete, isSelected, onToggleSelect }: {
     >
       {/* Image */}
       <div className="relative aspect-video bg-black">
-        <img 
+        <img
           src={
             (image as any).signedMobileThumbUrl || (image as any).signedMobileUrl || (image as any).mobile_image_url ||
             (image as any).signedThumbUrl || (image as any).signedUrl || image.image_url || ''
           }
-          alt="Hero image" 
-          className="w-full h-full object-cover"
+          alt="Hero image"
+          className={isMobilePreview ? 'w-full h-full object-contain' : 'w-full h-full object-cover'}
         />
         
         {/* Drag Handle Overlay */}
@@ -744,6 +745,7 @@ export function HomeContentManager() {
                         onDelete={handleDeleteImage}
                         isSelected={selectedImageIds.has(image.id)}
                         onToggleSelect={handleToggleSelect}
+                        isMobilePreview={activeTab === 'mobile'}
                       />
                     ))}
                 </div>
