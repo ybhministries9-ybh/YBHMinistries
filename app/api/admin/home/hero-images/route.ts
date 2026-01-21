@@ -18,18 +18,34 @@ export async function GET(request: NextRequest) {
 
     const enhanced = await Promise.all(images.map(async (img: any) => {
       const image_url = img.image_url || img.url || '';
-      const parsed = parseKeyFromUrl(image_url);
-      if (parsed && parsed.key) {
-        try {
-          const bucket = parsed.bucket || PRIVATE_BUCKET;
-          const signedUrl = await getPresignedGetUrl(parsed.key, 3600, bucket || undefined);
-          return { ...img, signedUrl };
-        } catch (err) {
-          console.error('Failed to create presigned URL for admin image preview', parsed, err);
-          return { ...img };
+      const mobile_url = img.mobile_image_url || img.mobile_url || '';
+      const out: any = { ...img };
+
+      if (image_url) {
+        const parsed = parseKeyFromUrl(image_url);
+        if (parsed && parsed.key) {
+          try {
+            const bucket = parsed.bucket || PRIVATE_BUCKET;
+            out.signedUrl = await getPresignedGetUrl(parsed.key, 3600, bucket || undefined);
+          } catch (err) {
+            console.error('Failed to create presigned URL for admin image preview', parsed, err);
+          }
         }
       }
-      return { ...img };
+
+      if (mobile_url) {
+        try {
+          const pm = parseKeyFromUrl(mobile_url);
+          if (pm && pm.key) {
+            const bucket = pm.bucket || PRIVATE_BUCKET;
+            out.signedMobileUrl = await getPresignedGetUrl(pm.key, 3600, bucket || undefined);
+          }
+        } catch (err) {
+          console.error('Failed to generate presigned mobile URL', err);
+        }
+      }
+
+      return out;
     }));
 
     return NextResponse.json({
@@ -60,11 +76,13 @@ export async function GET(request: NextRequest) {
  */
 export const POST = withApiGuard(async (request: NextRequest) => {
   // Enforce upload limits for hero images and prevent slow parsing
-  await streamUploadGuard(request, 5_000_000);
+  // Allow up to 50MB total for multiple images/uploads from the modal
+  await streamUploadGuard(request, 50_000_000);
   const parsePromise = request.formData();
   const timeout = new Promise((_, rej) => setTimeout(() => rej(new ApiError(408, 'Request timeout')), 20_000));
   const formData = await Promise.race([parsePromise, timeout]) as FormData;
   const files = formData.getAll('files') as File[];
+  const isMobile = String(formData.get('isMobile') || formData.get('mobile') || '').toLowerCase() === 'true';
   // verify session and resolve actor
   const auth = request.headers.get('authorization') || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
@@ -82,7 +100,8 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     // Upload to Cloudflare R2 using server-side helper
     const originalName = file.name || `upload-${Date.now()}`;
     const sanitized = originalName.replace(/[^a-zA-Z0-9.\-_/]/g, '_');
-    const baseKey = `home/hero/${Date.now()}-${sanitized}`;
+    const baseDir = isMobile ? 'home/hero/mobile' : 'home/hero';
+    const baseKey = `${baseDir}/${Date.now()}-${sanitized}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -95,13 +114,19 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       const storageRef = `r2://${PRIVATE_BUCKET}/${webpKey}`;
 
       // Save to database using internal r2:// reference
-      const heroImage = await createHeroImage(storageRef, undefined, createdBy);
+      // If this upload is mobile-specific, populate mobile_image_url instead of image_url
+      const heroImage = await createHeroImage(isMobile ? '' : storageRef, isMobile ? storageRef : undefined, undefined, createdBy);
 
       // Generate medium + thumb variants synchronously (webp) and store refs in DB
       try {
-        const { thumbRef, mediumRef } = await processBufferToVariants(buffer, 'home/hero', PRIVATE_BUCKET);
+        const variantDir = isMobile ? 'home/hero/mobile' : 'home/hero';
+        const { thumbRef, mediumRef } = await processBufferToVariants(buffer, variantDir, PRIVATE_BUCKET);
         try {
-          await sql.query(`UPDATE home_hero_images SET thumbnail_url = $1, medium_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`, [thumbRef, mediumRef, heroImage.id]);
+          if (isMobile) {
+            await sql.query(`UPDATE home_hero_images SET mobile_thumbnail_url = $1, mobile_medium_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`, [thumbRef, mediumRef, heroImage.id]);
+          } else {
+            await sql.query(`UPDATE home_hero_images SET thumbnail_url = $1, medium_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`, [thumbRef, mediumRef, heroImage.id]);
+          }
         } catch (updErr) {
           console.error('Failed to update hero image with variant refs', heroImage.id, updErr);
         }
@@ -116,7 +141,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       const key = `${baseKey}${file.name?.includes('.') ? '' : ''}`;
       await uploadBuffer(key, buffer, file.type || 'application/octet-stream', PRIVATE_BUCKET);
       const storageRef = `r2://${PRIVATE_BUCKET}/${key}`;
-      const heroImage = await createHeroImage(storageRef, undefined, createdBy);
+      const heroImage = await createHeroImage(isMobile ? '' : storageRef, isMobile ? storageRef : undefined, undefined, createdBy);
       // enqueue older processing path for later
       try {
         const insertSql = `INSERT INTO image_processing_queue (hero_image_id, r2_bucket, r2_key, status) VALUES ($1, $2, $3, 'pending')`;
@@ -133,7 +158,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
     data: uploadedImages,
     count: uploadedImages.length
   });
-});
+}, { allowMultipartPaths: ['/api/admin/home/hero-images'], multipartMaxBytes: 50_000_000 });
 
 /**
  * PATCH /api/admin/home/hero-images
@@ -206,18 +231,11 @@ export async function DELETE(request: NextRequest) {
         );
       }
 
-      // Fetch image, thumbnail, and medium URLs before deleting from database
+      // Fetch image, thumbnail, medium and mobile-specific URLs before deleting from database
       const placeholders = imageIds.map((_, i) => `$${i + 1}`).join(', ');
-      const query = `SELECT id, image_url, thumbnail_url, medium_url FROM home_hero_images WHERE id IN (${placeholders})`;
+      const query = `SELECT id, image_url, thumbnail_url, medium_url, mobile_image_url, mobile_thumbnail_url, mobile_medium_url FROM home_hero_images WHERE id IN (${placeholders})`;
       const result = await sql.query(query, imageIds);
       const rows = result.rows;
-
-      const blobUrls = rows.map((row: any) => ({
-        id: row.id,
-        image_url: row.image_url,
-        thumbnail_url: row.thumbnail_url,
-        medium_url: row.medium_url,
-      }));
 
       // verify session for delete
       const auth = request.headers.get('authorization') || '';
@@ -225,21 +243,15 @@ export async function DELETE(request: NextRequest) {
       const session = await verifySession(token);
       if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-      // Delete from database
-      await deleteHeroImages(imageIds);
-      // Also remove any queued processing entries for these hero images
-      try {
-        const delPlaceholders = imageIds.map((_, i) => `$${i + 1}`).join(', ');
-        await sql.query(`DELETE FROM image_processing_queue WHERE hero_image_id IN (${delPlaceholders})`, imageIds);
-      } catch (queueDelErr) {
-        console.error('Failed to delete queue rows for hero images', imageIds, queueDelErr);
-      }
+      // Build list of URLs to delete (include mobile variants)
+      const blobUrls = rows.map((row: any) => ({
+        id: row.id,
+        urls: [row.image_url, row.thumbnail_url, row.medium_url, row.mobile_image_url, row.mobile_thumbnail_url, row.mobile_medium_url].filter(Boolean),
+      }));
 
-      // Delete from Vercel Blob storage (parallel for better performance)
-      // Delete storage objects for original, thumbnail and medium
+      // Delete from storage first (Vercel Blob or R2)
       const deletions = blobUrls.flatMap((row) => {
-        const urls = [row.image_url, row.thumbnail_url, row.medium_url].filter(Boolean);
-        return urls.map(async (url: string) => {
+        return row.urls.map(async (url: string) => {
           try {
             if (url.includes('blob.vercel-storage.com')) {
               return del(url).catch(err => { console.error('Failed deleting vercel blob', url, err); return null; });
@@ -258,6 +270,15 @@ export async function DELETE(request: NextRequest) {
 
       await Promise.all(deletions);
 
+      // After storage deletion, remove DB rows and queue entries
+      await deleteHeroImages(imageIds);
+      try {
+        const delPlaceholders = imageIds.map((_, i) => `$${i + 1}`).join(', ');
+        await sql.query(`DELETE FROM image_processing_queue WHERE hero_image_id IN (${delPlaceholders})`, imageIds);
+      } catch (queueDelErr) {
+        console.error('Failed to delete queue rows for hero images', imageIds, queueDelErr);
+      }
+
       return NextResponse.json({
         success: true,
         message: `${imageIds.length} image(s) deleted successfully`
@@ -268,12 +289,10 @@ export async function DELETE(request: NextRequest) {
     if (id) {
       const imageId = parseInt(id);
       
-      // Fetch image, thumbnail, and medium URLs before deleting from database
-      const { rows } = await sql`SELECT id, image_url, thumbnail_url, medium_url FROM home_hero_images WHERE id = ${imageId}`;
+      // Fetch image, thumbnail, medium and mobile-specific URLs before deleting from database
+      const { rows } = await sql`SELECT id, image_url, thumbnail_url, medium_url, mobile_image_url, mobile_thumbnail_url, mobile_medium_url FROM home_hero_images WHERE id = ${imageId}`;
       const row = rows[0] || {};
-      const blobUrl = row.image_url;
-      const thumbUrl = row.thumbnail_url;
-      const mediumUrl = row.medium_url;
+      const urlsToDelete = [row.image_url, row.thumbnail_url, row.medium_url, row.mobile_image_url, row.mobile_thumbnail_url, row.mobile_medium_url].filter(Boolean);
 
       // verify session for delete
       const auth = request.headers.get('authorization') || '';
@@ -281,18 +300,7 @@ export async function DELETE(request: NextRequest) {
       const session = await verifySession(token);
       if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-      // Delete from database
-      await deleteHeroImage(imageId);
-      // Delete any queue rows for this hero
-      try {
-        await sql`DELETE FROM image_processing_queue WHERE hero_image_id = ${imageId}`;
-      } catch (qe) {
-        console.error('Failed to delete queue rows for hero', imageId, qe);
-      }
-
-      // Delete from storage: handle Vercel blobs and R2 URLs
-      // Delete all known URLs (original, thumbnail, medium)
-      const urlsToDelete = [blobUrl, thumbUrl, mediumUrl].filter(Boolean);
+      // Delete from storage first
       for (const url of urlsToDelete) {
         try {
           if (url.includes('blob.vercel-storage.com')) {
@@ -304,6 +312,14 @@ export async function DELETE(request: NextRequest) {
         } catch (err) {
           console.error('Failed deleting media during single delete', url, err);
         }
+      }
+
+      // After storage deletion, remove DB row and any queue rows
+      await deleteHeroImage(imageId);
+      try {
+        await sql`DELETE FROM image_processing_queue WHERE hero_image_id = ${imageId}`;
+      } catch (qe) {
+        console.error('Failed to delete queue rows for hero', imageId, qe);
       }
 
       return NextResponse.json({
