@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const enhanced = await Promise.all(
       images.map(async (img: any) => {
         const image_url = img.image_url || img.url || '';
+        const mobile_url = img.mobile_image_url || img.mobile_url || '';
         const parsed = parseKeyFromUrl(image_url);
         const out: any = { ...img };
         if (parsed && parsed.key) {
@@ -51,6 +52,45 @@ export async function GET(request: NextRequest) {
             console.error('Failed to generate presigned medium URL', err);
           }
         }
+        // generate signed mobile urls if mobile-specific fields exist
+        if (mobile_url) {
+          try {
+            const pm = parseKeyFromUrl(mobile_url);
+            if (pm && pm.key) {
+              const bucket = pm.bucket || PRIVATE_BUCKET;
+              out.signedMobileUrl = await getPresignedGetUrl(pm.key, 3600, bucket || undefined);
+            }
+          } catch (err) {
+            console.error('Failed to generate presigned mobile URL', err);
+          }
+        }
+
+        const mobileThumb = img.mobile_thumbnail_url || img.mobile_thumb_url || '';
+        if (mobileThumb) {
+          try {
+            const pmt = parseKeyFromUrl(mobileThumb);
+            const bucket = pmt.bucket || PRIVATE_BUCKET;
+            if (pmt && pmt.key) {
+              out.signedMobileThumbUrl = await getPresignedGetUrl(pmt.key, 3600, bucket || undefined);
+            }
+          } catch (err) {
+            console.error('Failed to generate presigned mobile thumbnail URL', err);
+          }
+        }
+
+        const mobileMedium = img.mobile_medium_url || img.mobileMediumUrl || '';
+        if (mobileMedium) {
+          try {
+            const pmm = parseKeyFromUrl(mobileMedium);
+            const bucket = pmm.bucket || PRIVATE_BUCKET;
+            if (pmm && pmm.key) {
+              out.signedMobileMediumUrl = await getPresignedGetUrl(pmm.key, 3600, bucket || undefined);
+            }
+          } catch (err) {
+            console.error('Failed to generate presigned mobile medium URL', err);
+          }
+        }
+
         return out;
       })
     );

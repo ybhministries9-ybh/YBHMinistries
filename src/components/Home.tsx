@@ -283,34 +283,53 @@ export function Home({ initialHeroImages }: HomeProps) {
   // Fetch hero images and events from API (skip if initialHeroImages provided)
   useEffect(() => {
     const fetchHeroImages = async () => {
-      // Skip fetching if we already have initial images from SSR
-      if (initialHeroImages && initialHeroImages.length > 0) {
-        setIsLoading(false);
-        return;
-      }
+      // Always fetch fresh hero image metadata on the client so we can prefer
+      // mobile-specific URLs when the viewer is on a small screen. `initialHeroImages`
+      // is still used to avoid layout shift before the fetch completes.
       try {
         const response = await fetch('/api/home/hero-images');
         const result = await response.json();
         
-            if (result.success && result.data && result.data.length > 0) {
+                if (result.success && result.data && result.data.length > 0) {
               // Prefer the signed original (converted to WebP at upload time) so the hero shows the highest-quality WebP.
-                const imageUrls = result.data.map((img: any) => {
-                  // Prefer the DB `image_url` (original) when it's not the same as medium/thumb.
-                  try {
-                    if (img.image_url && img.image_url !== img.medium_url && img.image_url !== img.thumbnail_url) {
-                      return img.signedUrl || img.image_url;
-                    }
-                  } catch (e) {
-                    // fallback silently
-                  }
-                  // If signedUrl points to a medium/thumb path, prefer medium only as a fallback.
-                  if (img.signedUrl && !/(\/medium\/|\/thumbs\/)/.test(String(img.signedUrl))) {
-                    return img.signedUrl;
-                  }
-                  return img.signedUrl || img.signedMediumUrl || img.signedThumbUrl || img.image_url || img.medium_url || img.thumbnail_url || img.url;
-                }).filter(Boolean) as string[];
+                const isMobileClient = typeof window !== 'undefined' && window.innerWidth <= 640;
 
-              setHeroImages(imageUrls.length > 0 ? imageUrls : [defaultHeroImage]);
+                let imageUrls: string[] = [];
+
+                if (isMobileClient) {
+                  // For mobile clients, include ONLY images that have a mobile-specific source.
+                  imageUrls = result.data
+                    .map((img: any) => {
+                      const mobileUrl = img.signedMobileUrl || img.mobile_image_url || img.signedMobileMediumUrl || img.mobile_medium_url || img.signedMobileThumbUrl || img.mobile_thumbnail_url;
+                      return mobileUrl || null;
+                    })
+                    .filter(Boolean) as string[];
+                } else {
+                  // Desktop / fallback behavior: prefer original/signed URLs, then medium/thumb
+                  imageUrls = result.data
+                    .map((img: any) => {
+                      try {
+                        if (img.image_url && img.image_url !== img.medium_url && img.image_url !== img.thumbnail_url) {
+                          return img.signedUrl || img.image_url;
+                        }
+                      } catch (e) {}
+                      if (img.signedUrl && !/(\/medium\/|\/thumbs\/)/.test(String(img.signedUrl))) return img.signedUrl;
+                      return img.signedUrl || img.signedMediumUrl || img.signedThumbUrl || img.image_url || img.medium_url || img.thumbnail_url || img.url || null;
+                    })
+                    .filter(Boolean) as string[];
+                }
+
+                // Deduplicate while preserving order
+                const seen = new Set<string>();
+                const deduped: string[] = [];
+                for (const u of imageUrls) {
+                  if (!seen.has(u)) {
+                    seen.add(u);
+                    deduped.push(u);
+                  }
+                }
+
+              setHeroImages(deduped.length > 0 ? deduped : [defaultHeroImage]);
         } else {
           // Use default image if no images in database
           setHeroImages([defaultHeroImage]);
