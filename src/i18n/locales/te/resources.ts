@@ -44,7 +44,7 @@ export default {
     orderText: "పుస్తకాలను ఆర్డర్ చేయడానికి దయచేసి పాస్టర్ ఆగస్టిన్ దండింగిని వాట్సాప్ లేదా కాల్ ద్వారా సంప్రదించండి.",
     whatsappLabel: "వాట్సాప్",
     callLabel: "కాల్",
-    contactHeading: "సంప్రదించండి",
+    contactHeading: "ఆర్డర్ చేసేందుకు సంప్రదించండి",
     contactName: "పాస్టర్ అగస్టిన్ దండింగి"
   },
   worship: {
