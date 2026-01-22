@@ -19,8 +19,8 @@ export default {
       title: "Ingenious Charm World Records"
     },
     "international-star-records": {
-      label: "International Start Book",
-      title: "International Start Book of Records"
+      label: "International Star Book",
+      title: "International Star Book of Records"
     },
     "hallel-conferences": {
       label: "Hallel Conferences",
