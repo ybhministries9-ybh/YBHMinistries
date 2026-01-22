@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import logger from '../lib/logger';
@@ -13,7 +13,7 @@ import { getUpcomingEvents, Event } from '../utils/eventsData';
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 
 // ImageWithFallback component for handling image loading errors
-function ImageWithFallback(props) {
+function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElement>) {
   const [didError, setDidError] = useState(false);
   const { src, alt, style, className, ...rest } = props;
 
@@ -176,9 +176,11 @@ function VideoSection() {
 }
 
 // Custom ImageCarousel component with optimized image positioning
-function ImageCarousel({ images, interval = 3000 }) {
+function ImageCarousel({ images, interval = 3000 }: { images: string[]; interval?: number }) {
   const { t } = useTranslation('home');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenIndex, setFullscreenIndex] = useState(0);
   const showNav = images && images.length > 1;
   
   // Preload the first image immediately
@@ -186,32 +188,85 @@ function ImageCarousel({ images, interval = 3000 }) {
     if (images.length > 0 && typeof window !== 'undefined') {
       // Use prefetch for hero images to avoid browser warnings when signed
       // URLs are generated dynamically and may not be used immediately.
-      const link = document.createElement('link');
-      link.rel = 'prefetch';
-      link.as = 'image';
-      link.href = images[0];
-      document.head.appendChild(link);
+      const createdLinks: HTMLLinkElement[] = [];
+      const addLink = (href: string) => {
+        const l = document.createElement('link');
+        l.rel = 'prefetch';
+        l.as = 'image';
+        l.href = href;
+        document.head.appendChild(l);
+        createdLinks.push(l);
+      };
 
-      if (images.length > 1) {
-        const link2 = document.createElement('link');
-        link2.rel = 'prefetch';
-        link2.as = 'image';
-        link2.href = images[1];
-        document.head.appendChild(link2);
-      }
+      addLink(images[0]);
+      if (images.length > 1) addLink(images[1]);
+
+      return () => {
+        for (const l of createdLinks) {
+          if (l.parentNode) l.parentNode.removeChild(l);
+        }
+      };
     }
   }, [images]);
   
   useEffect(() => {
+    if (isFullscreen) return; // pause background carousel while fullscreen is active
+
     const timer = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
     }, interval);
-    
+
     return () => clearInterval(timer);
   }, [images.length, interval]);
+
+  // Fullscreen autoplay: advance fullscreenIndex while fullscreen is active
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const fTimer = setInterval(() => {
+      setFullscreenIndex((prev) => (prev + 1) % images.length);
+    }, interval);
+    return () => clearInterval(fTimer);
+  }, [isFullscreen, images.length, interval]);
+
+  // Listen for custom event dispatched by the fullscreen button
+  useEffect(() => {
+    const openHandler = () => {
+      setFullscreenIndex(currentIndex);
+      setIsFullscreen(true);
+    };
+
+    const keyHandler = (e) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+      if (!isFullscreen) return;
+      if (e.key === 'ArrowRight') setFullscreenIndex((s) => (s + 1) % images.length);
+      if (e.key === 'ArrowLeft') setFullscreenIndex((s) => (s - 1 + images.length) % images.length);
+    };
+
+    window.addEventListener('openHeroFullscreen', openHandler as EventListener);
+    window.addEventListener('keydown', keyHandler as EventListener);
+
+    return () => {
+      window.removeEventListener('openHeroFullscreen', openHandler as EventListener);
+      window.removeEventListener('keydown', keyHandler as EventListener);
+    };
+  }, [currentIndex, isFullscreen, images.length]);
   
   return (
     <div className="relative w-full h-screen overflow-hidden image-carousel-root">
+      {/* Fullscreen toggle button (top-right) */}
+      <div className="absolute top-4 right-4 z-40">
+        <button
+          onClick={() => {
+            // open fullscreen for the current visible image
+            setFullscreenIndex(currentIndex);
+            setIsFullscreen(true);
+          }}
+          aria-label="Open full screen"
+          className="bg-black bg-opacity-40 border border-[#FDB813] rounded-md p-2 hover:bg-opacity-60"
+        >
+          <Maximize2 size={18} color="#FDB813" />
+        </button>
+      </div>
       {images.map((image, index) => (
         <div
           key={index}
@@ -266,6 +321,61 @@ function ImageCarousel({ images, interval = 3000 }) {
             <ChevronRight size={20} color="#FDB813" />
           </button>
         </>
+      )}
+
+      {/* Fullscreen overlay */}
+      {isFullscreen && (
+        <div
+          className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+          onClick={() => setIsFullscreen(false)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsFullscreen(false); }}
+            aria-label="Close full screen"
+            className="absolute left-4 top-4 z-60 bg-black bg-opacity-50 border border-[#FDB813] rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-75"
+          >
+            <X size={16} color="#FDB813" />
+          </button>
+
+          {/* Prev button - vertically centered at left side */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setFullscreenIndex((s) => (s - 1 + images.length) % images.length); }}
+            aria-label="Previous"
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-60 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
+          >
+            <ChevronLeft size={20} color="#FDB813" />
+          </button>
+
+          <img
+            src={images[fullscreenIndex]}
+            alt={t('hero.slideAlt', { number: fullscreenIndex + 1 })}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Next button - vertically centered at right side */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setFullscreenIndex((s) => (s + 1) % images.length); }}
+            aria-label="Next"
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-60 bg-black bg-opacity-50 border border-[#FDB813] rounded-full p-2 hover:bg-opacity-75"
+          >
+            <ChevronRight size={20} color="#FDB813" />
+          </button>
+
+          {/* Dots */}
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center z-60">
+            <div className="flex space-x-2">
+              {images.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setFullscreenIndex(idx); }}
+                  className={`w-2 h-2 rounded-full cursor-pointer transition-colors ${idx === fullscreenIndex ? 'bg-[#FDB813]' : 'bg-white bg-opacity-50'}`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
