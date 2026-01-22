@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
 
   // Basic security headers
@@ -63,6 +63,26 @@ export function middleware(req: NextRequest) {
     "frame-src 'self' https://www.google.com https://www.gstatic.com",
   ].join('; ');
   res.headers.set('Content-Security-Policy', csp);
+  // Maintenance mode: fetch the admin-maintained flag and, if enabled,
+  // rewrite all non-admin/non-api requests to the maintenance page.
+  try {
+    const pathname = req.nextUrl.pathname;
+    // Exclude admin and API routes, next internals, and static assets
+    const excludedPrefixes = ['/api', '/admin', '/_next', '/favicon.ico', '/robots.txt', '/sitemap.xml', '/manifest', '/apple-icon', '/assets', '/public'];
+    if (excludedPrefixes.some(p => pathname.startsWith(p))) return res;
+
+    const origin = req.nextUrl.origin;
+    const flagRes = await fetch(`${origin}/api/admin/maintenance`, { cache: 'no-store' });
+    if (flagRes.ok) {
+      const json = await flagRes.json();
+      if (json && json.enabled) {
+        // rewrite to the maintenance page (keeps requested URL in address bar)
+        return NextResponse.rewrite(new URL('/maintenance', req.url));
+      }
+    }
+  } catch (e) {
+    // On errors, fall back to normal behavior.
+  }
 
   return res;
 }

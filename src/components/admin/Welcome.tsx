@@ -1,4 +1,6 @@
-import React from 'react';
+"use client"
+
+import React, { useEffect, useState } from 'react';
 import { Home, Info, Book, Image, Newspaper, FileText, BookOpen, Mail, DollarSign, Users } from 'lucide-react';
 
 const CARD_CONFIG = [
@@ -16,6 +18,47 @@ const CARD_CONFIG = [
 ];
 
 export function Welcome() {
+  const [maintenance, setMaintenance] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  function getAuthHeaders(withContentType = false) {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('admin_token') || '' : '';
+    let token = '';
+    if (raw) try { token = JSON.parse(raw).token || raw } catch (e) { token = raw }
+    const headers: Record<string,string> = withContentType ? { 'Content-Type': 'application/json' } : {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  }
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const headers = getAuthHeaders(false);
+        const resp = await fetch('/api/admin/maintenance', { headers });
+        const j = await resp.json();
+        if (mounted) { setMaintenance(Boolean(j.enabled)); setLoading(false); }
+      } catch (e) {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+
+    return () => { mounted = false };
+  }, []);
+
+  const setMaintenanceState = async (enabled: boolean) => {
+    setLoading(true);
+    try {
+      const headers = getAuthHeaders(true);
+      const body: any = { enabled };
+      const res = await fetch('/api/admin/maintenance', { method: 'POST', headers, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error('failed to set maintenance');
+      setMaintenance(Boolean(enabled));
+    } catch (e) {
+      console.error('Failed to update maintenance flag', e);
+    } finally { setLoading(false); }
+  };
   const handleNavigate = (section: string) => {
     // dispatch a custom event so AdminDashboard can change the active section
     try { window.dispatchEvent(new CustomEvent('admin-navigate', { detail: { section } })); } catch (e) {}
@@ -30,7 +73,31 @@ export function Welcome() {
 
   return (
     <div className="p-6 text-white">
-      <div className="bg-[#2E2E2E] rounded-lg p-6 lg:p-8">
+      <div className="bg-[#2E2E2E] rounded-lg p-6 lg:p-8 relative">
+        <div className="absolute top-4 right-4 flex items-center gap-3">
+          <span className="text-md text-gray-300 mr-1 hidden sm:inline">Site maintenance:</span>
+          <div className="inline-flex items-center rounded-full bg-gray-800 p-1 shadow-sm" role="group" aria-label="Site maintenance toggle">
+            <button
+              type="button"
+              onClick={() => setMaintenanceState(true)}
+              disabled={loading}
+              aria-pressed={maintenance === true}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'}`}
+            >
+              ON
+            </button>
+            <button
+              type="button"
+              onClick={() => setMaintenanceState(false)}
+              disabled={loading}
+              aria-pressed={maintenance === false}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${!maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'}`}
+            >
+              OFF
+            </button>
+          </div>
+        </div>
+
         <div className="mb-6">
           <h2 className="text-3xl font-bold text-white mb-2">Welcome to Admin Dashboard!</h2>
           <p className="text-gray-300 mb-6">Welcome to the Yeshua Beth Hallel Ministries Admin Portal.</p>
