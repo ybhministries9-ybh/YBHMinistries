@@ -4,6 +4,8 @@ import { Toaster } from 'sonner';
 import { OrganizationStructuredData, WebsiteStructuredData } from '@/components/seo/StructuredData';
 import '../src/index.css';
 import './globals.css';
+import { sql } from '@vercel/postgres';
+import fs from 'fs/promises';
 
 // Load Inter via Google Fonts link to avoid runtime internal Turbopack font imports
 
@@ -88,12 +90,37 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
+async function readFlagFromFile() {
+  try {
+    const raw = await fs.readFile(process.cwd() + '/data/maintenance.json', 'utf8');
+    return JSON.parse(raw);
+  } catch (e) {
+    return { enabled: false };
+  }
+}
+
+async function isMaintenanceEnabled(): Promise<boolean> {
+  try {
+    const r = await sql`SELECT bool_value FROM site_settings WHERE key = 'maintenance' LIMIT 1`;
+    if (r && r.rows && r.rows.length) {
+      const v = r.rows[0].bool_value;
+      return v === true || v === 't' || v === 'true' || v === 1 || v === '1';
+    }
+  } catch (e) {
+    // ignore and fall back to file
+  }
+  const file = await readFlagFromFile();
+  const fv = file && file.enabled;
+  return fv === true || fv === 't' || fv === 'true' || fv === 1 || fv === '1';
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
+    // Server component: check maintenance flag at request time
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
             {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
@@ -118,6 +145,7 @@ export default function RootLayout({
             {/* og-image.jpg was not present in public/; remove preload to avoid 404 and preload warning */}
           </head>
           <body suppressHydrationWarning>
+        {/* Render children; maintenance routing is handled by middleware */}
         {children}
         <Toaster position="bottom-center" />
       </body>

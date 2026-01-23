@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { ResourcesPage } from '@/components/ResourcesPage';
 import { ClientLayout } from '../ClientLayout';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 
 export const metadata: Metadata = {
   title: 'Resources & Materials | YBH Ministries',
@@ -13,7 +15,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Resources() {
+export default async function Resources() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return (
     <ClientLayout>
       <ResourcesPage />

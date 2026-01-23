@@ -82,7 +82,7 @@ export function Welcome() {
               onClick={() => setMaintenanceState(true)}
               disabled={loading}
               aria-pressed={maintenance === true}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'} cursor-pointer disabled:cursor-not-allowed`}
             >
               ON
             </button>
@@ -91,7 +91,7 @@ export function Welcome() {
               onClick={() => setMaintenanceState(false)}
               disabled={loading}
               aria-pressed={maintenance === false}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${!maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${!maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'} cursor-pointer disabled:cursor-not-allowed`}
             >
               OFF
             </button>

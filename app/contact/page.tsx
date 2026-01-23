@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { ContactsPage } from '@/components/ContactsPage';
 import { ClientLayout } from '../ClientLayout';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 
 export const metadata: Metadata = {
   title: 'Contact Us',
@@ -14,6 +16,7 @@ export const metadata: Metadata = {
 export default async function Contact({ searchParams }: { searchParams?: any }) {
   const params = await searchParams;
   const initialTab = typeof params?.tab === 'string' ? params.tab : undefined;
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return (
     <ClientLayout>
       <ContactsPage initialTab={initialTab} />

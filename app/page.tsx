@@ -1,4 +1,6 @@
 import { Metadata } from 'next';
+import MaintenancePage from './maintenance/page';
+import { isMaintenanceEnabled } from './lib/maintenance';
 import { getActiveHeroImages } from '@/lib/db';
 import { parseKeyFromUrl, getPresignedGetUrl, PRIVATE_BUCKET } from '@/lib/r2';
 import HomeClient from './HomeClient';
@@ -55,6 +57,7 @@ async function getHeroImages(): Promise<string[]> {
 }
 
 export default async function HomePage() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   const heroImages = await getHeroImages();
   
   return <HomeClient initialHeroImages={heroImages} />;

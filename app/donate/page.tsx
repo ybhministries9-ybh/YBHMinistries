@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { DonatePage } from '@/components/DonatePage';
 import { ClientLayout } from '../ClientLayout';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 
 export const metadata: Metadata = {
   title: 'Donate & Support | YBH Ministries',
@@ -13,7 +15,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Donate() {
+export default async function Donate() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return (
     <ClientLayout>
       <DonatePage />

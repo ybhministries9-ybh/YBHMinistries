@@ -35,7 +35,9 @@ export async function GET(_: NextRequest) {
     const r = await sql`SELECT bool_value, message, created_by, created_at, updated_by, updated_at FROM site_settings WHERE key = 'maintenance'`
     if (r && r.rows && r.rows.length) {
       const row = r.rows[0]
-      return NextResponse.json({ enabled: Boolean(row.bool_value), message: row.message || '', created_by: row.created_by, created_at: row.created_at, updated_by: row.updated_by, updated_at: row.updated_at })
+      // Postgres boolean may be returned as true/false or 't'/'f' strings depending on driver.
+      const enabled = row.bool_value === true || row.bool_value === 't' || row.bool_value === 'true'
+      return NextResponse.json({ enabled, message: row.message || '', created_by: row.created_by, created_at: row.created_at, updated_by: row.updated_by, updated_at: row.updated_at })
     }
   } catch (e) {
     // ignore and fallback to file

@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { StoriesPage } from '@/components/StoriesPage';
 import { ClientLayout } from '../ClientLayout';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 
 export const metadata: Metadata = {
   title: 'Testimonies & Stories',
@@ -11,7 +13,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Stories() {
+export default async function Stories() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return (
     <ClientLayout>
       <StoriesPage />

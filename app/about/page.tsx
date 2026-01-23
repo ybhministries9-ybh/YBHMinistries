@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
 import AboutClient from './AboutClient';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 import { getActiveAboutHeroImage } from '@/lib/db';
 import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
 import sharp from 'sharp';
@@ -118,6 +120,7 @@ async function generateBlurDataURL(url?: string | null) {
 }
 
 export default async function About() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   try {
     const hero = await getActiveAboutHeroImage();
     const resolved = await resolveAccessibleUrl(hero?.image_url as string | null);
