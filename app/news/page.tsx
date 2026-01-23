@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { NewsPage } from '@/components/newsroom/NewsPage';
 import { ClientLayout } from '../ClientLayout';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 
 export const metadata: Metadata = {
   title: 'News & Updates - YBH Ministries',
@@ -18,7 +20,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function News() {
+export default async function News() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return (
     <ClientLayout>
       <NewsPage />

@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { AwardsPage } from '@/components/AwardsPage';
 import { ClientLayout } from '../ClientLayout';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 
 export const metadata: Metadata = {
   title: 'Awards & Recognition',
@@ -11,7 +13,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Awards() {
+export default async function Awards() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return (
     <ClientLayout>
       <AwardsPage />

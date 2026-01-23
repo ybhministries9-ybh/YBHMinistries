@@ -1,7 +1,8 @@
-'use client';
-
 import { PrivacyPolicy } from '@/components/PrivacyPolicy';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 
-export default function PrivacyPolicyPage() {
+export default async function PrivacyPolicyPage() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return <PrivacyPolicy />;
 }

@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { Gallery } from '@/components/Gallery';
 import { ClientLayout } from '../ClientLayout';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +17,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function GalleryPage() {
+export default async function GalleryPage() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return (
     <ClientLayout>
       <Gallery />

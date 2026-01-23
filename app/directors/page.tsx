@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { DirectorsPage } from '@/components/DirectorsPage';
 import { ClientLayout } from '../ClientLayout';
+import MaintenancePage from '../maintenance/page';
+import { isMaintenanceEnabled } from '../lib/maintenance';
 
 export const metadata: Metadata = {
   title: 'Our Directors | YBH Ministries Leadership',
@@ -13,7 +15,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Directors() {
+export default async function Directors() {
+  if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return (
     <ClientLayout>
       <DirectorsPage />

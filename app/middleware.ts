@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
 
   // Basic security headers
@@ -63,10 +63,73 @@ export function middleware(req: NextRequest) {
     "frame-src 'self' https://www.google.com https://www.gstatic.com",
   ].join('; ');
   res.headers.set('Content-Security-Policy', csp);
+  // Maintenance mode: fetch the admin-maintained flag and, if enabled,
+  // rewrite all non-admin/non-api requests to the maintenance page.
+  try {
+    const pathname = req.nextUrl.pathname;
+    // Exclude admin panel and admin APIs from maintenance rewrite.
+    // Use precise checks so any `/admin` or `/admin/*` and `/api/admin/*` are skipped.
+    const isAdminPath = /^\/admin(\/|$)/.test(pathname);
+    const isAdminApi = /^\/api\/admin(\/|$)/.test(pathname);
+    // Exclude internals, static assets, and the maintenance page itself
+    const isStaticOrInternal = pathname.startsWith('/_next')
+      || pathname === '/favicon.ico'
+      || pathname === '/robots.txt'
+      || pathname === '/sitemap.xml'
+      || pathname.startsWith('/manifest')
+      || pathname.startsWith('/apple-icon')
+      || pathname.startsWith('/assets')
+      || pathname.startsWith('/public')
+      || pathname.startsWith('/maintenance');
+
+    // Debug: log path matching so we can see why admin might still be affected
+    // no-op logging removed for edge runtime cleanliness
+
+    if (isAdminPath || isAdminApi || isStaticOrInternal) return res;
+
+    const origin = req.nextUrl.origin;
+    const flagRes = await fetch(`${origin}/api/admin/maintenance`, { cache: 'no-store' });
+    if (flagRes.ok) {
+      const json = await flagRes.json();
+      // don't log maintenance flag in production middleware
+      // Normalize various representations of truthy values from the API/file
+      const enabledVal = json && json.enabled;
+      const enabled = enabledVal === true || enabledVal === 't' || enabledVal === 'true' || enabledVal === 1 || enabledVal === '1';
+
+      if (enabled) {
+        // Only rewrite the specific public site pages listed (do NOT affect admin pages).
+        const maintenancePaths = [
+          '/',
+          '/about',
+          '/accessibility',
+          '/awards',
+          '/contact',
+          '/donate',
+          '/gallery',
+          '/news',
+          '/resources',
+          '/stories',
+          '/privacy-policy',
+          '/terms-of-service',
+          '/maintenance',
+          '/directors',
+        ];
+
+        const matchesMaintenance = maintenancePaths.some(p => p === '/' ? pathname === '/' : pathname === p || pathname.startsWith(p + '/'));
+        if (matchesMaintenance) {
+          return NextResponse.rewrite(new URL('/maintenance', req.url));
+        }
+      }
+    }
+  } catch (e) {
+    // On errors, fall back to normal behavior.
+  }
 
   return res;
 }
 
 export const config = {
-  matcher: '/((?!_next/static|_next/image|favicon.ico).*)',
+  // Exclude Next internals, static images, favicon and the admin area
+  // so middleware doesn't run for admin or admin APIs and won't trigger maintenance rewrites.
+  matcher: '/((?!_next/static|_next/image|favicon.ico|admin|api/admin).*)',
 };
