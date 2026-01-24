@@ -34,7 +34,7 @@ async function setCors() {
   try {
     const cmd = new PutBucketCorsCommand({ Bucket: BUCKET, CORSConfiguration: cors });
     await client.send(cmd);
-    if (process.env.NODE_ENV !== 'production') console.debug('CORS configuration applied to bucket:', BUCKET);
+    // dev logging removed
   } catch (err) {
     console.error('Failed to apply CORS:', err);
     process.exit(2);

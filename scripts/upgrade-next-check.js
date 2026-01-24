@@ -32,12 +32,8 @@ function main() {
     // not installed in node_modules
   }
 
-  // devLog prints only in non-production environments
-  const devLog = (...args) => { if (process.env.NODE_ENV !== 'production') console.log(...args); };
+  // dev logging removed for scripts
 
-  devLog('Currently installed Next.js:', installed);
-
-  devLog('Querying npm for available Next.js versions...');
   const out = execSync('npm view next versions --json', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
   let versions;
   try {
@@ -54,14 +50,11 @@ function main() {
     process.exit(0);
   }
   const latest16 = candidates[candidates.length - 1];
-  devLog('Latest stable 16.x:', latest16);
+  // dev logging removed
 
   if (installed === latest16) {
-    devLog('Already up-to-date with', latest16);
     process.exit(0);
   }
-
-  devLog('Upgrading Next.js to', latest16);
   try {
     execSync(`npm install next@${latest16} --save`, { stdio: 'inherit', shell: true });
     try { execSync('npm audit fix', { stdio: 'inherit', shell: true }); } catch (e) {}
@@ -75,7 +68,7 @@ function main() {
       console.warn('Git commit/push step failed or nothing to commit');
     }
 
-    devLog('Upgrade attempt complete. Please run your test suite and perform manual validation.');
+    // dev logging removed
   } catch (e) {
     console.error('Upgrade failed:', e && e.message ? e.message : e);
     process.exit(1);

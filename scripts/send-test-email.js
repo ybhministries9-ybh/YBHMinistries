@@ -3,6 +3,7 @@
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
 const waitMs = (ms) => new Promise((r) => setTimeout(r, ms));
+// dev logging removed for scripts
 
 async function waitForServer(retries = 40, interval = 500) {
   for (let i = 0; i < retries; i++) {
@@ -22,7 +23,7 @@ async function main() {
     process.exit(2);
   }
 
-  if (process.env.NODE_ENV !== 'production') console.debug('Waiting for dev server at', BASE);
+  // dev logging removed
   const ready = await waitForServer();
   if (!ready) {
     console.error('Server did not become ready');
@@ -30,7 +31,7 @@ async function main() {
   }
 
   const user = { name: 'Manual Test', email: target, role: 'Viewer' };
-  if (process.env.NODE_ENV !== 'production') console.debug('Creating user:', target);
+  // dev logging removed
   const createRes = await fetch(`${BASE}/api/admin/users`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(user)
   });
@@ -43,7 +44,7 @@ async function main() {
   }
 
   const id = created.data.id;
-  if (process.env.NODE_ENV !== 'production') console.debug('User created id', id, '- sending invite');
+  // dev logging removed
 
   const inviteRes = await fetch(`${BASE}/api/admin/users/invite`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
@@ -52,10 +53,7 @@ async function main() {
   let inviteJson;
   try { inviteJson = JSON.parse(inviteBody); } catch (e) { console.error('Invalid JSON from invite:', inviteBody); process.exit(6); }
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.debug('Invite response:', inviteRes.status, inviteJson);
-    if (inviteJson?.providerResponse) console.debug('Provider response body:', inviteJson.providerResponse);
-  }
+  // dev logging removed
   process.exit(0);
 }
 

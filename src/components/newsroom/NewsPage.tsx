@@ -6,6 +6,7 @@ import { Calendar, CalendarPlus, FileText, ChevronRight, Plus, Users, Music, Glo
 import { useTranslation } from "react-i18next";
 import logger from '../../lib/logger';
 import SharePopup from '../SharePopup';
+import Worship24Section from '../Worship24Section';
 import { getEvents, type Event } from "../../utils/eventsData";
 import { hidePageLoader } from '../../utils/pageLoader';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, LabelList } from 'recharts';
@@ -384,7 +385,7 @@ export function NewsPage() {
     
     return (
       <div className="w-full">
-        <div className="max-w-[1800px] mx-auto px-4 md:px-0">
+        <div className="max-w-[1800px] mx-auto px-1 md:px-0">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left Column - Poster */}
             <div className="lg:w-80 flex-shrink-0">
@@ -494,21 +495,19 @@ export function NewsPage() {
                     </ul>
                   </div>
                 )}
-                
-                <div className="flex items-start gap-4 mt-6">
-                  {/* Replace help prompt + Contact with Book Worship Slot when enabled */}
-                  {selectedEvent && selectedEvent.registration?.enable24hrWorshipForm && (
-                    <button
-                      onClick={() => router.push('/contact?tab=worship24')}
-                      className="bg-[#FDB813] text-black cursor-pointer font-semibold text-sm px-4 py-2 rounded-full shadow-sm hover:bg-[#e5a711] transition-colors inline-flex items-center gap-2"
-                      aria-label="Book Worship Slot"
-                    >
-                      <CalendarPlus size={16} />
-                      <span>Book Worship Slot</span>
-                    </button>
-                  )}
+              </div>  
+                <div className="flex flex-col items-start gap-4 mt-6 w-full">
+                  {/* If 24hr worship form is enabled for this event, render the full Worship24 form with a separator */}
+                  {selectedEvent && selectedEvent.registration?.enable24hrWorshipForm ? (
+                    <>
+                      <div className="w-full my-6 border-t border-[#2E2E2E]" />
+                      <div className="w-full">
+                        <Worship24Section accentColor="#FDB813" />
+                      </div>
+                    </>
+                  ) : null}
                 </div>
-              </div>
+              
             </div>
             </div>
 
@@ -632,7 +631,7 @@ export function NewsPage() {
       </div>
 
       {/* Content Area */}
-      <div className="max-w-7xl mx-auto px-4 md:px-0 py-4 md:py-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-4 md:py-6">
         {/* Upcoming Events Tab */}
         {activeTab === 'events' && (
           <>
