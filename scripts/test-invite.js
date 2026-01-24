@@ -2,6 +2,8 @@
 // Usage: node scripts/test-invite.js
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
+const devLog = (...args) => { if (process.env.NODE_ENV !== 'production') console.debug(...args); };
+const devWarn = (...args) => { if (process.env.NODE_ENV !== 'production') console.warn(...args); };
 const waitMs = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function waitForServer(retries = 40, interval = 500) {
@@ -18,7 +20,7 @@ async function waitForServer(retries = 40, interval = 500) {
 }
 
 async function main() {
-  if (process.env.NODE_ENV !== 'production') console.debug('Waiting for dev server at', BASE);
+  devLog('Waiting for dev server at', BASE);
   const ready = await waitForServer();
   if (!ready) {
     console.error('Server did not become ready');
@@ -31,7 +33,7 @@ async function main() {
     role: 'Viewer',
   };
 
-  if (process.env.NODE_ENV !== 'production') console.debug('Creating user:', user.email);
+  devLog('Creating user:', user.email);
   const createRes = await fetch(`${BASE}/api/admin/users`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -47,7 +49,7 @@ async function main() {
   }
 
   const id = created.data.id;
-  if (process.env.NODE_ENV !== 'production') console.debug('User created with id', id, ' — sending invite');
+  devLog('User created with id', id, ' — sending invite');
 
   const inviteRes = await fetch(`${BASE}/api/admin/users/invite`, {
     method: 'POST',
@@ -58,13 +60,11 @@ async function main() {
   let inviteJson;
   try { inviteJson = JSON.parse(inviteBody); } catch (e) { console.error('Invalid JSON from invite:', inviteBody); process.exit(5); }
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.debug('Invite response:', inviteRes.status, inviteJson);
-    if (inviteJson?.email === 'logged') {
-      console.debug('Invite was logged to console (dev fallback). Check the Next.js server console for the invite link.');
-    } else if (inviteJson?.email === 'sent' || inviteJson?.success) {
-      console.debug('Invite appears to have been sent by provider (check SendGrid dashboard for delivery).');
-    }
+  devLog('Invite response:', inviteRes.status, inviteJson);
+  if (inviteJson?.email === 'logged') {
+    devLog('Invite was logged to console (dev fallback). Check the Next.js server console for the invite link.');
+  } else if (inviteJson?.email === 'sent' || inviteJson?.success) {
+    devLog('Invite appears to have been sent by provider (check SendGrid dashboard for delivery).');
   }
 
   process.exit(0);

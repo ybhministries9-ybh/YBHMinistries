@@ -8,6 +8,9 @@ const APP_DIR = path.join(ROOT, 'app');
 const OUTPUT = path.join(ROOT, 'logs');
 if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT, { recursive: true });
 
+const devLog = (...args) => { if (process.env.NODE_ENV !== 'production') console.log(...args); };
+const devWarn = (...args) => { if (process.env.NODE_ENV !== 'production') console.warn(...args); };
+
 function findRouteFiles(dir) {
   const out = [];
   const items = fs.readdirSync(dir, { withFileTypes: true });
@@ -71,12 +74,12 @@ async function run() {
 
   const routeFiles = findRouteFiles(APP_DIR);
   if (!routeFiles.length) {
-    if (process.env.NODE_ENV !== 'production') console.log('No route.* files discovered in app/ — nothing to test');
+    devLog('No route.* files discovered in app/ — nothing to test');
     process.exit(0);
   }
 
   const endpoints = Array.from(new Set(routeFiles.map(f => filePathToUrl(f))));
-  if (process.env.NODE_ENV !== 'production') console.log('Discovered endpoints:', endpoints.length);
+  devLog('Discovered endpoints:', endpoints.length);
 
   const payloads = makePayloads();
   const results = [];
@@ -84,7 +87,7 @@ async function run() {
 
   for (const ep of endpoints) {
     const url = base + (ep === '/' ? '/' : '/' + ep.replace(/^\//, ''));
-    if (process.env.NODE_ENV !== 'production') console.log('\nTesting', url);
+    devLog('\nTesting', url);
     for (const method of ['GET', 'POST']) {
       for (const p of payloads) {
         const start = Date.now();
@@ -95,11 +98,11 @@ async function run() {
           const res = await fetchWithTimeout(url, { method, headers, body }, 15000);
           const text = await res.text().catch(() => '<no-body>');
           const time = Date.now() - start;
-          if (process.env.NODE_ENV !== 'production') console.log(`${method} ${p.ct} -> ${res.status} (${time}ms)`);
+          devLog(`${method} ${p.ct} -> ${res.status} (${time}ms)`);
           results.push({ url, method, contentType: p.ct, status: res.status, time, bodySample: String(text).slice(0, 200) });
         } catch (e) {
           const time = Date.now() - start;
-          if (process.env.NODE_ENV !== 'production') console.warn(`${method} ${p.ct} -> ERROR (${e && e.name}) (${time}ms)`);
+          devWarn(`${method} ${p.ct} -> ERROR (${e && e.name}) (${time}ms)`);
           results.push({ url, method, contentType: p.ct, error: String(e && e.message), time });
         }
       }
@@ -108,7 +111,7 @@ async function run() {
 
   const outFile = path.join(OUTPUT, `fuzz-results-${Date.now()}.json`);
   fs.writeFileSync(outFile, JSON.stringify(results, null, 2));
-  if (process.env.NODE_ENV !== 'production') console.log('\nFuzz run complete — results written to', outFile);
+  devLog('\nFuzz run complete — results written to', outFile);
 }
 
 run().catch(e => { console.error('Fatal error running fuzz tests:', e); process.exit(1); });

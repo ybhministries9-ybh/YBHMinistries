@@ -1,6 +1,7 @@
 import fs from 'fs';
 
 const payload = JSON.parse(fs.readFileSync('payload.json', 'utf8'));
+const devLog = (...args) => { if (process.env.NODE_ENV !== 'production') console.debug(...args); };
 
 async function post() {
   const res = await fetch('http://localhost:3001/api/get-in-touch', {
@@ -8,9 +9,9 @@ async function post() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (process.env.NODE_ENV !== 'production') console.debug('status', res.status);
+  devLog('status', res.status);
   const data = await res.json();
-  if (process.env.NODE_ENV !== 'production') console.debug('body', data);
+  devLog('body', data);
 }
 
 post().catch(err => { console.error(err); process.exit(1); });
