@@ -9,17 +9,7 @@ async function checkData() {
       WHERE published = true
     `;
     
-    // Debug output: enabled when DEBUG env var is set (e.g. DEBUG=1)
-    if (process.env.DEBUG) {
-      console.debug('=== Report Data ===');
-      result.rows.forEach(row => {
-        console.debug(`\nYear: ${row.year}, Class: ${row.class_type}`);
-        console.debug('Monthly Data:');
-        row.monthly_data.forEach(month => {
-          console.debug(`  ${month.month}: indian=${month.indian}, nonIndian=${month.nonIndian}, total=${month.total}`);
-        });
-      });
-    }
+    // Debug output removed
   } catch (error) {
     console.error('Error:', error);
   } finally {
