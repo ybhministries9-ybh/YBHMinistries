@@ -224,7 +224,7 @@ export default {
       worshipLeader: "Worship Leader",
       youthMinistry: "Youth Ministry",
       musicProduction: "Music Production",
-      songwriting: "Songwriting"
+      songwriting: "Song Writing"
     },
     
     buttons: {

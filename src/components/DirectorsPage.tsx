@@ -241,7 +241,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
               {/* Titles list with separator (muted chips, vertical layout per design) */}
               <div className="mt-8 md:mt-4 md:mb-4">
                 <div className="border-t border-gray-800 my-6"></div>
-                <ul className="space-y-3">
+                <ul className="pl-4 space-y-3">
                   <li className="flex items-center gap-3">
                     <Award className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     <span className="text-gray-300 text-sm uppercase tracking-wide">{t('augustine.titles.guinnessRecord')}</span>
@@ -458,7 +458,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                           {t('augustine.ministriesVisionSection.ybhm.badge')}
                         </div>
                       </div>
-                      <div className="flex items-center mb-3 space-x-4">
+                      <div className="flex flex-col md:flex-row items-start md:items-center mb-3 md:space-x-4 space-y-2 md:space-y-0">
                         <div className="flex items-center text-white">
                           <MapPin className="w-4 h-4 mr-2" />
                           <span className="text-sm">{t('augustine.ministriesVisionSection.ybhm.location')}</span>
@@ -528,7 +528,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                           {t('augustine.ministriesVisionSection.hms.badge')}
                         </div>
                       </div>
-                      <div className="flex items-center mb-3 space-x-4">
+                      <div className="flex flex-col md:flex-row items-start md:items-center mb-3 md:space-x-4 space-y-2 md:space-y-0">
                         <div className="flex items-center text-white">
                           <Globe className="w-4 h-4 mr-2" />
                           <span className="text-sm">{t('augustine.ministriesVisionSection.hms.onlineInPerson')}</span>
@@ -557,7 +557,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                   </div>
                 </div>
 
-                <div className="max-w-4xl mx-auto px-4 md:px-6">
+                <div className="max-w-4xl mx-auto px-1 md:px-6">
                   <div className="p-8 rounded-lg bg-[#2E2E2E]">
                     <h3 className="mb-4 text-2xl font-semibold text-white">{t('augustine.hallelTab.visionTitle')}</h3>
                     <p className="mb-6 text-lg text-white italic">
@@ -629,9 +629,9 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                 
                 <div className="p-6 mt-8 rounded-lg bg-[#2E2E2E]">
                   <h3 className="mb-4 text-xl font-semibold text-center text-white">{t('augustine.hallelTab.worldRecordTitle')}</h3>
-                  <p className="mb-6 text-center text-white">
-                    {t('augustine.hallelTab.worldRecordDesc')}
-                  </p>
+                  <p className="mb-6 text-center text-white"
+                    dangerouslySetInnerHTML={{ __html: t('augustine.hallelTab.worldRecordDesc').replace('1st', '1<sup className="text-xs align-super">st</sup>') }}
+                  />
                   
                   <div className="flex flex-wrap justify-center gap-6">
                     <div className="flex items-center justify-center w-full p-4 text-center rounded-lg shadow-sm bg-black md:w-auto md:min-w-[200px]">
@@ -659,7 +659,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
                         <div className="flex items-center justify-center w-16 h-16 mx-auto mb-3 rounded-full" style={{ backgroundColor: accentColor }}>
                           <Calendar className="w-8 h-8 text-black" />
                         </div>
-                        <p className="font-medium text-white">December 1st, 2024</p>
+                        <p className="font-medium text-white">December 1<sup className="text-xs align-super">st</sup>, 2024</p>
                         <p className="text-sm text-white">Historic Achievement</p>
                       </div>
                     </div>
@@ -778,7 +778,7 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accent
   return (
     <div>
       {/* Hero Section */}
-      <section className="mb-5 md:mb-16">
+      <section className="mb-16">
         <div className="flex flex-col items-center md:items-start md:flex-row md:gap-12">
           <div className="order-2 md:order-1 mb-8 text-center md:mb-0 md:text-left md:w-[45%] md:pl-8 flex flex-col md:justify-between w-full md:w-[45%]" style={{ minHeight: '405px' }}>
             <div className="space-y-4">
@@ -795,7 +795,7 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accent
               {/* Titles list with muted icon + label style */}
               <div className="mt-8 md:mt-4 md:mb-4">
                 <div className="border-t border-gray-800 my-6"></div>
-                <ul className="space-y-3">
+                <ul className="pl-5 md:pl-0 space-y-3">
                   <li className="flex items-center gap-3">
                     <Heart className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     <span className="text-gray-300 text-sm uppercase tracking-wide">{t('vijaya.titles.womensMinistry')}</span>
@@ -967,7 +967,7 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accen
               {/* Titles list with muted icon + label style */}
               <div className="mt-8 md:mt-4 md:mb-4">
                 <div className="border-t border-gray-800 my-6"></div>
-                <ul className="space-y-3">
+                <ul className="pl-5 space-y-3">
                   <li className="flex items-center gap-3">
                     <Music className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     <span className="text-gray-300 text-sm uppercase tracking-wide">{t('charles.titles.worshipLeader')}</span>
@@ -1124,7 +1124,7 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentC
               {/* Titles list with muted icon + label style */}
               <div className="mt-8 md:mt-4 md:mb-4">
                 <div className="border-t border-gray-800 my-6"></div>
-                <ul className="space-y-3">
+                <ul className="pl-5 md:pl-0 space-y-3">
                   <li className="flex items-center gap-3">
                     <Heart className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     <span className="text-gray-300 text-sm uppercase tracking-wide">{t('nancy.titles.childrensMinistry')}</span>

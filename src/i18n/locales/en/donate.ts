@@ -42,7 +42,12 @@ export default {
     qr: {
       tab: "UPI/QR",
       title: "Scan QR Code",
-      description: "Scan this QR code with any UPI app to donate"
+      description: "Scan this QR code with any UPI app to donate",
+      enlargeHint: "Tap QR code to enlarge",
+      enlargeTitle: "Click to view full screen",
+      noQrTitle: "No QR Code available",
+      noQrDescription: "We don't have any public UPI QR codes available right now. Please check the Bank details for transfer information or try again later.",
+      upiIdLabel: "UPI ID"
     }
   },
   
@@ -114,5 +119,12 @@ export default {
     ifsc: "IFSC Code",
     bank: "Bank Name",
     branch: "Branch"
+  ,
+    swift: "SWIFT Code",
+    note: "Please include your name and contact information in the transaction reference"
+  }
+  ,
+  fullscreen: {
+    closeHint: "Tap anywhere to close"
   }
 };
