@@ -9,8 +9,9 @@ export default {
   
   buttons: {
     viewPictures: "చిత్రాలను ",
-    viewVideos: "వీడియోలను ",
-    viewStories: "కథలను"
+    viewVideos: "వీడియోలను "
+    ,
+    viewStories: "కథలు"
   },
   
   labels: {

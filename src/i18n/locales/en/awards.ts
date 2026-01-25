@@ -9,7 +9,8 @@ export default {
   
   buttons: {
     viewPictures: "Pictures",
-    viewVideos: "Videos",
+    viewVideos: "Videos"
+    ,
     viewStories: "Stories"
   },
   

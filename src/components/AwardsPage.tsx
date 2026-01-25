@@ -192,13 +192,6 @@ export function AwardsPage() {
       >
         View Videos
       </button>
-      <button
-        className="px-5 py-2 bg-[#FDB813] text-black font-bold rounded-full hover:bg-opacity-80 transition-all duration-300 inline-flex items-center justify-center"
-        style={{ cursor: 'pointer' }}
-        onClick={() => handleViewStories(id)}
-      >
-        View Stories
-      </button>
     </div>
   );
 
@@ -245,13 +238,15 @@ export function AwardsPage() {
                   >
                     {t('buttons.viewVideos')}
                   </button>
-                  <button
-                    className="px-5 py-2 bg-[#FDB813] text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 inline-flex items-center justify-center"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleViewStories(record.id)}
-                  >
-                    {t('buttons.viewStories')}
-                  </button>
+                  {record.id === 'guinness' && (
+                    <button
+                      className="px-5 py-2 bg-[#FDB813] text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 inline-flex items-center justify-center"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleViewStories(record.id)}
+                    >
+                      {t('buttons.viewStories')}
+                    </button>
+                  )}
                 </div>
               </div>
               
@@ -288,13 +283,15 @@ export function AwardsPage() {
                   >
                     {t('buttons.viewVideos')}
                   </button>
-                  <button
-                    className="px-5 py-2 bg-[#FDB813] text-black font-bold rounded-full hover:bg-opacity-80 transition-all duration-300 inline-flex items-center justify-center"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleViewStories(record.id)}
-                  >
-                    {t('buttons.viewStories')}
-                  </button>
+                  {record.id === 'guinness' && (
+                    <button
+                      className="px-5 py-2 bg-[#FDB813] text-black font-bold rounded-full hover:bg-opacity-80 transition-all duration-300 inline-flex items-center justify-center"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleViewStories(record.id)}
+                    >
+                      {t('buttons.viewStories')}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

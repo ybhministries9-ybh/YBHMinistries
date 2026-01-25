@@ -88,7 +88,8 @@ export function HMSPage({
       {/* Hero Section */}
       <section 
         ref={sectionRefs.home}
-        className="pt-4 md:pt-16 h-[80vh] flex items-start relative overflow-hidden"
+        className="pt-4 md:pt-16 h-auto md:h-[80vh] flex items-start relative overflow-hidden pb-8 md:pb-0"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-90 z-10"></div>
         <div

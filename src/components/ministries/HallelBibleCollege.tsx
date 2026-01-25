@@ -11,7 +11,7 @@ export function HallelBibleCollege() {
   return (
     <div className="font-sans text-white bg-black">
       {/* Hero Section */}
-      <section className="relative h-[80vh] flex items-start justify-center overflow-hidden pt-4 md:pt-16">
+      <section className="relative min-h-[75vh] md:h-[80vh] flex items-start justify-center overflow-hidden pt-6 md:pt-16 pb-12 md:pb-0">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div>
         <div
           className="absolute inset-0 bg-cover bg-center opacity-90"
@@ -78,11 +78,16 @@ export function HallelBibleCollege() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {(t('hallelBibleCollegePage.unique.items', { returnObjects: true }) as any[]).map((item, index) => {
               const icons = [
-                <path key="1" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />,
+                <path key="1" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />,
                 <path key="2" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />,
                 <path key="3" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />,
                 <path key="4" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />,
-                <path key="5" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h.5A2.5 2.5 0 0020 5.5v-.565M8 3.935l-6 1.5V17.5A2.5 2.5 0 004.5 20h11a2.5 2.5 0 002.5-2.5V5.435l-6-1.5z" />
+                <>
+                  <path key="5a" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2a10 10 0 100 20 10 10 0 000-20z" />
+                  <path key="5b" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 12h20" />
+                  <path key="5c" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v20" />
+                  <path key="5d" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 6.5c3 1.5 6 1.5 7.5 1.5s4.5 0 7.5-1.5" />
+                </>
               ];
               return (
                 <div key={index} className="bg-[#2E2E2E] p-6 rounded-lg hover:transform hover:scale-105 transition-transform">
@@ -117,7 +122,12 @@ export function HallelBibleCollege() {
                 </>,
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />,
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />,
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h.5A2.5 2.5 0 0020 5.5v-.565M8 3.935l-6 1.5V17.5A2.5 2.5 0 004.5 20h11a2.5 2.5 0 002.5-2.5V5.435l-6-1.5z" />
+                <>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2a10 10 0 100 20 10 10 0 000-20z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 12h20" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v20" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 6.5c3 1.5 6 1.5 7.5 1.5s4.5 0 7.5-1.5" />
+                </>
               ];
               return (
                 <div key={index} className="bg-black p-6 rounded-lg cursor-pointer hover:bg-opacity-80 transition-all">
