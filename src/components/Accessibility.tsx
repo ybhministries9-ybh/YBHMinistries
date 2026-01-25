@@ -1,6 +1,7 @@
 "use client";
 import { ArrowLeft } from 'lucide-react';
 import { useEffect } from 'react';
+import { hidePageLoader } from '../utils/pageLoader';
 import { useTranslation } from 'react-i18next';
 
 export function Accessibility() {
@@ -8,6 +9,7 @@ export function Accessibility() {
   
   useEffect(() => {
     window.scrollTo(0, 0);
+    try { hidePageLoader(); } catch (e) {}
   }, []);
 
   const handleBack = () => {
@@ -76,9 +78,9 @@ export function Accessibility() {
               {t('accessibility.feedback.description')}
             </p>
 
-            <div className="bg-gray-700/30 p-4 rounded-lg mt-8 border border-gray-600">
+            <div className="bg-gray-700/30 p-4 rounded-lg mt-8 border border-gray-600 text-left break-words whitespace-normal">
               <p className="text-gray-200 mb-2"><strong>{t('accessibility.contact')}</strong></p>
-              <p className="text-gray-300 mb-1">Email: hallelmusicschoolybh@gmail.com</p>
+              <p className="text-gray-300 mb-1 break-all">Email: <a className="underline hover:text-white" href="mailto:hallelmusicschoolybh@gmail.com">hallelmusicschoolybh@gmail.com</a></p>
               <p className="text-gray-300 mb-1">Phone: +91 9494802288, +91 8558835888</p>
               <p className="text-gray-300">Address: Vijayawada, Andhra Pradesh, India</p>
             </div>
