@@ -76,7 +76,7 @@ export function Accessibility() {
               {t('accessibility.feedback.description')}
             </p>
 
-            <div className="bg-gray-700/30 p-4 rounded-lg mt-8 border border-gray-600">
+            <div className="bg-gray-700/30 p-4 rounded-lg mt-8 border border-gray-600 text-left">
               <p className="text-gray-200 mb-2"><strong>{t('accessibility.contact')}</strong></p>
               <p className="text-gray-300 mb-1">Email: hallelmusicschoolybh@gmail.com</p>
               <p className="text-gray-300 mb-1">Phone: +91 9494802288, +91 8558835888</p>
