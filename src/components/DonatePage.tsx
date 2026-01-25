@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Music, Users, Church, Copy, X, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import QRCode from 'qrcode';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { accentGold } from '../utils/theme';
 import { useTranslation } from 'react-i18next';
 import logger from '../lib/logger';
@@ -99,39 +99,39 @@ export function DonatePage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000', color: '#fff' }}>
-      <section className="pt-24 md:pt-32 pb-16 relative z-10">
+      <section className="pt-24 md:pt-32 pb-16 relative z-10 overflow-x-hidden">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
 
             <div className="w-full">
               <div className="mb-8 text-center pt-6 md:pt-10">
-                <h1 className="text-3xl font-bold" style={{ color: '#fff' }}>Donate to YBH Ministries</h1>
-                <p className="mt-2 text-sm" style={{ color: '#ccc' }}>Your contribution supports music education, community outreach, and ministry growth.</p>
+                <h1 className="text-3xl font-bold" style={{ color: '#fff' }}>{t('hero.title') || 'Donate to YBH Ministries'}</h1>
+                <p className="mt-2 text-sm" style={{ color: '#ccc' }}>{t('hero.description') || 'Your contribution supports music education, community outreach, and ministry growth.'}</p>
               </div>
 
-              <div className="grid gap-8 md:grid-cols-2">
+              <div className="grid gap-8 md:grid-cols-2 items-start md:items-stretch">
                 {/* Left column: Bank details */}
                 <div>
                   <div className="mb-4">
-                    <h3 className="text-lg font-semibold" style={{ color: '#fff' }}>{t('paymentMethods.bank.title')}</h3>
-                    <p className="text-sm" style={{ color: '#ccc' }}>{t('paymentMethods.bank.description')}</p>
+                    <h3 className="text-lg  font-semibold" style={{ color: '#fff' }}>{t('paymentMethods.bank.title')}</h3>
+                    <p className="text-sm whitespace-normal break-words pr-8 sm:pr-0" style={{ color: '#ccc' }}>{t('paymentMethods.bank.description')}</p>
                   </div>
-                  <Card className="w-full" style={{ backgroundColor: '#0f0f0f', border: '1px solid #222', boxSizing: 'border-box', width: '100%' }}>
-                    <CardContent className="pt-6">
+                    <CardContent className="pt-6 px-2 h-full">
                       {bankList.length === 0 ? (
                         <p style={{ color: '#ccc' }}>No Bank Details available</p>
                       ) : (
                         <div className="space-y-4">
                           {bankList.map((b) => (
-                            <div key={b.id} className="rounded-xl p-6 w-full" style={{ backgroundColor: '#373737', boxSizing: 'border-box' }}>
+                            <div key={b.id} className="w-full flex justify-center">
+                              <div className="rounded-xl p-4 sm:p-6 w-[96%] sm:w-[92%] md:w-[90%] lg:w-full max-w-[760px] box-border" style={{ backgroundColor: '#373737', boxSizing: 'border-box' }}>
                                 <div className="mb-2">
-                                <div className="text-xl font-semibold" style={{ color: accentGold }}>{b.account_name}</div>
+                                <div className="text-xl text-center font-semibold" style={{ color: accentGold }}>{b.account_name}</div>
                               </div>
 
                               <div className="text-sm mb-2" style={{ color: '#e6e6e6' }}>
                                 {b.account_name ? (
                                   <div className="mb-3">
-                                    <div className="text-xs text-gray-300 mb-1">Account Holder</div>
+                                      <div className="text-xs text-gray-300 mb-1">{t('bankDetails.accountName')}</div>
                                     <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
                                       <div className="text-sm text-white truncate">{b.account_name}</div>
                                       <button
@@ -156,7 +156,7 @@ export function DonatePage() {
 
                                 {b.bank_name ? (
                                   <div className="mb-3">
-                                    <div className="text-xs text-gray-300 mb-1">Bank</div>
+                                    <div className="text-xs text-gray-300 mb-1">{t('bankDetails.bank')}</div>
                                     <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
                                       <div className="text-sm text-white truncate">{b.bank_name}</div>
                                       <button
@@ -181,7 +181,7 @@ export function DonatePage() {
 
                                 {b.branch_name ? (
                                   <div className="mb-3">
-                                    <div className="text-xs text-gray-300 mb-1">Branch</div>
+                                    <div className="text-xs text-gray-300 mb-1">{t('bankDetails.branch')}</div>
                                     <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
                                       <div className="text-sm text-white truncate">{b.branch_name}</div>
                                       <button
@@ -206,7 +206,7 @@ export function DonatePage() {
 
                                 {b.account_number ? (
                                   <div className="mb-3">
-                                    <div className="text-xs text-gray-300 mb-1">Account Number</div>
+                                    <div className="text-xs text-gray-300 mb-1">{t('bankDetails.accountNumber')}</div>
                                     <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
                                       <div className="text-sm text-white truncate">{b.account_number}</div>
                                       <button
@@ -231,7 +231,7 @@ export function DonatePage() {
 
                                 {b.ifsc_code ? (
                                   <div className="mb-3">
-                                    <div className="text-xs text-gray-300 mb-1">IFSC Code</div>
+                                    <div className="text-xs text-gray-300 mb-1">{t('bankDetails.ifsc')}</div>
                                     <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
                                       <div className="text-sm text-white truncate">{b.ifsc_code}</div>
                                       <button
@@ -256,7 +256,7 @@ export function DonatePage() {
 
                                   {b.swift_code ? (
                                     <div className="mb-3">
-                                      <div className="text-xs text-gray-300 mb-1">SWIFT Code</div>
+                                      <div className="text-xs text-gray-300 mb-1">{t('bankDetails.swift') || 'SWIFT Code'}</div>
                                       <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
                                         <div className="text-sm text-white truncate">{b.swift_code}</div>
                                         <button
@@ -280,35 +280,29 @@ export function DonatePage() {
                                   ) : null}
                               </div>
 
-                              <div className="mt-2 text-sm text-gray-400">Please include your name and contact information in the transaction reference</div>
+                              <div className="mt-2 text-sm text-gray-400">{t('bankDetails.note') || 'Please include your name and contact information in the transaction reference'}</div>
+                              </div>
                             </div>
                           ))}
                         </div>
                       )}
                     </CardContent>
-                  </Card>
                 </div>
 
                 {/* Right column: QR codes */}
                 <div>
                   <div className="mb-4">
-                    <h3 className="text-lg font-semibold" style={{ color: '#fff' }}>QR Codes</h3>
-                    <p className="text-sm" style={{ color: '#ccc' }}>Scan a UPI QR code below to donate using your UPI app.</p>
+                    <h3 className="text-lg font-semibold" style={{ color: '#fff' }}>{t('paymentMethods.qr.title')}</h3>
+                    <p className="text-sm whitespace-normal break-words pr-8 sm:pr-0" style={{ color: '#ccc' }}>{t('paymentMethods.qr.description')}</p>
                   </div>
-
-                  <Card className="w-full" style={{ backgroundColor: '#0f0f0f', border: '1px solid #222', boxSizing: 'border-box', width: '100%' }}>
-                    <CardHeader>
-                      <CardTitle className="text-lg font-semibold" style={{ color: '#fff' }}>{t('paymentMethods.qr.title')}</CardTitle>
-                      <CardDescription style={{ color: '#ccc' }}>{t('paymentMethods.qr.description')}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center gap-6 py-8 pb-12" style={{ overflow: 'hidden' }}>
+                  <div className="h-full flex flex-col mt-4 sm:mt-6">
                       {upiList.length === 0 ? (
-                        <div className="p-6 rounded-xl" style={{ backgroundColor: '#373737', color: '#ccc', textAlign: 'center' }}>
-                          <div className="text-lg font-medium mb-2">No QR Code available</div>
-                          <div className="text-sm">We don't have any public UPI QR codes available right now. Please check the Bank details for transfer information or try again later.</div>
+                          <div className="p-6 mt-4 rounded-xl mx-auto max-w-md w-full" style={{ backgroundColor: '#373737', color: '#ccc', textAlign: 'center' }}>
+                          <div className="text-lg font-medium mb-2">{t('paymentMethods.qr.noQrTitle') || 'No QR Code available'}</div>
+                          <div className="text-sm">{t('paymentMethods.qr.noQrDescription') || "We don't have any public UPI QR codes available right now. Please check the Bank details for transfer information or try again later."}</div>
                         </div>
                       ) : (
-                        <div className="w-full px-6 pb-6 flex flex-col items-center">
+                        <div className="w-full py-6 px-1 sm:px-6 pb-6 flex flex-col items-center h-full">
                           {upiList.map((u, idx) => {
                             // Priority for QR source:
                             // 1. Pre-signed HTTPS URL from API (for uploaded QR images)
@@ -321,11 +315,11 @@ export function DonatePage() {
                             const qrSrc = (isHttpsUrl ? providedUrl : null) || generatedQrSrc || undefined;
 
                             return (
-                              <div key={u.id} className="w-full flex flex-col items-center my-6">
+                              <div key={u.id} className="w-full flex flex-col items-center">
                                 <div className="flex justify-center w-full">
-                                  <div
-                                    className="rounded-xl p-6 flex flex-col items-center"
-                                    style={{ backgroundColor: '#373737', boxSizing: 'border-box', width: '100%', maxWidth: 320 }}
+                                  <div 
+                                    className="rounded-xl p-4 sm:p-6 flex flex-col items-center w-[96%] sm:w-[96%] md:w-full max-w-[720px] box-border"
+                                    style={{ backgroundColor: '#373737', boxSizing: 'border-box', width: '100%' }}
                                   >
                                     {/* UPI label/name displayed above QR code */}
                                     {u.label && (
@@ -334,15 +328,15 @@ export function DonatePage() {
                                       </div>
                                     )}
                                     <div className="w-full">
-                                      <div className="text-xl font-semibold text-center" style={{ color: '#fff' }}>Scan to Pay</div>
+                                      <div className="text-xl font-semibold text-center" style={{ color: '#fff' }}>{t('paymentMethods.qr.title')}</div>
                                     </div>
 
                                     <div className="w-full flex items-center justify-center mt-4">
                                       <div 
-                                        className="bg-white rounded-md cursor-pointer hover:ring-2 hover:ring-[#FDB813] transition-all relative group" 
-                                        style={{ width: '100%', maxWidth: 260, aspectRatio: '1 / 1', padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        className="bg-white rounded-md cursor-pointer hover:ring-2 hover:ring-[#FDB813] transition-all relative group w-full max-w-[520px] p-3 sm:p-6" 
+                                        style={{ aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                         onClick={() => qrSrc && setFullscreenQr({ src: qrSrc, label: u.label || 'UPI QR', upiId: u.upi_id })}
-                                        title="Click to view full screen"
+                                        title={t('paymentMethods.qr.enlargeTitle') || 'Click to view full screen'}
                                       >
                                         <img
                                           src={qrSrc}
@@ -358,10 +352,10 @@ export function DonatePage() {
                                       </div>
                                     </div>
                                     {/* Tap to enlarge hint */}
-                                    <div className="text-xs text-gray-400 mt-2 text-center">Tap QR code to enlarge</div>
+                                    <div className="text-xs text-gray-400 mt-2 text-center">{t('paymentMethods.qr.enlargeHint') || 'Tap QR code to enlarge'}</div>
                                     {u.upi_id ? (
                                       <div className="mt-4 w-full">
-                                        <div className="text-xs text-gray-300 mb-1 text-center">UPI ID</div>
+                                        <div className="text-xs text-gray-300 mb-1 text-center">{t('paymentMethods.qr.upiIdLabel') || 'UPI ID'}</div>
                                         <div className="flex items-center justify-between bg-black px-3 py-2 rounded-md">
                                           <div className="text-sm text-white break-all" style={{ textTransform: 'lowercase' }}>{u.upi_id}</div>
                                           <button
@@ -390,8 +384,9 @@ export function DonatePage() {
                           })}
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                    {/*</CardContent>*/}
+                 {/* </Card>*/}
+                  </div>
                 </div>
               </div>
             </div>
@@ -476,7 +471,7 @@ export function DonatePage() {
           )}
 
           <div className="text-lg md:text-xl font-semibold text-center mb-4 text-white">
-            Scan to Pay
+            {t('paymentMethods.qr.title')}
           </div>
 
           {/* QR Code - Large */}
@@ -495,7 +490,7 @@ export function DonatePage() {
           {/* UPI ID */}
           {fullscreenQr.upiId && (
             <div className="mt-4 w-full max-w-md px-4">
-              <div className="text-xs text-gray-400 mb-1 text-center">UPI ID</div>
+              <div className="text-xs text-gray-400 mb-1 text-center">{t('paymentMethods.qr.upiIdLabel') || 'UPI ID'}</div>
               <div className="flex items-center justify-center gap-2 bg-white/10 px-4 py-2 rounded-md">
                 <span className="text-white text-sm md:text-base break-all text-center" style={{ textTransform: 'lowercase' }}>{fullscreenQr.upiId}</span>
                 <button
@@ -518,7 +513,7 @@ export function DonatePage() {
           )}
 
           {/* Tap to close hint */}
-          <div className="mt-6 text-gray-500 text-sm">Tap anywhere to close</div>
+          <div className="mt-6 text-gray-500 text-sm">{t('fullscreen.closeHint') || 'Tap anywhere to close'}</div>
         </div>
       )}
     </div>
