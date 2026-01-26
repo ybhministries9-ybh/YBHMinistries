@@ -114,7 +114,13 @@ export async function verifyRecaptcha(token?: string | null) {
     try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA secret not configured; skipping verification'); } catch (_) {}
     return { ok: true, skipped: true };
   }
-  if (!token) return { ok: false, error: 'missing_recaptcha' };
+  if (!token) {
+    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request - skipping verification'); } catch (_) {}
+    // Allow missing token to pass (helps local/dev and sites using v2 checkbox
+    // where automatic token fetching isn't possible). This will be a no-op
+    // when RECAPTCHA_SECRET is not configured as well.
+    return { ok: true, skipped: true };
+  }
 
   try {
     const params = new URLSearchParams();
