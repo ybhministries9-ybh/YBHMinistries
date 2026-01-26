@@ -95,6 +95,7 @@ export function HMSStudentForm({
     emergencyRelationship: 'Parent',
     hearAboutUs: '',
     otherHearAboutUs: '',
+    hp: '',
     ...initialData
   };
 
@@ -302,6 +303,13 @@ export function HMSStudentForm({
           // ignore, server will validate
         }
 
+        // Add recaptcha token when available
+        try {
+          const { getRecaptchaToken } = await import('@/lib/recaptcha');
+          const token = await getRecaptchaToken('hms_students');
+          if (token) (data as any).recaptchaToken = token;
+        } catch (e) {}
+
         // Submit to server API (default behavior)
 
         const resp = await fetch(effectiveSubmitUrl, {
@@ -476,6 +484,8 @@ export function HMSStudentForm({
 
       {! (submitSuccess && successIsShort) && (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+          {/* hidden honeypot */}
+          <input type="text" style={{ display: 'none' }} autoComplete="off" tabIndex={-1} {...register('hp')} />
         
         {/* 1. Personal Information */}
         <section className="bg-[#2E2E2E] rounded-lg p-6 md:p-8 shadow-lg">

@@ -12,7 +12,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
 
   // use shared country-code list from lib
 
-  const [formData, setFormData] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '', hp: '' });
   // Track selected country by index so option values are unique and stable
   const [selectedCountryIndex, setSelectedCountryIndex] = useState<number>(() => {
     const idx = COUNTRY_CODES.findIndex(c => c.code === '+91');
@@ -138,14 +138,24 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
-            try {
-              const combinedPhone = `${formData.countryCode || ''}${(formData.phone || '').replace(/\D/g, '')}`;
-              const payload = { ...formData, phone: combinedPhone };
-              const res = await fetch('/api/get-in-touch', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-              });
+    try {
+      const combinedPhone = `${formData.countryCode || ''}${(formData.phone || '').replace(/\D/g, '')}`;
+      // attempt to get reCAPTCHA token (if NEXT_PUBLIC_RECAPTCHA_SITE_KEY is configured)
+      let recaptchaToken: string | null = null;
+      try {
+        const { getRecaptchaToken } = await import('@/lib/recaptcha');
+        recaptchaToken = await getRecaptchaToken('get_in_touch');
+      } catch (e) {
+        // ignore token errors; server will handle verification if configured
+        recaptchaToken = null;
+      }
+
+      const payload = { ...formData, phone: combinedPhone, recaptchaToken };
+      const res = await fetch('/api/get-in-touch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       const data = await res.json();
       if (!res.ok) {
         setFormStatus({ submitted: false, message: data?.error || t('contactForm.error') });
@@ -187,6 +197,8 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
 
       <div className="max-w-4xl mx-auto px-1 sm:px-4">
         <form ref={contactFormRef} onSubmit={handleSubmit} className="p-3 md:p-8 rounded-lg bg-[#2E2E2E] border border-gray-800">
+          {/* Honeypot field (hidden from users) */}
+          <input type="text" name="hp" value={formData.hp} onChange={(e) => setFormData(s => ({ ...s, hp: e.target.value }))} autoComplete="off" tabIndex={-1} style={{ display: 'none' }} aria-hidden />
           {formStatus.submitted ? (
             <div className="py-8 text-center">
               <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full" style={{ backgroundColor: accentColor }}>

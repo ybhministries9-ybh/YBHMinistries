@@ -354,6 +354,8 @@ VideoCard.displayName = 'VideoCard';
 const SubmitTestimonyForm = memo(() => {
   const { t } = useTranslation('stories');
   const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm();
+  // register honeypot field
+  useEffect(() => { register('hp'); }, [register]);
   const testimonyRef = useRef<HTMLDivElement | null>(null);
   const emojiButtonRef = useRef<HTMLButtonElement | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
@@ -466,8 +468,15 @@ const SubmitTestimonyForm = memo(() => {
         role: data.role,
         category: data.category, // key like 'guinness'
         location: data.location,
-        testimony: data.testimony
+        testimony: data.testimony,
+        hp: data.hp || ''
       };
+      // try getting reCAPTCHA token
+      try {
+        const { getRecaptchaToken } = await import('@/lib/recaptcha');
+        const token = await getRecaptchaToken('stories');
+        if (token) (payload as any).recaptchaToken = token;
+      } catch (e) {}
 
       const resp = await fetch('/api/stories', {
         method: 'POST',
