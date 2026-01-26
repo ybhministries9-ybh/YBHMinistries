@@ -166,7 +166,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
       setFormStatus({ submitted: true, message: t('contactForm.success') });
       if (contactFormRef.current) contactFormRef.current.reset();
       // reset all form fields (include `phone` and `location`) to avoid undefined values
-      setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '' });
+      setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '', hp: '' });
       // reset selected index to default (+91)
       const defaultIdx = COUNTRY_CODES.findIndex(c => c.code === '+91');
       setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
@@ -179,7 +179,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
 
   const handleResetForm = () => {
     if (contactFormRef.current) contactFormRef.current.reset();
-    setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '' });
+    setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '', hp: '' });
     const defaultIdx = COUNTRY_CODES.findIndex(c => c.code === '+91');
     setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
     setTouched({ name: false, email: false, phone: false, location: false, message: false, hearAboutUs: false, otherHearAboutUs: false });

@@ -177,7 +177,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
       } else {
         setStatus({ submitted: true, message: 'Request received' });
         if (formRef.current) formRef.current.reset();
-        setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
+        setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
       }
     } catch (err) {
       setStatus({ submitted: false, message: 'Server error' });
@@ -223,7 +223,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                 type="button"
                   onClick={() => {
                   if (formRef.current) formRef.current.reset();
-                  setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
+                  setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
                   setTouched({});
                   setErrors({});
                   setStatus({ submitted: false, message: '' });
@@ -353,7 +353,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                   {submitting ? t('contactForm.sending', { defaultValue: 'Sending...' }) : t('contactForm.submitBooking', { defaultValue: 'Submit Booking' })}
                 </button>
 
-                <button type="button" onClick={() => { if (formRef.current) formRef.current.reset(); setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' }); }}
+                <button type="button" onClick={() => { if (formRef.current) formRef.current.reset(); setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' }); }}
                   className="flex-1 py-2 px-4 text-sm bg-black cursor-pointer font-semibold text-white rounded-full border-2 border-[#FDB813] transition-colors duration-200 hover:bg-[#111]">
                   {t('contactForm.resetButton', { defaultValue: 'Reset Form' })}
                 </button>
