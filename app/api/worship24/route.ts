@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createWorship24 } from '../../../src/lib/db';
 import validateEmail from '../../../src/lib/validateEmail';
-import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '../../../src/lib/security';
+import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '../../../src/lib/security';
 
 export const runtime = 'nodejs';
 
@@ -26,6 +26,18 @@ export async function POST(request: Request) {
 
     let body: any = null;
     try { body = await request.json(); } catch (e) { return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }); }
+
+    // Honeypot check
+    if (isHoneypotFilled(body)) return NextResponse.json({ error: 'bot detected' }, { status: 400 });
+
+    // reCAPTCHA verification when configured
+    try {
+      const token = body?.recaptchaToken || body?.recaptcha_token;
+      const rc = await verifyRecaptcha(token);
+      if (!rc.ok) return NextResponse.json({ error: 'recaptcha_failed', details: rc }, { status: 403 });
+    } catch (e) {
+      return NextResponse.json({ error: 'recaptcha_error' }, { status: 500 });
+    }
 
     const name = sanitizeInput(body?.name, 200);
     const emailRaw = body?.email ? String(body.email).trim() : undefined;

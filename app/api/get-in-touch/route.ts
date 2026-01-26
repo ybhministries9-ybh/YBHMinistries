@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createGetInTouch } from '../../../src/lib/db';
 import validateEmail from '../../../src/lib/validateEmail';
-import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '../../../src/lib/security';
+import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '../../../src/lib/security';
 import { getInTouchSchema } from '../../../src/lib/schemas';
 
 // Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
@@ -42,6 +42,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid JSON body', details: parseErr.message, rawBody }, { status: 400 });
     }
     const { name, email, message, phone, hearAboutUs, otherHearAboutUs } = body || {};
+
+    // Honeypot: simple bot trap. Reject requests with the honeypot field filled.
+    if (isHoneypotFilled(body)) {
+      return NextResponse.json({ error: 'bot detected' }, { status: 400 });
+    }
+
+    // Verify reCAPTCHA when configured. Clients should send `recaptchaToken`.
+    try {
+      const token = body?.recaptchaToken || body?.recaptcha_token;
+      const rc = await verifyRecaptcha(token);
+      if (!rc.ok) return NextResponse.json({ error: 'recaptcha_failed', details: rc }, { status: 403 });
+    } catch (e) {
+      // If recaptcha verification fails unexpectedly, treat as a server error
+      return NextResponse.json({ error: 'recaptcha_error' }, { status: 500 });
+    }
 
     // Sanitize inputs early
     const nameClean = sanitizeInput(name, 100);

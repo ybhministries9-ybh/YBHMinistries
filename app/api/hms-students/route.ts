@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createHMSStudent } from '@/lib/db';
-import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '@/lib/security';
+import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '@/lib/security';
 import { hmsStudentSchema } from '@/lib/schemas';
 import { logger } from '@/lib/logger';
 
@@ -31,6 +31,18 @@ export async function POST(request: Request) {
 
     // Read raw body
     const body = await request.json();
+
+    // Honeypot check
+    if (isHoneypotFilled(body)) return NextResponse.json({ success: false, error: 'bot detected' }, { status: 400 });
+
+    // reCAPTCHA verification when configured
+    try {
+      const token = body?.recaptchaToken || body?.recaptcha_token;
+      const rc = await verifyRecaptcha(token);
+      if (!rc.ok) return NextResponse.json({ success: false, error: 'recaptcha_failed', details: rc }, { status: 403 });
+    } catch (e) {
+      return NextResponse.json({ success: false, error: 'recaptcha_error' }, { status: 500 });
+    }
     const fullName = sanitizeInput(body.fullName, 200);
     const dateOfBirthRaw = sanitizeInput(body.dateOfBirth, 20);
     const gender = sanitizeInput(body.gender, 50);
