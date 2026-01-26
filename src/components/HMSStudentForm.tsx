@@ -66,6 +66,7 @@ interface FormData {
   // Referral
   hearAboutUs: string;
   otherHearAboutUs?: string;
+  hp?: string;
 }
 
 export function HMSStudentForm({
