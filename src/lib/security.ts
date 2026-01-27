@@ -124,10 +124,15 @@ export async function verifyRecaptcha(token?: string | null) {
     try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA secret not configured; skipping verification'); } catch (_) {}
     return { ok: true, skipped: true };
   }
-  // If secret is configured, require a token — do not silently allow missing tokens.
+  // If secret is configured, require a token in production or when explicitly enforced.
   if (!token) {
-    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request - rejecting (secret configured)'); } catch (_) {}
-    return { ok: false, error: 'recaptcha_required' };
+    const enforce = process.env.NODE_ENV === 'production' || process.env.ENFORCE_RECAPTCHA === 'true';
+    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request', { enforce }); } catch (_) {}
+    if (enforce) {
+      return { ok: false, error: 'recaptcha_required' };
+    }
+    // Allow skipping verification during local development/testing unless explicitly enforced.
+    return { ok: true, skipped: true };
   }
 
   try {
