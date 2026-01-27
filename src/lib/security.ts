@@ -103,15 +103,6 @@ export async function rateLimit(key: string, limit = 10, windowMs = 60 * 60 * 10
   return { ok: true, remaining: limit - entry.count };
 }
 
-// Return effective rate limits, preferring environment variables when present.
-export function getRateLimits(defaultLimit = 10, defaultWindowMs = 60 * 60 * 1000) {
-  const envMax = Number(process.env.RATE_LIMIT_MAX || '');
-  const envWindowSec = Number(process.env.RATE_LIMIT_WINDOW_SEC || '');
-  const limit = Number.isFinite(envMax) && envMax > 0 ? envMax : defaultLimit;
-  const windowMs = Number.isFinite(envWindowSec) && envWindowSec > 0 ? envWindowSec * 1000 : defaultWindowMs;
-  return { limit, windowMs };
-}
-
 // reCAPTCHA verification removed — temporarily disabled
 // Add server-side reCAPTCHA verification helper. If `RECAPTCHA_SECRET` is
 // set in env, this will verify tokens sent by clients. If not set, the
@@ -119,21 +110,15 @@ export function getRateLimits(defaultLimit = 10, defaultWindowMs = 60 * 60 * 100
 // during development while logging a warning.
 export async function verifyRecaptcha(token?: string | null) {
   const secret = process.env.RECAPTCHA_SECRET || process.env.RECAPTCHA_V3_SECRET;
-  // If secret is not configured, skip verification (useful for local/dev).
   if (!secret) {
     try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA secret not configured; skipping verification'); } catch (_) {}
     return { ok: true, skipped: true };
   }
-  // If secret is configured, require a token in production or when explicitly enforced.
   if (!token) {
-    // Enforce only when explicitly requested or on true production deployments.
-    const isVercelProd = process.env.VERCEL_ENV === 'production';
-    const enforce = process.env.ENFORCE_RECAPTCHA === 'true' || isVercelProd;
-    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request', { enforce, VERCEL_ENV: process.env.VERCEL_ENV, NODE_ENV: process.env.NODE_ENV }); } catch (_) {}
-    if (enforce) {
-      return { ok: false, error: 'recaptcha_required' };
-    }
-    // Allow skipping verification during local development/testing or preview deployments unless explicitly enforced.
+    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request - skipping verification'); } catch (_) {}
+    // Allow missing token to pass (helps local/dev and sites using v2 checkbox
+    // where automatic token fetching isn't possible). This will be a no-op
+    // when RECAPTCHA_SECRET is not configured as well.
     return { ok: true, skipped: true };
   }
 

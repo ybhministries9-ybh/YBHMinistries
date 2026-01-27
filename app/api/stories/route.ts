@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getVisibleApprovedStories } from '@/lib/db';
 import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
-import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled, getRateLimits } from '@/lib/security';
+import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '@/lib/security';
 import { storySchema } from '@/lib/schemas';
 
 // Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
@@ -48,13 +48,8 @@ export async function POST(request: Request) {
     if (!checkBodySize(request, 128 * 1024)) return NextResponse.json({ success: false, error: 'Payload too large' }, { status: 413 });
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-    const { limit, windowMs } = getRateLimits(10, 60 * 60 * 1000);
-    const rl = await rateLimit(`stories:${ip}`, limit, windowMs);
-    if (!rl.ok) {
-      const resetMs = rl.reset ?? (Date.now() + windowMs);
-      const resetSeconds = Math.max(1, Math.ceil((resetMs - Date.now()) / 1000));
-      return NextResponse.json({ success: false, error: 'Too many requests', reset: resetMs }, { status: 429, headers: { 'Retry-After': String(resetSeconds) } });
-    }
+    const rl = await rateLimit(`stories:${ip}`, 10, 60 * 60 * 1000);
+    if (!rl.ok) return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
 
     const body = await request.json();
 
@@ -227,8 +222,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const resetEpoch = Math.ceil((rl.reset ?? (Date.now() + windowMs)) / 1000);
-    return NextResponse.json({ success: true, data: created }, { status: 201, headers: { 'X-RateLimit-Limit': String(limit), 'X-RateLimit-Remaining': String(rl.remaining ?? 0), 'X-RateLimit-Reset': String(resetEpoch) } });
+    return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (err) {
     console.error('POST /api/stories error', err);
     return NextResponse.json({ success: false, error: 'Failed to create story' }, { status: 500 });

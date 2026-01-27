@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createGetInTouch } from '../../../src/lib/db';
 import validateEmail from '../../../src/lib/validateEmail';
-import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled, getRateLimits } from '../../../src/lib/security';
+import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '../../../src/lib/security';
 import { getInTouchSchema } from '../../../src/lib/schemas';
 
 // Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
@@ -20,12 +20,9 @@ export async function POST(request: Request) {
 
     // Simple per-IP rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-    const { limit, windowMs } = getRateLimits(20, 60 * 60 * 1000);
-    const rl = await rateLimit(`get-in-touch:${ip}`, limit, windowMs);
+    const rl = await rateLimit(`get-in-touch:${ip}`, 20, 60 * 60 * 1000);
     if (!rl.ok) {
-      const resetMs = rl.reset ?? (Date.now() + windowMs);
-      const resetSeconds = Math.max(1, Math.ceil((resetMs - Date.now()) / 1000));
-      return NextResponse.json({ error: 'Too many requests', reset: resetMs }, { status: 429, headers: { 'Retry-After': String(resetSeconds) } });
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     let body: any = null;
@@ -253,8 +250,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const resetEpoch = Math.ceil((rl.reset ?? (Date.now() + windowMs)) / 1000);
-    return NextResponse.json({ success: true, id: (saved as any).id }, { headers: { 'X-RateLimit-Limit': String(limit), 'X-RateLimit-Remaining': String(rl.remaining ?? 0), 'X-RateLimit-Reset': String(resetEpoch) } });
+    return NextResponse.json({ success: true, id: (saved as any).id });
   } catch (err: any) {
     const { logger } = await import('../../../src/lib/logger');
     logger.error('Error in /api/get-in-touch', { error: err?.message });
