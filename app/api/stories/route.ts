@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getVisibleApprovedStories } from '@/lib/db';
 import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
-import { sanitizeInput, requireJson, checkBodySize, rateLimit } from '@/lib/security';
+import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '@/lib/security';
+import { logger } from '@/lib/logger';
 import { storySchema } from '@/lib/schemas';
 
 // Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
@@ -36,7 +37,7 @@ export async function GET() {
     const publicResponse = enhanced.map(({ email, phone, ...rest }: any) => rest);
     return NextResponse.json({ success: true, data: publicResponse });
   } catch (err) {
-    console.error('GET /api/stories error', err);
+    logger.error('GET /api/stories error', { error: String(err) });
     return NextResponse.json({ success: false, error: 'Failed to fetch stories' }, { status: 500 });
   }
 }
@@ -52,6 +53,18 @@ export async function POST(request: Request) {
     if (!rl.ok) return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
 
     const body = await request.json();
+
+    // Honeypot check
+    if (isHoneypotFilled(body)) return NextResponse.json({ success: false, error: 'bot detected' }, { status: 400 });
+
+    // reCAPTCHA verification when configured
+    try {
+      const token = body?.recaptchaToken || body?.recaptcha_token;
+      const rc = await verifyRecaptcha(token);
+      if (!rc.ok) return NextResponse.json({ success: false, error: 'recaptcha_failed', details: rc }, { status: 403 });
+    } catch (e) {
+      return NextResponse.json({ success: false, error: 'recaptcha_error' }, { status: 500 });
+    }
     // Basic server-side validation & sanitization
     const name = sanitizeInput(body.name, 100);
     const email = sanitizeInput(body.email, 254);

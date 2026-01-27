@@ -104,7 +104,56 @@ export async function rateLimit(key: string, limit = 10, windowMs = 60 * 60 * 10
 }
 
 // reCAPTCHA verification removed — temporarily disabled
+// Add server-side reCAPTCHA verification helper. If `RECAPTCHA_SECRET` is
+// set in env, this will verify tokens sent by clients. If not set, the
+// function returns { ok: true, skipped: true } so callers can allow requests
+// during development while logging a warning.
+export async function verifyRecaptcha(token?: string | null) {
+  const secret = process.env.RECAPTCHA_SECRET || process.env.RECAPTCHA_V3_SECRET;
+  if (!secret) {
+    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA secret not configured; skipping verification'); } catch (_) {}
+    return { ok: true, skipped: true };
+  }
+  if (!token) {
+    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request - skipping verification'); } catch (_) {}
+    // Allow missing token to pass (helps local/dev and sites using v2 checkbox
+    // where automatic token fetching isn't possible). This will be a no-op
+    // when RECAPTCHA_SECRET is not configured as well.
+    return { ok: true, skipped: true };
+  }
 
+  try {
+    const params = new URLSearchParams();
+    params.append('secret', secret);
+    params.append('response', token);
+
+    const res = await fetch('https://www.google.com/recaptcha/api/siteverify', { method: 'POST', body: params });
+    const json = await res.json();
+    // For reCAPTCHA v3, callers may want to enforce a score threshold; here
+    // we treat v2 success or v3 score >= 0.3 as acceptable. Adjust as needed.
+    if (json.success) {
+      if (typeof json.score === 'number') {
+        const score = Number(json.score || 0);
+        const min = Number(process.env.RECAPTCHA_MIN_SCORE || 0.3);
+        return { ok: score >= min, score };
+      }
+      return { ok: true };
+    }
+    return { ok: false, error: json['error-codes'] || 'recaptcha_failed' };
+  } catch (e) {
+    try { const { logger } = await import('./logger'); logger.error('reCAPTCHA verification error', { error: String(e) }); } catch (_) {}
+    return { ok: false, error: 'recaptcha_error' };
+  }
+}
+
+// Simple honeypot check: return true if honeypot appears filled.
+export function isHoneypotFilled(body: any) {
+  if (!body) return false;
+  const hp = body.hp ?? body.honeypot ?? body._hp ?? null;
+  if (!hp) return false;
+  if (typeof hp === 'string' && hp.trim().length === 0) return false;
+  return true;
+}
 // Enhance rateLimit function: helper to build per-endpoint keys for per-account limits
 export function buildRateKey(prefix: string, identifier: string) {
   // Keep keys short to fit Redis limits

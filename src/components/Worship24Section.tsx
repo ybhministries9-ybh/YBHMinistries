@@ -53,7 +53,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   const [status, setStatus] = useState<{ submitted: boolean; message?: string }>({ submitted: false });
 
   // use shared country-code list from lib
-  const [form, setForm] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
+  const [form, setForm] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
   // selected country option index to avoid duplicate option values (e.g. +1)
   const [selectedCountryIndex, setSelectedCountryIndex] = useState<number>(() => {
     const idx = COUNTRY_CODES.findIndex(c => c.code === '+91');
@@ -159,8 +159,14 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
     setSubmitting(true);
     try {
       const combinedPhone = `${form.countryCode || ''}${String(form.phone || '').replace(/\D/g, '')}`;
-      const payload = { ...form, phone: combinedPhone };
-      const res = await fetch('/api/worship24', {
+      // attempt to get reCAPTCHA token for worship24
+      let recaptchaToken: string | null = null;
+      try {
+        const { getRecaptchaToken } = await import('@/lib/recaptcha');
+        recaptchaToken = await getRecaptchaToken('worship24');
+      } catch (e) { recaptchaToken = null; }
+      const payload = { ...form, phone: combinedPhone, recaptchaToken };
+        const res = await fetch('/api/worship24', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -171,7 +177,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
       } else {
         setStatus({ submitted: true, message: 'Request received' });
         if (formRef.current) formRef.current.reset();
-        setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
+        setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
       }
     } catch (err) {
       setStatus({ submitted: false, message: 'Server error' });
@@ -203,6 +209,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
 
       <div className="max-w-4xl mx-auto w-full">
         <form ref={formRef} onSubmit={handleSubmit} className="p-4 md:p-8 rounded-lg bg-[#2E2E2E] border border-gray-800">
+          <input type="text" name="hp" value={form.hp} onChange={(e) => setForm(s => ({ ...s, hp: e.target.value }))} autoComplete="off" tabIndex={-1} style={{ display: 'none' }} aria-hidden />
           {status.submitted ? (
             <div ref={successRef} tabIndex={-1} className="py-8 text-center">
               <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4">
@@ -216,7 +223,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                 type="button"
                   onClick={() => {
                   if (formRef.current) formRef.current.reset();
-                  setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' });
+                  setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
                   setTouched({});
                   setErrors({});
                   setStatus({ submitted: false, message: '' });
@@ -346,7 +353,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                   {submitting ? t('contactForm.sending', { defaultValue: 'Sending...' }) : t('contactForm.submitBooking', { defaultValue: 'Submit Booking' })}
                 </button>
 
-                <button type="button" onClick={() => { if (formRef.current) formRef.current.reset(); setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '' }); }}
+                <button type="button" onClick={() => { if (formRef.current) formRef.current.reset(); setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' }); }}
                   className="flex-1 py-2 px-4 text-sm bg-black cursor-pointer font-semibold text-white rounded-full border-2 border-[#FDB813] transition-colors duration-200 hover:bg-[#111]">
                   {t('contactForm.resetButton', { defaultValue: 'Reset Form' })}
                 </button>
