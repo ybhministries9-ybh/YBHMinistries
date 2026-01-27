@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createWorship24 } from '../../../src/lib/db';
 import validateEmail from '../../../src/lib/validateEmail';
-import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '../../../src/lib/security';
+import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled, getRateLimits } from '../../../src/lib/security';
 
 export const runtime = 'nodejs';
 
@@ -21,8 +21,13 @@ export async function POST(request: Request) {
     if (!checkBodySize(request, 128 * 1024)) return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-    const rl = await rateLimit(`worship24:${ip}`, 20, 60 * 60 * 1000);
-    if (!rl.ok) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    const { limit, windowMs } = getRateLimits(20, 60 * 60 * 1000);
+    const rl = await rateLimit(`worship24:${ip}`, limit, windowMs);
+    if (!rl.ok) {
+      const resetMs = rl.reset ?? (Date.now() + windowMs);
+      const resetSeconds = Math.max(1, Math.ceil((resetMs - Date.now()) / 1000));
+      return NextResponse.json({ error: 'Too many requests', reset: resetMs }, { status: 429, headers: { 'Retry-After': String(resetSeconds) } });
+    }
 
     let body: any = null;
     try { body = await request.json(); } catch (e) { return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }); }
@@ -162,7 +167,8 @@ export async function POST(request: Request) {
       try { const { logger } = await import('../../../src/lib/logger'); logger.error('worship24: email send failed', { error: String(err) }); } catch (_) {}
     }
 
-    return NextResponse.json({ success: true, id: (saved as any).id });
+    const resetEpoch = Math.ceil((rl.reset ?? (Date.now() + windowMs)) / 1000);
+    return NextResponse.json({ success: true, id: (saved as any).id }, { headers: { 'X-RateLimit-Limit': String(limit), 'X-RateLimit-Remaining': String(rl.remaining ?? 0), 'X-RateLimit-Reset': String(resetEpoch) } });
   } catch (err: any) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

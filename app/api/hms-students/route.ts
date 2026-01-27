@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createHMSStudent } from '@/lib/db';
-import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '@/lib/security';
+import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled, getRateLimits } from '@/lib/security';
 import { hmsStudentSchema } from '@/lib/schemas';
 import { logger } from '@/lib/logger';
 
@@ -26,8 +26,13 @@ export async function POST(request: Request) {
     if (!checkBodySize(request, 256 * 1024)) return NextResponse.json({ success: false, error: 'Payload too large' }, { status: 413 });
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-    const rl = await rateLimit(`hms-students:${ip}`, 10, 60 * 60 * 1000);
-    if (!rl.ok) return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
+    const { limit, windowMs } = getRateLimits(10, 60 * 60 * 1000);
+    const rl = await rateLimit(`hms-students:${ip}`, limit, windowMs);
+    if (!rl.ok) {
+      const resetMs = rl.reset ?? (Date.now() + windowMs);
+      const resetSeconds = Math.max(1, Math.ceil((resetMs - Date.now()) / 1000));
+      return NextResponse.json({ success: false, error: 'Too many requests', reset: resetMs }, { status: 429, headers: { 'Retry-After': String(resetSeconds) } });
+    }
 
     // Read raw body
     const body = await request.json();
@@ -332,7 +337,8 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, data: created }, { status: 201 });
+    const resetEpoch = Math.ceil((rl.reset ?? (Date.now() + windowMs)) / 1000);
+    return NextResponse.json({ success: true, data: created }, { status: 201, headers: { 'X-RateLimit-Limit': String(limit), 'X-RateLimit-Remaining': String(rl.remaining ?? 0), 'X-RateLimit-Reset': String(resetEpoch) } });
   } catch (err) {
     try { logger.error('POST /api/hms-students error', { error: (err as any)?.message || err }); } catch (e) {}
     return NextResponse.json({ success: false, error: 'Failed to save enrolment' }, { status: 500 });
