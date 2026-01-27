@@ -28,18 +28,21 @@ These components were recently added or improved to centralize email sending, lo
 
 ## Recent changes (summary)
 
-- Email refactor and improvements
-  - Added a reusable SMTP helper `src/lib/smtpMailer.ts` to centralize SMTP configuration and sending.
-  - Updated `app/api/get-in-touch/route.ts` and `app/api/hms-students/route.ts` to send non-blocking confirmation emails to users after form submission. Emails include only the filled fields and use a consistent two-column display style.
-  - Replaced some direct `console.*` usage in the email helper with the project's `logger` to centralize logging.
-  - Updated email templates to include logo header, footer and an italic system-generated note.
+- **Email templates and flow**: The story confirmation email template was updated to use the same stacked, logo‑header format as the `get-in-touch` confirmation (logo, greeting, stacked label/value blocks). See `app/api/stories/route.ts` for the implementation.
+- **Centralized SMTP helper**: `src/lib/smtpMailer.ts` centralizes SMTP configuration and sending. Higher level helpers in `src/lib/email.ts` support provider fallbacks (SendGrid/Brevo).
+- **Logging**: Replaced most direct `console.*` uses in server routes with `src/lib/logger.ts`. Verbose logs are still gated by `ENABLE_VERBOSE_LOGS=true`.
 
-- Logging and diagnostics
-  - Added a lightweight `src/lib/logger.ts` used across the project.
-  - Verbose payload and email-result logs are gated behind the env var `ENABLE_VERBOSE_LOGS=true` to avoid noisy console output in normal runs.
+Security & request protections
+- **Rate limiting**: A simple rate limiter is implemented in `src/lib/security.ts` with an in‑memory fallback and optional Upstash Redis support when `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` are set. Routes apply per-endpoint limits (examples: `get-in-touch` uses 20 requests/hour, `stories` and `hms-students` use 10 requests/hour). Note: `.env.local` contains `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_SEC` but current code passes limits per-route; consider centralizing these values.
+- **Body size & content checks**: All public POST endpoints call `requireJson()` and `checkBodySize()` to enforce `application/json` and limit payload size.
+- **Honeypot**: All public forms use a honeypot check (`isHoneypotFilled`) to discard bot submissions.
+- **reCAPTCHA**: `verifyRecaptcha()` will validate tokens when `RECAPTCHA_SECRET` / `RECAPTCHA_V3_SECRET` are configured. If the secret is not configured the helper currently returns `{ ok: true, skipped: true }` so routes will allow requests during development — enable/require reCAPTCHA in production by setting the secret and enforcing token presence in routes.
 
-- Merge
-  - The `email` feature branch has been merged into `master` and pushed to origin.
+Database safety
+- All DB writes use parameterized/tagged-template queries via the project's `sql` helper (`src/lib/db.ts`) which prevents SQL injection risks from user input.
+
+Branch & workflow notes
+- A short-lived branch `storyemail` was used to implement and test the story-email layout change and merged into `master`.
 
 ## Environment variables (important)
 
