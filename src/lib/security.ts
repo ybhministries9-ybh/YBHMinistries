@@ -126,12 +126,14 @@ export async function verifyRecaptcha(token?: string | null) {
   }
   // If secret is configured, require a token in production or when explicitly enforced.
   if (!token) {
-    const enforce = process.env.NODE_ENV === 'production' || process.env.ENFORCE_RECAPTCHA === 'true';
-    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request', { enforce }); } catch (_) {}
+    // Enforce only when explicitly requested or on true production deployments.
+    const isVercelProd = process.env.VERCEL_ENV === 'production';
+    const enforce = process.env.ENFORCE_RECAPTCHA === 'true' || isVercelProd;
+    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request', { enforce, VERCEL_ENV: process.env.VERCEL_ENV, NODE_ENV: process.env.NODE_ENV }); } catch (_) {}
     if (enforce) {
       return { ok: false, error: 'recaptcha_required' };
     }
-    // Allow skipping verification during local development/testing unless explicitly enforced.
+    // Allow skipping verification during local development/testing or preview deployments unless explicitly enforced.
     return { ok: true, skipped: true };
   }
 
