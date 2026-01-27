@@ -3,6 +3,7 @@ import { sql } from '@vercel/postgres';
 import { getVisibleApprovedStories } from '@/lib/db';
 import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
 import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '@/lib/security';
+import { logger } from '@/lib/logger';
 import { storySchema } from '@/lib/schemas';
 
 // Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
@@ -36,7 +37,7 @@ export async function GET() {
     const publicResponse = enhanced.map(({ email, phone, ...rest }: any) => rest);
     return NextResponse.json({ success: true, data: publicResponse });
   } catch (err) {
-    console.error('GET /api/stories error', err);
+    logger.error('GET /api/stories error', { error: String(err) });
     return NextResponse.json({ success: false, error: 'Failed to fetch stories' }, { status: 500 });
   }
 }
