@@ -142,6 +142,11 @@ export default function RootLayout({
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+            {/* Favicon / web app manifest - prefer static files in public/ */}
+            <link rel="icon" href="/favicon.ico" />
+            <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+            <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+            <link rel="manifest" href="/manifest.webmanifest" />
             {/* og-image.jpg was not present in public/; remove preload to avoid 404 and preload warning */}
           </head>
           <body suppressHydrationWarning>

@@ -11,13 +11,21 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#1e40af',
     icons: [
       {
-        // Use the Next.js OG image routes (server-generated) instead of a missing static png
-        src: '/icon',
+        // Prefer static favicon files in `public/` so browsers and crawlers pick them up reliably
+        src: '/favicon.ico',
+        sizes: '64x64 32x32 16x16',
+        type: 'image/x-icon',
+      },
+      {
+        src: '/favicon-32x32.png',
         sizes: '32x32',
         type: 'image/png',
       },
-      // Removed explicit references to `/icon-192` to avoid 404s; use `/icon` and `/icon-512` instead.
-      // Removed `/icon-512` to avoid 404s from missing route; keep `/icon` (32x32) for favicons.
+      {
+        src: '/favicon-16x16.png',
+        sizes: '16x16',
+        type: 'image/png',
+      },
     ],
     categories: ['education', 'lifestyle', 'music'],
     orientation: 'portrait-primary',
