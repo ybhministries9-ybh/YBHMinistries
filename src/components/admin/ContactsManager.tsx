@@ -770,7 +770,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
           <div className="flex items-center gap-4 border-b border-gray-700">
             <button
               onClick={() => { setActiveTab('hms'); setPage(1); }}
-              className={`flex items-center gap-2 transition-colors text-base ${activeTab === 'hms' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
+              className={`flex items-center gap-2 transition-colors text-base cursor-pointer ${activeTab === 'hms' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
               style={activeTab === 'hms' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
             >
               <Book size={16} />
@@ -779,7 +779,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
             <button
               onClick={() => { setActiveTab('getintouch'); setPage(1); }}
-              className={`flex items-center gap-2 transition-colors text-base ${activeTab === 'getintouch' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
+              className={`flex items-center gap-2 transition-colors text-base cursor-pointer ${activeTab === 'getintouch' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
               style={activeTab === 'getintouch' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
             >
               <Book size={16} />
@@ -788,7 +788,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
             <button
               onClick={() => { setActiveTab('worship24'); setPage(1); }}
-              className={`flex items-center gap-2 transition-colors text-base ${activeTab === 'worship24' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
+              className={`flex items-center gap-2 transition-colors text-base cursor-pointer ${activeTab === 'worship24' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
               style={activeTab === 'worship24' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
             >
               <Book size={16} />
@@ -909,15 +909,15 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 </button>
               </div>
 
-              <div className="mb-3 text-sm text-gray-300">
+              <div className="mt-2 text-white text-base font-medium">
                 {activeHmsSearchQuery ? (
                   hmsTotalCount === 0 ? (
                     <span>No results found for &quot;{activeHmsSearchQuery}&quot;</span>
                   ) : (
-                    <span>Found {hmsTotalCount} result{hmsTotalCount !== 1 ? 's' : ''} for &quot;{activeHmsSearchQuery}&quot;</span>
+                    <span>Found {hmsTotalCount} Result{hmsTotalCount !== 1 ? 's' : ''} for &quot;{activeHmsSearchQuery}&quot;</span>
                   )
                 ) : (
-                  <span>Total: {hmsTotalCount} enrollment{hmsTotalCount !== 1 ? 's' : ''}</span>
+                  <span>Total: {hmsTotalCount} Enrollment{hmsTotalCount !== 1 ? 's' : ''}</span>
                 )}
               </div>
 
@@ -1116,15 +1116,15 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                 </button>
               </div>
 
-              <div className="mb-3 text-sm text-gray-300">
+              <div className="mt-2 text-white text-base font-medium">
                 {activeSearchQuery ? (
                   totalCount === 0 ? (
                     <span>No results found for &quot;{activeSearchQuery}&quot;</span>
                   ) : (
-                    <span>Found {totalCount} result{totalCount !== 1 ? 's' : ''} for &quot;{activeSearchQuery}&quot;</span>
+                    <span>Found {totalCount} Result{totalCount !== 1 ? 's' : ''} for &quot;{activeSearchQuery}&quot;</span>
                   )
                 ) : (
-                  <span>Total: {totalCount} submission{totalCount !== 1 ? 's' : ''}</span>
+                  <span>Total: {totalCount} Submission{totalCount !== 1 ? 's' : ''}</span>
                 )}
               </div>
 
@@ -1296,15 +1296,15 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                   </button>
                 </div>
 
-                <div className="mb-3 text-sm text-gray-300">
+                <div className="mt-2 text-white text-base font-medium">
                   {activeSearchQuery ? (
                     worshipTotalCount === 0 ? (
                       <span>No results found for &quot;{activeSearchQuery}&quot;</span>
                     ) : (
-                      <span>Found {worshipTotalCount} result{worshipTotalCount !== 1 ? 's' : ''} for &quot;{activeSearchQuery}&quot;</span>
+                      <span>Found {worshipTotalCount} Result{worshipTotalCount !== 1 ? 's' : ''} for &quot;{activeSearchQuery}&quot;</span>
                     )
                   ) : (
-                    <span>Total: {worshipTotalCount} submission{worshipTotalCount !== 1 ? 's' : ''}</span>
+                    <span>Total: {worshipTotalCount} Submission{worshipTotalCount !== 1 ? 's' : ''}</span>
                   )}
                 </div>
 

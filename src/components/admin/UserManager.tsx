@@ -474,15 +474,15 @@ export function UserManager() {
       </div>
 
       {/* Results count */}
-      <div className="mb-3 text-sm text-gray-300">
+      <div className="mt-2 mb-2 text-white text-base font-medium">
         {activeSearchQuery ? (
           users.length === 0 ? (
             <span>No results found for &quot;{activeSearchQuery}&quot;</span>
           ) : (
-            <span>Found {users.length} user{users.length !== 1 ? 's' : ''} for &quot;{activeSearchQuery}&quot;</span>
+            <span>Found {users.length} User{users.length !== 1 ? 's' : ''} for &quot;{activeSearchQuery}&quot;</span>
           )
         ) : (
-          <span>Total: {users.length} user{users.length !== 1 ? 's' : ''}</span>
+          <span>Total: {users.length} User{users.length !== 1 ? 's' : ''}</span>
         )}
       </div>
 
