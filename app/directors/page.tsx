@@ -12,7 +12,21 @@ export const metadata: Metadata = {
     title: 'YBH Ministries Leadership Team',
     description: 'Meet our dedicated directors leading the ministry with faith and vision, including Pastor Augustine Dandingi.',
     type: 'website',
+    images: [
+      {
+        url: '/images/directors/augustine.jpg',
+        width: 1200,
+        height: 1200,
+        alt: 'Pastor Augustine Dandingi - YBH Ministries'
+      }
+    ],
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Our Directors | YBH Ministries Leadership',
+    description: 'Meet our leadership team including Pastor Augustine Dandingi.',
+    images: ['/images/directors/augustine.jpg']
+  }
 };
 
 export default async function Directors() {
