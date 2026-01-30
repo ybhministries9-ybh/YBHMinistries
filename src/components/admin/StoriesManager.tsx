@@ -1201,7 +1201,7 @@ export function StoriesManager() {
             </SelectContent>
         </Select>
         <div className="mt-2 text-white text-base font-medium">
-          Total: <span className="text-[#FDB813]">{countsInCategory.total}</span> story(s)
+          Total: <span className="text-[#FDB813]">{countsInCategory.total}</span> Story(s)
           <span className="mx-2">|</span>
           Published: <span className="text-[#FDB813]">{countsInCategory.published}</span>
         </div>

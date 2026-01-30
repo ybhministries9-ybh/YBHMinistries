@@ -792,7 +792,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
       {/* Add Button */}
       <div className="flex justify-between items-center">
         <div className="text-white text-base font-medium">
-          Total: <span className="text-[#FDB813] font-bold">{books.length}</span> book(s)
+          Total: <span className="text-[#FDB813] font-bold">{books.length}</span> Book(s)
           {' | '}
           Published: <span className="text-[#FDB813] font-bold">{books.filter(b => b.published).length}</span>
         </div>
@@ -1676,7 +1676,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="text-white text-base font-medium">
-          Total: <span className="text-[#FDB813] font-bold">{videos.length}</span> video(s)
+          Total: <span className="text-[#FDB813] font-bold">{videos.length}</span> Video(s)
           {' | '}
           Published: <span className="text-[#FDB813] font-bold">{videos.filter(v => v.published).length}</span>
         </div>
@@ -2104,7 +2104,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="text-white text-base font-medium">Total: <span className="text-[#FDB813] font-bold">{sermons.length}</span> sermon(s) {' | '} Published: <span className="text-[#FDB813] font-bold">{sermons.filter(s => s.published).length}</span></div>
+        <div className="text-white text-base font-medium">Total: <span className="text-[#FDB813] font-bold">{sermons.length}</span> Sermon(s) {' | '} Published: <span className="text-[#FDB813] font-bold">{sermons.filter(s => s.published).length}</span></div>
         <div className="flex items-center gap-3">
           {!reorderMode ? (
             <Button onClick={() => { setOriginalSnapshot([...sermons]); setReorderMode(true); }} className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"><GripVertical size={16} className="mr-2" />Enable Reorder</Button>
@@ -2397,7 +2397,7 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="text-white text-base font-medium">
-          Total: <span className="text-[#FDB813] font-bold">{studies.length}</span> study(ies)
+          Total: <span className="text-[#FDB813] font-bold">{studies.length}</span> Study(ies)
           {' | '}
           Published: <span className="text-[#FDB813] font-bold">{studies.filter(s => s.published).length}</span>
         </div>
