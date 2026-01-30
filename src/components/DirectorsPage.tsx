@@ -283,13 +283,13 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
               </button>
             </div>
           </div>
-          <div className="order-1 md:order-2 mb-8 md:mb-0 md:w-[35%] md:ml-auto md:mr-16 px-4 md:px-0">
-            <div className="relative rounded-xl shadow-lg max-h-[438px] overflow-hidden">
+          <div className="order-1 md:order-2 mb-8 md:mb-0 md:w-[40%] md:max-w-[420px] md:ml-auto md:mr-16 px-4 md:px-0">
+            <div className="relative rounded-xl shadow-lg max-h-[438px] aspect-square overflow-hidden">
               {!imagePreloaded && <Skeleton className="w-full h-full absolute inset-0" />}
               <OptimizedImage
                 src={signedUrls?.augustine || HERO_IMAGE_URL}
                 alt="Pastor Augustine Dandingi"
-                className="object-cover w-full h-auto rounded-xl"
+                className="object-cover w-full h-full rounded-xl"
                 priority={true}
               />
             </div>
@@ -835,13 +835,13 @@ const VijayaTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accent
             </div>
           </div>
           
-          <div className="order-1 md:order-2 mb-8 md:mb-0 md:w-[35%] md:ml-auto md:mr-16 px-4 md:px-0">
-            <div className="relative rounded-xl shadow-lg max-h-[438px] overflow-hidden">
+          <div className="order-1 md:order-2 mb-8 md:mb-0 md:w-[40%] md:max-w-[420px] md:ml-auto md:mr-16 px-4 md:px-0">
+            <div className="relative rounded-xl shadow-lg max-h-[438px] aspect-square overflow-hidden">
               {!imagePreloaded && <Skeleton className="w-full h-full absolute inset-0" />}
               <OptimizedImage
                 src={signedUrls?.vijaya || IMAGE_URLS.vijaya}
                 alt="Ps. Vijaya Kumari Dandingi"
-                className="object-cover w-full h-auto rounded-xl"
+                className="object-cover w-full h-full rounded-xl"
                 priority={true}
               />
             </div>
@@ -999,13 +999,13 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accen
             </div>
           </div>
           
-          <div className="order-1 md:order-2 mb-8 md:mb-0 md:w-[35%] md:ml-auto md:mr-16 px-4 md:px-0">
-            <div className="relative rounded-xl shadow-lg max-h-[438px] overflow-hidden">
+          <div className="order-1 md:order-2 mb-8 md:mb-0 md:w-[40%] md:max-w-[420px] md:ml-auto md:mr-16 px-4 md:px-0">
+            <div className="relative rounded-xl shadow-lg max-h-[438px] aspect-square overflow-hidden">
               {!imagePreloaded && <Skeleton className="w-full h-full absolute inset-0" />}
               <OptimizedImage
                 src={signedUrls?.charles || IMAGE_URLS.charles}
                 alt="Charles Aaron Benedict"
-                className="object-cover w-full h-auto rounded-xl"
+                className="object-cover w-full h-full rounded-xl"
                 priority={true}
               />
             </div>
@@ -1156,13 +1156,13 @@ const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentC
             </div>
           </div>
           
-          <div className="order-1 md:order-2 mb-8 md:mb-0 md:w-[35%] md:ml-auto md:mr-16 px-4 md:px-0">
-            <div className="relative rounded-xl shadow-lg max-h-[438px] overflow-hidden">
+          <div className="order-1 md:order-2 mb-8 md:mb-0 md:w-[40%] md:max-w-[420px] md:ml-auto md:mr-16 px-4 md:px-0">
+            <div className="relative rounded-xl shadow-lg max-h-[438px] aspect-square overflow-hidden">
               {!imagePreloaded && <Skeleton className="w-full h-full absolute inset-0" />}
               <OptimizedImage
                 src={signedUrls?.nancy || IMAGE_URLS.nancy}
                 alt="Nancy Ophir Augustina"
-                className="object-cover w-full h-auto rounded-xl"
+                className="object-cover w-full h-full rounded-xl"
                 priority={true}
               />
             </div>
