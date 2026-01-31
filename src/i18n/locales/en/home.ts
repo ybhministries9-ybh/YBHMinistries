@@ -25,7 +25,7 @@ export default {
     awards: {
       guinness: "Guinness World Records Award",
       asia: "Asia Book of Records Award",
-      ingenious: "Ingenious Charm World Records Award",
+      ingenious: "Ingenious Charm World Record Award",
       star: "International Star Book of Records Award"
     }
   },

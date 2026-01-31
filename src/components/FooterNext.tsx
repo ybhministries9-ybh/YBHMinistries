@@ -152,7 +152,7 @@ export function FooterNext() {
           />
           <SmartImage
             srcs={[`/logo/awards/ingenious.png`, ingeniousWorldRecords]}
-            alt="Ingenious Charm World Records 2024"
+            alt="Ingenious Charm World Record 2024"
             className="h-12 md:h-14 object-contain opacity-70 hover:opacity-100 transition-opacity"
           />
           <SmartImage

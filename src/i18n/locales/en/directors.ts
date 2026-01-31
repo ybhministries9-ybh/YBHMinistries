@@ -115,9 +115,9 @@ export default {
       point4: "Equipping the next generation of worship leaders for ministry",
       knowMore: "Know More",
       worldRecordTitle: "World Record Achievement",
-      worldRecordDesc: "On 1st December 2024, Pastor Augustine set a Guinness World Records by leading 1,090 students to play the keyboard simultaneously online—making a significant mark in the realm of global worship and music education.",
+      worldRecordDesc: "On 1st December 2024, Pastor Augustine set a Guinness World Records by leading 1,046 students to play the keyboard simultaneously online—making a significant mark in the realm of global worship and music education.",
       guinnessRecord: "Guinness World Record",
-      keyboardPlayers: "1,090 Keyboard Players",
+      keyboardPlayers: "1,046 Keyboard Players",
       internationalRecognition: "International Recognition",
       multipleRecords: "Multiple World Records",
       globalImpact: "Global Impact"

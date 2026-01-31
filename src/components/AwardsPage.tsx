@@ -210,10 +210,10 @@ export function AwardsPage() {
           className={`w-full py-8 md:py-24 ${index % 2 === 0 ? 'bg-black' : 'bg-[#2E2E2E]'}`}
           id={record.id}
         >
-          <div className="max-w-7xl mx-auto px-2 md:px-8">
-            <div className={`flex flex-col md:flex-row gap-8 md:gap-12 items-start ${record.imagePosition === 'right' ? 'md:flex-row-reverse' : ''}`}>
+          <div className="max-w-7xl mx-auto px-2 lg:px-8">
+            <div className={`flex flex-col lg:flex-row gap-8 lg:gap-12 items-start ${record.imagePosition === 'right' ? 'lg:flex-row-reverse' : ''}`}>
               {/* Image and Buttons Container */}
-              <div className="w-full md:w-[34%] lg:w-[36%] px-4 md:px-0">
+              <div className="w-full lg:w-[36%] px-4 lg:px-0">
                 <div className="relative rounded-lg overflow-hidden shadow-2xl mb-6">
                   <ImageWithFallback
                     src={signedUrls[record.id] || record.image}
@@ -223,7 +223,7 @@ export function AwardsPage() {
                 </div>
                 
                 {/* Action Buttons below image - Desktop only */}
-                <div className="hidden md:flex md:flex-wrap gap-3">
+                <div className="hidden lg:flex lg:flex-wrap gap-3">
                   <button
                     className="px-5 py-2 bg-[#FDB813] shadow-lg text-black rounded-full  hover:bg-[#e5a711] font-semibold transition-colors duration-300 inline-flex items-center justify-center"
                     style={{ cursor: 'pointer' }}
@@ -251,15 +251,13 @@ export function AwardsPage() {
               </div>
               
               {/* Content Container */}
-              <div className="w-full md:w-[66%] lg:w-[64%] px-4 md:px-0">
-                <h2 className="text-3xl md:text-4xl mb-4">{record.name}</h2>
+              <div className="w-full lg:w-[64%] px-4 lg:px-0">
+                <h2 className="text-3xl lg:text-4xl mb-4">{record.name}</h2>
                 <div className="h-1 w-20 bg-[#FDB813] mb-8"></div>
                 
                 <h3 className="text-xl font-semibold text-[#FDB813] mb-6">{record.award}</h3>
                 
-                <p className="text-gray-300 mb-6">
-                  {record.description}
-                </p>
+                <p className="text-gray-300 mb-6" dangerouslySetInnerHTML={{ __html: String(record.description) }} />
                 
                 <div className="bg-[#1E1E1E] p-3 md:p-6 rounded-lg mb-6">
                   <RecordDetail label={t('labels.year')} value={record.year} />
@@ -268,7 +266,7 @@ export function AwardsPage() {
                 </div>
                 
                 {/* Action Buttons below text area - Mobile only */}
-                <div className="flex md:hidden flex-wrap gap-3">
+                <div className="flex lg:hidden flex-wrap gap-3">
                   <button
                     className="px-5 py-2 bg-[#FDB813] text-black font-bold rounded-full hover:bg-opacity-80 transition-all duration-300 inline-flex items-center justify-center"
                     style={{ cursor: 'pointer' }}

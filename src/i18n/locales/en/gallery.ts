@@ -16,7 +16,7 @@ export default {
     },
     "ingenious-record": {
       label: "Ingenious Charm",
-      title: "Ingenious Charm World Records"
+      title: "Ingenious Charm World Record"
     },
     "international-star-records": {
       label: "International Star Book",

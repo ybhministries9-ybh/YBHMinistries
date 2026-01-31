@@ -305,7 +305,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
             <p className="text-white">{t('augustine.stats.studentsTrained')}</p>
           </div>
           <div className="p-6 text-center">
-            <p className="mb-2 text-3xl font-bold" style={{ color: accentColor }}>1,090</p>
+            <p className="mb-2 text-3xl font-bold" style={{ color: accentColor }}>1,046</p>
             <p className="text-white">{t('augustine.stats.worldRecordParticipants')}</p>
           </div>
           <div className="p-6 text-center">

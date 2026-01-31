@@ -482,7 +482,7 @@ export function Home({ initialHeroImages }: HomeProps) {
     },
     {
       src: `${R2_BASE}/logo/awards/ingenious.png`,
-      alt: "Ingenious Charm World Records Award",
+      alt: "Ingenious Charm World Record Award",
       translationKey: 'achievements.awards.ingenious',
       year: 2024
     },

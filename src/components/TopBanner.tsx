@@ -98,7 +98,7 @@ export function TopBanner({ isMenuOpen = false, onMenuToggle }: TopBannerProps) 
             />
             <SmartImage
               srcs={[LOCAL_INGENIOUS, ingeniousR2]}
-              alt="Ingenious Charm World Records"
+              alt="Ingenious Charm World Record"
               className="h-12 w-auto object-contain"
             />
             <SmartImage
