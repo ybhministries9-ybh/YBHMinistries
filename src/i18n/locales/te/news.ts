@@ -110,6 +110,7 @@ export default {
     peakPerformance: "గరిష్ట పనితీరు",
     highestMonth: "అత్యధిక నెల:",
     lowestMonth: "అత్యల్ప నెల:",
-    enrollment: "నమోదు:"
+    enrollment: "నమోదు:",
+    noReportsAvailable: "రిపోర్టులు అందుబాటులో లేవు"
   }
 };

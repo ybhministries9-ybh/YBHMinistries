@@ -345,7 +345,7 @@ WHERE id IN (1, 2, 3); -- Update specific event IDs
 For urgent Telugu events, you can:
 
 1. **Create separate events** with Telugu titles in the database
-2. **Use English transliteration** in titles (e.g., "Guinness World Record Prayatnam-2")
+2. **Use English transliteration** in titles (e.g., "Guinness World Records Prayatnam-2")
 3. **Add Telugu in descriptions** as mixed content
 4. **Use images with Telugu text** for posters
 

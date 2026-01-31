@@ -27,7 +27,7 @@ const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 const FALLBACK_EVENTS: Event[] = [
   { 
     id: 1, 
-    title: "Guinness World Record Attempt-2", 
+    title: "Guinness World Records Attempt-2", 
     date: "2025-12-1", 
     type: "record",
     description: "Join us for the 2nd attempt of the Guinness World Record",
@@ -35,7 +35,7 @@ const FALLBACK_EVENTS: Event[] = [
     time: "9:00 AM - 5:00 PM",
     speakers: ["Ps. Augustine Dandingi", "Master Charlie Aaron Benedict Dandingi", "Master Nancy Augustina Dandingi"],
     capacity: "Unlimited",
-    extendedDescription: "This is our second attempt at the Guinness World Record, aiming to break the first Guinness World Record that we previously achieved.",
+    extendedDescription: "This is our second attempt at the Guinness World Record, aiming to break the first Guinness World Records that we previously achieved.",
     whatToBring: ["Key Board","Key Board Stand","Smart Phone with Internet","HMS - Song Book"],
     imageUrl: `${R2_BASE}/News/GWR2/GWR-2%20-%20Poster.jpg`,
     registration: {

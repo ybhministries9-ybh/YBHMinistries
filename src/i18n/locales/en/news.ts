@@ -110,6 +110,7 @@ export default {
     peakPerformance: "Peak Performance",
     highestMonth: "Highest Month:",
     lowestMonth: "Lowest Month:",
-    enrollment: "Enrollment:"
+    enrollment: "Enrollment:",
+    noReportsAvailable: "No Reports Available"
   }
 };

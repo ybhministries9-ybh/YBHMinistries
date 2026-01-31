@@ -677,7 +677,7 @@ export default {
       },
       guinness: {
         title: "Guinness World Records Attempt - 2",
-        description: "Be part of history! Join our second attempt at breaking a Guinness World Record in music. More details coming soon.",
+        description: "Be part of history! Join our second attempt at breaking a Guinness World Records in music. More details coming soon.",
         button: "Learn More"
       }
     }

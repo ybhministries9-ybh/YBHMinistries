@@ -47,7 +47,7 @@ export default {
     },
     "contact": {
       "title": "Contact Us",
-      "address": "Vijayawada, Andhra Pradesh, India",
+      "address": "HALLEL MUSIC SCHOOL, Loyola College Road, Vetarnery Colony Rd.1, Vijayawada, Andhra Pradesh, India - 520008",
       "phone": "+91 9494802288, +91 8558835888",
       "email": "hallelmusicschoolybh@gmail.com"
     },

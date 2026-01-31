@@ -301,7 +301,7 @@ const AugustineTab = memo(({ accentColor, augustineTab, setAugustineTab, imagePr
       <section className="py-12 mb-16 border-t border-b border-gray-800">
         <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           <div className="p-6 text-center">
-            <p className="mb-2 text-3xl font-bold" style={{ color: accentColor }}>7,000+</p>
+            <p className="mb-2 text-3xl font-bold" style={{ color: accentColor }}>10,000+</p>
             <p className="text-white">{t('augustine.stats.studentsTrained')}</p>
           </div>
           <div className="p-6 text-center">
@@ -1004,7 +1004,7 @@ const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accen
               {!imagePreloaded && <Skeleton className="w-full h-full absolute inset-0" />}
               <OptimizedImage
                 src={signedUrls?.charles || IMAGE_URLS.charles}
-                alt="Charles Aaron Benedict"
+                alt="Charlie Aaron Benedict"
                 className="object-cover w-full h-full rounded-xl"
                 priority={true}
               />

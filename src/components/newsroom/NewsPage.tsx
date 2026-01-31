@@ -725,7 +725,7 @@ export function NewsPage() {
               </div>
             ) : Object.keys(enrollmentData).length === 0 ? (
               <div className="text-center py-12 bg-[#2E2E2E] rounded-lg">
-                <p className="text-gray-400">No reports available</p>
+                <p className="text-gray-400">{t('news:reports.noReportsAvailable')}</p>
               </div>
             ) : (
               <>

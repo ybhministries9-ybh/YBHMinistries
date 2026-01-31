@@ -10,7 +10,7 @@ export default {
   tabs: {
     augustine: "Ps. Augustine Dandingi",
     vijaya: "Ps. Vijaya Kumari Dandingi",
-    charles: "Charles Aaron Benedict",
+    charles: "Charlie Aaron Benedict",
     nancy: "Nancy Ophir Augustina"
   },
   
@@ -28,7 +28,7 @@ export default {
     organization2: "Yeshua Beth Hallel Ministries (YBHM)",
     
     titles: {
-      guinnessRecord: "Guinness World Record Holder",
+      guinnessRecord: "Guinness World Records Holder",
       worshipLeader: "Worship Leader",
       songWriter: "Song Writer",
       bibleTeacher: "Bible Teacher",
@@ -89,8 +89,8 @@ export default {
         title: "Hallel Music School",
         badge: "HMS",
         onlineInPerson: "Online & In-Person",
-        studentsTrained: "7,000+ Students Trained",
-        description: "Offering free online keyboard training with the mission to make every believer a worshipper. In just four years, over 7,000 students have been trained through this initiative, culminating in the Guinness World Record achievement.",
+        studentsTrained: "10,000+ Students Trained",
+        description: "Offering free online keyboard training with the mission to make every believer a worshipper. In just four years, over 10,000 students have been trained through this initiative, culminating in the Guinness World Records achievement.",
         tags: {
           freeTraining: "Free Training",
           keyboard: "Keyboard",
@@ -110,12 +110,12 @@ export default {
       visionTitle: "Hallel Music School Vision",
       visionQuote: "\"Every church in India should worship with musical instruments and every home should become a house of worship.\"",
       point1: "Free online keyboard training accessible to all",
-      point2: "7,000+ students trained in just four years",
+      point2: "10,000+ students trained in just four years",
       point3: "Comprehensive worship training beyond just keyboard skills",
       point4: "Equipping the next generation of worship leaders for ministry",
       knowMore: "Know More",
       worldRecordTitle: "World Record Achievement",
-      worldRecordDesc: "On 1st December 2024, Pastor Augustine set a Guinness World Record by leading 1,090 students to play the keyboard simultaneously online—making a significant mark in the realm of global worship and music education.",
+      worldRecordDesc: "On 1st December 2024, Pastor Augustine set a Guinness World Records by leading 1,090 students to play the keyboard simultaneously online—making a significant mark in the realm of global worship and music education.",
       guinnessRecord: "Guinness World Record",
       keyboardPlayers: "1,090 Keyboard Players",
       internationalRecognition: "International Recognition",
@@ -139,7 +139,7 @@ export default {
     achievements: {
       title: "Achievements & Recognition",
       guinnessTitle: "Guinness World Record",
-      guinnessDesc: "Set the Guinness World Record for the longest continuous worship service.",
+      guinnessDesc: "Set the Guinness World Records for the longest continuous worship service.",
       songsTitle: "1000+ Original Songs",
       songsDesc: "Composed over 1000 original worship songs in Telugu and other languages.",
       studentsTitle: "10,000+ Students Trained",
@@ -216,7 +216,7 @@ export default {
   
   // Charles
   charles: {
-    name: "Charles Aaron Benedict",
+    name: "Charlie Aaron Benedict",
     role: "Worship Leader & Youth Ministry Director",
     organization: "Yeshua Beth Hallel Ministries (YBHM)",
     
