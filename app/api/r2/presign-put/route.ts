@@ -12,7 +12,9 @@ export async function POST(req: Request) {
     const isLogo = category && typeof category === 'string' && category.toLowerCase().includes('logo');
     const bucket = isLogo ? process.env.NEXT_PUBLIC_R2_PUBLIC_BUCKET || process.env.CF_R2_BUCKET : process.env.R2_PRIVATE_BUCKET || process.env.R2_BUCKET || process.env.CF_R2_BUCKET;
     const url = await getPresignedPutUrl(key, contentType || "application/octet-stream", typeof expiresIn === 'number' ? expiresIn : 3600, bucket);
-    return NextResponse.json({ url });
+    // Return the presigned PUT URL along with bucket/key so the client can record an r2:// reference
+    const usedBucket = bucket || process.env.R2_PRIVATE_BUCKET || process.env.R2_BUCKET || process.env.CF_R2_BUCKET;
+    return NextResponse.json({ url, bucket: usedBucket, key });
   } catch (err: any) {
     console.error("/api/r2/presign-put error", err);
     return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
