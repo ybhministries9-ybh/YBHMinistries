@@ -17,53 +17,21 @@ export default async function Image() {
           height: '100%',
           width: '100%',
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#fff',
-          backgroundImage: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%)',
+          backgroundColor: '#0b1220',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '80px',
-            textAlign: 'center',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 80,
-              fontWeight: 900,
-              color: 'white',
-              marginBottom: 30,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            YBH Ministries
+        <div style={{ flex: '0 0 360px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img src={'/logo/ybh.png'} alt="YBH logo" style={{ width: 320, height: 'auto', borderRadius: 8 }} />
+        </div>
+        <div style={{ flex: '1', padding: '40px 60px', color: '#ffffff' }}>
+          <div style={{ fontSize: 56, fontWeight: 800, marginBottom: 14, lineHeight: 1.05 }}>
+            Yeshua Beth Hallel Ministries - Empowering Worship & Faith
           </div>
-          <div
-            style={{
-              fontSize: 36,
-              color: 'rgba(255, 255, 255, 0.95)',
-              textAlign: 'center',
-              maxWidth: 900,
-              marginBottom: 20,
-            }}
-          >
-            Empowering Worship & Transforming Lives
-          </div>
-          <div
-            style={{
-              fontSize: 28,
-              color: 'rgba(255, 255, 255, 0.85)',
-              fontWeight: 300,
-            }}
-          >
-            Faith • Music • Ministry
+          <div style={{ fontSize: 28, fontWeight: 400, opacity: 0.95, marginTop: 10, maxWidth: 760 }}>
+            Transforming lives through worship, faith, and ministry. Offering Bible college, music school, church services, and conferences.
           </div>
         </div>
       </div>
