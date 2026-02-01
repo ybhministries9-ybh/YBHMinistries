@@ -55,6 +55,34 @@ The project expects several environment variables (typically in `.env.local`) fo
 
 Do NOT commit `.env.local` to source control.
 
+**Uploads & R2 (media handling)**
+
+- The project uses Cloudflare R2 for media storage. Server helpers live in `src/lib/r2.ts`.
+- API: `POST /api/r2/presign-put` returns a presigned PUT URL. The response now includes `{ url, bucket, key }` so clients can upload directly to R2 and record an `r2://<bucket>/<key>` reference in the metadata request.
+- Recommended client flow for large/multiple files (avoids server 413/timeouts):
+  1. Request a presigned PUT per file from `/api/r2/presign-put` (send desired `key`, `contentType`, and optional `category`).
+  2. Upload the `File` directly from the browser to the returned `url` with a `PUT` (no multipart body to your server).
+  3. POST metadata to the server (e.g. `POST /api/admin/gallery`) with the `r2://bucket/key` references — small JSON body only.
+- Server-side: some upload routes enforce `streamUploadGuard()` to limit/validate streaming multipart uploads. Platform limits (Vercel/proxy) may still reject very large multipart requests; direct-to-R2 is the most robust approach.
+
+Required R2-related environment variables (examples):
+- `R2_ACCOUNT_ID` — Cloudflare account id (used to build account endpoint)
+- `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` — credentials for R2
+- `R2_BUCKET` — default/legacy bucket name
+- `R2_PRIVATE_BUCKET` — private bucket used by server-side uploads
+- `NEXT_PUBLIC_R2_PUBLIC_URL` and `NEXT_PUBLIC_R2_PUBLIC_BUCKET` — optional public CDN base and bucket for client-visible URLs
+
+If you change upload behavior, update the admin UI to use the presign flow described above.
+
+## Developer housekeeping
+
+- If you see the build warning about baseline browser data, update the dev dependency:
+
+```bash
+npm i baseline-browser-mapping@latest -D
+```
+
+
 ## Testing email locally
 
 1. Populate `.env.local` with valid SMTP credentials (for example, a Gmail app password), plus `EMAIL_FROM` and `EMAIL_BCC` if desired.
