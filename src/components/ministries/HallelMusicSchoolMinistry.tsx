@@ -206,16 +206,6 @@ export function HallelMusicSchoolMinistry() {
                   {t('hallelMusicSchoolPage.registration.lmsStudent')}
                 </Link>
               </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: '#FDB813' }}></div>
-                <Link
-                  href="/contact?tab=student-form"
-                  className="text-lg text-white hover:opacity-80 transition-opacity"
-                >
-                  {t('hallelMusicSchoolPage.registration.guinnessAttempt')}
-                </Link>
-              </div>
             </div>
           </div>
         </section>

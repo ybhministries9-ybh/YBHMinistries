@@ -359,22 +359,6 @@ export function HMSPage({
               </button>
             </div>
           </div>
-          
-          <div className="mt-12 p-8 bg-black rounded-lg max-w-4xl mx-auto text-center">
-            <h3 className="text-xl font-bold mb-4">{t('hmsPage.join.guinness.title')}</h3>
-            <p className="mb-6 text-gray-300">
-              {t('hmsPage.join.guinness.description')}
-            </p>
-            <button 
-              onClick={() => router.push('/news?section=upcoming-events')}
-              className="px-6 py-3 rounded-full font-semibold bg-transparent cursor-pointer transition-all duration-300 hover:text-black"
-              style={{ transition: 'all 0.3s ease', border: '2px solid #FDB813' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FDB813'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              {t('hmsPage.join.guinness.button')}
-            </button>
-          </div>
         </div>
       </section>
     </div>
