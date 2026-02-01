@@ -33,28 +33,28 @@ export async function GET(request: NextRequest) {
       images = await Promise.all(imagesRaw.map(async (it) => {
         const out = { ...it } as any;
         try {
-          if (out.thumbnail_url && out.thumbnail_url.startsWith('r2://')) {
+            if (out.thumbnail_url && out.thumbnail_url.startsWith('r2://')) {
             const parsed = parseKeyFromUrl(out.thumbnail_url);
-            if (parsed?.key) out.thumbnail_url = await getPresignedGetUrl(parsed.key, 300, parsed.bucket || undefined);
+            if (parsed?.key) out.thumbnail_url = await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || undefined);
           } else if (out.thumbnail_url && (out.thumbnail_url.includes('.r2.cloudflarestorage.com') || out.thumbnail_url.includes('.r2.dev'))) {
             const parsed = parseKeyFromUrl(out.thumbnail_url);
-            if (parsed?.key) out.thumbnail_url = await getPresignedGetUrl(parsed.key, 300, parsed.bucket || undefined);
+            if (parsed?.key) out.thumbnail_url = await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || undefined);
           }
 
           if (out.medium_url && out.medium_url.startsWith('r2://')) {
             const parsed2 = parseKeyFromUrl(out.medium_url);
-            if (parsed2?.key) out.medium_url = await getPresignedGetUrl(parsed2.key, 300, parsed2.bucket || undefined);
+            if (parsed2?.key) out.medium_url = await getPresignedGetUrl(parsed2.key, 3600, parsed2.bucket || undefined);
           } else if (out.medium_url && (out.medium_url.includes('.r2.cloudflarestorage.com') || out.medium_url.includes('.r2.dev'))) {
             const parsed2 = parseKeyFromUrl(out.medium_url);
-            if (parsed2?.key) out.medium_url = await getPresignedGetUrl(parsed2.key, 300, parsed2.bucket || undefined);
+            if (parsed2?.key) out.medium_url = await getPresignedGetUrl(parsed2.key, 3600, parsed2.bucket || undefined);
           }
 
           if (out.url && out.url.startsWith('r2://')) {
             const parsed3 = parseKeyFromUrl(out.url);
-            if (parsed3?.key) out.url = await getPresignedGetUrl(parsed3.key, 300, parsed3.bucket || undefined);
+            if (parsed3?.key) out.url = await getPresignedGetUrl(parsed3.key, 3600, parsed3.bucket || undefined);
           } else if (out.url && (out.url.includes('.r2.cloudflarestorage.com') || out.url.includes('.r2.dev'))) {
             const parsed3 = parseKeyFromUrl(out.url);
-            if (parsed3?.key) out.url = await getPresignedGetUrl(parsed3.key, 300, parsed3.bucket || undefined);
+            if (parsed3?.key) out.url = await getPresignedGetUrl(parsed3.key, 3600, parsed3.bucket || undefined);
           }
         } catch (e) {
           // ignore presign failures and return raw URL
@@ -85,8 +85,8 @@ export async function GET(request: NextRequest) {
       count: items.length,
     });
     
-    // Cache for 5 minutes on CDN, allow stale-while-revalidate for 1 hour
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+    // Cache on CDN for 15 minutes and allow stale-while-revalidate for 1 hour
+    response.headers.set('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=3600');
     
     return response;
   } catch (error: any) {

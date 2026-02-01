@@ -9,6 +9,7 @@ import {
 } from '@/lib/db';
 import { getActorName, verifySession } from '@/lib/sessions';
 import { extractYouTubeId } from '@/lib/youtube';
+import { streamUploadGuard, ApiError } from '@/lib/apiGuard';
 
 /**
  * GET /api/admin/gallery
@@ -100,6 +101,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Enforce upload limits for gallery uploads (allow up to 50MB total)
+    await streamUploadGuard(request, 50_000_000);
     const contentType = request.headers.get('content-type') || '';
 
     // verify session for admin and resolve actor
@@ -280,6 +283,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in POST /api/admin/gallery:', error);
+    if (error instanceof ApiError) {
+      return NextResponse.json({ success: false, error: error.sanitizedMessage }, { status: error.status });
+    }
     return NextResponse.json(
       { success: false, error: 'Failed to add gallery items' },
       { status: 500 }
