@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { OrganizationStructuredData, WebsiteStructuredData } from '@/components/seo/StructuredData';
 import '../src/index.css';
 import './globals.css';
+import AnalyticsClient from './AnalyticsClient';
 import { sql } from '@vercel/postgres';
 import fs from 'fs/promises';
 
@@ -153,6 +154,7 @@ export default function RootLayout({
         {/* Render children; maintenance routing is handled by middleware */}
         {children}
         <Toaster position="bottom-center" />
+        <AnalyticsClient />
       </body>
     </html>
   );
