@@ -5,17 +5,37 @@ import { getActiveHeroImages } from '@/lib/db';
 import { parseKeyFromUrl, getPresignedGetUrl, PRIVATE_BUCKET } from '@/lib/r2';
 import HomeClient from './HomeClient';
 
+const siteUrl = 'https://ybhministries.org';
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 const DEFAULT_HERO_IMAGE = `${R2_BASE}/home/hero/default.jpg`;
+const defaultShareImage = `${siteUrl}/logo/ybh.png`;
 
 export const metadata: Metadata = {
   title: 'YBH Ministries - Yeshua Beth Hallel Ministries | Worship & Faith',
   description: 'Yeshua Beth Hallel Ministries - Empowering worship and transforming lives through faith, music education, and ministry. Join our community of believers.',
   keywords: ['YBH Ministries', 'Yeshua Beth Hallel', 'Christian Ministry', 'Worship', 'Faith', 'Music School', 'Bible College', 'Church'],
+  alternates: {
+    canonical: siteUrl,
+  },
   openGraph: {
     title: 'YBH Ministries - Empowering Worship, Transforming Lives',
     description: 'Join Yeshua Beth Hallel Ministries in our mission to spread faith through worship, music education, and community service.',
     type: 'website',
+    url: siteUrl,
+    images: [
+      {
+        url: defaultShareImage,
+        width: 1200,
+        height: 630,
+        alt: 'YBH Ministries',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'YBH Ministries - Empowering Worship, Transforming Lives',
+    description: 'Join Yeshua Beth Hallel Ministries in our mission to spread faith through worship, music education, and community service.',
+    images: [defaultShareImage],
   },
 };
 
