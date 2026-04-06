@@ -43,4 +43,4 @@ export const POST = withApiGuard(async (request: NextRequest) => {
 
   const storageRef = `r2://${PRIVATE_BUCKET}/${origKey}`;
   return NextResponse.json({ success: true, url: storageRef, key: origKey, id: uniqueId });
-});
+}, { allowMultipartPaths: ['/api/admin/upload/event-image'], multipartMaxBytes: 5_000_000 });

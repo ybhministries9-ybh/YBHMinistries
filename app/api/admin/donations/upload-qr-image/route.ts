@@ -81,4 +81,4 @@ export const POST = withApiGuard(async (request: NextRequest) => {
   if (!result.rows.length) return NextResponse.json({ success: false, error: 'Failed to update UPI entry' }, { status: 500 });
 
   return NextResponse.json({ success: true, url: r2Url, row: result.rows[0] });
-});
+}, { allowMultipartPaths: ['/api/admin/donations/upload-qr-image'], multipartMaxBytes: 5_000_000 });

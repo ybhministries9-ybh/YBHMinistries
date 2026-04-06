@@ -32,4 +32,4 @@ export const POST = withApiGuard(async (request: NextRequest) => {
   });
 
   return NextResponse.json({ success: true, url: blob.url });
-});
+}, { allowMultipartPaths: ['/api/admin/upload/file'], multipartMaxBytes: 5_000_000 });
