@@ -640,6 +640,16 @@ export async function getWorship24ById(id: number) {
   }
 }
 
+export async function deleteWorship24(id: number): Promise<boolean> {
+  try {
+    const { rowCount } = await sql`DELETE FROM worship24 WHERE id = ${id}`;
+    return (rowCount ?? 0) > 0;
+  } catch (error) {
+    logger.error('Error deleting worship24:', error);
+    throw error;
+  }
+}
+
 export async function getWorship24Years() {
   try {
     const result = await sql`
@@ -727,6 +737,16 @@ export async function getGetInTouchById(id: number) {
     return rows[0] || null;
   } catch (error) {
     logger.error('Error fetching get_in_touch by id:', error);
+    throw error;
+  }
+}
+
+export async function deleteGetInTouch(id: number): Promise<boolean> {
+  try {
+    const { rowCount } = await sql`DELETE FROM get_in_touch WHERE id = ${id}`;
+    return (rowCount ?? 0) > 0;
+  } catch (error) {
+    logger.error('Error deleting get_in_touch:', error);
     throw error;
   }
 }
@@ -845,6 +865,16 @@ export async function updateHMSStudent(id: number, updates: Partial<any>) {
     return result.rows[0];
   } catch (error) {
     logger.error('Error updating HMS student:', error);
+    throw error;
+  }
+}
+
+export async function deleteHMSStudent(id: number): Promise<boolean> {
+  try {
+    const { rowCount } = await sql`DELETE FROM hms_students WHERE id = ${id}`;
+    return (rowCount ?? 0) > 0;
+  } catch (error) {
+    logger.error('Error deleting HMS student:', error);
     throw error;
   }
 }

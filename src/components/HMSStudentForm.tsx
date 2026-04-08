@@ -13,7 +13,7 @@ const PROGRAM_LEVELS = ['beginner', 'intermediate', 'advanced'];
 const INSTRUMENTS = ['piano', 'guitar', 'violin', 'drums', 'vocal'];
 const CLASS_TYPES = ['individual', 'group', 'online', 'inPerson'];
 const SCHEDULES = ['weekdays', 'weekends', 'morning', 'evening'];
-const COURSE_TYPES = ['freeBasicMusic', 'hmsWithCertificate', 'lcmWithCertificate'];
+const COURSE_TYPES = ['freeBasicMusic', 'hmsWithCertificate', 'lcmWithCertificate', 'rapidCourse'];
 const PERFORMANCE_OPTIONS = ['schoolEvents', 'competitions', 'choir'];
 const VOLUNTEER_AREAS = ['volunteerOnlineTeacher', 'volunteerOfflineConferences', 'volunteerSummerKids', 'volunteerEvents'];
 

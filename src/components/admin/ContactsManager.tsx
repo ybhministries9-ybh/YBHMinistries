@@ -5,6 +5,19 @@ import { accentGold } from '../../utils/theme';
 import Link from 'next/link';
 import { downloadExcelFile } from '@/lib/exportUtils';
 
+const getHmsStatusBadge = (status: string) => {
+  const s = status || 'Submitted';
+  const colors: Record<string, { bg: string; text: string }> = {
+    Submitted: { bg: '#eab308', text: '#000' },
+    Accepted: { bg: '#3b82f6', text: '#fff' },
+    Rejected: { bg: '#dc2626', text: '#fff' },
+    Enrolled: { bg: '#16a34a', text: '#fff' },
+    Archived: { bg: '#6b7280', text: '#fff' },
+  };
+  const c = colors[s] || { bg: '#4b5563', text: '#fff' };
+  return <span style={{ backgroundColor: c.bg, color: c.text, padding: '2px 8px', borderRadius: '9999px', fontSize: '12px', fontWeight: 600, display: 'inline-block' }}>{s}</span>;
+};
+
 function getAuthHeader() {
   try {
     const raw = localStorage.getItem('admin_token');
@@ -571,7 +584,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(s.date_of_birth)}</td>
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.phone_number || '-'}</td>
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{s.email || '-'}</td>
-        <td className="px-4 py-3 text-gray-200">{s.status || '-'}</td>
+        <td className="px-4 py-3 text-gray-200">{getHmsStatusBadge(s.status)}</td>
         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(s.created_at)}</td>
         <td className="px-4 py-3 text-right">
           <Link href={`/admin/contacts/${s.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
@@ -588,7 +601,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
               <span>#{s.id}</span>
               <span className="mx-1">•</span>
-              <span className="uppercase text-[11px] text-gray-300">{s.status || 'Submitted'}</span>
+              {getHmsStatusBadge(s.status)}
             </div>
             <div className="font-medium text-gray-100 truncate">{s.full_name}</div>
             <div className="text-sm text-gray-200 mt-1">{formatDatePretty(s.date_of_birth)} • {s.phone_number || '-'}</div>
@@ -885,6 +898,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                   <option value="Accepted" style={{ background: '#2e2e2e', color: 'white' }}>Accepted</option>
                   <option value="Rejected" style={{ background: '#2e2e2e', color: 'white' }}>Rejected</option>
                   <option value="Enrolled" style={{ background: '#2e2e2e', color: 'white' }}>Enrolled</option>
+                  <option value="Archived" style={{ background: '#2e2e2e', color: 'white' }}>Archived</option>
                 </select>
                 <button
                   onClick={applyHmsFilters}

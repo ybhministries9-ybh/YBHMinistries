@@ -191,6 +191,7 @@ export default {
       freeBasicMusic: "I want to learn Free Basic Music",
       hmsWithCertificate: "I want to learn Professional Music with HMS Certificate (Paid)",
       lcmWithCertificate: "I want to learn Professional Music with LCM Certificate (Paid)",
+      rapidCourse: "I want to learn Professional Music with Rapid course, April to May (Paid)",
       schoolEvents: "School events",
       competitions: "Competitions",
       choir: "Choir",

@@ -21,6 +21,14 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
   const [record, setRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectMessage, setRejectMessage] = useState('');
+  const [showEnrolledModal, setShowEnrolledModal] = useState(false);
+  const [enrolledMessage, setEnrolledMessage] = useState('');
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [acceptWhatsappLink, setAcceptWhatsappLink] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
   const searchParams = useSearchParams();
@@ -196,14 +204,21 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
     };
   };
 
-  const handleStatusUpdate = async (newStatus: 'Accepted' | 'Rejected' | 'Enrolled') => {
+  const handleStatusUpdate = async (newStatus: 'Accepted' | 'Rejected' | 'Enrolled' | 'Archived', staffMessage?: string, whatsappLink?: string) => {
     if (!record?.id) return;
     setUpdatingStatus(true);
     try {
+      const body: any = { id: record.id, updates: { status: newStatus } };
+      if (staffMessage) {
+        body.staffMessage = staffMessage;
+      }
+      if (whatsappLink) {
+        body.whatsappLink = whatsappLink;
+      }
       const resp = await fetch('/api/admin/hms-students', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
-        body: JSON.stringify({ id: record.id, updates: { status: newStatus } })
+        body: JSON.stringify(body)
       });
       const j = await resp.json();
       if (!resp.ok || !j.success) {
@@ -211,7 +226,15 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         return;
       }
       setRecord({ ...record, status: newStatus });
-      toast.success(`Status updated to ${newStatus}`);
+      if (newStatus === 'Accepted' && j.emailSent) {
+        toast.success('Acceptance email sent to the applicant');
+      } else if (newStatus === 'Rejected' && j.emailSent) {
+        toast.success('Rejection email sent to the applicant');
+      } else if (newStatus === 'Enrolled' && j.emailSent) {
+        toast.success('Enrollment email sent to the applicant');
+      } else {
+        toast.success(`Status updated to ${newStatus}`);
+      }
     } catch (err) {
       console.error('status update error', err);
       toast.error('Failed to update status');
@@ -226,6 +249,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
       case 'Accepted': return 'bg-blue-900/30 text-blue-400 border-blue-600';
       case 'Rejected': return 'bg-red-900/30 text-red-400 border-red-600';
       case 'Enrolled': return 'bg-green-900/30 text-green-400 border-green-600';
+      case 'Archived': return 'bg-gray-900/30 text-gray-400 border-gray-500';
       default: return 'bg-gray-800 text-gray-400 border-gray-600';
     }
   };
@@ -286,6 +310,62 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             </div>
           </div>
         </div>
+
+        {/* Delete Button */}
+        <div className="max-w-6xl mx-auto mt-8 flex justify-center gap-4 px-2">
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            disabled={deleting}
+            className="px-8 py-3 bg-red-700 hover:bg-red-800 text-white rounded border border-red-700 text-center transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Delete
+          </button>
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+            <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
+              <h3 className="text-lg font-semibold text-white mb-4">Delete Submission</h3>
+              <p className="text-gray-300 mb-6">This will permanently delete this Get-In-Touch submission. This action cannot be undone.</p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowDeleteModal(false);
+                    setDeleting(true);
+                    try {
+                      const resp = await fetch(`/api/admin/get-in-touch?id=${r.id}`, {
+                        method: 'DELETE',
+                        headers: { ...(getAuthHeader() as any) },
+                      });
+                      const j = await resp.json();
+                      if (!resp.ok || !j.success) {
+                        toast.error(j?.error || 'Failed to delete submission');
+                        return;
+                      }
+                      toast.success('Submission deleted successfully');
+                      router.push('/admin/contacts/getintouch');
+                    } catch (err) {
+                      console.error('delete error', err);
+                      toast.error('Failed to delete submission');
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg cursor-pointer transition-colors"
+                >
+                  Confirm Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -347,6 +427,62 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             </div>
           </div>
         </div>
+
+        {/* Delete Button */}
+        <div className="max-w-6xl mx-auto mt-8 flex justify-center gap-4 px-2">
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            disabled={deleting}
+            className="px-8 py-3 bg-red-700 hover:bg-red-800 text-white rounded border border-red-700 text-center transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Delete
+          </button>
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+            <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
+              <h3 className="text-lg font-semibold text-white mb-4">Delete Booking</h3>
+              <p className="text-gray-300 mb-6">This will permanently delete this 24 Hours Worship booking. This action cannot be undone.</p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowDeleteModal(false);
+                    setDeleting(true);
+                    try {
+                      const resp = await fetch(`/api/admin/worship24?id=${r.id}`, {
+                        method: 'DELETE',
+                        headers: { ...(getAuthHeader() as any) },
+                      });
+                      const j = await resp.json();
+                      if (!resp.ok || !j.success) {
+                        toast.error(j?.error || 'Failed to delete booking');
+                        return;
+                      }
+                      toast.success('Booking deleted successfully');
+                      router.push('/admin/contacts/worship24');
+                    } catch (err) {
+                      console.error('delete error', err);
+                      toast.error('Failed to delete booking');
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg cursor-pointer transition-colors"
+                >
+                  Confirm Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -362,7 +498,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
 
       {/* Centered title and subtitle with status badge */}
       <div className="mb-6 text-center px-2">
-        <h2 className="text-2xl font-bold">Enrollment #{record.id}</h2>
+        <h2 className="text-2xl font-bold">HMS Enrollment #{record.id}</h2>
         <div className="text-sm text-gray-300 mt-1">View the enrollment details.</div>
         <div className="mt-3">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(record.status || 'Submitted')}`}>
@@ -432,7 +568,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             <h3 className="text-lg font-semibold text-white mb-4">Update Enrollment Status</h3>
             <div className="flex flex-wrap gap-4">
               <button
-                onClick={() => handleStatusUpdate('Accepted')}
+                onClick={() => { setAcceptWhatsappLink(''); setShowAcceptModal(true); }}
                 disabled={updatingStatus || record.status === 'Accepted'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   record.status === 'Accepted'
@@ -443,7 +579,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                 {record.status === 'Accepted' ? '✓ Accepted' : 'Accept'}
               </button>
               <button
-                onClick={() => handleStatusUpdate('Rejected')}
+                onClick={() => { setRejectMessage(''); setShowRejectModal(true); }}
                 disabled={updatingStatus || record.status === 'Rejected'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   record.status === 'Rejected'
@@ -454,7 +590,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                 {record.status === 'Rejected' ? '✓ Rejected' : 'Reject'}
               </button>
               <button
-                onClick={() => handleStatusUpdate('Enrolled')}
+                onClick={() => { setEnrolledMessage(''); setShowEnrolledModal(true); }}
                 disabled={updatingStatus || record.status === 'Enrolled'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   record.status === 'Enrolled'
@@ -470,15 +606,184 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             )}
           </div>
 
-          {/* Close Button */}
-          <div className="mt-8 flex justify-center">
+          {/* Accept Modal */}
+          {showAcceptModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+              <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
+                <h3 className="text-lg font-semibold text-white mb-4">Accept Enrollment</h3>
+                <label className="block text-sm text-gray-300 mb-2">Enter WhatsApp group link (optional)</label>
+                <input
+                  type="text"
+                  value={acceptWhatsappLink}
+                  onChange={(e) => setAcceptWhatsappLink(e.target.value)}
+                  className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813]"
+                  placeholder="https://chat.whatsapp.com/..."
+                />
+                <div className="flex justify-end gap-3 mt-4">
+                  <button
+                    onClick={() => setShowAcceptModal(false)}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowAcceptModal(false);
+                      await handleStatusUpdate('Accepted', undefined, acceptWhatsappLink.trim());
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors"
+                  >
+                    Confirm Accept
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Rejection Modal */}
+          {showRejectModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+              <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
+                <h3 className="text-lg font-semibold text-white mb-4">Reject Enrollment</h3>
+                <label className="block text-sm text-gray-300 mb-2">Message to the applicant (optional, max 100 characters)</label>
+                <textarea
+                  value={rejectMessage}
+                  onChange={(e) => setRejectMessage(e.target.value.slice(0, 100))}
+                  maxLength={100}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
+                  placeholder="Enter reason for rejection..."
+                />
+                <div className="text-xs text-gray-400 mt-1 text-right">{rejectMessage.length}/100</div>
+                <div className="flex justify-end gap-3 mt-4">
+                  <button
+                    onClick={() => setShowRejectModal(false)}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowRejectModal(false);
+                      await handleStatusUpdate('Rejected', rejectMessage.trim());
+                    }}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg cursor-pointer transition-colors"
+                  >
+                    Confirm Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Enrolled Modal */}
+          {showEnrolledModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+              <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
+                <h3 className="text-lg font-semibold text-white mb-4">Enroll Student</h3>
+                <label className="block text-sm text-gray-300 mb-2">Message to the applicant (optional, max 100 characters)</label>
+                <textarea
+                  value={enrolledMessage}
+                  onChange={(e) => setEnrolledMessage(e.target.value.slice(0, 100))}
+                  maxLength={100}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
+                  placeholder="Enter message for the applicant..."
+                />
+                <div className="text-xs text-gray-400 mt-1 text-right">{enrolledMessage.length}/100</div>
+                <div className="flex justify-end gap-3 mt-4">
+                  <button
+                    onClick={() => setShowEnrolledModal(false)}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowEnrolledModal(false);
+                      await handleStatusUpdate('Enrolled', enrolledMessage.trim());
+                    }}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg cursor-pointer transition-colors"
+                  >
+                    Confirm Enroll
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Close, Archive & Delete Buttons */}
+          <div className="mt-8 flex justify-center gap-4">
             <button
               onClick={() => router.push('/admin/contacts')}
               className="px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded border border-[#FDB813] text-center transition-colors cursor-pointer"
             >
               Close
             </button>
+            <button
+              onClick={() => handleStatusUpdate('Archived')}
+              disabled={updatingStatus || record.status === 'Archived'}
+              className={`px-8 py-3 rounded border text-center transition-colors ${
+                record.status === 'Archived'
+                  ? 'bg-gray-600 text-white border-gray-600 cursor-not-allowed opacity-70'
+                  : 'bg-gray-600 hover:bg-gray-700 text-white border-gray-600 cursor-pointer'
+              } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {record.status === 'Archived' ? '✓ Archived' : 'Archive'}
+            </button>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              disabled={deleting}
+              className="px-8 py-3 bg-red-700 hover:bg-red-800 text-white rounded border border-red-700 text-center transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Delete
+            </button>
           </div>
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+              <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
+                <h3 className="text-lg font-semibold text-white mb-4">Delete Enrollment</h3>
+                <p className="text-gray-300 mb-6">This will permanently delete this enrollment request. This action cannot be undone.</p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowDeleteModal(false);
+                      setDeleting(true);
+                      try {
+                        const resp = await fetch(`/api/admin/hms-students?id=${record.id}`, {
+                          method: 'DELETE',
+                          headers: { ...(getAuthHeader() as any) },
+                        });
+                        const j = await resp.json();
+                        if (!resp.ok || !j.success) {
+                          toast.error(j?.error || 'Failed to delete enrollment');
+                          return;
+                        }
+                        toast.success('Enrollment deleted successfully');
+                        router.push('/admin/contacts');
+                      } catch (err) {
+                        console.error('delete error', err);
+                        toast.error('Failed to delete enrollment');
+                      } finally {
+                        setDeleting(false);
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg cursor-pointer transition-colors"
+                  >
+                    Confirm Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

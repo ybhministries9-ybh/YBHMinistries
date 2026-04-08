@@ -77,6 +77,18 @@ export async function GET(request: NextRequest) {
       return arr.join(', ');
     };
 
+    const courseLabels: Record<string, string> = {
+      freeBasicMusic: 'Free Basic Music',
+      hmsWithCertificate: 'Professional Music with HMS Certificate (Paid)',
+      lcmWithCertificate: 'Professional Music with LCM Certificate (Paid)',
+      rapidCourse: 'Professional Music with Rapid course, April to May (Paid)',
+    };
+
+    const formatCourseTypes = (arr: any): string => {
+      if (!arr || !Array.isArray(arr)) return '';
+      return arr.map((ct: string) => courseLabels[ct] || ct).join(', ');
+    };
+
     // Transform data for Excel export
     const exportData = result.rows.map(record => ({
       'ID': record.id,
@@ -94,7 +106,7 @@ export async function GET(request: NextRequest) {
       'Other Instrument': record.instrument_other || '',
       'Preferred Class Type': formatArray(record.preferred_class_type),
       'Preferred Schedule': formatArray(record.preferred_schedule),
-      'Course Type': formatArray(record.course_type),
+      'Course Type': formatCourseTypes(record.course_type),
       'Years of Experience': record.years_of_experience || '',
       'Previous Training': record.previous_training || '',
       'Music Certifications': record.music_exam_certifications || '',

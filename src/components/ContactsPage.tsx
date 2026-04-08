@@ -7,12 +7,14 @@ import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 import { HMSStudentForm } from './HMSStudentForm';
 import GetInTouchSection from './GetInTouchSection';
+import { Worship24Section } from './Worship24Section';
 
 // Tab configuration
 const TAB_CONFIG = [
   { key: "getintouch", labelKey: "tabs.getInTouch" },
   { key: "guinness-attempt", labelKey: "tabs.guinnessAttempt" },
   { key: "student-form", labelKey: "tabs.studentForm" },
+  { key: "worship24", labelKey: "tabs.worship24" },
   { key: "conference-request", labelKey: "tabs.conferenceRequest" },
   { key: "lsm-student", labelKey: "tabs.lsmStudent" },
   { key: "sponsor", labelKey: "tabs.sponsor" },
@@ -22,7 +24,7 @@ const TAB_CONFIG = [
 // Visible tabs on the UI. Keep other tab definitions in TAB_CONFIG
 // so their code remains available, but only the keys listed here
 // will render as buttons in the tab bar.
-const VISIBLE_TAB_KEYS = new Set(["student-form", "getintouch"]);
+const VISIBLE_TAB_KEYS = new Set(["student-form", "getintouch", "worship24"]);
 
 export function ContactsPage({ initialTab }: { initialTab?: string } ) {
   const { t } = useTranslation('contact');
@@ -133,7 +135,20 @@ export function ContactsPage({ initialTab }: { initialTab?: string } ) {
           </motion.div>
         )}
 
-        {/* 24 Worship Tab removed — feature moved/disabled */}
+        {/* 24 Hours Worship Tab */}
+        {activeTab === "worship24" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="container mx-auto px-4 pt-1 pb-12">
+              <div className="max-w-4xl mx-auto">
+                <Worship24Section />
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Offline Conference in Your City Tab */}
         {activeTab === "conference-request" && (

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getGetInTouch, getGetInTouchById } from '@/lib/db';
+import { getGetInTouch, getGetInTouchById, deleteGetInTouch } from '@/lib/db';
 import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 
 export async function GET(request: NextRequest) {
@@ -27,5 +27,25 @@ export async function GET(request: NextRequest) {
     const { logger } = await import('@/lib/logger');
     logger.error('GET /api/admin/get-in-touch error', { error: err?.message });
     return NextResponse.json({ success: false, error: 'Failed to fetch submissions' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
+    const url = new URL(request.url);
+    const id = Number(url.searchParams.get('id'));
+    if (!id) return NextResponse.json({ success: false, error: 'Missing id' }, { status: 400 });
+
+    const deleted = await deleteGetInTouch(id);
+    if (!deleted) return NextResponse.json({ success: false, error: 'Record not found' }, { status: 404 });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    const { logger } = await import('@/lib/logger');
+    logger.error('DELETE /api/admin/get-in-touch error', { error: err?.message });
+    return NextResponse.json({ success: false, error: 'Failed to delete submission' }, { status: 500 });
   }
 }

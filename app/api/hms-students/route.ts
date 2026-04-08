@@ -261,7 +261,15 @@ export async function POST(request: Request) {
         pushIf('Other instrument', instrumentOther);
         pushIf('Preferred class type', preferredClassType);
         pushIf('Preferred schedule', preferredSchedule);
-        pushIf('Course type', courseType);
+        pushIf('Course type', courseType.map((ct: string) => {
+          const courseLabels: Record<string, string> = {
+            freeBasicMusic: 'I want to learn Free Basic Music',
+            hmsWithCertificate: 'I want to learn Professional Music with HMS Certificate (Paid)',
+            lcmWithCertificate: 'I want to learn Professional Music with LCM Certificate (Paid)',
+            rapidCourse: 'I want to learn Professional Music with Rapid course, April to May (Paid)',
+          };
+          return courseLabels[ct] || formatValue(ct);
+        }).join(', '));
         pushIf('Years of experience', yearsOfExperience);
         pushIf('Previous training', previousTraining);
         pushIf('Music exam certifications', musicExamCertifications);
