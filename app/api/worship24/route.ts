@@ -121,8 +121,8 @@ export async function POST(request: Request) {
 
       const htmlFields = fields.map(f => `
                     <div style="margin-bottom:12px;">
-                      <div style="font-weight:600; color:#333;">${f.label}</div>
-                      <div style="color:#555;">${f.value}</div>
+                      <div style="font-weight:600; color:#333;font-size:15px;line-height:1.5;">${f.label}</div>
+                      <div style="color:#555;font-size:15px;line-height:1.5;">${f.value}</div>
                     </div>`).join('');
 
       const html = `
@@ -131,12 +131,12 @@ export async function POST(request: Request) {
                 ${logoUrl ? `<img src="${logoUrl}" alt="YBH" width="110" style="display:block;margin:0 auto;"/>` : ''}
               </div>
               <div style="margin-top:24px;">
-                <h2 style="margin:0 0 8px 0;">Hi ${name || ''},</h2>
-                <p style="margin:0 0 12px 0;color:#333;">Thanks for booking a slot for <strong>24 Hours Worship</strong>. We received your booking and will review it shortly.</p>
+                <h2 style="margin:0 0 8px 0;font-size:15px;line-height:1.5;">Hi ${name || ''},</h2>
+                <p style="margin:0 0 12px 0;color:#333;font-size:15px;line-height:1.5;">Thank you for booking a slot for the <strong>24 Hours Worship</strong>. We've received your request and will review it shortly.</p>
 
                 ${htmlFields}
 
-                <p style="margin:16px 0 0 0;color:#333;">Regards,<br/>YBH Ministries</p>
+                <p style="margin:16px 0 0 0;color:#333;font-size:15px;line-height:1.5;">Regards,<br/>YBH Ministries</p>
                 <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system-generated confirmation of your message. Please do not reply to this email.</p>            
               </div>
           </div>`;
@@ -144,7 +144,7 @@ export async function POST(request: Request) {
       // Confirmation for submitter
       if (emailVal) {
         const subject = `YBH Ministries — 24 Hours Worship booking received`;
-        const plainLines = [`Hi ${name || ''},`, '', 'Thanks for booking a slot for 24 Hours Worship. We received your booking and will review it shortly.', '', 'Booking details:', ''];
+        const plainLines = [`Hi ${name || ''},`, '', 'Thank you for booking a slot for the 24 Hours Worship. We’ve received your request and will review it shortly.', '', 'Booking details:', ''];
         for (const f of fields) plainLines.push(`${f.label}: ${f.value}`);
         plainLines.push('', 'Regards,', 'YBH Ministries');
         const plain = plainLines.join('\n');

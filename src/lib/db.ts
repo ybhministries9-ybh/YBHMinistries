@@ -520,7 +520,7 @@ export async function createGetInTouch(payload: {
       INSERT INTO get_in_touch (
         name, email, phone, message, location, hear_about_us, other_hear_about_us, user_agent, status, created_by, updated_by
       ) VALUES (
-        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.message}, ${payload.location || null}, ${payload.hearAboutUs || 'Unknown'}, ${payload.otherHearAboutUs || null}, ${payload.user_agent || null}, 'new', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
+        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.message}, ${payload.location || null}, ${payload.hearAboutUs || 'Unknown'}, ${payload.otherHearAboutUs || null}, ${payload.user_agent || null}, 'Submitted', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
       ) RETURNING *
     `;
     return rows[0];
@@ -551,7 +551,7 @@ export async function createWorship24(payload: {
       INSERT INTO worship24 (
         name, email, phone, location, message, booking_date, timeslot, facebook_link, user_agent, status, created_by, updated_by
       ) VALUES (
-        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.location || null}, ${payload.message}, ${payload.booking_date}, ${payload.timeslot}, ${payload.facebook_link || null}, ${payload.user_agent || null}, 'new', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
+        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.location || null}, ${payload.message}, ${payload.booking_date}, ${payload.timeslot}, ${payload.facebook_link || null}, ${payload.user_agent || null}, 'Submitted', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
       ) RETURNING *
     `;
     return rows[0];
@@ -561,7 +561,7 @@ export async function createWorship24(payload: {
   }
 }
 
-export async function getWorship24(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string }) {
+export async function getWorship24(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string; status?: string }) {
   try {
     const limit = opts?.limit || 50;
     const offset = opts?.offset || 0;
@@ -572,10 +572,17 @@ export async function getWorship24(opts?: { limit?: number; offset?: number; q?:
 
     if (opts?.q && String(opts.q).trim().length > 0) {
       const q = `%${String(opts.q).trim()}%`;
-      // Search name, email, phone, location, hear_about_us and other_hear_about_us
-      conditions.push(`(name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone ILIKE $${valueIndex + 2} OR location ILIKE $${valueIndex + 3} OR hear_about_us ILIKE $${valueIndex + 4} OR other_hear_about_us ILIKE $${valueIndex + 5})`);
-      values.push(q, q, q, q, q, q);
-      valueIndex += 6;
+      // Search only the fields stored on worship24 submissions.
+      conditions.push(`(name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone ILIKE $${valueIndex + 2} OR location ILIKE $${valueIndex + 3})`);
+      values.push(q, q, q, q);
+      valueIndex += 4;
+    }
+
+    // Add status filter
+    if (opts?.status && opts.status.trim().length > 0) {
+      conditions.push(`status = $${valueIndex}`);
+      values.push(opts.status.trim());
+      valueIndex += 1;
     }
 
     // Filter by booking_date (not created_at). Support month+year, year-only, and month-only filters.
@@ -650,6 +657,38 @@ export async function deleteWorship24(id: number): Promise<boolean> {
   }
 }
 
+export async function updateWorship24(id: number, updates: Partial<{ status: string; updated_by: string | null }>) {
+  try {
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (updates.status !== undefined) {
+      setClauses.push(`status = $${idx++}`);
+      values.push(updates.status);
+    }
+    if (updates.updated_by !== undefined) {
+      setClauses.push(`updated_by = $${idx++}`);
+      values.push(updates.updated_by);
+    }
+
+    if (setClauses.length === 0) {
+      const { rows } = await sql`SELECT * FROM worship24 WHERE id = ${id} LIMIT 1`;
+      return rows[0] || null;
+    }
+
+    setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+    const query = `UPDATE worship24 SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`;
+    values.push(id);
+
+    const result = await sql.query(query, values);
+    return result.rows[0] || null;
+  } catch (error) {
+    logger.error('Error updating worship24:', error);
+    throw error;
+  }
+}
+
 export async function getWorship24Years() {
   try {
     const result = await sql`
@@ -668,7 +707,7 @@ export async function getWorship24Years() {
 /**
  * Get recent Get In Touch submissions for admin listing
  */
-export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string }) {
+export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?: string; month?: string; year?: string; status?: string }) {
   try {
     const limit = opts?.limit || 50;
     const offset = opts?.offset || 0;
@@ -683,6 +722,13 @@ export async function getGetInTouch(opts?: { limit?: number; offset?: number; q?
       conditions.push(`(name ILIKE $${valueIndex} OR email ILIKE $${valueIndex + 1} OR phone ILIKE $${valueIndex + 2} OR location ILIKE $${valueIndex + 3})`);
       values.push(q, q, q, q);
       valueIndex += 4;
+    }
+    
+    // Add status filter
+    if (opts?.status && opts.status.trim().length > 0) {
+      conditions.push(`status = $${valueIndex}`);
+      values.push(opts.status.trim());
+      valueIndex += 1;
     }
     
     // Add month/year filters
@@ -747,6 +793,38 @@ export async function deleteGetInTouch(id: number): Promise<boolean> {
     return (rowCount ?? 0) > 0;
   } catch (error) {
     logger.error('Error deleting get_in_touch:', error);
+    throw error;
+  }
+}
+
+export async function updateGetInTouch(id: number, updates: Partial<{ status: string; updated_by: string | null }>) {
+  try {
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (updates.status !== undefined) {
+      setClauses.push(`status = $${idx++}`);
+      values.push(updates.status);
+    }
+    if (updates.updated_by !== undefined) {
+      setClauses.push(`updated_by = $${idx++}`);
+      values.push(updates.updated_by);
+    }
+
+    if (setClauses.length === 0) {
+      const { rows } = await sql`SELECT * FROM get_in_touch WHERE id = ${id} LIMIT 1`;
+      return rows[0] || null;
+    }
+
+    setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+    const query = `UPDATE get_in_touch SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`;
+    values.push(id);
+
+    const result = await sql.query(query, values);
+    return result.rows[0] || null;
+  } catch (error) {
+    logger.error('Error updating get_in_touch:', error);
     throw error;
   }
 }

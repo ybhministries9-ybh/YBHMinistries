@@ -5,8 +5,14 @@ import { accentGold } from '../../utils/theme';
 import Link from 'next/link';
 import { downloadExcelFile } from '@/lib/exportUtils';
 
+const normalizeContactStatus = (status?: string | null) => {
+  const s = String(status || '').trim();
+  if (!s || s.toLowerCase() === 'new') return 'Submitted';
+  return s;
+};
+
 const getHmsStatusBadge = (status: string) => {
-  const s = status || 'Submitted';
+  const s = normalizeContactStatus(status);
   const colors: Record<string, { bg: string; text: string }> = {
     Submitted: { bg: '#eab308', text: '#000' },
     Accepted: { bg: '#3b82f6', text: '#fff' },
@@ -51,9 +57,11 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   // Export filters for Get In Touch
   const [exportMonth, setExportMonth] = useState<string>('');
   const [exportYear, setExportYear] = useState<string>('');
+  const [exportStatus, setExportStatus] = useState<string>('');
   // Export filters for Worship24
   const [worshipExportMonth, setWorshipExportMonth] = useState<string>('');
   const [worshipExportYear, setWorshipExportYear] = useState<string>('');
+  const [worshipExportStatus, setWorshipExportStatus] = useState<string>('');
   const [worshipYears, setWorshipYears] = useState<number[] | null>(null);
   
   // Export filters for HMS
@@ -64,8 +72,10 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   // Applied filters for table data
   const [appliedMonth, setAppliedMonth] = useState<string>('');
   const [appliedYear, setAppliedYear] = useState<string>('');
+  const [appliedStatus, setAppliedStatus] = useState<string>('');
   const [worshipAppliedMonth, setWorshipAppliedMonth] = useState<string>('');
   const [worshipAppliedYear, setWorshipAppliedYear] = useState<string>('');
+  const [worshipAppliedStatus, setWorshipAppliedStatus] = useState<string>('');
   const [hmsAppliedMonth, setHmsAppliedMonth] = useState<string>('');
   const [hmsAppliedYear, setHmsAppliedYear] = useState<string>('');
   const [hmsAppliedStatus, setHmsAppliedStatus] = useState<string>('');
@@ -144,7 +154,8 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         const qParam = activeSearchQuery && activeSearchQuery.trim().length > 0 ? `&q=${encodeURIComponent(activeSearchQuery.trim())}` : '';
         const monthParam = appliedMonth ? `&month=${appliedMonth}` : '';
         const yearParam = appliedYear ? `&year=${appliedYear}` : '';
-        const resp = await fetch(`/api/admin/get-in-touch?limit=${limit}&offset=${offset}${qParam}${monthParam}${yearParam}`, {
+        const statusParam = appliedStatus ? `&status=${encodeURIComponent(appliedStatus)}` : '';
+        const resp = await fetch(`/api/admin/get-in-touch?limit=${limit}&offset=${offset}${qParam}${monthParam}${yearParam}${statusParam}`, {
           headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
           signal: controller.signal,
         });
@@ -175,7 +186,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     })();
 
     return () => { aborted = true; controller.abort(); };
-  }, [activeTab, page, activeSearchQuery, appliedMonth, appliedYear]);
+  }, [activeTab, page, activeSearchQuery, appliedMonth, appliedYear, appliedStatus]);
 
   // Fetch worship24 records for admin listing
   useEffect(() => {
@@ -191,7 +202,8 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         const qParam = activeSearchQuery && activeSearchQuery.trim().length > 0 ? `&q=${encodeURIComponent(activeSearchQuery.trim())}` : '';
         const monthParam = worshipAppliedMonth ? `&month=${worshipAppliedMonth}` : '';
         const yearParam = worshipAppliedYear ? `&year=${worshipAppliedYear}` : '';
-        const resp = await fetch(`/api/admin/worship24?limit=${limit}&offset=${offset}${qParam}${monthParam}${yearParam}`, {
+        const worshipStatusParam = worshipAppliedStatus ? `&status=${encodeURIComponent(worshipAppliedStatus)}` : '';
+        const resp = await fetch(`/api/admin/worship24?limit=${limit}&offset=${offset}${qParam}${monthParam}${yearParam}${worshipStatusParam}`, {
           headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
           signal: controller.signal,
         });
@@ -222,7 +234,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     })();
 
     return () => { aborted = true; controller.abort(); };
-  }, [activeTab, page, activeSearchQuery, worshipAppliedMonth, worshipAppliedYear]);
+  }, [activeTab, page, activeSearchQuery, worshipAppliedMonth, worshipAppliedYear, worshipAppliedStatus]);
 
   // Load distinct booking years for worship24 so the year dropdown shows real data years
   useEffect(() => {
@@ -302,16 +314,18 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const applyFilters = useCallback(() => {
     setAppliedMonth(exportMonth);
     setAppliedYear(exportYear);
+    setAppliedStatus(exportStatus);
     setPage(1);
-  }, [exportMonth, exportYear]);
+  }, [exportMonth, exportYear, exportStatus]);
 
   // Apply filters for Worship24 table (do not auto-apply when dropdowns change)
   const applyWorshipFilters = useCallback(() => {
     setWorshipAppliedMonth(worshipExportMonth);
     setWorshipAppliedYear(worshipExportYear);
+    setWorshipAppliedStatus(worshipExportStatus);
     setPage(1);
     setActiveSearchQuery(searchQuery);
-  }, [worshipExportMonth, worshipExportYear, searchQuery]);
+  }, [worshipExportMonth, worshipExportYear, worshipExportStatus, searchQuery]);
 
   // Apply filters for HMS table
   const applyHmsFilters = useCallback(() => {
@@ -325,8 +339,10 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const clearFilters = useCallback(() => {
     setExportMonth('');
     setExportYear('');
+    setExportStatus('');
     setAppliedMonth('');
     setAppliedYear('');
+    setAppliedStatus('');
     setPage(1);
   }, []);
 
@@ -652,6 +668,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.phone || '-'}</td>
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.email || '-'}</td>
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.location || '-'}</td>
+        <td className="px-4 py-3 text-gray-200">{getHmsStatusBadge(c.status)}</td>
         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.created_at)}</td>
         <td className="px-4 py-3 text-right">
           <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
@@ -668,7 +685,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
               <span>#{c.id}</span>
               <span className="mx-1">•</span>
-              <span className="uppercase text-[11px] text-gray-300">{c.status || 'Submitted'}</span>
+              {getHmsStatusBadge(c.status)}
             </div>
             <div className="font-medium text-gray-100 truncate">{c.name}</div>
             <div className="text-sm text-gray-200 mt-1">{formatDatePretty(c.created_at)} • {c.phone || '-'}</div>
@@ -716,6 +733,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         <td className="px-4 py-3 text-gray-200 truncate max-w-[1px]">{c.email || '-'}</td>
         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.booking_date)}</td>
         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{c.timeslot ? String(c.timeslot).replace(/\b(am|pm)\b/gi, (m) => m.toUpperCase()) : '-'}</td>
+        <td className="px-4 py-3 text-gray-200">{getHmsStatusBadge(c.status)}</td>
         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.created_at)}</td>
         <td className="px-4 py-3 text-right">
           <Link href={`/admin/contacts/worship24/${c.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
@@ -731,6 +749,8 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
               <span>#{c.id}</span>
+              <span className="mx-1">•</span>
+              {getHmsStatusBadge(c.status)}
             </div>
             <div className="font-medium text-gray-100 truncate">{c.name}</div>
             <div className="text-sm text-gray-200 mt-1">{formatDatePretty(c.booking_date)} • {c.phone || '-'}</div>
@@ -1107,6 +1127,17 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                     ));
                   })()}
                 </select>
+                <select
+                  value={exportStatus}
+                  onChange={(e) => setExportStatus(e.target.value)}
+                  className="px-3 py-2 rounded-md bg-[#2e2e2e] border-2 border-[#FDB813] text-sm text-white"
+                >
+                  <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Status</option>
+                  <option value="Submitted" style={{ background: '#2e2e2e', color: 'white' }}>Submitted</option>
+                  <option value="Accepted" style={{ background: '#2e2e2e', color: 'white' }}>Accepted</option>
+                  <option value="Rejected" style={{ background: '#2e2e2e', color: 'white' }}>Rejected</option>
+                  <option value="Archived" style={{ background: '#2e2e2e', color: 'white' }}>Archived</option>
+                </select>
                 <button
                   onClick={applyFilters}
                   className="px-3 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
@@ -1172,6 +1203,11 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                             <th onClick={() => handleSort('location')} style={{ width: '18%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
                               <div className="flex items-center gap-1">
                                 Location {sortBy === 'location' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
+                              </div>
+                            </th>
+                            <th onClick={() => handleSort('status')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                              <div className="flex items-center gap-1">
+                                Status {sortBy === 'status' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}
                               </div>
                             </th>
                             <th onClick={() => handleSort('created_at')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors whitespace-nowrap">
@@ -1287,6 +1323,17 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                       (() => { const currentYear = new Date().getFullYear(); const years = []; for (let year = currentYear; year >= 2020; year--) { years.push(year); } return years.map(year => (<option key={year} value={year} style={{ background: '#2e2e2e', color: 'white' }}>{year}</option>)); })()
                     )}
                   </select>
+                  <select
+                    value={worshipExportStatus}
+                    onChange={(e) => setWorshipExportStatus(e.target.value)}
+                    className="px-3 py-2 rounded-md bg-[#2e2e2e] border-2 border-[#FDB813] text-sm text-white"
+                  >
+                    <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Status</option>
+                    <option value="Submitted" style={{ background: '#2e2e2e', color: 'white' }}>Submitted</option>
+                    <option value="Accepted" style={{ background: '#2e2e2e', color: 'white' }}>Accepted</option>
+                    <option value="Rejected" style={{ background: '#2e2e2e', color: 'white' }}>Rejected</option>
+                    <option value="Archived" style={{ background: '#2e2e2e', color: 'white' }}>Archived</option>
+                  </select>
                   <button
                     onClick={applyWorshipFilters}
                     className="px-3 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
@@ -1294,7 +1341,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                     Apply
                   </button>
                   <button
-                    onClick={() => { setWorshipExportMonth(''); setWorshipExportYear(''); setWorshipAppliedMonth(''); setWorshipAppliedYear(''); setPage(1); }}
+                    onClick={() => { setWorshipExportMonth(''); setWorshipExportYear(''); setWorshipExportStatus(''); setWorshipAppliedMonth(''); setWorshipAppliedYear(''); setWorshipAppliedStatus(''); setPage(1); }}
                     className="px-3 py-2 rounded bg-[#333] text-white border border-gray-600 hover:bg-[#3E3E3E] transition-colors cursor-pointer"
                   >
                     Clear
@@ -1346,6 +1393,9 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                               </th>
                               <th onClick={() => handleSort('timeslot')} style={{ width: '18%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
                                 <div className="flex items-center gap-1">Timeslot {sortBy === 'timeslot' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>
+                              </th>
+                              <th onClick={() => handleSort('status')} style={{ width: '12%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
+                                <div className="flex items-center gap-1">Status {sortBy === 'status' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>
                               </th>
                               <th onClick={() => handleSort('created_at')} style={{ width: '10%' }} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[#3a3a3a] transition-colors">
                                 <div className="flex items-center gap-1">Submitted {sortBy === 'created_at' ? <span className="text-[#FDB813]">{sortDir === 'asc' ? '↑' : '↓'}</span> : <ArrowUpDown size={14} className="inline opacity-40"/>}</div>

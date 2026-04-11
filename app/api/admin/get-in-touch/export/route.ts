@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const year = url.searchParams.get('year') || undefined;
 
     // Build query with filters
-    let query = 'SELECT id, name, email, phone, message, location, hear_about_us, other_hear_about_us, created_at FROM get_in_touch';
+    let query = 'SELECT id, name, email, phone, message, location, hear_about_us, other_hear_about_us, status, created_at FROM get_in_touch';
     const values: any[] = [];
     const conditions: string[] = [];
 
@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
       'Email': record.email || '',
       'Phone': record.phone || '',
       'Location': record.location || '',
+      'Status': !record.status || String(record.status).toLowerCase() === 'new' ? 'Submitted' : record.status,
       'How did you hear about us?': (record.hear_about_us || '') + (record.other_hear_about_us ? `: ${record.other_hear_about_us}` : ''),
       'Message': record.message || '',
       'Submitted Date': formatISTDate(record.created_at)
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest) {
         { wch: 30 }, // Email
         { wch: 15 }, // Phone
         { wch: 20 }, // Location
+        { wch: 12 }, // Status
         { wch: 30 }, // How did you hear about us?
         { wch: 50 }, // Message
         { wch: 15 }  // Submitted Date

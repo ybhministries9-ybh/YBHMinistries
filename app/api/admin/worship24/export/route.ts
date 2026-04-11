@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const month = url.searchParams.get('month') || undefined;
     const year = url.searchParams.get('year') || undefined;
 
-    let query = 'SELECT id, name, email, phone, booking_date, timeslot, facebook_link, location, message, created_at FROM worship24';
+    let query = 'SELECT id, name, email, phone, booking_date, timeslot, facebook_link, location, message, status, created_at FROM worship24';
     const values: any[] = [];
     const conditions: string[] = [];
 
@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
       Location: record.location || '',
       'Booking Date': record.booking_date || '',
       Timeslot: record.timeslot || '',
+      Status: !record.status || String(record.status).toLowerCase() === 'new' ? 'Submitted' : record.status,
       Facebook: record.facebook_link || '',
       Message: record.message || '',
       'Submitted Date': formatISTDate(record.created_at),
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
         { wch: 20 },
         { wch: 15 },
         { wch: 20 },
+        { wch: 12 },
         { wch: 30 },
         { wch: 50 },
         { wch: 15 },
