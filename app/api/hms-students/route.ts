@@ -3,9 +3,21 @@ import { createHMSStudent } from '@/lib/db';
 import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '@/lib/security';
 import { hmsStudentSchema } from '@/lib/schemas';
 import { logger } from '@/lib/logger';
+import contactEN from '@/i18n/locales/en/contact';
+import contactTE from '@/i18n/locales/te/contact';
 
 // Force Node.js runtime - nodemailer requires Node.js APIs (TCP sockets) not available in Edge runtime
 export const runtime = 'nodejs';
+
+type HmsEmailLocale = 'en' | 'te';
+
+function resolveHmsEmailLocale(locale?: string | null): HmsEmailLocale {
+  return String(locale || '').toLowerCase().startsWith('te') ? 'te' : 'en';
+}
+
+function getHmsStudentFormText(locale?: string | null) {
+  return (resolveHmsEmailLocale(locale) === 'te' ? contactTE : contactEN).studentForm;
+}
 
 function isValidEmail(email: string) {
   const re = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -31,6 +43,9 @@ export async function POST(request: Request) {
 
     // Read raw body
     const body = await request.json();
+    const emailLocale = typeof body?.locale === 'string' && body.locale.trim()
+      ? body.locale.trim()
+      : request.headers.get('accept-language');
 
     // Honeypot check
     if (isHoneypotFilled(body)) return NextResponse.json({ success: false, error: 'bot detected' }, { status: 400 });
@@ -205,7 +220,11 @@ export async function POST(request: Request) {
       try {
         const { sendMail } = await import('@/lib/smtpMailer');
 
-        // Build a list of filled fields only, and format labels/values to title case
+        const studentFormText = getHmsStudentFormText(emailLocale);
+        const configuredFieldLabels = studentFormText.fields as Record<string, string>;
+        const configuredOptions = studentFormText.options as Record<string, string>;
+
+        // Build a list of filled fields only, preserving configured labels and option copy where needed.
         const fields: Array<{ label: string; value: string }> = [];
 
         function titleCaseLabel(s: string) {
@@ -226,13 +245,14 @@ export async function POST(request: Request) {
           return /^[0-9+()\-\.\s]+$/.test(s);
         }
 
-        function formatValue(val: any) {
+        function formatValue(val: any, options: { preserveCase?: boolean } = {}) {
+          const { preserveCase = false } = options;
           if (val === undefined || val === null) return '';
-          if (Array.isArray(val)) return val.filter(Boolean).map(v => formatValue(v)).join(', ');
+          if (Array.isArray(val)) return val.filter(Boolean).map(v => formatValue(v, options)).join(', ');
           const s = String(val).trim();
           if (!s) return '';
-          // preserve email casing and phone numbers and dates
-          if (isEmailLike(s) || isPhoneLike(s) || /^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
+          // preserve configured copy, email casing, phone numbers, and dates
+          if (preserveCase || isEmailLike(s) || isPhoneLike(s) || /^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
           // split camelCase words into words
           const split = s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_.\-]+/g, ' ');
           return split
@@ -241,10 +261,34 @@ export async function POST(request: Request) {
             .join(' ');
         }
 
-        const pushIf = (label: string, val: any) => {
+        const configuredOptionValue = (value: string) => {
+          const trimmed = String(value || '').trim();
+          if (!trimmed) return '';
+          return configuredOptions[trimmed]
+            || configuredOptions[trimmed.toLowerCase()]
+            || configuredOptions[trimmed.charAt(0).toLowerCase() + trimmed.slice(1)]
+            || '';
+        };
+
+        const joinConfiguredOptions = (values: string[]) =>
+          values
+            .filter(Boolean)
+            .map((value) => configuredOptionValue(value) || formatValue(value))
+            .join(', ');
+
+        const pushIf = (
+          label: string,
+          val: any,
+          options: { preserveLabelCase?: boolean; preserveValueCase?: boolean } = {}
+        ) => {
           if (val === undefined || val === null) return;
-          const formatted = formatValue(val);
-          if (formatted && formatted.trim().length > 0) fields.push({ label: titleCaseLabel(label), value: formatted });
+          const formatted = formatValue(val, { preserveCase: options.preserveValueCase });
+          if (formatted && formatted.trim().length > 0) {
+            fields.push({
+              label: options.preserveLabelCase ? label : titleCaseLabel(label),
+              value: formatted,
+            });
+          }
         };
 
         pushIf('Full name', fullName);
@@ -261,21 +305,25 @@ export async function POST(request: Request) {
         pushIf('Other instrument', instrumentOther);
         pushIf('Preferred class type', preferredClassType);
         pushIf('Preferred schedule', preferredSchedule);
-        pushIf('Course type', courseType.map((ct: string) => {
-          const courseLabels: Record<string, string> = {
-            freeBasicMusic: 'I want to learn Free Basic Music',
-            hmsWithCertificate: 'I want to learn Professional Music with HMS Certificate (Paid)',
-            lcmWithCertificate: 'I want to learn Professional Music with LCM Certificate (Paid)',
-            rapidCourse: 'I want to learn Professional Music with Rapid course, April to May (Paid)',
-          };
-          return courseLabels[ct] || formatValue(ct);
-        }).join(', '));
+        pushIf('Course type', joinConfiguredOptions(courseType), { preserveValueCase: true });
         pushIf('Years of experience', yearsOfExperience);
-        pushIf('Previous training', previousTraining);
-        pushIf('Music exam certifications', musicExamCertifications);
-        pushIf('Performance experience', performanceExperience);
+        pushIf(configuredFieldLabels.previousTraining || 'Previous Training / School', previousTraining, {
+          preserveLabelCase: true,
+          preserveValueCase: true,
+        });
+        pushIf(configuredFieldLabels.musicExamCertifications || 'Music Exam Certifications (if any)', musicExamCertifications, {
+          preserveLabelCase: true,
+          preserveValueCase: true,
+        });
+        pushIf(configuredFieldLabels.performanceExperience || 'Performance Experience', joinConfiguredOptions(performanceExperience), {
+          preserveLabelCase: true,
+          preserveValueCase: true,
+        });
         pushIf('Other performance', performanceOther);
-        pushIf('Goals', goals);
+        pushIf(configuredFieldLabels.goalsPrompt || 'Goals', goals, {
+          preserveLabelCase: true,
+          preserveValueCase: true,
+        });
         pushIf('Volunteer interested', volunteerInterested ? 'yes' : 'no');
         pushIf('Volunteer areas', volunteerAreas);
         pushIf('Emergency contact name', emergencyName);

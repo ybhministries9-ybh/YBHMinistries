@@ -82,7 +82,7 @@ export function HMSStudentForm({
   submitMethod?: 'POST' | 'PUT';
   onSubmitOverride?: (data: FormData) => Promise<any>;
 }) {
-  const { t } = useTranslation('contact');
+  const { t, i18n } = useTranslation('contact');
   const mergedDefaults: Partial<FormData> = {
     programApplyingFor: [],
     instrumentSpecialization: [],
@@ -285,6 +285,8 @@ export function HMSStudentForm({
       } catch (e) {
         // ignore, server validation will catch any remaining issues
       }
+
+      (data as any).locale = i18n.resolvedLanguage || i18n.language || 'en';
 
       // If caller provided an override submit handler, call it
       if (onSubmitOverride) {

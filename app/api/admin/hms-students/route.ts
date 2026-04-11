@@ -22,7 +22,14 @@ export async function GET(request: NextRequest) {
     const month = url.searchParams.get('month') || undefined;
     const year = url.searchParams.get('year') || undefined;
     const status = url.searchParams.get('status') || undefined;
-    const result = await getHMSStudents({ limit: Math.min(limit, 200), offset: Math.max(0, offset), q, month, year, status });
+    const result = await getHMSStudents({
+      limit: Math.min(limit, 200),
+      offset: Math.max(0, offset),
+      q,
+      month,
+      year,
+      status,
+    });
     return NextResponse.json({ success: true, data: result.rows, total: result.total });
   } catch (err: any) {
     console.error('GET /api/admin/hms-students error', err);
@@ -48,7 +55,6 @@ export async function PUT(request: NextRequest) {
 
     const updated = await updateHMSStudent(id, updates);
 
-    // Send acceptance/rejection email
     let emailSent = false;
     if ((updates.status === 'Accepted' || updates.status === 'Rejected' || updates.status === 'Enrolled') && updated) {
       try {
@@ -56,30 +62,58 @@ export async function PUT(request: NextRequest) {
         if (record?.email) {
           const { sendTransactional } = await import('../../../../src/lib/email');
           const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
+          const escapeHtml = (value: string) => value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
 
           const requestDate = (() => {
             try {
               const dt = new Date(String(record.created_at));
               if (isNaN(dt.getTime())) return String(record.created_at || '');
               return dt.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-            } catch { return String(record.created_at || ''); }
+            } catch {
+              return String(record.created_at || '');
+            }
           })();
 
           let subject: string;
-          let bodyText: string;
+          const plainBodyLines: string[] = [];
+          const htmlBodyLines: string[] = [];
+          const bodyParagraphStyle = 'margin:0 0 12px 0;color:#333; font-size:15px; line-height:1.5;';
 
           if (updates.status === 'Accepted') {
-            subject = 'YBH Ministries — HMS Enrollment Accepted';
-            bodyText = `Your HMS Enrollment request dated ${requestDate} has been received and accepted.`;
+            subject = 'YBH Ministries - HMS Enrollment Accepted';
+            plainBodyLines.push(`Thank you for your request. We're pleased to let you know that your HMS Enrollment request dated ${requestDate} has been accepted.`);
+            htmlBodyLines.push(`<p style="${bodyParagraphStyle}">Thank you for your request. We're pleased to let you know that your HMS Enrollment request dated ${escapeHtml(requestDate)} has been accepted.</p>`);
+
             if (whatsappLink) {
-              bodyText += `\nPlease join this WhatsApp group to complete the enrollment: ${whatsappLink}`;
+              plainBodyLines.push(`Please join this WhatsApp group to complete the enrollment: ${whatsappLink}`);
+              htmlBodyLines.push(`<p style="${bodyParagraphStyle}">Please join this WhatsApp group to complete the enrollment: <strong><a href="${escapeHtml(whatsappLink)}" style="color:#1a73e8;text-decoration:underline;">${escapeHtml(whatsappLink)}</a></strong></p>`);
             }
           } else if (updates.status === 'Enrolled') {
-            subject = 'YBH Ministries — HMS Enrollment Confirmed';
-            bodyText = `Your HMS Enrollment request dated ${requestDate} has been received and was enrolled.${staffMessage ? ` Message from HMS staff: ${staffMessage}.` : ''}`;
+            subject = 'YBH Ministries - HMS Enrollment Completed';
+            plainBodyLines.push(`Congratulations! Your HMS Enrollment request dated ${requestDate} has been successfully processed, and you're now fully enrolled.`);
+            htmlBodyLines.push(`<p style="${bodyParagraphStyle}">Congratulations! Your HMS Enrollment request dated ${escapeHtml(requestDate)} has been successfully processed, and you're now fully enrolled.</p>`);
+
+            if (staffMessage) {
+              plainBodyLines.push(`Message from HMS staff: ${staffMessage}.`);
+              htmlBodyLines.push(`<p style="${bodyParagraphStyle}"><strong>Message from HMS staff:</strong> ${escapeHtml(staffMessage)}.</p>`);
+            }
           } else {
-            subject = 'YBH Ministries — HMS Enrollment Update';
-            bodyText = `Your HMS Enrollment request dated ${requestDate} has been received but was not approved.${staffMessage ? ` Message from HMS staff: ${staffMessage}.` : ''} If you wish to proceed, please submit a new request with all the required details included.`;
+            subject = 'YBH Ministries - HMS Enrollment Rejected';
+            plainBodyLines.push(`Thank you for your interest in HMS. We're sorry that your HMS Enrollment request dated ${requestDate} could not be approved.`);
+            htmlBodyLines.push(`<p style="${bodyParagraphStyle}">Thank you for your interest in HMS. We're sorry that your HMS Enrollment request dated ${escapeHtml(requestDate)} could not be approved.</p>`);
+
+            if (staffMessage) {
+              plainBodyLines.push(`Message from HMS staff: ${staffMessage}.`);
+              htmlBodyLines.push(`<p style="${bodyParagraphStyle}"><strong>Message from HMS staff:</strong> ${escapeHtml(staffMessage)}.</p>`);
+            }
+
+            plainBodyLines.push('If you wish to proceed, please submit a new request with all the required details included.');
+            htmlBodyLines.push(`<p style="${bodyParagraphStyle}">If you wish to proceed, please submit a new request with all the required details included.</p>`);
           }
 
           const html = `
@@ -88,14 +122,9 @@ export async function PUT(request: NextRequest) {
                 <img src="${logoUrl}" alt="YBH" width="110" style="display:block;margin:0 auto;"/>
               </div>
               <div style="margin-top:24px;">
-                <h2 style="margin:0 0 8px 0;">Hi ${record.full_name || ''},</h2>
-                <p style="margin:0 0 12px 0;color:#333;">${bodyText.split('\n').map(line => {
-                  if (line.startsWith('Please join this WhatsApp group')) {
-                    return `${line.replace(whatsappLink, `<strong><a href="${whatsappLink}" style="color:#1a73e8;text-decoration:underline;">${whatsappLink}</a></strong>`)}`;
-                  }
-                  return line;
-                }).join('<br/>')}</p>
-                <p style="margin:16px 0 0 0;color:#333;">Regards,<br/>YBH Ministries</p>
+                <h2 style="margin:0 0 12px 0; color:#111; font-size:20px;">Hi ${escapeHtml(record.full_name || '')},</h2>
+                ${htmlBodyLines.join('')}
+                <p style="margin:18px 0 0 0;color:#333; font-size:15px; line-height:1.5;">Regards,<br/>YBH Ministries</p>
                 <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system-generated confirmation of your message. Please do not reply to this email.</p>
               </div>
           </div>`;
@@ -103,7 +132,7 @@ export async function PUT(request: NextRequest) {
           const plain = [
             `Hi ${record.full_name || ''},`,
             '',
-            bodyText,
+            ...plainBodyLines,
             '',
             'Regards,',
             'YBH Ministries',

@@ -77,7 +77,7 @@ export function HMSStudentFormAdmin({
   onSubmitOverride?: (data: FormData) => Promise<any>;
   hideCloseButton?: boolean;
 }) {
-  const { t } = useTranslation('contact');
+  const { t, i18n } = useTranslation('contact');
   const mergedDefaults: Partial<FormData> = {
     programApplyingFor: [],
     instrumentSpecialization: [],
@@ -186,6 +186,8 @@ export function HMSStudentFormAdmin({
         const parts = (data.dateOfBirth as string).split('-');
         data.dateOfBirth = `${parts[2]}-${parts[1]}-${parts[0]}`;
       }
+
+      (data as any).locale = i18n.resolvedLanguage || i18n.language || 'en';
 
       // If caller provided an override submit handler, call it
       if (onSubmitOverride) {
