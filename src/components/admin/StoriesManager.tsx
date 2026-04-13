@@ -65,7 +65,9 @@ interface ValidationErrors {
   image?: string;
 }
 
+const ALL_CATEGORY = 'All';
 const CATEGORIES = [
+  ALL_CATEGORY,
   'Guinness World Records',
   'LCM Classes',
   'Online School',
@@ -74,6 +76,7 @@ const CATEGORIES = [
   'Song Books',
   'Hallel Conference'
 ];
+const DEFAULT_STORY_CATEGORY = CATEGORIES[1];
 
 // Date Picker Component
 function DatePicker({ 
@@ -259,7 +262,7 @@ export function StoriesManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isDeletingImageId, setIsDeletingImageId] = useState<string | null>(null);
   // image delete UI: no immediate server-side deletion; deletion occurs on Save
-  const [filterCategory, setFilterCategory] = useState<string>(CATEGORIES[0]);
+  const [filterCategory, setFilterCategory] = useState<string>(ALL_CATEGORY);
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [filterType, setFilterType] = useState<string>('All');
   const [validationErrors, setValidationErrors] = useState<Record<string, ValidationErrors>>({});
@@ -373,6 +376,7 @@ export function StoriesManager() {
 
   // Keep any new (temp) story's category in sync with the top-level category selector
   useEffect(() => {
+    if (filterCategory === ALL_CATEGORY) return;
     setStories(prev => prev.map(s => s.id.startsWith('temp-') ? { ...s, category: filterCategory } : s));
   }, [filterCategory]);
 
@@ -399,7 +403,7 @@ export function StoriesManager() {
     const base: any = {
       id: String(row.id),
       type,
-      category: existing?.category || row.category || CATEGORIES[0],
+      category: existing?.category || row.category || DEFAULT_STORY_CATEGORY,
       // prefer explicit `date` column if present, otherwise fall back to created_at
       date: ((): string => {
         const raw = row.date ?? row.created_at ?? existing?.date ?? new Date().toISOString();
@@ -780,7 +784,7 @@ export function StoriesManager() {
     const newStory: Story = {
       id: `temp-${Date.now()}`,
       type: 'text',
-      category: filterCategory,
+      category: filterCategory === ALL_CATEGORY ? DEFAULT_STORY_CATEGORY : filterCategory,
       name: '',
       role: '',
       date: new Date().toISOString().split('T')[0],
@@ -804,7 +808,7 @@ export function StoriesManager() {
     const newStory: Story = {
       id: `temp-${Date.now()}`,
       type: 'video',
-      category: filterCategory,
+      category: filterCategory === ALL_CATEGORY ? DEFAULT_STORY_CATEGORY : filterCategory,
       title: '',
       date: new Date().toISOString().split('T')[0],
       youtubeUrl: '',
@@ -882,7 +886,7 @@ export function StoriesManager() {
       const newStory: Story = {
         id: `temp-${Date.now()}`,
         type: 'text',
-        category: filterCategory,
+        category: filterCategory === ALL_CATEGORY ? DEFAULT_STORY_CATEGORY : filterCategory,
         name: '',
         role: '',
         date: new Date().toISOString().split('T')[0],
@@ -898,7 +902,7 @@ export function StoriesManager() {
       const newStory: Story = {
         id: `temp-${Date.now()}`,
         type: 'video',
-        category: filterCategory,
+        category: filterCategory === ALL_CATEGORY ? DEFAULT_STORY_CATEGORY : filterCategory,
         title: '',
         date: new Date().toISOString().split('T')[0],
         youtubeUrl: '',
@@ -923,7 +927,7 @@ export function StoriesManager() {
       const newStory: Story = {
         id: `temp-${Date.now()}`,
         type: 'text',
-        category: filterCategory,
+        category: filterCategory === ALL_CATEGORY ? DEFAULT_STORY_CATEGORY : filterCategory,
         name: '',
         role: '',
         date: new Date().toISOString().split('T')[0],
@@ -939,7 +943,7 @@ export function StoriesManager() {
       const newStory: Story = {
         id: `temp-${Date.now()}`,
         type: 'video',
-        category: filterCategory,
+        category: filterCategory === ALL_CATEGORY ? DEFAULT_STORY_CATEGORY : filterCategory,
         title: '',
         date: new Date().toISOString().split('T')[0],
         youtubeUrl: '',
@@ -1117,7 +1121,7 @@ export function StoriesManager() {
   // Compute filtered stories (memoized — avoids recalculation on every render)
   const filteredStories = useMemo(() => {
     let res = stories;
-    if (filterCategory) res = res.filter(s => s.category === filterCategory);
+    if (filterCategory && filterCategory !== ALL_CATEGORY) res = res.filter(s => s.category === filterCategory);
     if (filterType !== 'All') res = res.filter(s => s.type === filterType);
     if (filterStatus !== 'All') res = res.filter(s => s.status === filterStatus);
     return res;
@@ -1125,7 +1129,7 @@ export function StoriesManager() {
 
   // Counts for the currently selected category
   const countsInCategory = useMemo(() => {
-    const items = stories.filter(s => s.category === filterCategory);
+    const items = filterCategory === ALL_CATEGORY ? stories : stories.filter(s => s.category === filterCategory);
     return {
       total: items.length,
       text: items.filter(s => s.type === 'text').length,
