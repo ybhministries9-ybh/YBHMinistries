@@ -378,10 +378,13 @@ export interface GalleryItem {
 export interface Story {
   id: number;
   title: string;
+  date?: string | null;
   location: string | null;
   category?: string | null;
   role?: string | null;
   body: string | null;
+  email?: string | null;
+  phone?: string | null;
   media_type: 'text' | 'video';
   video_url?: string | null;
   thumbnail_url?: string | null;
