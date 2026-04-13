@@ -386,7 +386,7 @@ export function StoriesManager() {
     youtubeUrl: 500,
     text: 5000,
     email: 254,
-    phone: 15
+    phone: 10
   };
 
   // Image upload constraints
@@ -518,8 +518,8 @@ export function StoriesManager() {
 
       if (!story.text?.trim()) {
         errors.text = 'Testimony/Story text is required';
-      } else if ((story.text || '').trim().length < 50) {
-        errors.text = 'Testimony must be at least 50 characters';
+      } else if ((story.text || '').trim().length < 4) {
+        errors.text = 'Testimony must be at least 4 characters';
       } else if (story.text.length > CHAR_LIMITS.text) {
         errors.text = `Text must be ${CHAR_LIMITS.text} characters or less`;
       }
@@ -669,8 +669,8 @@ export function StoriesManager() {
             role: story.role || null,
             location: story.location || null,
             body: story.type === 'text' ? story.text || null : null,
-            // include optional email for text stories
-            email: story.type === 'text' ? story.email || null : null,
+            // include optional email for story notifications
+            email: story.email || null,
             phone: story.type === 'text' ? story.phone || null : null,
             date: story.date || null,
             media_type: story.type,
@@ -737,6 +737,7 @@ export function StoriesManager() {
             updates.video_url = (story as any).youtubeUrl || null;
             updates.role = story.role || null;
             updates.location = story.location || null;
+            updates.email = story.email || null;
             updates.media_type = 'video';
             updates.thumbnail_url = uploadedThumbnail ?? (story as any).thumbnail_url ?? null;
             // include date for video stories too
@@ -786,7 +787,7 @@ export function StoriesManager() {
       location: '',
       image: '',
       text: '',
-      status: 'Approved',
+      status: 'Submitted',
       featured: false,
       is_visible: true
     };
@@ -809,7 +810,7 @@ export function StoriesManager() {
       youtubeUrl: '',
       role: '',
       location: '',
-      status: 'Approved',
+      status: 'Submitted',
       featured: false,
       is_visible: true
     };
@@ -1732,6 +1733,22 @@ export function StoriesManager() {
                       </div>
                     </div>
 
+                    <div className="space-y-2">
+                      <Label className="text-gray-300">
+                        Email <span className="text-xs text-gray-500 ml-2">({(story.email || '').length}/{CHAR_LIMITS.email})</span>
+                      </Label>
+                      <Input
+                        value={story.email || ''}
+                        onChange={(e) => handleUpdate(story.id, 'email', e.target.value.slice(0, CHAR_LIMITS.email))}
+                        placeholder="Email address"
+                        className={`!bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.email ? 'border-red-500' : ''}`}
+                        maxLength={CHAR_LIMITS.email}
+                      />
+                      {validationErrors[story.id]?.email && (
+                        <p className="text-xs text-red-500">{validationErrors[story.id].email}</p>
+                      )}
+                    </div>
+
                     {/* Date */}
                     <div className="space-y-2">
                       <Label className="text-gray-300">Date <span className="text-red-500">*</span></Label>
@@ -1767,28 +1784,6 @@ export function StoriesManager() {
                     </div>
                   </>
                 )}
-
-                {/* Status and Featured */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-300">Status <span className="text-red-500">*</span></Label>
-                    <Select 
-                      value={story.status || 'Submitted'} 
-                      onValueChange={(value: any) => handleUpdate(story.id, 'status', value)}
-                    >
-                        <SelectTrigger className="!bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="!bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
-                          <SelectItem value="Submitted" className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Submitted</SelectItem>
-                          <SelectItem value="In-Review" className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">In-Review</SelectItem>
-                          <SelectItem value="Approved" className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Approved</SelectItem>
-                          <SelectItem value="Rejected" className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">Rejected</SelectItem>
-                        </SelectContent>
-                    </Select>
-                  </div>
-                  {/* Featured checkbox removed per design change */}
-                </div>
 
                 {/* Action Buttons - moved to right and add icon on Save */}
                 <div className="flex gap-2 justify-end">

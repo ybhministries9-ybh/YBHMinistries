@@ -74,6 +74,10 @@ export async function POST(request: NextRequest) {
     if (title.length > 255) {
       return NextResponse.json({ success: false, error: 'Title too long (max 255 characters)' }, { status: 400 });
     }
+    const mediaType = body.media_type === 'video' ? 'video' : 'text';
+    const status = String(body.status || 'Submitted').trim() || 'Submitted';
+    const isVisible = status === 'Approved';
+
     const story = await createStory({
       title,
       location: body.location || body.summary || null,
@@ -83,16 +87,120 @@ export async function POST(request: NextRequest) {
       // include optional email for text stories
       email: body.email || null,
       phone: body.phone || null,
-      media_type: body.media_type === 'video' ? 'video' : 'text',
+      media_type: mediaType,
       video_url: body.video_url || null,
       thumbnail_url: body.thumbnail_url || null,
       date: body.date || null,
       // include status/visibility/featured if provided by UI (defaults handled in createStory)
-      status: body.status || undefined,
-      is_visible: typeof body.is_visible === 'boolean' ? body.is_visible : undefined,
+      status,
+      is_visible: isVisible,
       featured: typeof body.featured === 'boolean' ? body.featured : undefined,
       createdBy: actor || null,
     });
+
+    if (String(story.status || '').trim() === 'Submitted' && story.email) {
+      try {
+        const { sendMail } = await import('@/lib/smtpMailer');
+        const { logger } = await import('@/lib/logger');
+
+        const fields: Array<{ label: string; value: string }> = [];
+        const titleCase = (s: string) => {
+          if (s === 'YouTube URL') return s;
+          return s.replace(/[_\-]/g, ' ').split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        };
+        const pushIf = (label: string, val: any) => {
+          if (val === undefined || val === null) return;
+          const v = Array.isArray(val) ? val.filter(Boolean).join(', ') : String(val);
+          if (v && v.trim().length > 0) fields.push({ label: titleCase(label), value: v });
+        };
+
+        pushIf('name', story.title);
+        pushIf('email', story.email);
+        pushIf('phone', story.phone);
+        pushIf('location', story.location);
+        pushIf('category', story.category);
+        pushIf('role', story.role);
+        pushIf('YouTube URL', story.video_url);
+        pushIf('testimony', story.body);
+
+        const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
+        let storyImageUrl = '';
+        try {
+          const raw = story.thumbnail_url || '';
+          if (raw.startsWith('http://') || raw.startsWith('https://')) {
+            storyImageUrl = raw;
+          } else if (raw) {
+            const parsed = parseKeyFromUrl(raw);
+            if (parsed?.key) {
+              try {
+                const head = await headObject(parsed.key, parsed.bucket || undefined);
+                if (head) {
+                  storyImageUrl = await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || undefined);
+                }
+              } catch {
+                const pub = getPublicUrl(parsed.key, parsed.bucket || undefined);
+                if (pub && !pub.startsWith('r2://')) storyImageUrl = pub;
+              }
+            }
+          }
+        } catch {}
+
+        const plainLines = [
+          `Dear ${story.title || ''},`,
+          '',
+          'Thank you for sharing your testimony with YBH Ministries. Below are the details you submitted:',
+          'Note: This testimony has been submitted by YBH staff on your behalf.',
+          '',
+        ];
+        for (const f of fields) plainLines.push(`${f.label}: ${f.value}`);
+        plainLines.push('', 'We will review your submission and contact you if we need more information.');
+        const plain = plainLines.join('\n');
+
+        const htmlFields = fields.map(f => `
+          <div style="margin-bottom:12px;">
+            <div style="font-weight:600; color:#333;">${f.label}</div>
+            <div style="color:#555;">${f.value}</div>
+          </div>`).join('');
+
+        const html = `
+          <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color: #111; padding: 9px;">
+              <div style="text-align:center; background-color:#000000; padding:20px;">
+                ${logoUrl ? `<img src="${logoUrl}" alt="YBH Ministries" width="120" style="display:block;margin:0 auto;border:0;"/>` : ''}
+              </div>
+              <div style="margin-top:24px;">
+                <h2 style="margin:0 0 12px 0; font-size:20px; color:#111;">Hi ${story.title || ''},</h2>
+                <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">Thank you for sharing your testimony with <strong>YBH Ministries</strong>. Below are the details you submitted.</p>
+                <p style="margin:0 0 12px 0; color:#555; font-size:15px; line-height:1.5; font-style:italic;">Note: This testimony has been submitted by YBH staff on your behalf.</p>
+                ${storyImageUrl ? `
+                <div style="margin:0 0 16px 0;">
+                  <img src="${storyImageUrl}" alt="Story image" width="160" style="display:block; max-width:160px; height:auto; border-radius:12px; border:1px solid #ddd;" />
+                </div>` : ''}
+
+                ${htmlFields}
+
+                <p style="margin:16px 0 0 0;color:#333;">We will review your submission and contact you if we need more information.</p>
+                <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system-generated confirmation of your message. Please do not reply to this email.</p>
+              </div>
+          </div>`;
+
+        const res = await sendMail({
+          from: process.env.EMAIL_FROM || undefined,
+          to: story.email,
+          replyTo: process.env.SMTP_USER || undefined,
+          subject: 'YBH Ministries - We received your testimony',
+          text: plain,
+          html,
+        });
+
+        if (res?.success) logger.info('Admin stories confirmation email sent', { to: story.email });
+        else logger.error('Admin stories confirmation email failed', { to: story.email, error: res?.error });
+      } catch (e) {
+        try {
+          const { logger } = await import('@/lib/logger');
+          logger.error('Failed sending admin stories confirmation email', { error: (e as any)?.message || e });
+        } catch (_) {}
+      }
+    }
 
     // Attach signed URL to response if we can
     try {
@@ -130,8 +238,11 @@ export async function PUT(request: NextRequest) {
     updates.updated_by = actor || null;
 
     // Fetch existing row so we can delete the previous thumbnail when it changes
-    const { rows: currentRows } = await sql`SELECT id, title, email, status, date, created_at, thumbnail_url FROM stories WHERE id = ${id}`;
+    const { rows: currentRows } = await sql`SELECT id, title, email, status, date, created_at, thumbnail_url, media_type FROM stories WHERE id = ${id}`;
     const currentRow = currentRows[0] || {};
+
+    const effectiveStatus = String(updates.status || currentRow.status || '').trim();
+    updates.is_visible = effectiveStatus === 'Approved';
 
     const updated = await updateStory(id, updates);
     // Attach signed URL if available
