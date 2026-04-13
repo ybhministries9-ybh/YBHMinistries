@@ -57,13 +57,15 @@ export async function POST(request: Request) {
     // Honeypot check
     if (isHoneypotFilled(body)) return NextResponse.json({ success: false, error: 'bot detected' }, { status: 400 });
 
-    // reCAPTCHA verification when configured
+    // reCAPTCHA verification when configured – log failures but do not block
     try {
       const token = body?.recaptchaToken || body?.recaptcha_token;
       const rc = await verifyRecaptcha(token);
-      if (!rc.ok) return NextResponse.json({ success: false, error: 'recaptcha_failed', details: rc }, { status: 403 });
+      if (!rc.ok && !rc.skipped) {
+        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for stories submission', { details: rc }); } catch (_) {}
+      }
     } catch (e) {
-      return NextResponse.json({ success: false, error: 'recaptcha_error' }, { status: 500 });
+      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for stories', { error: String(e) }); } catch (_) {}
     }
     // Basic server-side validation & sanitization
     const name = sanitizeInput(body.name, 100);

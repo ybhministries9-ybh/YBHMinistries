@@ -126,8 +126,7 @@ export default function RootLayout({
       <head>
             {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
               <Script
-                // Load reCAPTCHA v2 explicit render so we can call grecaptcha.render on specific containers
-                src={`https://www.google.com/recaptcha/api.js?render=explicit`}
+                src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
                 strategy="afterInteractive"
               />
             ) : null}

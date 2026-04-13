@@ -48,14 +48,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'bot detected' }, { status: 400 });
     }
 
-    // Verify reCAPTCHA when configured. Clients should send `recaptchaToken`.
+    // Verify reCAPTCHA when configured – log failures but do not block
     try {
       const token = body?.recaptchaToken || body?.recaptcha_token;
       const rc = await verifyRecaptcha(token);
-      if (!rc.ok) return NextResponse.json({ error: 'recaptcha_failed', details: rc }, { status: 403 });
+      if (!rc.ok && !rc.skipped) {
+        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for get-in-touch submission', { details: rc }); } catch (_) {}
+      }
     } catch (e) {
-      // If recaptcha verification fails unexpectedly, treat as a server error
-      return NextResponse.json({ error: 'recaptcha_error' }, { status: 500 });
+      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for get-in-touch', { error: String(e) }); } catch (_) {}
     }
 
     // Sanitize inputs early
