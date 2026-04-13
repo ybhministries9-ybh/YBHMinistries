@@ -32,6 +32,10 @@ function buildStatusEmailBody(status: 'Accepted' | 'Rejected', requestDate: stri
   if (status === 'Accepted') {
     plainBodyLines.push(`Thank you for reaching out to YBH Ministries. Your message dated ${requestDate} has been accepted and our team will follow up with you soon.`);
     htmlBodyLines.push(`<p style="${bodyParagraphStyle}">Thank you for reaching out to YBH Ministries. Your message dated ${escapeHtml(requestDate)} has been accepted and our team will follow up with you soon.</p>`);
+    if (staffMessage) {
+      plainBodyLines.push(`Message from YBH staff: ${staffMessage}.`);
+      htmlBodyLines.push(`<p style="${bodyParagraphStyle}"><strong>Message from YBH staff:</strong> ${escapeHtml(staffMessage)}.</p>`);
+    }
   } else {
     plainBodyLines.push(`Thank you for reaching out to YBH Ministries. We're sorry that your message dated ${requestDate} could not be approved.`);
     htmlBodyLines.push(`<p style="${bodyParagraphStyle}">Thank you for reaching out to YBH Ministries. We're sorry that your message dated ${escapeHtml(requestDate)} could not be approved.</p>`);

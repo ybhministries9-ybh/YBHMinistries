@@ -27,6 +27,8 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
   const [enrolledMessage, setEnrolledMessage] = useState('');
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [acceptWhatsappLink, setAcceptWhatsappLink] = useState('');
+  const [showGetInTouchAcceptModal, setShowGetInTouchAcceptModal] = useState(false);
+  const [acceptMessage, setAcceptMessage] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
@@ -334,7 +336,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             <h3 className="text-lg font-semibold text-white mb-4">Update Submission Status</h3>
             <div className="flex flex-wrap gap-4">
               <button
-                onClick={() => handleStatusUpdate('Accepted')}
+                onClick={() => { setAcceptMessage(''); setShowGetInTouchAcceptModal(true); }}
                 disabled={updatingStatus || normalizeStatus(r.status) === 'Accepted'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   normalizeStatus(r.status) === 'Accepted'
@@ -387,6 +389,42 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             Delete
           </button>
         </div>
+
+        {/* Accept Modal for Get-In-Touch */}
+        {showGetInTouchAcceptModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+            <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
+              <h3 className="text-lg font-semibold text-white mb-4">Accept Submission</h3>
+              <label className="block text-sm text-gray-300 mb-2">Message to the submitter (optional, max 100 characters)</label>
+              <textarea
+                value={acceptMessage}
+                onChange={(e) => setAcceptMessage(e.target.value.slice(0, 100))}
+                maxLength={100}
+                rows={3}
+                className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
+                placeholder="Enter a message for the submitter..."
+              />
+              <div className="text-xs text-gray-400 mt-1 text-right">{acceptMessage.length}/100</div>
+              <div className="flex justify-end gap-3 mt-4">
+                <button
+                  onClick={() => setShowGetInTouchAcceptModal(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowGetInTouchAcceptModal(false);
+                    await handleStatusUpdate('Accepted', acceptMessage.trim());
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors"
+                >
+                  Confirm Accept
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showRejectModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
