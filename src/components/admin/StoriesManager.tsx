@@ -250,6 +250,9 @@ function DatePicker({
 
 export function StoriesManager() {
   const [stories, setStories] = useState<Story[]>([]);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectStoryId, setRejectStoryId] = useState<string | null>(null);
+  const [rejectMessage, setRejectMessage] = useState('');
   // Track which story's dropzone is active (hovered/dragged) to show accent border
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
 
@@ -1027,10 +1030,10 @@ export function StoriesManager() {
 
   // performDeleteImage removed: image deletion is local-only until Save is clicked
 
-  const handleStatusChange = (id: string, newStatus: 'Submitted' | 'In-Review' | 'Approved' | 'Rejected') => {
+  const handleStatusChange = (id: string, newStatus: 'Submitted' | 'In-Review' | 'Approved' | 'Rejected', staffMessage?: string) => {
     (async () => {
       try {
-        const resp = await fetch('/api/admin/stories', { method: 'PUT', headers: getAuthHeaders('application/json'), body: JSON.stringify({ id: Number(id), status: newStatus }) });
+        const resp = await fetch('/api/admin/stories', { method: 'PUT', headers: getAuthHeaders('application/json'), body: JSON.stringify({ id: Number(id), status: newStatus, ...(staffMessage ? { staffMessage } : {}) }) });
         const j = await resp.json();
           if (j && j.success) {
           // map server response back into UI shape, preserving existing client fields
@@ -1925,7 +1928,11 @@ export function StoriesManager() {
                   )}
                   {story.status !== 'Rejected' && (
                     <button
-                      onClick={() => handleStatusChange(story.id, 'Rejected')}
+                      onClick={() => {
+                        setRejectStoryId(story.id);
+                        setRejectMessage('');
+                        setShowRejectModal(true);
+                      }}
                       className="px-3 py-1 text-xs bg-red-900/30 text-red-400 rounded hover:bg-red-900/50 transition-colors cursor-pointer"
                     >
                       Reject
@@ -1947,6 +1954,49 @@ export function StoriesManager() {
         itemType="story"
         itemName={deleteDialog.name}
       />
+
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
+            <h3 className="text-lg font-semibold text-white mb-4">Reject Story</h3>
+            <label className="block text-sm text-gray-300 mb-2">Message to the submitter (optional, max 100 characters)</label>
+            <textarea
+              value={rejectMessage}
+              onChange={(e) => setRejectMessage(e.target.value.slice(0, 100))}
+              maxLength={100}
+              rows={3}
+              className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
+              placeholder="Enter message for the submitter..."
+            />
+            <div className="text-xs text-gray-400 mt-1 text-right">{rejectMessage.length}/100</div>
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectStoryId(null);
+                  setRejectMessage('');
+                }}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const storyId = rejectStoryId;
+                  const staffMessage = rejectMessage.trim();
+                  setShowRejectModal(false);
+                  setRejectStoryId(null);
+                  setRejectMessage('');
+                  if (storyId) await handleStatusChange(storyId, 'Rejected', staffMessage);
+                }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg cursor-pointer transition-colors"
+              >
+                Confirm Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Inline image delete: no server call until Save */}
 

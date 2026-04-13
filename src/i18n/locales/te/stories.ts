@@ -94,7 +94,7 @@ export default {
     testimonyLabel: "మీ సాక్ష్యం",
     testimonyPlaceholder: "దేవుడు మీ జీవితంలో ఎలా పనిచేశాడో మీ కథను పంచుకోండి...",
     testimonyRequired: "దయచేసి మీ సాక్ష్యాన్ని పంచుకోండి",
-    testimonyMinLength: "సాక్ష్యం కనీసం 50 అక్షరాలు ఉండాలి",
+    testimonyMinLength: "సాక్ష్యం కనీసం 4 అక్షరాలు ఉండాలి",
     
     submitButton: "సాక్ష్యం సమర్పించండి",
     submitting: "సమర్పిస్తోంది...",

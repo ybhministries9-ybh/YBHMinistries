@@ -419,7 +419,7 @@ const SubmitTestimonyForm = memo(() => {
       required: t('form.testimonyRequired'),
       validate: (v: any) => {
         const text = String(v || '').replace(/<[^>]*>/g, '').trim();
-        return text.length >= 50 || t('form.testimonyMinLength');
+        return text.length >= 4 || t('form.testimonyMinLength');
       },
       maxLength: { value: 5000, message: t('form.testimonyMaxLength') }
     });
@@ -576,18 +576,18 @@ const SubmitTestimonyForm = memo(() => {
               <div>
                 <div className="mb-1 flex items-center justify-between">
                   <label htmlFor="phone" className="block text-white text-sm font-medium">{t('form.phoneLabel', { defaultValue: 'Phone' })} <span className="text-gray-400 text-xs">(optional)</span></label>
-                  <p className="text-sm text-gray-400">{(watched.phone || '').length}/15</p>
+                  <p className="text-sm text-gray-400">{(watched.phone || '').length}/10</p>
                 </div>
                 <input
                   id="phone"
                   type="tel"
-                  maxLength={15}
+                  maxLength={10}
                   className={`w-full px-4 py-2 bg-black rounded-md border ${errors.phone ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none focus:border-[#FDB813] cursor-text`}
                   placeholder={t('form.phonePlaceholder', { defaultValue: 'Phone number' })}
                   {...register("phone", {
                     pattern: { value: /^[0-9+()\-\.\s]+$/, message: t('form.phoneInvalid', { defaultValue: 'Invalid phone number' }) },
                     minLength: { value: 7, message: t('form.phoneMinLength', { defaultValue: 'Phone is too short' }) },
-                    maxLength: { value: 15, message: t('form.phoneMaxLength', { defaultValue: 'Phone is too long' }) }
+                    maxLength: { value: 10, message: t('form.phoneMaxLength', { defaultValue: 'Phone is too long' }) }
                   })}
                 />
                 {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone.message as string}</p>}

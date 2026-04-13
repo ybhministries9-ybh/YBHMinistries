@@ -94,7 +94,7 @@ export default {
     testimonyLabel: "Your Testimony",
     testimonyPlaceholder: "Share your story of how God has worked in your life...",
     testimonyRequired: "Please share your testimony",
-    testimonyMinLength: "Testimony must be at least 50 characters",
+    testimonyMinLength: "Testimony must be at least 4 characters",
     
     submitButton: "Submit Testimony",
     submitting: "Submitting...",

@@ -5,6 +5,26 @@ import { del } from '@/lib/vercelBlob';
 import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 import { sql } from '@vercel/postgres';
 
+function escapeHtml(value: string) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatStoryDate(value?: string | null) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
 export async function GET() {
   try {
     const stories = await getAllStories();
@@ -103,13 +123,14 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const id = Number(body.id || body.storyId);
     if (!id) return NextResponse.json({ success: false, error: 'Missing id' }, { status: 400 });
+    const staffMessage = typeof body.staffMessage === 'string' ? body.staffMessage.slice(0, 100).trim() : '';
 
     const updates: any = { ...body };
     // ensure updated_by for audit
     updates.updated_by = actor || null;
 
     // Fetch existing row so we can delete the previous thumbnail when it changes
-    const { rows: currentRows } = await sql`SELECT id, thumbnail_url FROM stories WHERE id = ${id}`;
+    const { rows: currentRows } = await sql`SELECT id, title, email, status, date, created_at, thumbnail_url FROM stories WHERE id = ${id}`;
     const currentRow = currentRows[0] || {};
 
     const updated = await updateStory(id, updates);
@@ -144,6 +165,160 @@ export async function PUT(request: NextRequest) {
     } catch (e) {
       console.error('Failed deleting previous story thumbnail (non-fatal)', e);
     }
+
+    const previousStatus = String(currentRow.status || '').trim();
+    const nextStatus = String(updated?.status || '').trim();
+    const recipientEmail = String(updated?.email || currentRow.email || '').trim();
+
+    if (previousStatus === 'Submitted' && nextStatus === 'In-Review' && recipientEmail) {
+      try {
+        const { sendMail } = await import('@/lib/smtpMailer');
+        const name = String(updated?.title || currentRow.title || '').trim() || 'there';
+        const submittedOn = formatStoryDate(updated?.date || currentRow.date || currentRow.created_at);
+        const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
+
+        const text = [
+          `Hi ${name},`,
+          '',
+          `Your testimony submitted on ${submittedOn} is currently under review.`,
+          'We will review it and reach out to you if any additional information is required.',
+          '',
+          'Regards,',
+          'YBH Ministries',
+          '',
+          'Note:- This is a system-generated confirmation of your message. Please do not reply to this email.',
+        ].join('\n');
+
+        const html = `
+          <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color: #111; padding: 9px;">
+            <div style="text-align:center; background-color:#000000; padding:20px;">
+              ${logoUrl ? `<img src="${logoUrl}" alt="YBH Ministries" width="120" style="display:block;margin:0 auto;border:0;"/>` : ''}
+            </div>
+            <div style="margin-top:24px;">
+              <h2 style="margin:0 0 12px 0; font-size:20px; color:#111;">Hi ${name},</h2>
+              <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">Your testimony submitted on ${submittedOn} is currently under review.</p>
+              <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">We will review it and reach out to you if any additional information is required.</p>
+              <p style="margin:16px 0 0 0; color:#333; font-size:15px; line-height:1.5;">Regards,<br/>YBH Ministries</p>
+              <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system-generated confirmation of your message. Please do not reply to this email.</p>
+            </div>
+          </div>`;
+
+        await sendMail({
+          from: process.env.EMAIL_FROM || undefined,
+          to: recipientEmail,
+          replyTo: process.env.SMTP_USER || undefined,
+          subject: 'YBH Ministries - Your testimony is under review',
+          text,
+          html,
+        });
+      } catch (emailError) {
+        console.error('Failed sending in-review story email', emailError);
+      }
+    }
+
+    if (previousStatus !== 'Approved' && nextStatus === 'Approved' && recipientEmail) {
+      try {
+        const { sendMail } = await import('@/lib/smtpMailer');
+        const name = String(updated?.title || currentRow.title || '').trim() || 'there';
+        const submittedOn = formatStoryDate(updated?.date || currentRow.date || currentRow.created_at);
+        const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
+
+        const text = [
+          `Hi ${name},`,
+          '',
+          `We are pleased to inform you that your testimony submitted on ${submittedOn} has been reviewed and approved.`,
+          '',
+          'Thank you for taking the time to share your testimony with us. We truly appreciate your contribution.',
+          '',
+          'Regards,',
+          'YBH Ministries',
+          '',
+          'Note:- This is a system-generated confirmation of your message. Please do not reply to this email.',
+        ].join('\n');
+
+        const html = `
+          <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color: #111; padding: 9px;">
+            <div style="text-align:center; background-color:#000000; padding:20px;">
+              ${logoUrl ? `<img src="${logoUrl}" alt="YBH Ministries" width="120" style="display:block;margin:0 auto;border:0;"/>` : ''}
+            </div>
+            <div style="margin-top:24px;">
+              <h2 style="margin:0 0 12px 0; font-size:20px; color:#111;">Hi ${name},</h2>
+              <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">We are pleased to inform you that your testimony submitted on ${submittedOn} has been reviewed and approved.</p>
+              <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">Thank you for taking the time to share your testimony with us. We truly appreciate your contribution.</p>
+              <p style="margin:16px 0 0 0; color:#333; font-size:15px; line-height:1.5;">Regards,<br/>YBH Ministries</p>
+              <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system-generated confirmation of your message. Please do not reply to this email.</p>
+            </div>
+          </div>`;
+
+        await sendMail({
+          from: process.env.EMAIL_FROM || undefined,
+          to: recipientEmail,
+          replyTo: process.env.SMTP_USER || undefined,
+          subject: 'YBH Ministries - Your testimony has been approved',
+          text,
+          html,
+        });
+      } catch (emailError) {
+        console.error('Failed sending approved story email', emailError);
+      }
+    }
+
+    if (previousStatus !== 'Rejected' && nextStatus === 'Rejected' && recipientEmail) {
+      try {
+        const { sendMail } = await import('@/lib/smtpMailer');
+        const name = String(updated?.title || currentRow.title || '').trim() || 'there';
+        const submittedOn = formatStoryDate(updated?.date || currentRow.date || currentRow.created_at);
+        const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
+        const storiesUrl = 'https://ybhministries.org/stories';
+
+        const text = [
+          `Hi ${name},`,
+          '',
+          `Thank you for submitting your testimony on ${submittedOn}.`,
+          '',
+          'After careful review, we regret to inform you that your testimony has not been approved at this time.',
+          ...(staffMessage ? ['', `YBH Staff Comments: ${staffMessage}`] : []),
+          '',
+          'If you would like to proceed further, you may submit a new request with the required details or any additional information for reconsideration.',
+          '',
+          `Stories Link: ${storiesUrl}`,
+          '',
+          'Regards,',
+          'YBH Ministries',
+          '',
+          'Note:- This is a system-generated confirmation of your message. Please do not reply to this email.',
+        ].join('\n');
+
+        const html = `
+          <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color: #111; padding: 9px;">
+            <div style="text-align:center; background-color:#000000; padding:20px;">
+              ${logoUrl ? `<img src="${logoUrl}" alt="YBH Ministries" width="120" style="display:block;margin:0 auto;border:0;"/>` : ''}
+            </div>
+            <div style="margin-top:24px;">
+              <h2 style="margin:0 0 12px 0; font-size:20px; color:#111;">Hi ${name},</h2>
+              <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">Thank you for submitting your testimony on ${submittedOn}.</p>
+              <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">After careful review, we regret to inform you that your testimony has not been approved at this time.</p>
+              ${staffMessage ? `<p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;"><strong>YBH Staff Comments:</strong> ${escapeHtml(staffMessage)}</p>` : ''}
+              <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">If you would like to proceed further, you may submit a new request with the required details or any additional information for reconsideration.</p>
+              <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">Stories Link: <a href="${storiesUrl}" style="color:#2563eb; text-decoration:underline;">${storiesUrl}</a></p>
+              <p style="margin:16px 0 0 0; color:#333; font-size:15px; line-height:1.5;">Regards,<br/>YBH Ministries</p>
+              <p style="margin:8px 0 0 0; color:#555; font-size:13px; font-style:italic;">Note:- This is a system-generated confirmation of your message. Please do not reply to this email.</p>
+            </div>
+          </div>`;
+
+        await sendMail({
+          from: process.env.EMAIL_FROM || undefined,
+          to: recipientEmail,
+          replyTo: process.env.SMTP_USER || undefined,
+          subject: 'YBH Ministries - Your testimony was not approved',
+          text,
+          html,
+        });
+      } catch (emailError) {
+        console.error('Failed sending rejected story email', emailError);
+      }
+    }
+
     return NextResponse.json({ success: true, data: updated });
   } catch (err: any) {
     console.error('PUT /api/admin/stories error', err);

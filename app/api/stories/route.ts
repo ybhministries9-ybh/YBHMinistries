@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     // Basic server-side validation & sanitization
     const name = sanitizeInput(body.name, 100);
     const email = sanitizeInput(body.email, 254);
-    const phone = sanitizeInput(body.phone, 15);
+    const phone = sanitizeInput(body.phone, 10);
     const role = sanitizeInput(body.role, 100);
     const categoryKey = sanitizeInput(body.category, 50);
     const location = sanitizeInput(body.location, 100);
@@ -84,14 +84,14 @@ export async function POST(request: Request) {
     // phone optional but validate characters/length if present
     if (phone) {
       const phoneRe = /^[0-9+()\-\.\s]+$/;
-      if (!phoneRe.test(phone) || phone.length < 7 || phone.length > 15) return NextResponse.json({ success: false, error: 'Invalid phone' }, { status: 400 });
+      if (!phoneRe.test(phone) || phone.length < 7 || phone.length > 10) return NextResponse.json({ success: false, error: 'Invalid phone' }, { status: 400 });
     }
     if (!role || role.length < 2) return NextResponse.json({ success: false, error: 'Invalid role' }, { status: 400 });
     if (!categoryKey) return NextResponse.json({ success: false, error: 'Category is required' }, { status: 400 });
     if (!location || location.length < 2) return NextResponse.json({ success: false, error: 'Invalid location' }, { status: 400 });
     // Validate textual length (strip HTML tags) so rich text still meets min length
     const testimonyText = String(testimony || '').replace(/<[^>]*>/g, '').trim();
-    if (!testimonyText || testimonyText.length < 50) return NextResponse.json({ success: false, error: 'Testimony is too short' }, { status: 400 });
+    if (!testimonyText || testimonyText.length < 4) return NextResponse.json({ success: false, error: 'Testimony is too short' }, { status: 400 });
 
       // Map category (incoming key or raw string) to a canonical display name.
       // Normalize incoming value to tolerate variations like 'hallelconference',

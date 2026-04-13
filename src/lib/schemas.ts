@@ -13,11 +13,11 @@ export const getInTouchSchema = z.object({
 export const storySchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email().max(254).optional().or(z.literal('')).nullable().optional(),
-  phone: z.string().min(7).max(15).regex(/^[0-9+()\-\.\s]+$/).optional().or(z.literal('')).nullable().optional(),
+  phone: z.string().min(7).max(10).regex(/^[0-9+()\-\.\s]+$/).optional().or(z.literal('')).nullable().optional(),
   role: z.string().min(2).max(100),
   category: z.string().min(1).max(50),
   location: z.string().min(2).max(100),
-  testimony: z.string().min(50).max(5000),
+  testimony: z.string().min(4).max(5000),
 });
 
 export const hmsStudentSchema = z.object({
