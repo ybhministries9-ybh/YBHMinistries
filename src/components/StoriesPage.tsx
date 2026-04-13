@@ -712,8 +712,8 @@ const SubmitTestimonyForm = memo(() => {
             
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <label htmlFor="story-image" className="block text-white text-sm font-medium">Image <span className="text-gray-400 text-xs">(optional)</span></label>
-                <p className="text-sm text-gray-400">1 file max</p>
+                <label htmlFor="story-image" className="block text-white text-sm font-medium">{t('form.profileImageLabel', { defaultValue: 'Profile Image' })} <span className="text-gray-400 text-xs">({t('form.optional', { defaultValue: 'optional' })})</span></label>
+                <p className="text-sm text-gray-400">1 {t('form.fileMax', { defaultValue: 'file max' })}</p>
               </div>
               <input
                 ref={imageInputRef}
@@ -747,7 +747,7 @@ const SubmitTestimonyForm = memo(() => {
                   handleStoryImageSelect(e.dataTransfer.files?.[0] || null);
                 }}
                 className={`w-full rounded-md border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${isDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-600 bg-black hover:border-[#FDB813]'}`}
-                aria-label="Upload story image"
+                aria-label={t('form.profileImageAriaLabel', { defaultValue: 'Upload profile image' })}
               >
                 {storyImagePreview ? (
                   <div className="flex flex-col items-center gap-3">
@@ -761,14 +761,14 @@ const SubmitTestimonyForm = memo(() => {
                       }}
                       className="px-3 py-1 text-sm rounded-full border border-gray-600 text-white hover:bg-[#111] cursor-pointer"
                     >
-                      Remove image
+                      {t('form.removeProfileImage', { defaultValue: 'Remove profile image' })}
                     </button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-2 text-gray-300">
                     <Upload size={28} className="text-[#FDB813]" />
-                    <div className="font-medium">Click or drag & drop one image here</div>
-                    <div className="text-xs text-gray-400">JPG, JPEG, PNG only • Max 3MB</div>
+                    <div className="font-medium">{t('form.profileImageDrop', { defaultValue: 'Click or drag & drop one profile image here' })}</div>
+                    <div className="text-xs text-gray-400">{t('form.profileImageHint', { defaultValue: 'JPG, JPEG, PNG only • Max 3MB' })}</div>
                   </div>
                 )}
               </div>

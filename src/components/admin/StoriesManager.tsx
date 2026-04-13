@@ -1416,7 +1416,7 @@ export function StoriesManager() {
                       <div
                         role="button"
                         tabIndex={0}
-                        aria-label="Upload profile image. Click or drag image to upload"
+                        aria-label="Upload profile image. Click or drag profile image to upload"
                         className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md text-gray-300 cursor-pointer ${dragActiveId === story.id ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 !bg-[#2e2e2e]'}`}
                         onClick={() => document.getElementById(`file-input-${story.id}`)?.click()}
                         onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -1445,20 +1445,20 @@ export function StoriesManager() {
                           className="hidden"
                         />
                         <div className="text-center">
-                          <div className="mb-1 font-medium">Click or drag image here to upload</div>
+                          <div className="mb-1 font-medium">Click or drag profile image here to upload</div>
                           <div className="text-xs text-gray-500">PNG or JPG, max 2MB</div>
                         </div>
                       </div>
                       {validationErrors[story.id]?.image && (
-                        <p className="text-xs text-red-500">{validationErrors[story.id].image}</p>
+                        <p className="text-xs text-red-500">{validationErrors[story.id].image.replace('Image', 'Profile Image')}</p>
                       )}
 
                       {story.image && (
                         <div className="mt-2 relative inline-block">
-                          <img src={story.image} alt="preview" className="w-24 h-24 object-cover rounded-full border border-gray-700" />
+                          <img src={story.image} alt="profile preview" className="w-24 h-24 object-cover rounded-full border border-gray-700" />
                           <button
                             type="button"
-                            aria-label="Delete image"
+                            aria-label="Delete profile image"
                             onClick={async (e) => {
                               e.stopPropagation();
                               handleDeleteImage(story.id);
