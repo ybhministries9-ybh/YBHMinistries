@@ -7,7 +7,7 @@ export default {
   subtitle: "Explore our library of worship music, teachings, and study materials",
   tabs: {
     books: "Books",
-    worship: "Worship",
+    worship: "Worship Songs",
     sermons: "Sermons",
     bibleStudies: "Bible Studies"
   },
