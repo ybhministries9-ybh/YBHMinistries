@@ -99,7 +99,7 @@
             "dev": "next dev",
             "build": "next build",
             "start": "next start",
-            "lint": "next lint",
+            "lint": "set ESLINT_USE_FLAT_CONFIG=false&& eslint .",
             "upgrade-next-check": "node ./scripts/upgrade-next-check.js",
             "fuzz-app-router": "node ./scripts/fuzz-app-router.js"
       }

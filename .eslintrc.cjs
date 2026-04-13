@@ -12,8 +12,7 @@ module.exports = {
   extends: [
     'plugin:react/recommended',
     'plugin:jsx-a11y/recommended',
-    'plugin:@typescript-eslint/recommended',
-    'next/core-web-vitals'
+    'plugin:@typescript-eslint/recommended'
   ],
   rules: {
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
@@ -34,7 +33,6 @@ module.exports = {
     react: { version: 'detect' },
   },
   extends: [
-    'next/core-web-vitals',
     'plugin:@typescript-eslint/recommended',
     'plugin:react/recommended',
     'plugin:jsx-a11y/recommended'
