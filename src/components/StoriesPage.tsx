@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect, memo } from "react";
 import { motion } from "motion/react";
-import { MapPin, Play, X, Quote, Maximize, Minimize, Calendar } from "lucide-react";
+import { MapPin, Play, X, Quote, Maximize, Minimize, Calendar, Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { logger } from '@/lib/logger';
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -373,6 +373,53 @@ const SubmitTestimonyForm = memo(() => {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
+  const [storyImageFile, setStoryImageFile] = useState<File | null>(null);
+  const [storyImagePreview, setStoryImagePreview] = useState<string>('');
+  const [storyImageError, setStoryImageError] = useState('');
+  const [isDragActive, setIsDragActive] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const validateStoryImage = useCallback((file: File) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowed.includes((file.type || '').toLowerCase())) return 'Only JPG, JPEG, and PNG files are allowed';
+    if (file.size > 3_000_000) return 'Image must be 3MB or smaller';
+    return '';
+  }, []);
+
+  const clearStoryImage = useCallback(() => {
+    setStoryImageFile(null);
+    setStoryImageError('');
+    setStoryImagePreview(prev => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return '';
+    });
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  }, []);
+
+  const handleStoryImageSelect = useCallback((file?: File | null) => {
+    if (!file) {
+      clearStoryImage();
+      return;
+    }
+    const err = validateStoryImage(file);
+    if (err) {
+      clearStoryImage();
+      setStoryImageError(err);
+      return;
+    }
+    setStoryImageError('');
+    setStoryImageFile(file);
+    setStoryImagePreview(prev => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  }, [clearStoryImage, validateStoryImage]);
+
+  useEffect(() => {
+    return () => {
+      if (storyImagePreview && storyImagePreview.startsWith('blob:')) URL.revokeObjectURL(storyImagePreview);
+    };
+  }, [storyImagePreview]);
 
   const updateFormattingState = useCallback(() => {
     try {
@@ -471,6 +518,16 @@ const SubmitTestimonyForm = memo(() => {
         testimony: data.testimony,
         hp: data.hp || ''
       };
+      if (storyImageFile) {
+        const form = new FormData();
+        form.append('file', storyImageFile);
+        const uploadResp = await fetch('/api/stories/upload', { method: 'POST', body: form });
+        const uploadJson = await uploadResp.json();
+        if (!uploadResp.ok || !uploadJson?.success || !uploadJson?.url) {
+          throw new Error(uploadJson?.error || 'Failed to upload image');
+        }
+        (payload as any).thumbnail_url = uploadJson.url;
+      }
       // try getting reCAPTCHA token
       try {
         const { getRecaptchaToken } = await import('@/lib/recaptcha');
@@ -493,12 +550,13 @@ const SubmitTestimonyForm = memo(() => {
       setIsSubmitting(false);
       setSubmitSuccess(true);
       reset();
+      clearStoryImage();
     } catch (err: any) {
       logger.error('Submit testimony error', err);
       setIsSubmitting(false);
       toast.error(err?.message || 'Submission failed');
     }
-  }, [reset]);
+  }, [clearStoryImage, reset, storyImageFile]);
 
   return (
     <section id="submit-testimony" className="py-12 mt-12 border-t border-gray-700">
@@ -654,6 +712,71 @@ const SubmitTestimonyForm = memo(() => {
             
             <div>
               <div className="mb-1 flex items-center justify-between">
+                <label htmlFor="story-image" className="block text-white text-sm font-medium">Image <span className="text-gray-400 text-xs">(optional)</span></label>
+                <p className="text-sm text-gray-400">1 file max</p>
+              </div>
+              <input
+                ref={imageInputRef}
+                id="story-image"
+                type="file"
+                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                className="hidden"
+                onChange={(e) => handleStoryImageSelect(e.target.files?.[0] || null)}
+              />
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => imageInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    imageInputRef.current?.click();
+                  }
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragActive(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setIsDragActive(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragActive(false);
+                  handleStoryImageSelect(e.dataTransfer.files?.[0] || null);
+                }}
+                className={`w-full rounded-md border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${isDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-600 bg-black hover:border-[#FDB813]'}`}
+                aria-label="Upload story image"
+              >
+                {storyImagePreview ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <img src={storyImagePreview} alt="Selected story preview" className="h-32 w-32 rounded-lg object-cover border border-gray-700" />
+                    <div className="text-sm text-gray-300">{storyImageFile?.name}</div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearStoryImage();
+                      }}
+                      className="px-3 py-1 text-sm rounded-full border border-gray-600 text-white hover:bg-[#111] cursor-pointer"
+                    >
+                      Remove image
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-gray-300">
+                    <Upload size={28} className="text-[#FDB813]" />
+                    <div className="font-medium">Click or drag & drop one image here</div>
+                    <div className="text-xs text-gray-400">JPG, JPEG, PNG only • Max 3MB</div>
+                  </div>
+                )}
+              </div>
+              {storyImageError ? <p className="text-red-400 text-xs mt-1">{storyImageError}</p> : null}
+            </div>
+
+            <div>
+              <div className="mb-1 flex items-center justify-between">
                 <label htmlFor="testimony" className="block text-white text-sm font-medium">{t('form.testimonyLabel')} <span className="text-[#FDB813]">*</span></label>
                 <p className="text-sm text-gray-400">{String((watched.testimony || '')).replace(/<[^>]*>/g, '').length}/5000</p>
               </div>
@@ -807,7 +930,7 @@ const SubmitTestimonyForm = memo(() => {
 
               <button
                 type="button"
-                onClick={() => reset()}
+                onClick={() => { reset(); clearStoryImage(); }}
                 disabled={isSubmitting}
                 aria-label={t('form.resetButton', { defaultValue: 'Reset Form' })}
                 className={`flex-1 py-2 px-4 text-sm bg-black cursor-pointer font-semibold text-white rounded-full border-2 border-[#FDB813] transition-colors duration-200 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#111]'}`}

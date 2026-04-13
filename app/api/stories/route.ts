@@ -73,6 +73,7 @@ export async function POST(request: Request) {
     const categoryKey = sanitizeInput(body.category, 50);
     const location = sanitizeInput(body.location, 100);
     const testimony = sanitizeInput(body.testimony, 5000);
+    const thumbnailUrl = typeof body.thumbnail_url === 'string' ? body.thumbnail_url.trim().slice(0, 500) : null;
 
     const parsed = storySchema.safeParse({ name, email: email || undefined, phone: phone || undefined, role, category: categoryKey, location, testimony });
     if (!parsed.success) return NextResponse.json({ success: false, error: 'validation_error', details: parsed.error.format() }, { status: 400 });
@@ -125,7 +126,7 @@ export async function POST(request: Request) {
     const { rows } = await sql`
       INSERT INTO stories (title, date, location, category, role, body, media_type, video_url, thumbnail_url, status, is_visible, email, phone, created_by, updated_by)
       VALUES (
-        ${name}, ${date}, ${location}, ${category}, ${role}, ${testimony}, 'text', NULL, NULL, 'Submitted', false, ${email || null}, ${phone || null}, 'admin', 'admin'
+        ${name}, ${date}, ${location}, ${category}, ${role}, ${testimony}, 'text', NULL, ${thumbnailUrl || null}, 'Submitted', false, ${email || null}, ${phone || null}, 'admin', 'admin'
       ) RETURNING *
     `;
 
@@ -156,6 +157,26 @@ export async function POST(request: Request) {
 
         // Use public logo URL and MSO-safe header/footer so clients like Outlook render correctly
         const logoUrl = 'https://pub-4aa39e08f95c43bd82cfca8220114a91.r2.dev/logo/ybh.png';
+        let storyImageUrl = '';
+        try {
+          const raw = thumbnailUrl || '';
+          if (raw.startsWith('http://') || raw.startsWith('https://')) {
+            storyImageUrl = raw;
+          } else if (raw) {
+            const parsed = parseKeyFromUrl(raw);
+            if (parsed?.key) {
+              try {
+                const head = await headObject(parsed.key, parsed.bucket || undefined);
+                if (head) {
+                  storyImageUrl = await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || undefined);
+                }
+              } catch {
+                const pub = getPublicUrl(parsed.key, parsed.bucket || undefined);
+                if (pub && !pub.startsWith('r2://')) storyImageUrl = pub;
+              }
+            }
+          }
+        } catch {}
 
         const plainLines = [`Dear ${name || ''},`, '', 'Thank you for sharing your testimony with YBH Ministries. Below are the details you submitted:', ''];
         for (const f of fields) plainLines.push(`${f.label}: ${f.value}`);
@@ -177,6 +198,10 @@ export async function POST(request: Request) {
               <div style="margin-top:24px;">
                 <h2 style="margin:0 0 12px 0; font-size:20px; color:#111;">Hi ${name || ''},</h2>
                 <p style="margin:0 0 12px 0; color:#333; font-size:15px; line-height:1.5;">Thank you for sharing your testimony with <strong>YBH Ministries</strong>. Below are the details you submitted.</p>
+                ${storyImageUrl ? `
+                <div style="margin:0 0 16px 0;">
+                  <img src="${storyImageUrl}" alt="Story image" width="160" style="display:block; max-width:160px; height:auto; border-radius:12px; border:1px solid #ddd;" />
+                </div>` : ''}
 
                 ${htmlFields}
 
