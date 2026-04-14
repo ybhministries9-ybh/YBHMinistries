@@ -16,40 +16,40 @@ export default {
   
   tabs: {
     guinness: {
-      label: "Guinness World Records",
-      title: "Guinness World Records",
+      label: "Guinness World Record",
+      title: "Guinness World Record",
       description: "Celebrating extraordinary achievements recognized by Guinness World Records"
     },
-    bibleschool: {
-      label: "Hallel Bible School",
-      title: "Hallel Bible School",
-      description: "Hallel Bible School that equips believers with solid biblical teaching and practical ministry formation."
+    lcmclasses: {
+      label: "London College of Music (LCM)",
+      title: "London College of Music (LCM)",
+      description: "Training and equipping learners through the London College of Music (LCM) classes."
+    },
+    onlineschool: {
+      label: "Online Free Course (Keyboard & Guitar)",
+      title: "Online Free Course (Keyboard & Guitar)",
+      description: "Online training and courses offered by Hallel's school and ministries."
+    },
+    summercamp: {
+      label: "Kids Summer Camp",
+      title: "Kids Summer Camp",
+      description: "Nurturing the next generation of worshippers through Summer Camps."
     },
     hallelconference: {
       label: "Hallel Conference",
       title: "Hallel Conference",
       description: "Testimonies from Hallel conferences that highlight outstanding achievements and contributions."
     },
-    lcmclasses: {
-      label: "LCM Classes",
-      title: "LCM Classes",
-      description: "Training and equipping learners through the London College of Music (LCM) classes."
-    },
-    onlineschool: {
-      label: "Online School",
-      title: "Online School",
-      description: "Online training and courses offered by Hallel's school and ministries."
-    },
     songbooks: {
-      label: "Song Books",
-      title: "Song Books",
+      label: "Song Writing Classes",
+      title: "Song Writing Classes",
       description: "Collections and classes focused on songwriting and worship composition."
     },
-    summercamp: {
-      label: "Summer Camp",
-      title: "Summer Camp",
-      description: "Nurturing the next generation of worshippers through Summer Camps."
-    }
+    bibleschool: {
+      label: "Hallel Bible School",
+      title: "Hallel Bible School",
+      description: "Hallel Bible School that equips believers with solid biblical teaching and practical ministry formation."
+    },
   },
   
   categories: {

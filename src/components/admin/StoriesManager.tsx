@@ -68,13 +68,13 @@ interface ValidationErrors {
 const ALL_CATEGORY = 'All';
 const CATEGORIES = [
   ALL_CATEGORY,
-  'Guinness World Records',
-  'LCM Classes',
-  'Online School',
-  'Summer Camp',
+  'Guinness World Record',
+  'London College of Music (LCM)',
+  'Online Free Course (Keyboard & Guitar)',
+  'Kids Summer Camp',
+  'Hallel Conference',
+  'Song Writing Classes',
   'Hallel Bible School',
-  'Song Books',
-  'Hallel Conference'
 ];
 const DEFAULT_STORY_CATEGORY = CATEGORIES[1];
 

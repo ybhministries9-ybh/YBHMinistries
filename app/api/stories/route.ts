@@ -102,12 +102,12 @@ export async function POST(request: Request) {
       const TAB_TO_CATEGORY_NORMALIZED: Record<string, string> = {
         guinness: 'Guinness World Records',
         guinnessworldrecords: 'Guinness World Records',
-        onlineschool: 'Online School',
+        onlineschool: 'Online Free Course (Keyboard & Guitar)',
         ingenious: 'Ingenious Charm World Record',
-        lcmclasses: 'LCM Classes',
-        songbooks: 'Song Books',
+        lcmclasses: 'London College of Music (LCM)',
+        songbooks: 'Song Writing Classes',
         bibleschool: 'Bible School Training',
-        summercamp: 'Summer Camp',
+        summercamp: 'Kids Summer Camp',
         hallelconference: 'Hallel Conference',
         hallelconferences: 'Hallel Conference'
       };

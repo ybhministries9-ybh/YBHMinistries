@@ -85,13 +85,13 @@ interface EventData {
 // Tab configuration (used for the page tabs and the event select)
 // Tabs ordered by the new category display names (alphabetical by new label)
 const TAB_CONFIG = [
-  { key: "guinness", label: "Guinness World Records", title: "Guinness World Records" },
+  { key: "guinness", label: "Guinness World Record", title: "Guinness World Record" },
   { key: "bibleschool", label: "Hallel Bible School", title: "Hallel Bible School" },
   { key: "hallelconference", label: "Hallel Conference", title: "Hallel Conference" },
-  { key: "lcmclasses", label: "LCM Classes", title: "LCM Classes" },
-  { key: "onlineschool", label: "Online School", title: "Online School" },
-  { key: "songbooks", label: "Song Books", title: "Song Books" },
-  { key: "summercamp", label: "Summer Camp", title: "Summer Camp" }
+  { key: "lcmclasses", label: "London College of Music (LCM)", title: "London College of Music (LCM)" },
+  { key: "onlineschool", label: "Online Free Course (Keyboard & Guitar)", title: "Online Free Course (Keyboard & Guitar)" },
+  { key: "songbooks", label: "Song Writing Classes", title: "Song Writing Classes" },
+  { key: "summercamp", label: "Kids Summer Camp", title: "Kids Summer Camp" }
 ] as const;
 
 
@@ -1140,13 +1140,13 @@ export function StoriesPage() {
 
   // Map active tab key -> admin category display name
   const TAB_TO_CATEGORY: Record<string, string> = {
-    guinness: 'Guinness World Records',
+    guinness: 'Guinness World Record',
     bibleschool: 'Hallel Bible School',
     hallelconference: 'Hallel Conference',
-    lcmclasses: 'LCM Classes',
-    onlineschool: 'Online School',
-    songbooks: 'Song Books',
-    summercamp: 'Summer Camp'
+    lcmclasses: 'London College of Music (LCM)',
+    onlineschool: 'Online Free Course (Keyboard & Guitar)',
+    songbooks: 'Song Writing Classes',
+    summercamp: 'Kids Summer Camp'
   };
 
   // Decide which data to display: only show DB-fed stories; do not fall back to mock data

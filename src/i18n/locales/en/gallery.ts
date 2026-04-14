@@ -7,8 +7,8 @@ export default {
   subtitle: "Moments of worship, training, and community captured through images and videos",
   tabs: {
     "guinness-events": {
-      label: "Guinness World Records",
-      title: "Guinness World Records"
+      label: "Guinness World Record",
+      title: "Guinness World Record"
     },
     "asia-records": {
       label: "Asia Book",
@@ -27,16 +27,16 @@ export default {
       title: "Hallel Conferences"
     },
     "lcm-events": {
-      label: "LCM Classes",
-      title: "LCM Classes"
+      label: "London College of Music (LCM)",
+      title: "London College of Music (LCM)"
     },
     "anniversary": {
       label: "Anniversary (HMS)",
       title: "Anniversary (HMS)"
     },
     "kids-training": {
-      label: "Kids Training",
-      title: "Kids Summer Training"
+      label: "Kids Summer Camp",
+      title: "Kids Summer Camp"
     }
   },
   loadMore: "Load More...",

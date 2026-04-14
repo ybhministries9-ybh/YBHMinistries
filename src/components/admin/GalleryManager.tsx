@@ -36,10 +36,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   'asia-records': 'Asia Records',
   'international-star-records': 'International Star Records',
   'ingenious-record': 'Ingenious Record',
-  'anniversary': 'Anniversary',
-  'guinness-events': 'Guinness Events',
-  'kids-training': 'Kids Training',
-  'lcm-events': 'LCM Events',
+  'anniversary': 'Anniversary (HMS)',
+  'guinness-events': 'Guinness World Record',
+  'kids-training': 'Kids Summer Camp',
+  'lcm-events': 'London College of Music (LCM)',
   'hallel-conferences': 'Hallel Conferences'
 };
 
