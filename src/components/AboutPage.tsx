@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { Fragment, useState, useMemo, useCallback, useEffect } from "react";
 import type { ReactNode } from 'react';
 import Image from 'next/image';
 import { motion } from "motion/react";
@@ -144,24 +144,32 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
   };
 
   // Wrap a specific phrase in <strong> within the full text (first occurrence)
+  const renderTextWithLineBreaks = (text: string) =>
+    text.split('\n').map((part, index) => (
+      <Fragment key={index}>
+        {index > 0 ? <br /> : null}
+        {part}
+      </Fragment>
+    ));
+
   const renderWrapPhrase = (full: string, phrase: string) => {
-    if (!full || !phrase) return <span>{full}</span>;
+    if (!full || !phrase) return <span>{renderTextWithLineBreaks(full)}</span>;
     const idx = full.indexOf(phrase);
-    if (idx === -1) return <span>{full}</span>;
+    if (idx === -1) return <span>{renderTextWithLineBreaks(full)}</span>;
     const before = full.slice(0, idx);
     const after = full.slice(idx + phrase.length);
     return (
       <span>
-        {before}
+        {renderTextWithLineBreaks(before)}
         <strong>{phrase}</strong>
-        {after}
+        {renderTextWithLineBreaks(after)}
       </span>
     );
   };
 
   // Wrap multiple phrases (first occurrence of each) in <strong> within the full text
   const renderWrapPhrases = (full: string, phrases: string[]) => {
-    if (!full || !phrases || phrases.length === 0) return <span>{full}</span>;
+    if (!full || !phrases || phrases.length === 0) return <span>{renderTextWithLineBreaks(full)}</span>;
     // Build a list of match positions for the phrases (case-insensitive)
     const lower = full.toLowerCase();
     const matches: { idx: number; phrase: string; len: number }[] = [];
@@ -170,7 +178,7 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
       const i = lower.indexOf(lp);
       if (i !== -1) matches.push({ idx: i, phrase: full.slice(i, i + lp.length), len: lp.length });
     });
-    if (matches.length === 0) return <span>{full}</span>;
+    if (matches.length === 0) return <span>{renderTextWithLineBreaks(full)}</span>;
     // Sort matches by index and stitch the pieces together, avoiding overlaps
     matches.sort((a, b) => a.idx - b.idx);
     const nodes: Array<string | ReactNode> = [];
@@ -182,7 +190,13 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
       cursor = m.idx + m.len;
     }
     if (cursor < full.length) nodes.push(full.slice(cursor));
-    return <span>{nodes.map((n, i) => (typeof n === 'string' ? <span key={i}>{n}</span> : n))}</span>;
+    return (
+      <span>
+        {nodes.map((n, i) =>
+          typeof n === 'string' ? <Fragment key={i}>{renderTextWithLineBreaks(n)}</Fragment> : n
+        )}
+      </span>
+    );
   };
   // Scroll selected section into view, accounting for fixed header
   useEffect(() => {
@@ -389,7 +403,7 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
                         <h3 className="text-2xl text-white mb-3">
                           {t('mission.evangelize.title')}
                         </h3>
-                          <p className="text-lg">
+                          <p className="text-lg whitespace-pre-line">
                           {renderWrapPhrase(
                             t('mission.evangelize.description'),
                             t('mission.evangelize.description_highlight')
@@ -412,7 +426,7 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
                         <h3 className="text-2xl text-white mb-3">
                           {t('mission.educate.title')}
                         </h3>
-                        <p className="text-lg">
+                        <p className="text-lg whitespace-pre-line">
                           {renderWrapPhrase(
                             t('mission.educate.description'),
                             t('mission.educate.description_highlight')

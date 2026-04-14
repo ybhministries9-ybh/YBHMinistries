@@ -36,20 +36,17 @@ export default {
     intro_highlight: "Three E's",
     evangelize: {
       title: "1. Evangelize",
-      description: "We strive to share the message of salvation, hope, and love found in Jesus Christ with people from all walks of life. Through outreach programs, missions, and worship gatherings, we bring the light of the Gospel to the nations."
-      ,
+      description: "We proclaim the good news of Jesus Christ not only through words, but also through love, our lives, and our witness. We lead every person to experience God’s love, helping them encounter transformation and build a personal relationship with God.",
       description_highlight: 'salvation, hope, and love'
     },
     educate: {
       title: "2. Educate",
-      description: "We are dedicated to teaching and nurturing believers in the art and heart of worship. This involves equipping individuals with Biblical understanding, spiritual depth, and practical tools to grow as true worshipers who worship \"in spirit and in truth.\""
-      ,
+      description: "A ministry that brings transformation in every individual’s life. We guide those who are saved to live according to Christian values by teaching and nurturing their spiritual life. We help bring changes in their behavior and character, shaping them into spiritually grounded individuals.\n\nWe also identify the God-given potential within each person and create awareness about it. We nurture and develop these talents, transforming them into practical and useful skills.\n\nThrough this process, individuals not only become stable in their own lives but also grow into people who serve society, eventually becoming leaders who bring positive change to the community.",
       description_highlight: 'art and heart of worship'
     },
     execute: {
       title: "3. Execute",
-      description: "We believe faith must move into action. Therefore, we execute our vision through community engagement, leadership training, mentorship programs, and worship initiatives. Our goal is to empower every believer to live out their calling and influence the world around them for God's glory."
-      ,
+      description: "In this ministry, we do not leave those who are trained to walk alone. We provide continuous support, clear guidance, and encouragement, helping them confidently apply what they have learned in their daily lives. \n\nWe identify the strengths within them and further develop those strengths, motivating them to put them into practice. In this way, we help them grow into self-reliant and stable individuals. \n\nOur goal is not merely to train, but to stand by them until they are fully established—enabling them to move forward with confidence and become leaders who bring a positive impact to society.",
       description_highlight: 'community engagement, leadership training, mentorship programs, and worship initiatives'
     }
   },
