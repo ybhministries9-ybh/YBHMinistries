@@ -563,7 +563,17 @@ const SubmitTestimonyForm = memo(() => {
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-3xl md:text-4xl text-white font-normal mb-2">{t('form.title')}</h2>
         <div className="w-24 h-1 bg-[#FDB813] mb-4 mx-auto"></div>
-        <p className="text-gray-300 mb-8">{t('form.subtitle')}</p>
+        <div className="mb-8 space-y-4">
+          <p className="text-gray-300">{t('form.subtitle')}</p>
+          <div className="mx-auto max-w-3xl rounded-xl border border-[#FDB813] bg-[#FDB813]/12 px-4 py-3 text-left shadow-[0_0_0_1px_rgba(253,184,19,0.15)]">
+            <p className="text-sm md:text-base font-semibold leading-relaxed text-[#FFE08A]">
+              {t('form.videoNotice', {
+                defaultValue:
+                  'If you’d like to share your video testimonies, please send them to Bro. Augustine WhatsApp number: +91 8309655233',
+              })}
+            </p>
+          </div>
+        </div>
         
         <div className="max-w-2xl mx-auto bg-[#2E2E2E] p-6 md:p-8 rounded-lg shadow-lg">
           {submitSuccess ? (

@@ -495,7 +495,9 @@ export function StoriesManager() {
         }
       }
 
-      if (story.phone) {
+      if (!story.phone?.trim()) {
+        errors.phone = 'Phone is required';
+      } else {
         const phoneRe = /^[0-9+()\-\.\s]+$/;
         if (!phoneRe.test(story.phone)) {
           errors.phone = 'Invalid phone number';
@@ -1361,9 +1363,9 @@ export function StoriesManager() {
                         )}
                       </div>
 
-                      {/* Phone (optional) */}
+                      {/* Phone */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300">Phone <span className="text-xs text-gray-500 ml-2">({(story.phone||'').length}/{CHAR_LIMITS.phone})</span></Label>
+                        <Label className="text-gray-300">Phone <span className="text-red-500">*</span> <span className="text-xs text-gray-500 ml-2">({(story.phone||'').length}/{CHAR_LIMITS.phone})</span></Label>
                         <Input
                           value={story.phone || ''}
                           onChange={(e) => handleUpdate(story.id, 'phone', e.target.value.slice(0, CHAR_LIMITS.phone))}
@@ -1372,6 +1374,7 @@ export function StoriesManager() {
                             validationErrors[story.id]?.phone ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.phone}
+                          required
                         />
                         {validationErrors[story.id]?.phone && (
                           <p className="text-xs text-red-500">{validationErrors[story.id].phone}</p>

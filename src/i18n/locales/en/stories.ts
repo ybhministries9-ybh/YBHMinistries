@@ -68,6 +68,7 @@ export default {
   form: {
     title: "Share Your Testimony",
     subtitle: "We'd love to hear how God has worked in your life through these events and ministries.",
+    videoNotice: "If you’d like to share your video testimonies, please send them to Bro. Augustine WhatsApp number: +91 8309655233",
     
     nameLabel: "Your Name",
     namePlaceholder: "Enter your name",
