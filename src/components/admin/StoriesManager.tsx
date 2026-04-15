@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { sanitizeInput } from '@/lib/security';
-import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Star, Eye, EyeOff, Save, Loader2 } from 'lucide-react';
+import { Plus, X, Edit2, Video, FileText, CalendarIcon, Trash2, MessageCircle, Eye, EyeOff, Save, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
-import { Checkbox } from '../ui/checkbox';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import {
   AlertDialog,
@@ -56,6 +55,7 @@ interface Story {
 interface ValidationErrors {
   name?: string;
   email?: string;
+  category?: string;
   phone?: string;
   role?: string;
   location?: string;
@@ -260,11 +260,12 @@ export function StoriesManager() {
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [isDeletingImageId, setIsDeletingImageId] = useState<string | null>(null);
   // image delete UI: no immediate server-side deletion; deletion occurs on Save
+  const [activeTab, setActiveTab] = useState<'text' | 'video'>('text');
   const [filterCategory, setFilterCategory] = useState<string>(ALL_CATEGORY);
   const [filterStatus, setFilterStatus] = useState<string>('All');
-  const [filterType, setFilterType] = useState<string>('All');
   const [validationErrors, setValidationErrors] = useState<Record<string, ValidationErrors>>({});
   const [editingOriginals, setEditingOriginals] = useState<Record<string, Story>>({});
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string; name: string }>({
@@ -374,12 +375,6 @@ export function StoriesManager() {
     }
   };
 
-  // Keep any new (temp) story's category in sync with the top-level category selector
-  useEffect(() => {
-    if (filterCategory === ALL_CATEGORY) return;
-    setStories(prev => prev.map(s => s.id.startsWith('temp-') ? { ...s, category: filterCategory } : s));
-  }, [filterCategory]);
-
   // Character limits
   const CHAR_LIMITS = {
     name: 100,
@@ -475,6 +470,10 @@ export function StoriesManager() {
 
   const validateStory = (story: Story): ValidationErrors => {
     const errors: ValidationErrors = {};
+
+    if (!story.category || story.category === ALL_CATEGORY) {
+      errors.category = 'Please select a specific category';
+    }
 
       if (story.type === 'text') {
       // Text story validation
@@ -768,6 +767,7 @@ export function StoriesManager() {
           }
         }
         setEditingId(null);
+        setEditModalOpen(false);
       } catch (err) {
         logDevError('Save story error', err);
         toast.error('Failed to save story');
@@ -776,6 +776,7 @@ export function StoriesManager() {
   };
 
   const handleAddTextStory = () => {
+    setActiveTab('text');
     // If a form is already open, show the in-app confirmation modal
     if (editingId) {
       setUnsavedDialog({ open: true, pendingType: 'text' });
@@ -799,9 +800,11 @@ export function StoriesManager() {
     };
     setStories(prev => [newStory, ...prev]);
     setEditingId(newStory.id);
+    setEditModalOpen(true);
   };
 
   const handleAddVideoStory = () => {
+    setActiveTab('video');
     if (editingId) {
       setUnsavedDialog({ open: true, pendingType: 'video' });
       return;
@@ -822,6 +825,7 @@ export function StoriesManager() {
     };
     setStories(prev => [newStory, ...prev]);
     setEditingId(newStory.id);
+    setEditModalOpen(true);
   };
 
   // When an edit session starts, snapshot the existing row so we can restore on Cancel
@@ -885,6 +889,7 @@ export function StoriesManager() {
 
     // create the requested new form and prepend it using a functional update to avoid stale state
     if (unsavedDialog.pendingType === 'text') {
+      setActiveTab('text');
       const newStory: Story = {
         id: `temp-${Date.now()}`,
         type: 'text',
@@ -900,7 +905,9 @@ export function StoriesManager() {
       };
       setStories(prev => [newStory, ...prev]);
       setEditingId(newStory.id);
+      setEditModalOpen(true);
     } else if (unsavedDialog.pendingType === 'video') {
+      setActiveTab('video');
       const newStory: Story = {
         id: `temp-${Date.now()}`,
         type: 'video',
@@ -913,6 +920,7 @@ export function StoriesManager() {
       };
       setStories(prev => [newStory, ...prev]);
       setEditingId(newStory.id);
+      setEditModalOpen(true);
     }
     setUnsavedDialog({ open: false, pendingType: null });
   };
@@ -926,6 +934,7 @@ export function StoriesManager() {
 
     // open new form (functional prepend)
     if (unsavedDialog.pendingType === 'text') {
+      setActiveTab('text');
       const newStory: Story = {
         id: `temp-${Date.now()}`,
         type: 'text',
@@ -941,7 +950,9 @@ export function StoriesManager() {
       };
       setStories(prev => [newStory, ...prev]);
       setEditingId(newStory.id);
+      setEditModalOpen(true);
     } else if (unsavedDialog.pendingType === 'video') {
+      setActiveTab('video');
       const newStory: Story = {
         id: `temp-${Date.now()}`,
         type: 'video',
@@ -954,6 +965,7 @@ export function StoriesManager() {
       };
       setStories(prev => [newStory, ...prev]);
       setEditingId(newStory.id);
+      setEditModalOpen(true);
     }
     setUnsavedDialog({ open: false, pendingType: null });
   };
@@ -988,6 +1000,7 @@ export function StoriesManager() {
     delete newErrors[id];
     setValidationErrors(newErrors);
     setEditingId(null);
+    setEditModalOpen(false);
   };
 
   const handleUpdate = useCallback((id: string, field: keyof Story, rawValue: any) => {
@@ -1121,140 +1134,177 @@ export function StoriesManager() {
   };
 
   // Compute filtered stories (memoized — avoids recalculation on every render)
+  const tabCounts = useMemo(() => ({
+    text: stories.filter((s) => s.type === 'text').length,
+    video: stories.filter((s) => s.type === 'video').length,
+  }), [stories]);
+
+  const storiesForActiveTab = useMemo(() => stories.filter((s) => s.type === activeTab), [stories, activeTab]);
+
   const filteredStories = useMemo(() => {
-    let res = stories;
+    let res = storiesForActiveTab;
     if (filterCategory && filterCategory !== ALL_CATEGORY) res = res.filter(s => s.category === filterCategory);
-    if (filterType !== 'All') res = res.filter(s => s.type === filterType);
     if (filterStatus !== 'All') res = res.filter(s => s.status === filterStatus);
     return res;
-  }, [stories, filterCategory, filterStatus, filterType]);
+  }, [storiesForActiveTab, filterCategory, filterStatus]);
 
   // Counts for the currently selected category
   const countsInCategory = useMemo(() => {
-    const items = filterCategory === ALL_CATEGORY ? stories : stories.filter(s => s.category === filterCategory);
+    const items = filterCategory === ALL_CATEGORY
+      ? storiesForActiveTab
+      : storiesForActiveTab.filter(s => s.category === filterCategory);
     return {
       total: items.length,
-      text: items.filter(s => s.type === 'text').length,
-      video: items.filter(s => s.type === 'video').length,
       published: items.filter(s => s.is_visible).length,
-      draft: items.filter(s => !s.is_visible).length,
     };
-  }, [stories, filterCategory]);
+  }, [storiesForActiveTab, filterCategory]);
 
   const statusCounts = useMemo(() => ({
-    All: stories.length,
-    Submitted: stories.filter(s => s.status === 'Submitted').length,
-    'In-Review': stories.filter(s => s.status === 'In-Review').length,
-    Approved: stories.filter(s => s.status === 'Approved').length,
-    Rejected: stories.filter(s => s.status === 'Rejected').length,
-  }), [stories]);
+    All: storiesForActiveTab.length,
+    Submitted: storiesForActiveTab.filter(s => s.status === 'Submitted').length,
+    'In-Review': storiesForActiveTab.filter(s => s.status === 'In-Review').length,
+    Approved: storiesForActiveTab.filter(s => s.status === 'Approved').length,
+    Rejected: storiesForActiveTab.filter(s => s.status === 'Rejected').length,
+  }), [storiesForActiveTab]);
+
+  const activeTabTitle = activeTab === 'text' ? 'Text Stories' : 'Video Stories';
+  const activeTabDescription = activeTab === 'text'
+    ? 'Manage written testimonies and story submissions.'
+    : 'Manage video testimonies and story submissions.';
+  const addStoryForActiveTab = activeTab === 'text' ? handleAddTextStory : handleAddVideoStory;
+  const addStoryButtonLabel = activeTab === 'text' ? 'Add Text Story' : 'Add Video Story';
+  const fullGridSpanClass = 'col-span-full';
+
+  const extractYouTubeVideoId = (url?: string) => {
+    if (!url) return '';
+    const trimmed = url.trim();
+    const match = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/i);
+    return match?.[1] || '';
+  };
+
+  const getStoryVideoThumbnail = (story: Story) => {
+    if (story.thumbnail_url) return story.thumbnail_url;
+    const videoId = extractYouTubeVideoId(story.youtubeUrl);
+    return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
+  };
 
   return (
     <div
       className="p-6"
       style={{ ['--input-background' as any]: '#2e2e2e', ['--input' as any]: '#2e2e2e' }}
     >
-      <div className="flex items-start justify-between mb-6">
+      <div className="mb-6">
         <div>
           <h2 className="text-3xl font-bold text-white mb-1">Stories Management</h2>
           <p className="text-sm text-gray-400">Review and approve testimonies from your community</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={handleAddTextStory}
-            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#3E3E3E] transition-colors cursor-pointer"
-          >
-            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
-              <Plus size={14} className="text-white" />
-            </span>
-            <span className="font-medium">Add Text Story</span>
-          </Button>
-          <Button
-            onClick={handleAddVideoStory}
-            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#3E3E3E] transition-colors cursor-pointer"
-          >
-            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
-              <Plus size={14} className="text-white" />
-            </span>
-            <span className="font-medium">Add Video Story</span>
-          </Button>
+      </div>
+
+      <div className="border-b border-gray-700 mb-6">
+        <div className="flex gap-1 overflow-x-auto">
+          {[
+            { key: 'text' as const, label: 'Text Stories', icon: FileText, count: tabCounts.text },
+            { key: 'video' as const, label: 'Video Stories', icon: Video, count: tabCounts.video },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? 'border-[#FDB813] text-[#FDB813] bg-[#2E2E2E]'
+                    : 'border-transparent text-gray-400 hover:text-white hover:bg-[#2E2E2E]'
+                }`}
+              >
+                <Icon size={18} />
+                <span>{tab.label}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${isActive ? 'bg-[#FDB813] text-black' : 'bg-[#111] text-gray-300 border border-gray-600'}`}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Status Filter */}
-      <div className="mb-6 flex gap-2 flex-wrap">
+      <div className="space-y-6">
+        <div className="flex flex-row items-center justify-between gap-4">
+          <div>
+            <p className="text-lg text-gray-400">{activeTabDescription}</p>
+          </div>
+          <Button
+            onClick={addStoryForActiveTab}
+            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#3E3E3E] transition-colors cursor-pointer shrink-0"
+          >
+            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
+              <Plus size={14} className="text-white" />
+            </span>
+            <span className="font-medium">{addStoryButtonLabel}</span>
+          </Button>
+        </div>
+
+        <div className="flex gap-2 flex-wrap">
           {(['All', 'Submitted', 'In-Review', 'Approved', 'Rejected'] as const).map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilterStatus(status)}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
-              filterStatus === status
-                ? 'bg-[#FDB813] text-black'
-                : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
-            }`}
-          >
-            {status} <span className="ml-1 text-sm font-medium opacity-90">({statusCounts[status]})</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Category Filter */}
-      <div className="mb-4">
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-64 !bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="!bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
-              {CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat} className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
-              ))}
-            </SelectContent>
-        </Select>
-        <div className="mt-2 text-white text-base font-medium">
-          Total: <span className="text-[#FDB813]">{countsInCategory.total}</span> Story(s)
-          <span className="mx-2">|</span>
-          Published: <span className="text-[#FDB813]">{countsInCategory.published}</span>
+            <button
+              key={status}
+              onClick={() => setFilterStatus(status)}
+              className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                filterStatus === status
+                  ? 'bg-[#FDB813] text-black'
+                  : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
+              }`}
+            >
+              {status} <span className="ml-1 text-sm font-medium opacity-90">({statusCounts[status]})</span>
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Type Filter (show counts for selected category) */}
-      <div className="mb-4 flex gap-2 flex-wrap">
-        <button
-          onClick={() => setFilterType('All')}
-          className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
-            filterType === 'All' ? 'bg-[#FDB813] text-black' : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
-          }`}
-        >
-          All ({countsInCategory.total})
-        </button>
-        <button
-          onClick={() => setFilterType('text')}
-          className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
-            filterType === 'text' ? 'bg-[#FDB813] text-black' : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
-          }`}
-        >
-          Text Story ({countsInCategory.text})
-        </button>
-        <button
-          onClick={() => setFilterType('video')}
-          className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
-            filterType === 'video' ? 'bg-[#FDB813] text-black' : 'bg-black border border-gray-700 text-gray-300 hover:bg-[#2E2E2E]'
-          }`}
-        >
-          Video Story ({countsInCategory.video})
-        </button>
-      </div>
+        <div>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-full sm:w-80 !bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="!bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
+                {CATEGORIES.map(cat => (
+                  <SelectItem key={cat} value={cat} className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
+                ))}
+              </SelectContent>
+          </Select>
+          <div className="mt-2 text-white text-base font-medium">
+            Total: <span className="text-[#FDB813]">{countsInCategory.total}</span> Story(s)
+            <span className="mx-2">|</span>
+            Published: <span className="text-[#FDB813]">{countsInCategory.published}</span>
+          </div>
+        </div>
 
-      <div className="space-y-4">
+      <div className="bg-black rounded-lg p-4 mt-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
         {filteredStories.length === 0 ? (
-          <div className="text-center py-12 bg-black border border-gray-700 rounded-lg">
+          <div className={`${fullGridSpanClass} text-center py-12 bg-black border border-gray-700 rounded-lg`}>
             <MessageCircle size={48} className="mx-auto text-gray-600 mb-3" />
-            <p className="text-gray-400">No stories in this category.</p>
+            <p className="text-gray-400">No {activeTab === 'text' ? 'text' : 'video'} stories in this category.</p>
           </div>
         ) : (
-          filteredStories.map((story) => (
-            <div key={story.id} className="bg-black p-5 rounded-lg border border-gray-700 hover:shadow-sm transition-shadow">
-              {editingId === story.id ? (
+          [...filteredStories.filter(s => !s.id.startsWith('temp-')), ...stories.filter(s => s.id === editingId && s.id.startsWith('temp-'))].map((story) => (
+            <div
+              key={story.id}
+              className={story.id.startsWith('temp-') ? 'hidden' : ''}
+            >
+              {editingId === story.id && editModalOpen ? createPortal(
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 overflow-y-auto py-8 px-4" onClick={(e) => { if (e.target === e.currentTarget) handleCancel(story.id); }}>
+                <div className="bg-[#2e2e2e] rounded-lg border border-gray-700 w-full max-w-2xl mx-auto shadow-2xl my-4" style={{ backgroundColor: '#2e2e2e' }}>
+                  <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      {story.type === 'text' ? <FileText size={18} /> : <Video size={18} />}
+                      {story.id.startsWith('temp-') ? (story.type === 'text' ? 'Add Text Story' : 'Add Video Story') : 'Edit Story'}
+                    </h3>
+                    <button onClick={() => handleCancel(story.id)} className="text-gray-400 hover:text-white p-1.5 rounded-md transition-colors" aria-label="Close">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="p-5" style={{ ['--input-background' as any]: 'black', ['--input' as any]: 'black', ['--background' as any]: 'black' }}>
               <div className="space-y-4">
                 {/* Story Type Badge */}
                 <div className="flex items-center gap-2 mb-2">
@@ -1272,29 +1322,24 @@ export function StoriesManager() {
                   <span className={`${getPublishedBadgeColor(story.is_visible)} ml-2`}>{story.is_visible ? 'Published' : 'Draft'}</span>
                 </div>
 
-                {/* Category (for new stories the category is taken from the top filter; existing stories remain editable) */}
+                {/* Category */}
                 <div className="space-y-2">
                   <Label className="text-gray-300">Category <span className="text-red-500">*</span></Label>
-                  {story.id.startsWith('temp-') ? (
-                    <Input
-                      value={filterCategory}
-                      readOnly
-                      className="!bg-[#2e2e2e] border-gray-600 text-white rounded-lg px-3 py-2 cursor-default"
-                    />
-                  ) : (
-                    <Select 
-                      value={story.category} 
-                      onValueChange={(value) => handleUpdate(story.id, 'category', value)}
-                    >
-                      <SelectTrigger className="!bg-[#2e2e2e] text-white border-2 border-[#FDB813] rounded-lg px-3 py-2 cursor-pointer" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="!bg-[#2e2e2e] border-2 border-[#FDB813] rounded-lg" style={{ backgroundColor: '#2e2e2e', color: '#fff' }}>
-                        {CATEGORIES.map(cat => (
-                          <SelectItem key={cat} value={cat} className="!bg-[#2e2e2e] text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <Select
+                    value={story.category}
+                    onValueChange={(value) => handleUpdate(story.id, 'category', value)}
+                  >
+                    <SelectTrigger className={`!bg-black text-white border-2 rounded-lg px-3 py-2 cursor-pointer ${validationErrors[story.id]?.category ? 'border-red-500' : 'border-[#FDB813]'}`} style={{ backgroundColor: '#000', color: '#fff' }}>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent className="!bg-black border-2 border-[#FDB813] rounded-lg" style={{ backgroundColor: '#000', color: '#fff' }}>
+                      {CATEGORIES.filter(cat => cat !== ALL_CATEGORY).map(cat => (
+                        <SelectItem key={cat} value={cat} className="!bg-black text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-2">{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {validationErrors[story.id]?.category && (
+                    <p className="text-xs text-red-500">{validationErrors[story.id].category}</p>
                   )}
                 </div>
 
@@ -1314,7 +1359,7 @@ export function StoriesManager() {
                           value={story.name || ''}
                           onChange={(e) => handleUpdate(story.id, 'name', e.target.value.slice(0, CHAR_LIMITS.name))}
                           placeholder="Full Name"
-                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
+                          className={`!bg-black border-gray-600 text-white ${
                             validationErrors[story.id]?.name ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.name}
@@ -1336,7 +1381,7 @@ export function StoriesManager() {
                           value={story.role || ''}
                           onChange={(e) => handleUpdate(story.id, 'role', e.target.value.slice(0, CHAR_LIMITS.role))}
                           placeholder="Role (e.g., Participant, Student)"
-                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
+                          className={`!bg-black border-gray-600 text-white ${
                             validationErrors[story.id]?.role ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.role}
@@ -1353,7 +1398,7 @@ export function StoriesManager() {
                           value={story.email || ''}
                           onChange={(e) => handleUpdate(story.id, 'email', e.target.value.slice(0, CHAR_LIMITS.email))}
                           placeholder="example@domain.com"
-                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
+                          className={`!bg-black border-gray-600 text-white ${
                             validationErrors[story.id]?.email ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.email}
@@ -1370,7 +1415,7 @@ export function StoriesManager() {
                           value={story.phone || ''}
                           onChange={(e) => handleUpdate(story.id, 'phone', e.target.value.slice(0, CHAR_LIMITS.phone))}
                           placeholder="Phone number"
-                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
+                          className={`!bg-black border-gray-600 text-white ${
                             validationErrors[story.id]?.phone ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.phone}
@@ -1402,7 +1447,7 @@ export function StoriesManager() {
                           value={story.location || ''}
                           onChange={(e) => handleUpdate(story.id, 'location', e.target.value.slice(0, CHAR_LIMITS.location))}
                           placeholder="Location (e.g., Mumbai, India)"
-                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${
+                          className={`!bg-black border-gray-600 text-white ${
                             validationErrors[story.id]?.location ? 'border-red-500' : ''
                           }`}
                           maxLength={CHAR_LIMITS.location}
@@ -1420,7 +1465,7 @@ export function StoriesManager() {
                         role="button"
                         tabIndex={0}
                         aria-label="Upload profile image. Click or drag profile image to upload"
-                        className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md text-gray-300 cursor-pointer ${dragActiveId === story.id ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 !bg-[#2e2e2e]'}`}
+                        className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md text-gray-300 cursor-pointer ${dragActiveId === story.id ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 !bg-black'}`}
                         onClick={() => document.getElementById(`file-input-${story.id}`)?.click()}
                         onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -1668,7 +1713,7 @@ export function StoriesManager() {
                               const textOnly = String(html || '').replace(/<[^>]*>/g, '').trim();
                               setIsTestimonyEmpty(textOnly.length === 0);
                             }}
-                            className={`w-full px-3 py-2 bg-[#2e2e2e] rounded-md border ${validationErrors[story.id]?.text ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none`} 
+                            className={`w-full px-3 py-2 bg-black rounded-md border ${validationErrors[story.id]?.text ? 'border-red-500' : 'border-gray-600'} text-white focus:outline-none`} 
                             style={{ minHeight: '6rem', outline: 'none' }}
                             suppressContentEditableWarning
                           />
@@ -1700,7 +1745,7 @@ export function StoriesManager() {
                         value={story.title || ''}
                         onChange={(e) => handleUpdate(story.id, 'title', e.target.value.slice(0, CHAR_LIMITS.title))}
                         placeholder="Video Title"
-                        className={`!bg-[#2e2e2e] border-gray-600 text-white ${
+                        className={`!bg-black border-gray-600 text-white ${
                           validationErrors[story.id]?.title ? 'border-red-500' : ''
                         }`}
                         maxLength={CHAR_LIMITS.title}
@@ -1718,7 +1763,7 @@ export function StoriesManager() {
                           value={story.role || ''}
                           onChange={(e) => handleUpdate(story.id, 'role', e.target.value.slice(0, CHAR_LIMITS.role))}
                           placeholder="Role (e.g., Participant, Student)"
-                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.role ? 'border-red-500' : ''}`}
+                          className={`!bg-black border-gray-600 text-white ${validationErrors[story.id]?.role ? 'border-red-500' : ''}`}
                           maxLength={CHAR_LIMITS.role}
                         />
                         {validationErrors[story.id]?.role && (
@@ -1731,7 +1776,7 @@ export function StoriesManager() {
                           value={story.location || ''}
                           onChange={(e) => handleUpdate(story.id, 'location', e.target.value.slice(0, CHAR_LIMITS.location))}
                           placeholder="Location (e.g., Mumbai, India)"
-                          className={`!bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.location ? 'border-red-500' : ''}`}
+                          className={`!bg-black border-gray-600 text-white ${validationErrors[story.id]?.location ? 'border-red-500' : ''}`}
                           maxLength={CHAR_LIMITS.location}
                         />
                         {validationErrors[story.id]?.location && (
@@ -1748,7 +1793,7 @@ export function StoriesManager() {
                         value={story.email || ''}
                         onChange={(e) => handleUpdate(story.id, 'email', e.target.value.slice(0, CHAR_LIMITS.email))}
                         placeholder="Email address"
-                        className={`!bg-[#2e2e2e] border-gray-600 text-white ${validationErrors[story.id]?.email ? 'border-red-500' : ''}`}
+                        className={`!bg-black border-gray-600 text-white ${validationErrors[story.id]?.email ? 'border-red-500' : ''}`}
                         maxLength={CHAR_LIMITS.email}
                       />
                       {validationErrors[story.id]?.email && (
@@ -1777,7 +1822,7 @@ export function StoriesManager() {
                         value={story.youtubeUrl || ''}
                         onChange={(e) => handleUpdate(story.id, 'youtubeUrl', e.target.value.slice(0, CHAR_LIMITS.youtubeUrl))}
                         placeholder="https://www.youtube.com/watch?v=..."
-                        className={`!bg-[#2e2e2e] border-gray-600 text-white ${
+                        className={`!bg-black border-gray-600 text-white ${
                           validationErrors[story.id]?.youtubeUrl ? 'border-red-500' : ''
                         }`}
                         maxLength={CHAR_LIMITS.youtubeUrl}
@@ -1810,34 +1855,122 @@ export function StoriesManager() {
                   </Button>
                 </div>
               </div>
-            ) : (
-              // View Mode
-              <div>
-                <div className="flex items-start gap-4 mb-3">
-                  {story.type === 'text' && story.image && (
-                    <img 
-                      src={story.image} 
-                      alt={story.name}
-                      className="w-16 h-16 object-cover rounded-full flex-shrink-0"
-                    />
-                  )}
+                  </div>
+                </div>
+              </div>, document.body) : null}
+              <div className="bg-[#2E2E2E] rounded-lg shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-[#FDB813] flex flex-col h-full overflow-hidden">
+                {story.type === 'video' && (
+                  <div className="relative aspect-video bg-gray-900">
+                    {getStoryVideoThumbnail(story) ? (
+                      <img
+                        src={getStoryVideoThumbnail(story)}
+                        alt={story.title || 'Video story thumbnail'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500">
+                        <Video size={42} />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/35">
+                      <div className="w-14 h-14 rounded-full bg-[#FDB813] flex items-center justify-center">
+                        <Video size={24} className="text-black" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className={`flex-1 ${story.type === 'text' ? 'p-4' : 'p-5 flex items-start gap-4 mb-3'}`}>
+                  {story.type === 'text' ? (
+                    <div className="flex h-full flex-col">
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div className="flex items-center min-w-0">
+                          <div className="w-14 h-14 rounded-full overflow-hidden mr-3 flex-shrink-0 bg-[#3a3a3a] border border-gray-600 flex items-center justify-center">
+                            {story.image ? (
+                              <img
+                                src={story.image}
+                                alt={story.name || 'Story image'}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center w-full h-full">
+                                <span className="text-gray-400 text-[10px] font-semibold leading-tight">No</span>
+                                <span className="text-gray-400 text-[10px] font-semibold leading-tight">Photo</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-white font-medium truncate">{sanitizeInlineLabel(story.name) || 'Untitled text story'}</h4>
+                            <p className="text-white text-sm truncate">{story.role}</p>
+                            <div className="flex flex-col text-white text-xs mt-1 gap-0.5">
+                              <span>{story.date ? formatCardDate(story.date) : ''}</span>
+                              <span>{story.location}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            onClick={() => toggleVisibility(story)}
+                            className="rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors"
+                            aria-label={story.is_visible ? 'Unpublish' : 'Publish'}
+                            title={story.is_visible ? 'Unpublish' : 'Publish'}
+                          >
+                            {story.is_visible ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => { setEditingId(story.id); setEditModalOpen(true); }}
+                            className="rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors"
+                            aria-label="Edit"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleDelete(story.id)}
+                            className="rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors"
+                            aria-label="Delete"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="mb-2 flex items-center gap-2 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-600 text-white text-xs">
+                          <FileText size={12} />
+                          Text Story
+                        </span>
+                        <span className={`px-2 py-0.5 text-xs rounded border ${getStatusColor(story.status)}`}>
+                          {story.status || 'Submitted'}
+                        </span>
+                        <span className={getPublishedBadgeColor(story.is_visible)}>
+                          {story.is_visible ? 'Published' : 'Draft'}
+                        </span>
+                      </div>
+                      {story.email ? <p className="text-sm text-gray-300 mb-1">{story.email}</p> : null}
+                      {story.phone ? <p className="text-sm text-gray-300 mb-3">{story.phone}</p> : null}
+                      <p className="text-xs text-[#FDB813] mb-3">{story.category}</p>
+                      {story.text ? (
+                        <div
+                          className="text-white text-sm text-left leading-relaxed flex-grow break-words whitespace-normal overflow-hidden max-w-full italic"
+                          style={{ wordBreak: 'normal', overflowWrap: 'break-word' }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeInput(story.text, 180) || '' }}
+                        />
+                      ) : null}
+                    </div>
+                  ) : (
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          {story.type === 'text' ? (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-600 text-white text-xs">
-                              <FileText size={12} />
-                              Text Story
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-600 text-white text-xs">
-                              <Video size={12} />
-                              Video Story
-                            </span>
-                          )}
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-600 text-white text-xs">
+                            <Video size={12} />
+                            Video Story
+                          </span>
                           <h4 className="text-white">
-                            {story.type === 'text' ? sanitizeInlineLabel(story.name) : sanitizeInlineLabel(story.title)}
+                            {sanitizeInlineLabel(story.title)}
                           </h4>
                           <span className={`px-2 py-0.5 text-xs rounded border ${getStatusColor(story.status)}`}>
                             {story.status || 'Submitted'}
@@ -1866,16 +1999,16 @@ export function StoriesManager() {
                         <Button
                           size="sm"
                           onClick={() => toggleVisibility(story)}
-                          className="bg-[#2E2E2E] hover:rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white transition-colors"
+                          className="rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors"
                           aria-label={story.is_visible ? 'Unpublish' : 'Publish'}
                           title={story.is_visible ? 'Unpublish' : 'Publish'}
                         >
-                          {story.is_visible ? <Eye size={18} /> : <EyeOff size={18} />}
+                          {story.is_visible ? <EyeOff size={16} /> : <Eye size={16} />}
                         </Button>
                         <Button
                           size="sm"
-                          onClick={() => setEditingId(story.id)}
-                          className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white px-3 flex items-center gap-2 transition-colors"
+                          onClick={() => { setEditingId(story.id); setEditModalOpen(true); }}
+                          className="rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors"
                           aria-label="Edit"
                           title="Edit"
                         >
@@ -1884,7 +2017,7 @@ export function StoriesManager() {
                         <Button
                           size="sm"
                           onClick={() => handleDelete(story.id)}
-                          className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white p-2 transition-colors"
+                          className="rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors"
                           aria-label="Delete"
                           title="Delete"
                         >
@@ -1892,26 +2025,12 @@ export function StoriesManager() {
                         </Button>
                       </div>
                     </div>
-                    {story.type === 'text' && story.text && (
-                      <div className="text-gray-300 text-sm mb-3 italic" dangerouslySetInnerHTML={{ __html: sanitizeInput(story.text) || '' }} />
-                    )}
-                    {story.type === 'video' && story.youtubeUrl && (
-                      <p className="text-gray-300 text-sm mb-3">
-                        <a 
-                          href={story.youtubeUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline cursor-pointer"
-                        >
-                          {story.youtubeUrl}
-                        </a>
-                      </p>
-                    )}
                   </div>
+                  )}
                 </div>
                 
                 {/* Status Actions */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap px-5 pb-5 pt-0">
                   {story.status !== 'In-Review' && (
                     <button
                       onClick={() => handleStatusChange(story.id, 'In-Review')}
@@ -1942,10 +2061,11 @@ export function StoriesManager() {
                   )}
                 </div>
               </div>
-            )}
           </div>
           ))
         )}
+      </div>
+      </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
