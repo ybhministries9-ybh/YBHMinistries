@@ -565,8 +565,8 @@ const SubmitTestimonyForm = memo(() => {
         <div className="w-24 h-1 bg-[#FDB813] mb-4 mx-auto"></div>
         <div className="mb-8 space-y-4">
           <p className="text-gray-300">{t('form.subtitle')}</p>
-          <div className="mx-auto max-w-3xl rounded-xl border border-[#FDB813] bg-[#FDB813]/12 px-4 py-3 text-left shadow-[0_0_0_1px_rgba(253,184,19,0.15)]">
-            <p className="text-sm md:text-base font-semibold leading-relaxed text-[#FFE08A]">
+          <div className="mx-auto max-w-5xl rounded-xl border border-[#FDB813] bg-[#FDB813]/12 px-4 py-3 text-center shadow-[0_0_0_1px_rgba(253,184,19,0.15)] md:px-6">
+            <p className="text-sm md:text-base font-semibold leading-relaxed text-[#FFE08A] md:whitespace-nowrap">
               {t('form.videoNotice', {
                 defaultValue:
                   'If you’d like to share your video testimonies, please send them to Bro. Augustine WhatsApp number: +91 8309655233',
@@ -1199,9 +1199,13 @@ export function StoriesPage() {
                   className="w-24 h-1 mx-auto rounded-full mb-4"
                   style={{ backgroundColor: accentGold }}
                 ></div>
-                <p className="text-gray-300 max-w-3xl mx-auto px-4 md:px-0">
-                  {t(`tabs.${activeTab}.description`)}
-                </p>
+                <div className="mx-auto mt-5 max-w-6xl px-4 md:px-0">
+                  <div className="rounded-2xl border border-[#FDB813] bg-gradient-to-r from-[#2a2106] via-[#3a2c08] to-[#2a2106] px-4 py-4 md:px-4 lg:px-5 shadow-[0_0_30px_rgba(253,184,19,0.18)]">
+                    <p className="text-sm md:text-base lg:text-lg font-semibold leading-relaxed text-[#FFF1C2] md:whitespace-nowrap">
+                      {t(`tabs.${activeTab}.description`)}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Empty-state when no stories in this tab */}
