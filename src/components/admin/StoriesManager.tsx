@@ -381,7 +381,7 @@ export function StoriesManager() {
     role: 100,
     location: 100,
     image: 500,
-    title: 200,
+    title: 100,
     youtubeUrl: 500,
     text: 5000,
     email: 254,
@@ -541,9 +541,9 @@ export function StoriesManager() {
     } else if (story.type === 'video') {
       // Video story validation
       if (!story.title?.trim()) {
-        errors.title = 'Title is required';
+        errors.title = 'Full name is required';
       } else if (story.title.length > CHAR_LIMITS.title) {
-        errors.title = `Title must be ${CHAR_LIMITS.title} characters or less`;
+        errors.title = `Full name must be ${CHAR_LIMITS.title} characters or less`;
       }
 
       if (!story.youtubeUrl?.trim()) {
@@ -553,22 +553,13 @@ export function StoriesManager() {
       } else if (!isValidYouTubeUrl(story.youtubeUrl)) {
         errors.youtubeUrl = 'Please enter a valid YouTube URL';
       }
-        // Require role and location for video stories as well
-        if (!story.role?.trim()) {
-          errors.role = 'Role is required';
-        } else if (/\d/.test(story.role)) {
-          errors.role = 'Role cannot contain numbers';
-        } else if (story.role.length > CHAR_LIMITS.role) {
-          errors.role = `Role must be ${CHAR_LIMITS.role} characters or less`;
-        }
-
-        if (!story.location?.trim()) {
-          errors.location = 'Location is required';
-        } else if (/\d/.test(story.location)) {
-          errors.location = 'Location cannot contain numbers';
-        } else if (story.location.length > CHAR_LIMITS.location) {
-          errors.location = `Location must be ${CHAR_LIMITS.location} characters or less`;
-        }
+      if (!story.location?.trim()) {
+        errors.location = 'Location is required';
+      } else if (/\d/.test(story.location)) {
+        errors.location = 'Location cannot contain numbers';
+      } else if (story.location.length > CHAR_LIMITS.location) {
+        errors.location = `Location must be ${CHAR_LIMITS.location} characters or less`;
+      }
     }
 
     return errors;
@@ -1148,6 +1139,12 @@ export function StoriesManager() {
     return res;
   }, [storiesForActiveTab, filterCategory, filterStatus]);
 
+  const visibleStories = useMemo(() => {
+    const persistedStories = filteredStories.filter((s) => !s.id.startsWith('temp-'));
+    const editingTempStory = stories.find((s) => s.id === editingId && s.id.startsWith('temp-'));
+    return editingTempStory ? [...persistedStories, editingTempStory] : persistedStories;
+  }, [editingId, filteredStories, stories]);
+
   // Counts for the currently selected category
   const countsInCategory = useMemo(() => {
     const items = filterCategory === ALL_CATEGORY
@@ -1281,13 +1278,13 @@ export function StoriesManager() {
 
       <div className="bg-black rounded-lg p-4 mt-2">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
-        {filteredStories.length === 0 ? (
+        {visibleStories.length === 0 ? (
           <div className={`${fullGridSpanClass} text-center py-12 bg-black border border-gray-700 rounded-lg`}>
             <MessageCircle size={48} className="mx-auto text-gray-600 mb-3" />
             <p className="text-gray-400">No {activeTab === 'text' ? 'text' : 'video'} stories in this category.</p>
           </div>
         ) : (
-          [...filteredStories.filter(s => !s.id.startsWith('temp-')), ...stories.filter(s => s.id === editingId && s.id.startsWith('temp-'))].map((story) => (
+          visibleStories.map((story) => (
             <div
               key={story.id}
               className={story.id.startsWith('temp-') ? 'hidden' : ''}
@@ -1733,18 +1730,18 @@ export function StoriesManager() {
                 ) : (
                   // Video Story Fields
                   <>
-                    {/* Title */}
+                    {/* Full Name */}
                     <div className="space-y-2">
                       <Label className="text-gray-300">
-                        Title <span className="text-red-500">*</span>
+                        Full Name <span className="text-red-500">*</span>
                         <span className="text-xs text-gray-500 ml-2">
                           ({(story.title || '').length}/{CHAR_LIMITS.title})
                         </span>
                       </Label>
-                        <Input
+                      <Input
                         value={story.title || ''}
                         onChange={(e) => handleUpdate(story.id, 'title', e.target.value.slice(0, CHAR_LIMITS.title))}
-                        placeholder="Video Title"
+                        placeholder="Full Name"
                         className={`!bg-black border-gray-600 text-white ${
                           validationErrors[story.id]?.title ? 'border-red-500' : ''
                         }`}
@@ -1755,49 +1752,20 @@ export function StoriesManager() {
                       )}
                     </div>
 
-                    {/* Role (for video stories) - moved here per request */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-gray-300">Role <span className="text-red-500">*</span></Label>
-                        <Input
-                          value={story.role || ''}
-                          onChange={(e) => handleUpdate(story.id, 'role', e.target.value.slice(0, CHAR_LIMITS.role))}
-                          placeholder="Role (e.g., Participant, Student)"
-                          className={`!bg-black border-gray-600 text-white ${validationErrors[story.id]?.role ? 'border-red-500' : ''}`}
-                          maxLength={CHAR_LIMITS.role}
-                        />
-                        {validationErrors[story.id]?.role && (
-                          <p className="text-xs text-red-500">{validationErrors[story.id].role}</p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-gray-300">Location <span className="text-red-500">*</span></Label>
-                        <Input
-                          value={story.location || ''}
-                          onChange={(e) => handleUpdate(story.id, 'location', e.target.value.slice(0, CHAR_LIMITS.location))}
-                          placeholder="Location (e.g., Mumbai, India)"
-                          className={`!bg-black border-gray-600 text-white ${validationErrors[story.id]?.location ? 'border-red-500' : ''}`}
-                          maxLength={CHAR_LIMITS.location}
-                        />
-                        {validationErrors[story.id]?.location && (
-                          <p className="text-xs text-red-500">{validationErrors[story.id].location}</p>
-                        )}
-                      </div>
-                    </div>
-
                     <div className="space-y-2">
                       <Label className="text-gray-300">
-                        Email <span className="text-xs text-gray-500 ml-2">({(story.email || '').length}/{CHAR_LIMITS.email})</span>
+                        Location <span className="text-red-500">*</span>
+                        <span className="text-xs text-gray-500 ml-2">({(story.location || '').length}/{CHAR_LIMITS.location})</span>
                       </Label>
                       <Input
-                        value={story.email || ''}
-                        onChange={(e) => handleUpdate(story.id, 'email', e.target.value.slice(0, CHAR_LIMITS.email))}
-                        placeholder="Email address"
-                        className={`!bg-black border-gray-600 text-white ${validationErrors[story.id]?.email ? 'border-red-500' : ''}`}
-                        maxLength={CHAR_LIMITS.email}
+                        value={story.location || ''}
+                        onChange={(e) => handleUpdate(story.id, 'location', e.target.value.slice(0, CHAR_LIMITS.location))}
+                        placeholder="Location (e.g., Mumbai, India)"
+                        className={`!bg-black border-gray-600 text-white ${validationErrors[story.id]?.location ? 'border-red-500' : ''}`}
+                        maxLength={CHAR_LIMITS.location}
                       />
-                      {validationErrors[story.id]?.email && (
-                        <p className="text-xs text-red-500">{validationErrors[story.id].email}</p>
+                      {validationErrors[story.id]?.location && (
+                        <p className="text-xs text-red-500">{validationErrors[story.id].location}</p>
                       )}
                     </div>
 

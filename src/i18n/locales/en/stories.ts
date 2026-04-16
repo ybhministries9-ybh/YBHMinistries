@@ -13,7 +13,7 @@ export default {
 
   testimoniesHeading: "Testimonials",
   videosHeading: "Videos",
-  relatedVideos: "Related Videos",
+  relatedVideos: "Video Testimonies",
   submitTestimonyHeading: "Share Your Testimony",
 
   tabs: {

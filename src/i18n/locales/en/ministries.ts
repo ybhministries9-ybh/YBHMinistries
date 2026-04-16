@@ -136,6 +136,7 @@ export default {
     intro2Highlight: "spiritual encounter",
     intro2After: "that shapes hearts, strengthens character, and prepares participants to serve effectively in their churches, communities, and beyond.",
     heroButton: "Join Now",
+    viewGalleryButton: "View Gallery",
     purpose: {
       title: "The Purpose",
       intro: "The HMS Summer Training exists to help believers:",

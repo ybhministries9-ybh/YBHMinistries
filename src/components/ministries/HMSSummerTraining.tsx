@@ -55,9 +55,14 @@ export function HMSSummerTraining() {
                 {t('hmsSummerTrainingPage.intro2After')}
               </p>
             </div>
-            <Link href="/contact?tab=student-form" className="bg-[#FDB813] text-black px-10 py-3 rounded-full font-semibold hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105 cursor-pointer inline-block shadow-lg">
-              {t('hmsSummerTrainingPage.heroButton')}
-            </Link>
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link href="/contact?tab=student-form" className="bg-[#FDB813] text-black px-10 py-3 rounded-full font-semibold hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105 cursor-pointer inline-block shadow-lg">
+                {t('hmsSummerTrainingPage.heroButton')}
+              </Link>
+              <Link href="/gallery?tab=kids-training" className="border border-[#FDB813] text-[#FDB813] px-10 py-3 rounded-full font-semibold hover:bg-[#FDB813] hover:text-black transition-all duration-300 transform hover:scale-105 cursor-pointer inline-block shadow-lg">
+                {t('hmsSummerTrainingPage.viewGalleryButton')}
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>

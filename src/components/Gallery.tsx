@@ -38,6 +38,8 @@ const TAB_CONFIG = [
   { key: "kids-training" }
 ] as const;
 
+const VALID_TAB_KEYS = new Set(TAB_CONFIG.map((tab) => tab.key));
+
 function getYouTubeThumbnail(url: string): string {
   if (!url) return "";
   
@@ -141,6 +143,35 @@ export function Gallery() {
     "guinness-events": 8, "asia-records": 8, "ingenious-record": 8, "international-star-records": 8,
     "hallel-conferences": 8, "lcm-events": 8, anniversary: 8, "kids-training": 8,
   });
+
+  const readTabAndViewFromUrl = useCallback(() => {
+    if (typeof window === 'undefined') return { tab: 'guinness-events', view: 'photos' };
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const requestedTab = searchParams.get('tab') || hashParams.get('tab') || 'guinness-events';
+    const requestedView = searchParams.get('view') || hashParams.get('view') || 'photos';
+    return {
+      tab: VALID_TAB_KEYS.has(requestedTab as typeof TAB_CONFIG[number]['key']) ? requestedTab : 'guinness-events',
+      view: requestedView,
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const { tab, view } = readTabAndViewFromUrl();
+      setActiveTab(tab);
+      setActiveView(view);
+    };
+
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    window.addEventListener('hashchange', syncFromUrl);
+
+    return () => {
+      window.removeEventListener('popstate', syncFromUrl);
+      window.removeEventListener('hashchange', syncFromUrl);
+    };
+  }, [readTabAndViewFromUrl]);
 
   useEffect(() => {
     if (activeView === 'videos') {
@@ -256,6 +287,12 @@ export function Gallery() {
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.set('tab', tabKey);
+      const query = searchParams.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}?${query}`);
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
     // Prefetch images for the new tab
     const images = galleryImages[tabKey] || [];
