@@ -59,34 +59,22 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
     const idx = COUNTRY_CODES.findIndex(c => c.code === '+91');
     return idx >= 0 ? idx : 0;
   });
-  // mobile detection for short labels
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 640px)');
-    const onChange = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(!!('matches' in e ? e.matches : mq.matches));
-    onChange(mq);
-    if (mq.addEventListener) mq.addEventListener('change', onChange as any);
-    else mq.addListener(onChange as any);
-    return () => {
-      if (mq.removeEventListener) mq.removeEventListener('change', onChange as any);
-      else mq.removeListener(onChange as any);
-    };
-  }, []);
-
-  const shortCountry = (name: string) => {
-    const trimmed = name.trim();
-    if (trimmed.length <= 12) return trimmed;
-    const words = trimmed.split(/\s+/).filter(Boolean);
-    if (words.length === 1) return trimmed.slice(0, 12);
-    const acronym = words.map(w => w[0].toUpperCase()).join('');
-    if (acronym.length <= 4) return acronym;
-    return acronym.slice(0, 4);
-  };
+  
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string,string>>({});
 
   const timeslots = useMemo(() => generateTimeslots(), []);
+ 
+  const groupedSlots = useMemo(() => {
+    return [
+      { key: 'g1', label: '12 AM to 6 AM Slots', slots: timeslots.slice(0, 12) },
+      { key: 'g2', label: '6 AM to 12 PM Slots', slots: timeslots.slice(12, 24) },
+      { key: 'g3', label: '12 PM to 6 PM Slots', slots: timeslots.slice(24, 36) },
+      { key: 'g4', label: '6 PM to 12 AM Slots', slots: timeslots.slice(36, 48) },
+    ];
+  }, [timeslots]);
 
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const validate = (data: typeof form) => {
     const errs: Record<string,string> = {};
     if (!data.name || data.name.trim().length < 2) errs.name = t('contactForm.validation.nameRequired');
@@ -317,11 +305,42 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
 
               <div>
                 <label className="font-medium text-white">{t('contactForm.timeslot', { defaultValue: 'Timeslot' })} <span className="text-yellow-400">*</span></label>
-                <select value={form.timeslot} onChange={handleChange('timeslot')} onBlur={handleBlur('timeslot')}
-                  className={`w-full px-4 py-3 bg-black border rounded-md text-white focus:outline-none transition-colors ${errors.timeslot ? 'border-red-500' : 'border-gray-700 focus:border-[#FDB813]'}`}>
-                  <option value="">{t('contactForm.timeslotPlaceholder', { defaultValue: 'Select a timeslot' })}</option>
-                  {timeslots.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <div className="space-y-3 mt-2">
+                  {groupedSlots.map((group) => (
+                    <div key={group.key} className="bg-black/10 rounded-md border border-gray-700">
+                      <button
+                        type="button"
+                        aria-expanded={openGroup === group.key}
+                        onClick={() => setOpenGroup(openGroup === group.key ? null : group.key)}
+                        className="w-full flex items-center justify-between px-3 py-2 text-left text-white font-medium"
+                      >
+                        <span>{group.label}</span>
+                        <svg className={`w-5 h-5 transform transition-transform ${openGroup === group.key ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                          <path d="M5 8l5 5 5-5" stroke="#FDB813" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      {openGroup === group.key ? (
+                        <div className="px-3 pb-3 mt-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {group.slots.map((slot) => (
+                              <label key={slot} className={`flex items-center px-3 py-2 rounded-md cursor-pointer border transition-colors ${form.timeslot === slot ? 'bg-[#FDB813] text-black border-[#FDB813]' : 'bg-black border-gray-700 hover:border-[#FDB813] text-white'}`}>
+                                <input
+                                  type="radio"
+                                  name="timeslot"
+                                  value={slot}
+                                  checked={form.timeslot === slot}
+                                  onChange={() => { setForm(f => ({ ...f, timeslot: slot })); setTouched(t => ({ ...t, timeslot: true })); setErrors(validate({ ...form, timeslot: slot })); }}
+                                  className="form-radio accent-[#FDB813] mr-2"
+                                />
+                                <span>{slot}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
                 <p className="text-sm text-red-400">{touched.timeslot && errors.timeslot ? errors.timeslot : ''}</p>
               </div>
 
