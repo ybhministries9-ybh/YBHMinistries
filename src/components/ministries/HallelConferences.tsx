@@ -12,7 +12,7 @@ export function HallelConferences() {
   return (
     <div className="font-sans text-white bg-black">
       {/* Hero Section */}
-      <section className="relative h-[80vh] flex items-start justify-center overflow-hidden mb-20 pt-4 md:pt-16"> 
+      <section className="relative min-h-[92vh] md:h-[80vh] flex items-start justify-center overflow-hidden mb-20 pt-4 md:pt-16"> 
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60 z-10"></div> 
         <div
           className="absolute inset-0 bg-cover bg-center"

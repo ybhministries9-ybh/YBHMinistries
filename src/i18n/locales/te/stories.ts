@@ -13,7 +13,7 @@ export default {
 
   testimoniesHeading: "సాక్ష్యాలు",
   videosHeading: "వీడియోలు",
-  relatedVideos: "సంబంధిత వీడియోలు",
+  relatedVideos: "వీడియో సాక్ష్యాలు",
   submitTestimonyHeading: "మీ సాక్ష్యం పంచుకోండి",
 
   tabs: {

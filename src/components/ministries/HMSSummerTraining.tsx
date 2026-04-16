@@ -24,7 +24,7 @@ export function HMSSummerTraining() {
   return (
     <div className="bg-black text-white min-h-screen font-sans">
       {/* Hero Section */}
-      <section id="home" className="relative h-[80vh] flex items-start justify-center overflow-hidden pt-4 md:pt-4">
+      <section id="home" className="relative min-h-[108vh] md:h-[80vh] flex items-start justify-center overflow-hidden pt-4 md:pt-4">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: "url('/images/ministries/summer/1.jpg')" }}
@@ -37,7 +37,7 @@ export function HMSSummerTraining() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="max-w-4xl mx-auto"
+            className="max-w-4xl mx-auto pb-10 md:pb-0"
           >
             <h1 className="text-4xl md:text-6xl font-bold mb-3 md:mb-4">{t('hmsSummerTrainingPage.title')}</h1>
             <p className="text-xl md:text-2xl lg:text-3xl mb-6 md:mb-8 text-white">
