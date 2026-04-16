@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, Video, X } from "lucide-react";
 import { accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import logger from '../lib/logger';
@@ -98,7 +98,7 @@ function VideoSection() {
   }, [isVideoVisible]);
 
   return (
-    <section ref={sectionRef} className="pt-10 pb-10 px-4 md:px-16 lg:px-24 bg-black">
+    <section id="ministry-in-action" ref={sectionRef} className="pt-10 pb-10 px-4 md:px-16 lg:px-24 bg-black">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl mb-4">{t('video.title')}</h2>
@@ -176,7 +176,7 @@ function VideoSection() {
 }
 
 // Custom ImageCarousel component with optimized image positioning
-function ImageCarousel({ images, interval = 3000 }: { images: string[]; interval?: number }) {
+function ImageCarousel({ images, interval = 3000, onOverlayClick }: { images: string[]; interval?: number; onOverlayClick: () => void }) {
   const { t } = useTranslation('home');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -253,6 +253,16 @@ function ImageCarousel({ images, interval = 3000 }: { images: string[]; interval
   
   return (
     <div className="relative w-full h-screen overflow-hidden image-carousel-root">
+      <div className="absolute left-6 top-4 z-40 px-4 md:left-8 md:top-4">
+        <button
+          onClick={onOverlayClick}
+          className="inline-flex items-center gap-2 rounded-full bg-black border border-[#FDB813] px-5 py-2 text-sm font-semibold text-[#FDB813] shadow-lg transition-colors duration-300 hover:bg-[#FDB813] hover:text-black cursor-pointer md:text-base"
+        >
+          <Video size={16} className="shrink-0" />
+          {t('hero.overlayButton')}
+        </button>
+      </div>
+
       {/* Fullscreen toggle button (top-right) */}
       <div className="absolute top-4 right-4 z-40">
         <button
@@ -494,6 +504,15 @@ export function Home({ initialHeroImages }: HomeProps) {
     }
   ];
 
+  const scrollToMinistryInAction = () => {
+    const section = document.getElementById('ministry-in-action');
+    if (!section) return;
+    const headerOffset = 120;
+    const elementPosition = section.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+  };
+
   return (
     <div className="w-full min-h-screen bg-black text-white home-pill-buttons">
       {/* Hero Section - Image Slideshow */}
@@ -507,7 +526,7 @@ export function Home({ initialHeroImages }: HomeProps) {
             </div>
           </div>
         ) : (
-          <ImageCarousel images={heroImages} interval={3000} />
+          <ImageCarousel images={heroImages} interval={3000} onOverlayClick={scrollToMinistryInAction} />
         )}
         
         {/* Event Scroll Banner - Only show when there are upcoming events */}
