@@ -7,7 +7,11 @@ import { COUNTRY_CODES } from '../lib/countryCodes';
 export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'contact' }: { accentColor?: string; contactId?: string }) => {
   const { t } = useTranslation('contact');
   const contactFormRef = useRef<HTMLFormElement | null>(null);
-  const [formStatus, setFormStatus] = useState({ submitted: false, message: "" });
+  const [formStatus, setFormStatus] = useState<{
+    submitted: boolean;
+    messageKey?: 'contactForm.success' | 'contactForm.error';
+    message?: string;
+  }>({ submitted: false });
   const [submitting, setSubmitting] = useState(false);
 
   // use shared country-code list from lib
@@ -158,12 +162,16 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
       });
       const data = await res.json();
       if (!res.ok) {
-        setFormStatus({ submitted: false, message: data?.error || t('contactForm.error') });
+        setFormStatus({
+          submitted: false,
+          message: typeof data?.error === 'string' && data.error.trim().length > 0 ? data.error : undefined,
+          messageKey: 'contactForm.error',
+        });
         setSubmitting(false);
         return;
       }
 
-      setFormStatus({ submitted: true, message: t('contactForm.success') });
+      setFormStatus({ submitted: true, messageKey: 'contactForm.success' });
       if (contactFormRef.current) contactFormRef.current.reset();
       // reset all form fields (include `phone` and `location`) to avoid undefined values
       setFormData({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', hearAboutUs: '', otherHearAboutUs: '', hp: '' });
@@ -171,7 +179,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
       const defaultIdx = COUNTRY_CODES.findIndex(c => c.code === '+91');
       setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
     } catch (err) {
-      setFormStatus({ submitted: false, message: t('contactForm.error') });
+      setFormStatus({ submitted: false, messageKey: 'contactForm.error' });
     } finally {
       setSubmitting(false);
     }
@@ -184,8 +192,10 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
     setTouched({ name: false, email: false, phone: false, location: false, message: false, hearAboutUs: false, otherHearAboutUs: false });
     setErrors({});
-    setFormStatus({ submitted: false, message: '' });
+    setFormStatus({ submitted: false });
   };
+
+  const statusMessage = formStatus.messageKey ? t(formStatus.messageKey) : (formStatus.message || '');
 
   return (
     <section id={contactId} className="pt-6 pb-8">
@@ -206,10 +216,10 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
-              <p className="mb-4 text-xl font-semibold text-white">{formStatus.message}</p>
+              <p className="mb-4 text-xl font-semibold text-white">{statusMessage}</p>
               <button
                 type="button"
-                onClick={() => setFormStatus({ submitted: false, message: "" })}
+                onClick={() => setFormStatus({ submitted: false })}
                 aria-label={t('contactForm.sendAnother', { defaultValue: 'Send another message' })}
                 className="px-6 py-2 rounded-full text-black font-bold transition-all duration-300 shadow-md inline-flex items-center justify-center"
                 style={{ backgroundColor: accentColor }}

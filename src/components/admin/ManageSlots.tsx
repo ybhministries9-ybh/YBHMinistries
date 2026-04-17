@@ -202,7 +202,7 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
   return (
     <div className="rounded-lg border border-gray-700 bg-[#1f1f1f] p-4">
       <div className="mb-4 flex items-center gap-2">
-        <h3 className="text-lg font-semibold text-white">Manage Slots</h3>
+        <h3 className="text-lg font-semibold text-white">View 24Hrs Worship Slots</h3>
         {onClose && (
           <div className="ml-auto flex items-center gap-2">
             <button onClick={onClose} className="rounded border border-gray-600 bg-[#333] px-3 py-2 text-white">

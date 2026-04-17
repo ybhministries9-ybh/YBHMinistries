@@ -1321,7 +1321,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                       className={`transition-colors text-base cursor-pointer ${worship24SubTab === 'slots' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
                       style={worship24SubTab === 'slots' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
                     >
-                      <span className="font-medium">Manage Slots</span>
+                      <span className="font-medium">View Slots</span>
                     </button>
                   </div>
                 </div>

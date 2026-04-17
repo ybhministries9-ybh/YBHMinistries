@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getHMSStudents, getHMSStudentById, updateHMSStudent, deleteHMSStudent } from '@/lib/db';
 import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 
+const HMS_STUDENT_FORM_URL = 'https://ybhministries.org/contact/student-form';
+
 export async function GET(request: NextRequest) {
   try {
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
@@ -114,6 +116,10 @@ export async function PUT(request: NextRequest) {
 
             plainBodyLines.push('If you wish to proceed, please submit a new request with all the required details included.');
             htmlBodyLines.push(`<p style="${bodyParagraphStyle}">If you wish to proceed, please submit a new request with all the required details included.</p>`);
+            plainBodyLines.push(`Enrollment form: ${HMS_STUDENT_FORM_URL}`);
+            htmlBodyLines.push(
+              `<p style="${bodyParagraphStyle}">Enrollment form: <a href="${HMS_STUDENT_FORM_URL}" style="color:#111;text-decoration:underline;">${HMS_STUDENT_FORM_URL}</a></p>`
+            );
           }
 
           const html = `

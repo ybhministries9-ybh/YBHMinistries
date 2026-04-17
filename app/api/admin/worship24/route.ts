@@ -3,6 +3,7 @@ import { getWorship24, getWorship24ById, updateWorship24, deleteWorship24 } from
 import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 
 const ALLOWED_STATUSES = new Set(['Submitted', 'Accepted', 'Rejected', 'Archived']);
+const WORSHIP24_BOOKING_URL = 'https://ybhministries.org/contact/worship24';
 
 function escapeHtml(value: string) {
   return String(value || '')
@@ -40,8 +41,12 @@ function buildStatusEmailBody(status: 'Accepted' | 'Rejected', bookingDate: stri
       plainBodyLines.push(`Message from 24 Hours Worship staff: ${staffMessage}.`);
       htmlBodyLines.push(`<p style="${bodyParagraphStyle}"><strong>Message from 24 Hours Worship staff:</strong> ${escapeHtml(staffMessage)}.</p>`);
     }
-    plainBodyLines.push('If you wish to proceed, please submit a new booking request with a new slot and all the required details.');
-    htmlBodyLines.push(`<p style="${bodyParagraphStyle}">If you wish to proceed, please submit a new booking request with a new slot and all the required details.</p>`);
+    plainBodyLines.push('If you wish to proceed, please submit a new booking request with an available slot and all the required details.');
+    htmlBodyLines.push(`<p style="${bodyParagraphStyle}">If you wish to proceed, please submit a new booking request with an available slot and all the required details.</p>`);
+    plainBodyLines.push(`Booking page: ${WORSHIP24_BOOKING_URL}`);
+    htmlBodyLines.push(
+      `<p style="${bodyParagraphStyle}">Booking page: <a href="${WORSHIP24_BOOKING_URL}" style="color:#111;text-decoration:underline;">${WORSHIP24_BOOKING_URL}</a></p>`
+    );
   }
 
   return { plainBodyLines, htmlBodyLines };

@@ -3,6 +3,7 @@ import { getGetInTouch, getGetInTouchById, updateGetInTouch, deleteGetInTouch } 
 import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 
 const ALLOWED_STATUSES = new Set(['Submitted', 'Accepted', 'Rejected', 'Archived']);
+const GET_IN_TOUCH_URL = 'https://ybhministries.org/contact/getintouch';
 
 function escapeHtml(value: string) {
   return String(value || '')
@@ -37,14 +38,18 @@ function buildStatusEmailBody(status: 'Accepted' | 'Rejected', requestDate: stri
       htmlBodyLines.push(`<p style="${bodyParagraphStyle}"><strong>Message from YBH staff:</strong> ${escapeHtml(staffMessage)}.</p>`);
     }
   } else {
-    plainBodyLines.push(`Thank you for reaching out to YBH Ministries. We're sorry that your message dated ${requestDate} could not be approved.`);
-    htmlBodyLines.push(`<p style="${bodyParagraphStyle}">Thank you for reaching out to YBH Ministries. We're sorry that your message dated ${escapeHtml(requestDate)} could not be approved.</p>`);
+    plainBodyLines.push(`Thank you for reaching out to YBH Ministries. We're sorry that your message dated ${requestDate} could not be accepted.`);
+    htmlBodyLines.push(`<p style="${bodyParagraphStyle}">Thank you for reaching out to YBH Ministries. We're sorry that your message dated ${escapeHtml(requestDate)} could not be accepted.</p>`);
     if (staffMessage) {
       plainBodyLines.push(`Message from YBH staff: ${staffMessage}.`);
       htmlBodyLines.push(`<p style="${bodyParagraphStyle}"><strong>Message from YBH staff:</strong> ${escapeHtml(staffMessage)}.</p>`);
     }
     plainBodyLines.push('If you wish to proceed, please submit a new message with all the required details included.');
     htmlBodyLines.push(`<p style="${bodyParagraphStyle}">If you wish to proceed, please submit a new message with all the required details included.</p>`);
+    plainBodyLines.push(`Get In Touch page: ${GET_IN_TOUCH_URL}`);
+    htmlBodyLines.push(
+      `<p style="${bodyParagraphStyle}">Get In Touch page: <a href="${GET_IN_TOUCH_URL}" style="color:#111;text-decoration:underline;">${GET_IN_TOUCH_URL}</a></p>`
+    );
   }
 
   return { plainBodyLines, htmlBodyLines };

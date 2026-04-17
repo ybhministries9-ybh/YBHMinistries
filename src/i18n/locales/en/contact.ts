@@ -66,7 +66,7 @@ export default {
     timeslotPlaceholder: "Select a timeslot",
     facebookLink: "Facebook Link",
     submitBooking: "Submit Booking",
-    success: "Thanks — we'll get back to you soon!",
+    success: "Thank you for contacting us! We will get back to you soon.",
     error: "There was an error sending your message. Please try again."
     ,
     validation: {
