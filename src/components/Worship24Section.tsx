@@ -75,6 +75,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   }, [timeslots]);
 
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const validate = (data: typeof form) => {
     const errs: Record<string,string> = {};
     if (!data.name || data.name.trim().length < 2) errs.name = t('contactForm.validation.nameRequired');
@@ -175,6 +176,37 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   };
 
   const isValid = Object.keys(validate(form)).length === 0;
+
+  // Fetch booked slots for selected date so they can be disabled in the UI
+  useEffect(() => {
+    let aborted = false;
+    const controller = new AbortController();
+    async function load() {
+      if (!form.date) {
+        setBookedSlots([]);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/worship24?date=${encodeURIComponent(form.date)}`, { signal: controller.signal });
+        const data = await res.json();
+        if (aborted) return;
+        if (data && data.success && Array.isArray(data.booked)) {
+          setBookedSlots(data.booked.map((s: unknown) => String(s)));
+          if (form.timeslot && data.booked.includes(form.timeslot)) {
+            // clear selection if it became taken
+            setForm(f => ({ ...f, timeslot: '' }));
+            setTouched(t => ({ ...t, timeslot: true }));
+          }
+        } else {
+          setBookedSlots([]);
+        }
+      } catch (e) {
+        if (!aborted) setBookedSlots([]);
+      }
+    }
+    load();
+    return () => { aborted = true; controller.abort(); };
+  }, [form.date]);
 
   useEffect(() => {
     if (status.submitted) {
@@ -322,19 +354,25 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                       {openGroup === group.key ? (
                         <div className="px-3 pb-3 mt-2">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            {group.slots.map((slot) => (
-                              <label key={slot} className={`flex items-center px-3 py-2 rounded-md cursor-pointer border transition-colors ${form.timeslot === slot ? 'bg-[#FDB813] text-black border-[#FDB813]' : 'bg-black border-gray-700 hover:border-[#FDB813] text-white'}`}>
-                                <input
-                                  type="radio"
-                                  name="timeslot"
-                                  value={slot}
-                                  checked={form.timeslot === slot}
-                                  onChange={() => { setForm(f => ({ ...f, timeslot: slot })); setTouched(t => ({ ...t, timeslot: true })); setErrors(validate({ ...form, timeslot: slot })); }}
-                                  className="form-radio accent-[#FDB813] mr-2"
-                                />
-                                <span>{slot}</span>
-                              </label>
-                            ))}
+                            {group.slots.map((slot) => {
+                              const isSelected = form.timeslot === slot;
+                              const isTaken = bookedSlots.includes(slot);
+                              const labelClass = `flex items-center px-3 py-2 rounded-md cursor-pointer border transition-colors ${isTaken ? 'bg-gray-800 text-gray-400 border-gray-600 opacity-60 cursor-not-allowed' : (isSelected ? 'bg-[#FDB813] text-black border-[#FDB813]' : 'bg-black border-gray-700 hover:border-[#FDB813] text-white')}`;
+                              return (
+                                <label key={slot} className={labelClass} aria-disabled={isTaken}>
+                                  <input
+                                    type="radio"
+                                    name="timeslot"
+                                    value={slot}
+                                    checked={isSelected}
+                                    disabled={isTaken}
+                                    onChange={() => { if (!isTaken) { setForm(f => ({ ...f, timeslot: slot })); setTouched(t => ({ ...t, timeslot: true })); setErrors(validate({ ...form, timeslot: slot })); } }}
+                                    className="form-radio accent-[#FDB813] mr-2"
+                                  />
+                                  <span>{slot}</span>
+                                </label>
+                              );
+                            })}
                           </div>
                         </div>
                       ) : null}

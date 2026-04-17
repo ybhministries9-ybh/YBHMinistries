@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Book, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Download, ArrowUpDown } from 'lucide-react';
+import ManageSlots from './ManageSlots';
 import { accentGold } from '../../utils/theme';
 import Link from 'next/link';
 import { downloadExcelFile } from '@/lib/exportUtils';
@@ -38,6 +39,7 @@ function getAuthHeader() {
 
 export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' | 'getintouch' | 'worship24' }) {
   const [activeTab, setActiveTab] = useState<'hms' | 'getintouch' | 'worship24'>(forcedActiveTab || 'hms');
+  const [worship24SubTab, setWorship24SubTab] = useState<'notifications' | 'slots'>('notifications');
   // Pagination for Get In Touch
   const [page, setPage] = useState<number>(1);
   const pageSize = 20;
@@ -820,7 +822,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             </button>
 
             <button
-              onClick={() => { setActiveTab('worship24'); setPage(1); }}
+              onClick={() => { setActiveTab('worship24'); setWorship24SubTab('notifications'); setPage(1); }}
               className={`flex items-center gap-2 transition-colors text-base cursor-pointer ${activeTab === 'worship24' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
               style={activeTab === 'worship24' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
             >
@@ -1277,6 +1279,29 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
               <div>Loading...</div>
             ) : (
               <>
+                <div className="mb-4">
+                  <div className="flex items-center gap-4 border-b border-gray-700">
+                    <button
+                      onClick={() => setWorship24SubTab('notifications')}
+                      className={`transition-colors text-base cursor-pointer ${worship24SubTab === 'notifications' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
+                      style={worship24SubTab === 'notifications' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
+                    >
+                      <span className="font-medium">Email Notifications</span>
+                    </button>
+                    <button
+                      onClick={() => setWorship24SubTab('slots')}
+                      className={`transition-colors text-base cursor-pointer ${worship24SubTab === 'slots' ? 'pb-2' : 'text-gray-300 hover:text-gray-100 pb-2'}`}
+                      style={worship24SubTab === 'slots' ? { color: accentGold, borderBottom: `2px solid ${accentGold}`, background: 'transparent' } : { background: 'transparent' }}
+                    >
+                      <span className="font-medium">Manage Slots</span>
+                    </button>
+                  </div>
+                </div>
+
+                {worship24SubTab === 'slots' ? (
+                  <ManageSlots />
+                ) : (
+                  <>
                 <div className="mb-3 flex gap-2 items-center flex-wrap">
                   <input
                     type="search"
@@ -1346,15 +1371,17 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                   >
                     Clear
                   </button>
-                  <button
-                    onClick={handleWorshipExport}
-                    disabled={isWorshipExportDisabled}
-                    className="px-3 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
-                    title="Export worship24 to Excel file"
-                  >
-                    <Download size={16} />
-                    {exporting ? 'Exporting...' : 'Export to Excel'}
-                  </button>
+                  <div className="ml-auto flex flex-col items-end gap-2">
+                    <button
+                      onClick={handleWorshipExport}
+                      disabled={isWorshipExportDisabled}
+                      className="px-3 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      title="Export worship24 to Excel file"
+                    >
+                      <Download size={16} />
+                      {exporting ? 'Exporting...' : 'Export to Excel'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-2 text-white text-base font-medium">
@@ -1450,6 +1477,8 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                       </div>
                     </div>
                   </div>
+                )}
+                  </>
                 )}
               </>
             )}

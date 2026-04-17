@@ -560,7 +560,43 @@ export async function createWorship24(payload: {
     return rows[0];
   } catch (error) {
     logger.error('Error creating worship24 record:', error);
-    throw new Error(`DB createWorship24 error: ${error && (error as any).message ? (error as any).message : String(error)}`);
+    // Preserve original DB error shape (e.g. Postgres unique-violation code 23505)
+    if (error && typeof error === 'object') throw error;
+    throw new Error(`DB createWorship24 error: ${String(error)}`);
+  }
+}
+
+/**
+ * Return timeslots already booked for a given booking_date.
+ * Only considers bookings with active statuses (Submitted, Accepted).
+ */
+export async function getBookedTimeslotsForDate(booking_date: string): Promise<string[]> {
+  try {
+    const { rows } = await sql`
+      SELECT timeslot FROM worship24
+      WHERE booking_date = ${booking_date}
+        AND status IN ('Submitted', 'Accepted')
+    `;
+    return rows.map((r) => String((r as { timeslot?: unknown }).timeslot ?? ''));
+  } catch (error) {
+    logger.error('Error fetching booked timeslots for date:', error);
+    throw error;
+  }
+}
+
+export async function isTimeslotTaken(booking_date: string, timeslot: string): Promise<boolean> {
+  try {
+    const { rows } = await sql`
+      SELECT COUNT(*) as c FROM worship24
+      WHERE booking_date = ${booking_date}
+        AND timeslot = ${timeslot}
+        AND status IN ('Submitted', 'Accepted')
+    `;
+    const c = Number(rows[0]?.c || 0);
+    return c > 0;
+  } catch (error) {
+    logger.error('Error checking timeslot taken:', error);
+    throw error;
   }
 }
 
@@ -646,6 +682,21 @@ export async function getWorship24ById(id: number) {
     return rows[0] || null;
   } catch (error) {
     logger.error('Error fetching worship24 by id:', error);
+    throw error;
+  }
+}
+
+export async function getWorship24ByDate(booking_date: string) {
+  try {
+    const { rows } = await sql`
+      SELECT id, name, email, phone, message, location, booking_date, timeslot, facebook_link, user_agent, status, created_at, updated_at
+      FROM worship24
+      WHERE booking_date = ${booking_date}
+      ORDER BY timeslot ASC
+    `;
+    return rows;
+  } catch (error) {
+    logger.error('Error fetching worship24 by date:', error);
     throw error;
   }
 }

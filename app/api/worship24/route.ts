@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createWorship24 } from '../../../src/lib/db';
+import { createWorship24, getBookedTimeslotsForDate, isTimeslotTaken } from '../../../src/lib/db';
 import validateEmail from '../../../src/lib/validateEmail';
 import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '../../../src/lib/security';
 
@@ -69,6 +69,14 @@ export async function POST(request: Request) {
     // timeslot validation: basic presence
     if (!timeslot) return NextResponse.json({ error: 'Timeslot is required' }, { status: 400 });
 
+    // ensure timeslot not already taken for this booking_date
+    try {
+      const taken = await isTimeslotTaken(booking_date, timeslot);
+      if (taken) return NextResponse.json({ error: 'Timeslot already taken' }, { status: 409 });
+    } catch (e) {
+      return NextResponse.json({ error: 'DB error' }, { status: 500 });
+    }
+
     // email optional but validate if present
     let emailVal: string | null = null;
     if (email && email.length > 0) {
@@ -92,7 +100,13 @@ export async function POST(request: Request) {
         facebook_link: facebook_link || null,
         user_agent: userAgent,
       });
-    } catch (dbErr: any) {
+    } catch (dbErr: unknown) {
+      // If DB reported a unique-violation for timeslot, return conflict
+      const code = dbErr && typeof dbErr === 'object' && 'code' in dbErr ? String((dbErr as { code?: unknown }).code) : '';
+      const msg = dbErr && typeof dbErr === 'object' && 'message' in dbErr ? String((dbErr as { message?: unknown }).message) : '';
+      if (code === '23505' || msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('unique')) {
+        return NextResponse.json({ error: 'Timeslot already taken' }, { status: 409 });
+      }
       return NextResponse.json({ error: 'DB error' }, { status: 500 });
     }
 
@@ -170,6 +184,21 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
-  return NextResponse.json({ ok: true });
+export async function GET(request: Request) {
+  try {
+    // support query param ?date=YYYY-MM-DD to fetch booked slots for that date
+    const url = new URL(request.url);
+    const date = url.searchParams.get('date');
+    if (date) {
+      try {
+        const booked = await getBookedTimeslotsForDate(date);
+        return NextResponse.json({ success: true, booked });
+      } catch (e) {
+        return NextResponse.json({ success: false, error: 'DB error' }, { status: 500 });
+      }
+    }
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
