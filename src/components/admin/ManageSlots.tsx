@@ -108,6 +108,19 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [bookings, setBookings] = useState<Record<string, Worship24Row> | null>(null);
 
+  const availableCountByGroupKey = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const group of groups) {
+      let available = 0;
+      for (const slot of group.slots) {
+        const isBooked = Boolean(bookings && bookings[slot]);
+        if (!isBooked) available++;
+      }
+      map[group.key] = available;
+    }
+    return map;
+  }, [groups, bookings]);
+
   const monthOptions = useMemo(() => {
     const now = new Date();
     const currentSecondSat = secondSaturdayOfMonth(now.getFullYear(), now.getMonth());
@@ -230,7 +243,10 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
         <div className="space-y-4">
           {groups.map((g) => (
             <div key={g.key} className="rounded-md border border-gray-700 bg-[#111] p-3">
-              <div className="mb-2 font-medium text-white">{g.label}</div>
+              <div className="mb-2 flex items-center gap-2 font-medium text-white">
+                <span className="truncate">{g.label}</span>
+                <span className="shrink-0 text-sm text-gray-300">({availableCountByGroupKey[g.key] ?? 0} available)</span>
+              </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {g.slots.map((slot) => {
                   const rec = bookings ? (bookings[slot] || null) : null;
@@ -242,7 +258,7 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
                       >
                         <div className="min-w-0">
                           <div className="font-semibold">{slot}</div>
-                          <div className="text-xs">{rec.name}</div>
+                          <div className="text-sm font-bold">{rec.name}</div>
                           {rec.facebook_link ? (
                             <div className="flex min-w-0 items-center gap-2">
                               <a
