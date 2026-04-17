@@ -67,11 +67,11 @@ export function ContactsPage({ initialTab }: { initialTab?: string } ) {
   }, [tabKeyFromPathname, activeTab]);
 
   const handleTabChange = useCallback((tabKey: string) => {
-    setActiveTab(tabKey);
+    if (tabKey === activeTab) return;
     router.push(tabPathForKey(tabKey));
     // Scroll to top when tab changes
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [router, tabPathForKey]);
+  }, [router, tabPathForKey, activeTab]);
 
   // Memoize tab buttons
   const tabButtons = useMemo(
