@@ -37,7 +37,19 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
   const forcedType = forcedTypeProp || searchParams?.get('type');
   const returnTo = searchParams?.get('return');
 
+  const safeDecodeURIComponent = (value: string) => {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  };
+
   const goBackOr = (fallbackPath: string) => {
+    if (returnTo) {
+      router.push(safeDecodeURIComponent(returnTo));
+      return;
+    }
     if (typeof window !== 'undefined' && window.history && window.history.length > 1) {
       router.back();
       return;

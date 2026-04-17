@@ -42,6 +42,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'hms' | 'getintouch' | 'worship24'>(forcedActiveTab || 'hms');
   const [worship24SubTab, setWorship24SubTab] = useState<'notifications' | 'slots'>('notifications');
+  const getInTouchReturnTo = '/admin/contacts/getintouch';
   // Pagination for Get In Touch
   const [page, setPage] = useState<number>(1);
   const pageSize = 20;
@@ -59,11 +60,15 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const [unauthorized, setUnauthorized] = useState(false);
 
   useEffect(() => {
-    if (forcedActiveTab) return;
     const subtab = (searchParams?.get('subtab') || '').trim();
     if (subtab === 'slots' || subtab === 'notifications') {
-      setActiveTab('worship24');
       setWorship24SubTab(subtab as 'slots' | 'notifications');
+
+      // When the page route forces Worship24, we still want the URL to control
+      // the Worship24 sub-tab (e.g. return from details back to Manage Slots).
+      if (!forcedActiveTab) {
+        setActiveTab('worship24');
+      }
     }
   }, [forcedActiveTab, searchParams]);
   
@@ -684,7 +689,13 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         <td className="px-4 py-3 text-gray-200">{getHmsStatusBadge(c.status)}</td>
         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">{formatDatePretty(c.created_at)}</td>
         <td className="px-4 py-3 text-right">
-          <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-1 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+          <Link
+            href={`/admin/contacts/getintouch/${c.id}?return=${encodeURIComponent(getInTouchReturnTo)}`}
+            className="px-3 py-1 rounded text-black whitespace-nowrap inline-block"
+            style={{ backgroundColor: accentGold }}
+          >
+            View
+          </Link>
         </td>
       </tr>
     ));
@@ -707,7 +718,13 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
             {c.hear_about_us && <div className="text-sm text-gray-200 truncate mt-1">{c.hear_about_us + (c.other_hear_about_us ? `: ${c.other_hear_about_us}` : '')}</div>}
           </div>
           <div className="flex-shrink-0">
-            <Link href={`/admin/contacts/getintouch/${c.id}`} className="px-3 py-2 rounded text-black whitespace-nowrap inline-block" style={{ backgroundColor: accentGold }}>View</Link>
+            <Link
+              href={`/admin/contacts/getintouch/${c.id}?return=${encodeURIComponent(getInTouchReturnTo)}`}
+              className="px-3 py-2 rounded text-black whitespace-nowrap inline-block"
+              style={{ backgroundColor: accentGold }}
+            >
+              View
+            </Link>
           </div>
         </div>
       </div>
