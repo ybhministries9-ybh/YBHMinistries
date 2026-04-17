@@ -5,11 +5,11 @@ import MaintenancePage from '../../maintenance/page';
 import { isMaintenanceEnabled } from '../../lib/maintenance';
 
 export const metadata: Metadata = {
-  title: 'Contact Us',
+  title: 'We’d Love to Hear from You',
   description:
     'Get in touch with Yeshua Beth Hallel Ministries. Contact us for inquiries about our Bible college, music school, church services, or ministry programs.',
   openGraph: {
-    title: 'Contact YBH Ministries',
+    title: 'We’d Love to Hear from You',
     description:
       'Reach out to us for inquiries about our programs, services, and ministry opportunities.',
   },

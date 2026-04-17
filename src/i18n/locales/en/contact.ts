@@ -15,7 +15,7 @@ export default {
   tabs: {
     guinnessAttempt: "Guinness World Records Attempt-2",
     studentForm: "HMS Student Form",
-    getInTouch: "Get In Touch",
+    getInTouch: "Get in Touch",
     worship24: "24 Hours Worship",
     conferenceRequest: "Offline Conference in Your City?",
     lsmStudent: "London School of Music Student?",
@@ -30,7 +30,7 @@ export default {
   },
 
   contactForm: {
-    title: "Get In Touch",
+    title: "Get in Touch",
     subtitle: "Send us a message and we'll get back to you.",
     name: "Full Name",
     phone: "Phone Number",
