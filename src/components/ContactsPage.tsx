@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
 import { primaryBackground, accentGold } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,7 @@ import { ScrollToTop } from './ScrollToTop';
 import { HMSStudentForm } from './HMSStudentForm';
 import GetInTouchSection from './GetInTouchSection';
 import { Worship24Section } from './Worship24Section';
+import { usePathname, useRouter } from "next/navigation";
 
 // Tab configuration
 const TAB_CONFIG = [
@@ -28,16 +29,49 @@ const VISIBLE_TAB_KEYS = new Set(["student-form", "getintouch", "worship24"]);
 
 export function ContactsPage({ initialTab }: { initialTab?: string } ) {
   const { t } = useTranslation('contact');
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const tabKeyFromPathname = useMemo(() => {
+    if (!pathname) return undefined;
+    const parts = pathname.split("/").filter(Boolean);
+    const contactIndex = parts.indexOf("contact");
+    const maybeTab = contactIndex >= 0 ? parts[contactIndex + 1] : undefined;
+    return typeof maybeTab === "string" && maybeTab.length > 0 ? maybeTab : undefined;
+  }, [pathname]);
+
+  const tabPathForKey = useCallback((tabKey: string) => {
+    // Keep routes explicit per tab.
+    if (tabKey === "student-form") return "/contact/student-form";
+    if (tabKey === "getintouch") return "/contact/getintouch";
+    if (tabKey === "worship24") return "/contact/worship24";
+    return "/contact";
+  }, []);
+
   // Determine initial active tab: prefer server-provided `initialTab`,
   // otherwise pick the first visible tab from `TAB_CONFIG` to avoid flashes
-  const defaultTab = initialTab || TAB_CONFIG.find(tab => VISIBLE_TAB_KEYS.has(tab.key))?.key || "student-form";
+  // Important: do NOT use `usePathname()` to pick the initial state because
+  // it can differ between the server render and the first client render,
+  // causing hydration mismatches (e.g. Radix generated ids like `aria-controls`).
+  const defaultTab =
+    initialTab ||
+    TAB_CONFIG.find(tab => VISIBLE_TAB_KEYS.has(tab.key))?.key ||
+    "student-form";
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
+
+  // Keep state in sync with route changes (back/forward, direct URL nav)
+  useEffect(() => {
+    if (tabKeyFromPathname && tabKeyFromPathname !== activeTab) {
+      setActiveTab(tabKeyFromPathname);
+    }
+  }, [tabKeyFromPathname, activeTab]);
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
+    router.push(tabPathForKey(tabKey));
     // Scroll to top when tab changes
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  }, [router, tabPathForKey]);
 
   // Memoize tab buttons
   const tabButtons = useMemo(

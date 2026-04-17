@@ -13,13 +13,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Contact({ searchParams }: { searchParams?: any }) {
-  const params = await searchParams;
-  const initialTab = typeof params?.tab === 'string' ? params.tab : undefined;
+export default async function Contact() {
   if (await isMaintenanceEnabled()) return <MaintenancePage />;
   return (
     <ClientLayout>
-      <ContactsPage initialTab={initialTab} />
+      <ContactsPage initialTab="getintouch" />
     </ClientLayout>
   );
 }
