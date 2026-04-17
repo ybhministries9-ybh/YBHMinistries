@@ -23,6 +23,12 @@ export default {
     trustee: "Become a Trustee?"
   },
 
+  worship24: {
+    bookingSuccessMessage:
+      "Thank you for booking your slot. We will review your request and get back to you shortly.",
+    bookAnother: "Book Another"
+  },
+
   contactForm: {
     title: "Get In Touch",
     subtitle: "Send us a message and we'll get back to you.",
@@ -93,11 +99,6 @@ export default {
     }
     ,
     worship24_description: 'Book a slot for the {{name}} event (2nd Saturday of each month).'
-  ,
-  // worship24 UI labels
-  worship24: {
-    bookAnother: 'Book Another'
-  },
   },
   
   guinnessAttempt: {

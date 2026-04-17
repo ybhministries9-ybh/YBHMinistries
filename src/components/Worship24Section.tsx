@@ -62,7 +62,9 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   const successRef = useRef<HTMLDivElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [status, setStatus] = useState<{ submitted: boolean; message?: string }>({ submitted: false });
+  const [status, setStatus] = useState<{ submitted: boolean; message?: string }>({
+    submitted: false,
+  });
 
   // use shared country-code list from lib
   const [form, setForm] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
@@ -76,7 +78,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   const [errors, setErrors] = useState<Record<string,string>>({});
 
   const timeslots = useMemo(() => generateTimeslots(), []);
- 
+
   const groupedSlots = useMemo(() => {
     return [
       { key: 'g1', label: '12 AM to 6 AM Slots', slots: timeslots.slice(0, 12) },
@@ -176,7 +178,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
       if (!res.ok) {
         setStatus({ submitted: false, message: data?.error || 'Failed' });
       } else {
-        setStatus({ submitted: true, message: 'Request received' });
+        setStatus({ submitted: true });
         if (formRef.current) formRef.current.reset();
         setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
       }
@@ -286,7 +288,12 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                   <path d="M14 24l6 6 14-14" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
               </div>
-              <p className="mb-4 text-xl font-semibold text-white">{status.message}</p>
+              <p className="mb-4 text-xl font-semibold text-white">
+                {t('worship24.bookingSuccessMessage', {
+                  defaultValue:
+                    'Thank you for booking your slot. We will review your request and get back to you shortly.',
+                })}
+              </p>
               <button
                 type="button"
                   onClick={() => {
@@ -426,7 +433,14 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                                     onChange={() => { if (!isTaken) { setForm(f => ({ ...f, timeslot: slot })); setTouched(t => ({ ...t, timeslot: true })); setErrors(validate({ ...form, timeslot: slot })); } }}
                                     className="form-radio accent-[#FDB813] mr-2"
                                   />
-                                  <span>{slot}</span>
+                                  <span className="flex items-center gap-2 w-full min-w-0">
+                                    <span className="flex-1 min-w-0 truncate">{slot}</span>
+                                    {isTaken ? (
+                                      <span className="shrink-0 rounded-full bg-gray-700/80 px-2 py-0.5 text-sm sm:text-base text-gray-200 leading-none whitespace-nowrap">
+                                        N/A
+                                      </span>
+                                    ) : null}
+                                  </span>
                                 </label>
                               );
                             })}
