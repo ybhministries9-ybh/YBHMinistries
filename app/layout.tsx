@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     description: 'Transforming lives through worship, faith, and ministry. Offering Bible college, music school, church services, and conferences.',
     images: [
       {
-        url: `${siteUrl}/logo/ybh.png`,
+        url: `${siteUrl}/opengraph-image`,
         width: 1200,
         height: 630,
         alt: 'Yeshua Beth Hallel Ministries',
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Yeshua Beth Hallel Ministries - Empowering Worship & Faith',
     description: 'Transforming lives through worship, faith, and ministry. Offering Bible college, music school, church services, and conferences.',
-    images: [`${siteUrl}/logo/ybh.png`],
+    images: [`${siteUrl}/opengraph-image`],
     creator: '@ybhministries', // Update with actual Twitter handle
   },
   robots: {

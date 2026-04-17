@@ -10,6 +10,11 @@ export const size = {
 export const contentType = 'image/png';
 
 export default async function Image() {
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://ybhministries.org');
+  const logoUrl = `${origin}/logo/ybh.png`;
+
   return new ImageResponse(
     (
       <div
@@ -17,23 +22,22 @@ export default async function Image() {
           height: '100%',
           width: '100%',
           display: 'flex',
-          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#0b1220',
+          padding: '80px',
         }}
       >
-        <div style={{ flex: '0 0 360px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={'/logo/ybh.png'} alt="YBH logo" style={{ width: 320, height: 'auto', borderRadius: 8 }} />
-        </div>
-        <div style={{ flex: '1', padding: '40px 60px', color: '#ffffff' }}>
-          <div style={{ fontSize: 56, fontWeight: 800, marginBottom: 14, lineHeight: 1.05 }}>
-            Yeshua Beth Hallel Ministries - Empowering Worship & Faith
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 400, opacity: 0.95, marginTop: 10, maxWidth: 760 }}>
-            Transforming lives through worship, faith, and ministry. Offering Bible college, music school, church services, and conferences.
-          </div>
-        </div>
+        <img
+          src={logoUrl}
+          alt="YBH Ministries logo"
+          style={{
+            width: 980,
+            height: 'auto',
+            maxHeight: 470,
+            objectFit: 'contain',
+          }}
+        />
       </div>
     ),
     {
