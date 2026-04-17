@@ -5,6 +5,7 @@ import ManageSlots from './ManageSlots';
 import { accentGold } from '../../utils/theme';
 import Link from 'next/link';
 import { downloadExcelFile } from '@/lib/exportUtils';
+import { useSearchParams } from 'next/navigation';
 
 const normalizeContactStatus = (status?: string | null) => {
   const s = String(status || '').trim();
@@ -38,6 +39,7 @@ function getAuthHeader() {
 }
 
 export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' | 'getintouch' | 'worship24' }) {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'hms' | 'getintouch' | 'worship24'>(forcedActiveTab || 'hms');
   const [worship24SubTab, setWorship24SubTab] = useState<'notifications' | 'slots'>('notifications');
   // Pagination for Get In Touch
@@ -55,6 +57,15 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const [hmsExporting, setHmsExporting] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
+
+  useEffect(() => {
+    if (forcedActiveTab) return;
+    const subtab = (searchParams?.get('subtab') || '').trim();
+    if (subtab === 'slots' || subtab === 'notifications') {
+      setActiveTab('worship24');
+      setWorship24SubTab(subtab as 'slots' | 'notifications');
+    }
+  }, [forcedActiveTab, searchParams]);
   
   // Export filters for Get In Touch
   const [exportMonth, setExportMonth] = useState<string>('');

@@ -2,7 +2,6 @@
 
 import { useRef, useState, memo, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import DateInput from './ui/date-input';
 import { COUNTRY_CODES } from '../lib/countryCodes';
 
 const LIMITS = { name: 100, email: 254, phone: 10, location: 200, message: 2000, facebook: 300 };
@@ -32,6 +31,19 @@ function isSecondSaturday(dateStr: string) {
   const firstSatDate = 1 + firstSatOffset;
   const secondSatDate = firstSatDate + 7;
   return d.getDate() === secondSatDate;
+}
+
+function formatDatePretty(raw?: string) {
+  if (!raw) return '';
+  try {
+    const [year, month, day] = raw.split('-').map(Number);
+    if (!year || !month || !day) return raw;
+    const d = new Date(year, month - 1, day);
+    if (Number.isNaN(d.getTime())) return raw;
+    return new Intl.DateTimeFormat('en-US', { month: 'long', day: '2-digit', year: 'numeric' }).format(d);
+  } catch {
+    return raw || '';
+  }
 }
 
 function monthYearIsBeforeCurrent(dateStr: string) {
@@ -177,6 +189,42 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
 
   const isValid = Object.keys(validate(form)).length === 0;
 
+  const monthOptions = useMemo(() => {
+    const formatMonthYear = (d: Date) => new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(d);
+    const toYmd = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const secondSaturdayOfMonth = (year: number, monthIndex: number) => {
+      const first = new Date(year, monthIndex, 1);
+      const firstSatOffset = (6 - first.getDay() + 7) % 7;
+      const firstSatDate = 1 + firstSatOffset;
+      const secondSatDate = firstSatDate + 7;
+      return new Date(year, monthIndex, secondSatDate);
+    };
+
+    const now = new Date();
+    const currentSecondSat = secondSaturdayOfMonth(now.getFullYear(), now.getMonth());
+    const startMonthIndex = now.getTime() >= currentSecondSat.getTime() ? now.getMonth() + 1 : now.getMonth();
+
+    const months: { label: string; bookingDate: string }[] = [];
+    for (let i = 0; i < 3; i++) {
+      const m = new Date(now.getFullYear(), startMonthIndex + i, 1);
+      const secondSat = secondSaturdayOfMonth(m.getFullYear(), m.getMonth());
+      months.push({ label: formatMonthYear(m), bookingDate: toYmd(secondSat) });
+    }
+    return months;
+  }, []);
+
+  useEffect(() => {
+    if (form.date || monthOptions.length === 0) return;
+    const nextDate = monthOptions[0].bookingDate;
+    setForm((s) => ({ ...s, date: nextDate }));
+    setErrors(validate({ ...form, date: nextDate }));
+  }, [form.date, monthOptions]);
+
   // Fetch booked slots for selected date so they can be disabled in the UI
   useEffect(() => {
     let aborted = false;
@@ -312,26 +360,35 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
 
 
               <div>
-                <label className="font-medium text-white">{t('contactForm.selectDateLabel', { defaultValue: 'Select Date (2nd Saturday)' })} <span className="text-yellow-400">*</span></label>
-                <DateInput value={form.date} onChange={(v) => { setForm((s) => ({ ...s, date: v })); setErrors(validate({ ...form, date: v })); }}
-                  yearStart={new Date().getFullYear()}
-                  yearEnd={new Date().getFullYear() + 1}
-                  isDateDisabled={(d: Date) => {
-                    const now = new Date();
-                    // disable previous months
-                    if (d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth())) return true;
-                    // disable past dates in current month (even if they are second Saturday)
-                    if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() < now.getDate()) return true;
-                    // must be Saturday
-                    if (d.getDay() !== 6) return true;
-                    // compute second saturday
-                    const first = new Date(d.getFullYear(), d.getMonth(), 1);
-                    const firstSatOffset = (6 - first.getDay() + 7) % 7;
-                    const firstSatDate = 1 + firstSatOffset;
-                    const secondSatDate = firstSatDate + 7;
-                    return d.getDate() !== secondSatDate;
-                  }}
-                />
+                <label className="font-medium text-white">
+                  {t('contactForm.selectDateLabel', { defaultValue: 'Select Month' })}{' '}
+                  <span className="text-yellow-400">*</span>
+                </label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {monthOptions.map((m) => {
+                    const selected = form.date === m.bookingDate;
+                    return (
+                      <button
+                        key={m.bookingDate}
+                        type="button"
+                        onClick={() => {
+                          setForm((s) => ({ ...s, date: m.bookingDate, timeslot: '' }));
+                          setTouched((tch) => ({ ...tch, date: true }));
+                          setErrors(validate({ ...form, date: m.bookingDate, timeslot: '' }));
+                        }}
+                        className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+                          selected ? 'bg-[#FDB813] text-black' : 'bg-[#333] text-white border border-gray-600 hover:bg-[#444]'
+                        }`}
+                        title={`2nd Saturday: ${m.bookingDate}`}
+                      >
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 text-sm text-gray-300">
+                  {form.date ? `2nd Saturday: ${formatDatePretty(form.date)}` : ''}
+                </div>
                 <p className="text-sm text-red-400">{touched.date && errors.date ? errors.date : ''}</p>
               </div>
 

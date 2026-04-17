@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
-import { getWorship24ByDate } from '@/lib/db';
+import { getActiveWorship24ByDate } from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return NextResponse.json({ success: false, error: 'Invalid date format' }, { status: 400 });
 
     try {
-      const rows = await getWorship24ByDate(date);
+      const rows = await getActiveWorship24ByDate(date);
       return NextResponse.json({ success: true, data: rows });
     } catch (e) {
       return NextResponse.json({ success: false, error: 'DB error' }, { status: 500 });

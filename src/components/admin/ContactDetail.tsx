@@ -35,6 +35,15 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
 
   const searchParams = useSearchParams();
   const forcedType = forcedTypeProp || searchParams?.get('type');
+  const returnTo = searchParams?.get('return');
+
+  const goBackOr = (fallbackPath: string) => {
+    if (typeof window !== 'undefined' && window.history && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push(fallbackPath);
+  };
 
   const formatDatePretty = (raw?: string | null) => {
     if (!raw) return '-';
@@ -281,7 +290,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
     return (
       <div className="w-full text-white px-0">
         <div className="max-w-6xl mx-auto mb-4 px-2">
-              <button onClick={() => router.push('/admin/contacts/getintouch')} className="inline-flex items-center px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg shadow-sm cursor-pointer">
+              <button onClick={() => goBackOr('/admin/contacts/getintouch')} className="inline-flex items-center px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg shadow-sm cursor-pointer">
                 Back to list
               </button>
             </div>
@@ -365,7 +374,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         {/* Delete Button */}
         <div className="max-w-6xl mx-auto mt-8 flex justify-center gap-4 px-2">
           <button
-            onClick={() => router.push('/admin/contacts/getintouch')}
+            onClick={() => goBackOr('/admin/contacts/getintouch')}
             className="px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded border border-[#FDB813] text-center transition-colors cursor-pointer"
           >
             Close
@@ -489,7 +498,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                         return;
                       }
                       toast.success('Submission deleted successfully');
-                      router.push('/admin/contacts/getintouch');
+                      goBackOr('/admin/contacts/getintouch');
                     } catch (err) {
                       if (process.env.NODE_ENV !== 'production') console.error('delete error', err);
                       toast.error('Failed to delete submission');
@@ -514,7 +523,10 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
     return (
       <div className="w-full text-white px-0">
         <div className="max-w-6xl mx-auto mb-4 px-2">
-          <button onClick={() => router.push('/admin/contacts/worship24')} className="inline-flex items-center px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg shadow-sm cursor-pointer">
+          <button
+            onClick={() => router.push(returnTo ? decodeURIComponent(returnTo) : '/admin/contacts/worship24')}
+            className="inline-flex items-center px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg shadow-sm cursor-pointer"
+          >
             Back to list
           </button>
         </div>
@@ -606,7 +618,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         {/* Delete Button */}
         <div className="max-w-6xl mx-auto mt-8 flex justify-center gap-4 px-2">
           <button
-            onClick={() => router.push('/admin/contacts/worship24')}
+            onClick={() => router.push(returnTo ? decodeURIComponent(returnTo) : '/admin/contacts/worship24')}
             className="px-8 py-3 bg-[#FDB813] hover:bg-[#DAA520] text-black rounded border border-[#FDB813] text-center transition-colors cursor-pointer"
           >
             Close

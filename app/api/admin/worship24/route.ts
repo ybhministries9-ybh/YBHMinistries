@@ -34,8 +34,8 @@ function buildStatusEmailBody(status: 'Accepted' | 'Rejected', bookingDate: stri
     plainBodyLines.push(`Thank you for booking a slot for 24 Hours Worship. Your booking for ${bookingDate}${slotText} has been accepted.`);
     htmlBodyLines.push(`<p style="${bodyParagraphStyle}">Thank you for booking a slot for 24 Hours Worship. Your booking for ${escapeHtml(bookingDate)}${escapeHtml(slotText)} has been accepted.</p>`);
   } else {
-    plainBodyLines.push(`We're sorry that your 24 Hours Worship booking for ${bookingDate}${slotText} could not be approved.`);
-    htmlBodyLines.push(`<p style="${bodyParagraphStyle}">We're sorry that your 24 Hours Worship booking for ${escapeHtml(bookingDate)}${escapeHtml(slotText)} could not be approved.</p>`);
+    plainBodyLines.push(`We're sorry that your 24 Hours Worship booking for ${bookingDate}${slotText} could not be approved. The slot has now been released and is available for others.`);
+    htmlBodyLines.push(`<p style="${bodyParagraphStyle}">We're sorry that your 24 Hours Worship booking for ${escapeHtml(bookingDate)}${escapeHtml(slotText)} could not be approved. The slot has now been released and is available for others.</p>`);
     if (staffMessage) {
       plainBodyLines.push(`Message from 24 Hours Worship staff: ${staffMessage}.`);
       htmlBodyLines.push(`<p style="${bodyParagraphStyle}"><strong>Message from 24 Hours Worship staff:</strong> ${escapeHtml(staffMessage)}.</p>`);

@@ -42,7 +42,7 @@ export default {
     sendMessage: "Send Message",
     resetButton: "Reset Form",
     sendAnother: "Send another message",
-    selectDateLabel: "Select Date (2nd Saturday)",
+    selectDateLabel: "Select Month",
     hearAboutUs: 'How did you hear about us?',
     selectOption: 'Select an option',
     hearOptions: {

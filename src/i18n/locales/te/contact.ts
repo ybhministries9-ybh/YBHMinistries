@@ -31,7 +31,7 @@ export default {
     sendMessage: "సందేశం పంపండి",
     resetButton: "ఫారమ్‌ను రీసెట్ చేయండి",
     sendAnother: "మరొక సందేశాన్ని పంపండి",
-    selectDateLabel: 'తేదీని ఎంచుకోండి (మాసంలో 2వ శనివారం)',
+    selectDateLabel: 'నెలను ఎంచుకోండి',
     timeslot: 'సమయముహూరు',
     timeslotPlaceholder: 'సమయాన్ని ఎంచుకోండి',
     facebookLink: 'Facebook లింక్',

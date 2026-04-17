@@ -1,16 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import DateInput from '@/components/ui/date-input';
+import { Copy } from 'lucide-react';
+import { toast } from 'sonner';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 type Worship24Row = {
   id: number;
   name: string;
-  email: string | null;
-  phone: string;
+  facebook_link: string | null;
   timeslot: string;
   status: string;
 };
+
+function getStatusPillClass(status?: string) {
+  const s = (status || 'Submitted').trim() || 'Submitted';
+  const base = 'inline-flex rounded-full px-3 py-1 text-xs font-semibold border';
+  if (s === 'Accepted') return `${base} bg-blue-600 text-white border-blue-600`;
+  if (s === 'Rejected') return `${base} bg-red-600 text-white border-red-600`;
+  if (s === 'Archived') return `${base} bg-gray-600 text-white border-gray-600`;
+  return `${base} bg-yellow-400 text-black border-yellow-400`;
+}
 
 function isSlotsResponse(value: unknown): value is { success: true; data: unknown[] } {
   if (!value || typeof value !== 'object') return false;
@@ -42,6 +52,38 @@ function groupSlots(timeslots: string[]) {
   ];
 }
 
+function formatMonthYear(d: Date) {
+  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(d);
+}
+
+function formatDatePretty(raw?: string) {
+  if (!raw) return '';
+  try {
+    const [year, month, day] = raw.split('-').map(Number);
+    if (!year || !month || !day) return raw;
+    const d = new Date(year, month - 1, day);
+    if (Number.isNaN(d.getTime())) return raw;
+    return new Intl.DateTimeFormat('en-US', { month: 'long', day: '2-digit', year: 'numeric' }).format(d);
+  } catch {
+    return raw || '';
+  }
+}
+
+function toYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function secondSaturdayOfMonth(year: number, monthIndex: number) {
+  const first = new Date(year, monthIndex, 1);
+  const firstSatOffset = (6 - first.getDay() + 7) % 7;
+  const firstSatDate = 1 + firstSatOffset;
+  const secondSatDate = firstSatDate + 7;
+  return new Date(year, monthIndex, secondSatDate);
+}
+
 function getAuthHeader() {
   try {
     const raw = localStorage.getItem('admin_token');
@@ -58,11 +100,37 @@ function getAuthHeader() {
 }
 
 export default function ManageSlots({ onClose }: { onClose?: () => void }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const timeslots = useMemo(() => generateTimeslots(), []);
   const groups = useMemo(() => groupSlots(timeslots), [timeslots]);
   const [date, setDate] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [bookings, setBookings] = useState<Record<string, Worship24Row> | null>(null);
+
+  const monthOptions = useMemo(() => {
+    const now = new Date();
+    const currentSecondSat = secondSaturdayOfMonth(now.getFullYear(), now.getMonth());
+    const startMonthIndex = now.getTime() >= currentSecondSat.getTime() ? now.getMonth() + 1 : now.getMonth();
+
+    const months: { label: string; bookingDate: string }[] = [];
+    for (let i = 0; i < 3; i++) {
+      const m = new Date(now.getFullYear(), startMonthIndex + i, 1);
+      const secondSat = secondSaturdayOfMonth(m.getFullYear(), m.getMonth());
+      months.push({
+        label: formatMonthYear(m),
+        bookingDate: toYmd(secondSat),
+      });
+    }
+    return months;
+  }, []);
+
+  useEffect(() => {
+    if (date || monthOptions.length === 0) return;
+    const initialDate = (searchParams?.get('date') || '').trim();
+    const match = initialDate ? monthOptions.find((m) => m.bookingDate === initialDate) : undefined;
+    setDate(match ? match.bookingDate : monthOptions[0].bookingDate);
+  }, [date, monthOptions, searchParams]);
 
   const fetchBookingsForDate = useCallback(async (selectedDate: string, signal?: AbortSignal) => {
     const resp = await fetch(`/api/admin/worship24/slots?date=${encodeURIComponent(selectedDate)}`, {
@@ -118,28 +186,6 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
     };
   }, [date, fetchBookingsForDate]);
 
-  const releaseBooking = async (id: number) => {
-    if (!confirm('Mark this booking as Archived (release slot)?')) return;
-    try {
-      const resp = await fetch('/api/admin/worship24', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(getAuthHeader() as any) },
-        body: JSON.stringify({ id, updates: { status: 'Archived' } }),
-      });
-
-      if (!resp.ok) {
-        const j = await resp.json().catch(() => null);
-        alert('Failed to update booking: ' + (j?.error || resp.statusText));
-        return;
-      }
-
-      const map = await fetchBookingsForDate(date);
-      if (map !== null) setBookings(map);
-    } catch {
-      alert('Server error');
-    }
-  };
-
   return (
     <div className="rounded-lg border border-gray-700 bg-[#1f1f1f] p-4">
       <div className="mb-4 flex items-center gap-2">
@@ -154,28 +200,27 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
       </div>
 
       <div className="mb-4">
-        <label className="text-sm text-gray-300">Select date</label>
-        <div className="mt-2">
-          <DateInput
-            value={date}
-            onChange={(v: string) => setDate(v)}
-            yearStart={new Date().getFullYear()}
-            yearEnd={new Date().getFullYear() + 1}
-            isDateDisabled={(d: Date) => {
-              const now = new Date();
-              if (d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth())) {
-                return true;
-              }
-              if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() < now.getDate()) return true;
-              if (d.getDay() !== 6) return true;
-
-              const first = new Date(d.getFullYear(), d.getMonth(), 1);
-              const firstSatOffset = (6 - first.getDay() + 7) % 7;
-              const firstSatDate = 1 + firstSatOffset;
-              const secondSatDate = firstSatDate + 7;
-              return d.getDate() !== secondSatDate;
-            }}
-          />
+        <label className="text-sm text-gray-300">Select month</label>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {monthOptions.map((m) => {
+            const selected = date === m.bookingDate;
+            return (
+              <button
+                key={m.bookingDate}
+                type="button"
+                onClick={() => setDate(m.bookingDate)}
+                className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+                  selected ? 'bg-[#FDB813] text-black' : 'bg-[#333] text-white border border-gray-600 hover:bg-[#444]'
+                }`}
+                title={`2nd Saturday: ${m.bookingDate}`}
+              >
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-2 text-sm text-gray-300">
+          {date ? `2nd Saturday: ${formatDatePretty(date)}` : ''}
         </div>
       </div>
 
@@ -191,21 +236,69 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
                   const rec = bookings ? (bookings[slot] || null) : null;
                   if (rec) {
                     return (
-                      <div key={slot} className="flex items-start justify-between rounded-md bg-[#FDB813] p-3 text-black">
-                        <div>
+                      <div
+                        key={slot}
+                        className="flex flex-col gap-3 rounded-md bg-[#FDB813] p-3 text-black sm:flex-row sm:items-start sm:justify-between"
+                      >
+                        <div className="min-w-0">
                           <div className="font-semibold">{slot}</div>
-                          <div className="text-xs">
-                            {rec.name} · {rec.phone}
-                          </div>
-                          <div className="text-xs">{rec.email || ''}</div>
+                          <div className="text-xs">{rec.name}</div>
+                          {rec.facebook_link ? (
+                            <div className="flex min-w-0 items-center gap-2">
+                              <a
+                                href={rec.facebook_link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="min-w-0 truncate text-xs underline underline-offset-2 opacity-90 hover:opacity-100"
+                                title={rec.facebook_link}
+                              >
+                                {rec.facebook_link}
+                              </a>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const url = rec.facebook_link || '';
+                                  try {
+                                    await navigator.clipboard.writeText(url);
+                                    toast('Copied to clipboard');
+                                  } catch {
+                                    try {
+                                      const ta = document.createElement('textarea');
+                                      ta.value = url;
+                                      ta.setAttribute('readonly', 'true');
+                                      ta.style.position = 'fixed';
+                                      ta.style.left = '-9999px';
+                                      document.body.appendChild(ta);
+                                      ta.select();
+                                      const ok = document.execCommand('copy');
+                                      document.body.removeChild(ta);
+                                      if (ok) toast('Copied to clipboard');
+                                      else toast('Copy failed');
+                                    } catch {}
+                                  }
+                                }}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded bg-black/20 text-black hover:bg-black/30"
+                                title="Copy Facebook URL"
+                                aria-label="Copy Facebook URL"
+                              >
+                                <Copy size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-xs opacity-75">No Facebook link</div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <div className="text-xs">{rec.status}</div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-col sm:items-end">
+                          <div className={getStatusPillClass(rec.status)}>{rec.status}</div>
                           <button
-                            onClick={() => releaseBooking(rec.id)}
-                            className="mt-2 rounded bg-black px-2 py-1 text-white"
+                            type="button"
+                            onClick={() => {
+                              const returnTo = `/admin/contacts/worship24?subtab=slots&date=${encodeURIComponent(date)}`;
+                              router.push(`/admin/contacts/worship24/${rec.id}?return=${encodeURIComponent(returnTo)}`);
+                            }}
+                            className="rounded bg-black px-2 py-1 text-white"
                           >
-                            Release
+                            Details
                           </button>
                         </div>
                       </div>

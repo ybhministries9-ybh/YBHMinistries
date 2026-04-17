@@ -701,6 +701,22 @@ export async function getWorship24ByDate(booking_date: string) {
   }
 }
 
+export async function getActiveWorship24ByDate(booking_date: string) {
+  try {
+    const { rows } = await sql`
+      SELECT id, name, email, phone, message, location, booking_date, timeslot, facebook_link, user_agent, status, created_at, updated_at
+      FROM worship24
+      WHERE booking_date = ${booking_date}
+        AND status IN ('Submitted', 'Accepted')
+      ORDER BY timeslot ASC
+    `;
+    return rows;
+  } catch (error) {
+    logger.error('Error fetching active worship24 by date:', error);
+    throw error;
+  }
+}
+
 export async function deleteWorship24(id: number): Promise<boolean> {
   try {
     const { rowCount } = await sql`DELETE FROM worship24 WHERE id = ${id}`;
