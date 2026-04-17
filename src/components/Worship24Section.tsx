@@ -90,6 +90,18 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
 
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const bookedSlotsSet = useMemo(() => new Set(bookedSlots), [bookedSlots]);
+  const availableSlotCountsByGroup = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const group of groupedSlots) {
+      let availableCount = 0;
+      for (const slot of group.slots) {
+        if (!bookedSlotsSet.has(slot)) availableCount++;
+      }
+      map.set(group.key, availableCount);
+    }
+    return map;
+  }, [groupedSlots, bookedSlotsSet]);
   const validate = (data: typeof form) => {
     const errs: Record<string,string> = {};
     if (!data.name || data.name.trim().length < 2) errs.name = t('contactForm.validation.nameRequired');
@@ -410,7 +422,12 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                         onClick={() => setOpenGroup(openGroup === group.key ? null : group.key)}
                         className="w-full flex items-center justify-between px-3 py-2 text-left text-white font-medium"
                       >
-                        <span>{group.label}</span>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="truncate">{group.label}</span>
+                          <span className="shrink-0 text-xs text-gray-300">
+                            ({availableSlotCountsByGroup.get(group.key) ?? 0} available)
+                          </span>
+                        </span>
                         <svg className={`w-5 h-5 transform transition-transform ${openGroup === group.key ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
                           <path d="M5 8l5 5 5-5" stroke="#FDB813" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -420,7 +437,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             {group.slots.map((slot) => {
                               const isSelected = form.timeslot === slot;
-                              const isTaken = bookedSlots.includes(slot);
+                              const isTaken = bookedSlotsSet.has(slot);
                               const labelClass = `flex items-center px-3 py-2 rounded-md cursor-pointer border transition-colors ${isTaken ? 'bg-gray-800 text-gray-400 border-gray-600 opacity-60 cursor-not-allowed' : (isSelected ? 'bg-[#FDB813] text-black border-[#FDB813]' : 'bg-black border-gray-700 hover:border-[#FDB813] text-white')}`;
                               return (
                                 <label key={slot} className={labelClass} aria-disabled={isTaken}>
