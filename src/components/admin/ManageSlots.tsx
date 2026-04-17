@@ -203,15 +203,18 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
     <div className="rounded-lg border border-gray-700 bg-[#1f1f1f] p-4">
       <div className="mb-4 flex items-center gap-2">
         <h3 className="text-lg font-semibold text-white">View 24Hrs Worship Slots</h3>
-        {onClose && (
+        {onClose ? (
           <div className="ml-auto flex items-center gap-2">
-            <button onClick={onClose} className="rounded border border-gray-600 bg-[#333] px-3 py-2 text-white">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded border border-gray-600 bg-[#333] px-3 py-2 text-white cursor-pointer"
+            >
               Back
             </button>
           </div>
-        )}
+        ) : null}
       </div>
-
       <div className="mb-4">
         <label className="text-sm text-gray-300">Select month</label>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -224,7 +227,7 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
                 onClick={() => setDate(m.bookingDate)}
                 className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
                   selected ? 'bg-[#FDB813] text-black' : 'bg-[#333] text-white border border-gray-600 hover:bg-[#444]'
-                }`}
+                } cursor-pointer`}
                 title={`2nd Saturday: ${m.bookingDate}`}
               >
                 {m.label}
@@ -293,7 +296,7 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
                                     } catch {}
                                   }
                                 }}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded bg-black/20 text-black hover:bg-black/30"
+                                className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded bg-black/20 text-black hover:bg-black/30"
                                 title="Copy Facebook URL"
                                 aria-label="Copy Facebook URL"
                               >
@@ -312,7 +315,7 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
                               const returnTo = `/admin/contacts/worship24?subtab=slots&date=${encodeURIComponent(date)}`;
                               router.push(`/admin/contacts/worship24/${rec.id}?return=${encodeURIComponent(returnTo)}`);
                             }}
-                            className="rounded bg-black px-2 py-1 text-white"
+                            className="rounded bg-black px-2 py-1 text-white cursor-pointer"
                           >
                             Details
                           </button>

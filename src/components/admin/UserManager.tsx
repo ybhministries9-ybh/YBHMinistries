@@ -642,7 +642,7 @@ export function UserManager() {
                   ? (isSelf ? 'Cannot deactivate yourself' : (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin' ? 'Cannot deactivate Super Admin' : 'Insufficient privileges'))
                   : (user.status === 'Active' ? 'Deactivate' : 'Activate');
                 return (
-                  <button onClick={() => { if (disableDeactivate) return; toggleActive(user); }} disabled={disableDeactivate} className={`p-2 rounded ${user.status === 'Active' ? 'bg-[#FDB813] text-black' : 'bg-gray-800 text-gray-300'} ${disableDeactivate ? 'opacity-50 cursor-not-allowed' : ''}`} title={deactivateTitle}>
+                  <button onClick={() => { if (disableDeactivate) return; toggleActive(user); }} disabled={disableDeactivate} className={`p-2 rounded ${user.status === 'Active' ? 'bg-[#FDB813] text-black' : 'bg-gray-800 text-gray-300'} ${disableDeactivate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} title={deactivateTitle}>
                     <Power size={16} />
                   </button>
                 );
@@ -669,7 +669,7 @@ export function UserManager() {
                       // also show toast for quick feedback
                       toast.success('User marked to require password reset on next login');
                     } catch (err) { console.error(err); toast.error('Failed to reset password'); }
-                  }} disabled={disableReset} title="Require password reset on next login" className={`p-2 bg-[#FDB813] text-black rounded ${disableReset ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  }} disabled={disableReset} title="Require password reset on next login" className={`p-2 bg-[#FDB813] text-black rounded ${disableReset ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                     <RotateCw size={16} />
                   </button>
                 );
@@ -681,7 +681,7 @@ export function UserManager() {
                 const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
                 const disableEdit = disableAllForOtherRoles || (user.role === 'Super Admin' && currentUser?.role !== 'Super Admin');
                 return (
-                  <button onClick={() => { if (disableEdit) return; handleEdit(user); }} disabled={disableEdit} className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableEdit ? 'opacity-50 cursor-not-allowed' : ''}`} title="Edit">
+                  <button onClick={() => { if (disableEdit) return; handleEdit(user); }} disabled={disableEdit} className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} title="Edit">
                     <Edit2 size={16} />
                   </button>
                 );
@@ -693,7 +693,7 @@ export function UserManager() {
                 const disableAllForOtherRoles = !!(actorIsLimited && !isSelf);
                 const disableDelete = disableAllForOtherRoles || (user.role === 'Super Admin') || isSelf;
                 return (
-                  <button onClick={() => { if (disableDelete) return; handleDelete(user); }} disabled={disableDelete} className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableDelete ? 'opacity-50 cursor-not-allowed' : ''}`} title={disableDelete ? (isSelf ? 'Cannot delete yourself' : (user.role === 'Super Admin' ? 'Cannot delete Super Admin' : 'Insufficient privileges')) : 'Delete'}>
+                  <button onClick={() => { if (disableDelete) return; handleDelete(user); }} disabled={disableDelete} className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableDelete ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} title={disableDelete ? (isSelf ? 'Cannot delete yourself' : (user.role === 'Super Admin' ? 'Cannot delete Super Admin' : 'Insufficient privileges')) : 'Delete'}>
                     <Trash2 size={16} />
                   </button>
                 );
@@ -879,7 +879,7 @@ export function UserManager() {
                           return (
                             <button
                               onClick={() => { if (disableDeactivate) return; toggleActive(user); }}
-                              className={`px-3 py-2 rounded transition-colors text-sm font-medium ${user.status === 'Active' ? 'bg-[#FDB813] text-black hover:bg-[#e5a711]' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'} ${disableDeactivate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className={`px-3 py-2 rounded transition-colors text-sm font-medium ${user.status === 'Active' ? 'bg-[#FDB813] text-black hover:bg-[#e5a711]' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'} ${disableDeactivate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                               title={deactivateTitle}
                               disabled={disableDeactivate}
                             >
@@ -913,7 +913,7 @@ export function UserManager() {
                                   toast.error('Failed to reset password');
                                 }
                               }}
-                              className={`px-3 py-2 bg-[#FDB813] text-black rounded hover:bg-[#e5a711] transition-colors text-sm font-medium ${disableReset ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className={`px-3 py-2 bg-[#FDB813] text-black rounded hover:bg-[#e5a711] transition-colors text-sm font-medium ${disableReset ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                               title="Require password reset on next login"
                               disabled={disableReset}
                             >
@@ -930,7 +930,7 @@ export function UserManager() {
                           return (
                             <button
                               onClick={() => { if (disableEdit) return; handleEdit(user); }}
-                              className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                               aria-label="Edit"
                               title={disableEdit ? 'Insufficient privileges' : 'Edit User'}
                               disabled={disableEdit}
@@ -948,7 +948,7 @@ export function UserManager() {
                           return (
                             <button
                               onClick={() => { if (disableDelete) return; handleDelete(user); }}
-                              className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableDelete ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className={`h-9 w-9 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#111] hover:bg-[#0d0d0d] text-white transition-colors ${disableDelete ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                               aria-label="Delete"
                               title={disableDelete ? (isSelf ? 'Cannot delete yourself' : (user.role === 'Super Admin' ? 'Cannot delete Super Admin' : 'Insufficient privileges')) : 'Delete User'}
                               disabled={disableDelete}

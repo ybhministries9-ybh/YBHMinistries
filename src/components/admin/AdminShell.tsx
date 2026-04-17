@@ -52,12 +52,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-2 mt-2 md:mt-0">
-              <button onClick={handleBackToSite} className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg transition-colors">
+              <button onClick={handleBackToSite} className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg transition-colors cursor-pointer">
                 <Home size={20} />
                 <span className="hidden sm:inline">Main Site</span>
                 <ExternalLink size={14} className="ml-1 opacity-90" />
               </button>
-              <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg transition-colors">
+              <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-[#FDB813] hover:bg-[#e5a711] text-black rounded-lg transition-colors cursor-pointer">
                 <LogOut size={20} />
                 <span className="hidden sm:inline">Logout</span>
               </button>
