@@ -11,6 +11,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStr
 import { CSS } from '@dnd-kit/utilities';
 import { accentGold } from '../../utils/theme';
 import { ConfirmDialog } from './ConfirmDialog';
+import usePresignUpload from '@/hooks/usePresignUpload';
 
 interface HeroImage {
   id: number;
@@ -132,6 +133,13 @@ export function HomeContentManager() {
   const [uploaderCategory, setUploaderCategory] = useState<'desktop' | 'mobile'>('desktop');
   const [homeVideo, setHomeVideo] = useState<HomeVideo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [flashNewsEnabled, setFlashNewsEnabled] = useState(false);
+  const [flashNewsVideoUrl, setFlashNewsVideoUrl] = useState('');
+  const [isSavingFlashNews, setIsSavingFlashNews] = useState(false);
+  const [flashNewsFile, setFlashNewsFile] = useState<File | null>(null);
+  const [isFlashNewsDragActive, setIsFlashNewsDragActive] = useState(false);
+  const { upload: presignUpload, progress: flashNewsUploadProgress, error: flashNewsUploadError, setProgress: setFlashNewsUploadProgress } = usePresignUpload();
   
   // Hero Image Upload State (modal uploader used)
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -204,10 +212,138 @@ export function HomeContentManager() {
     }
   };
 
+  const fetchFlashNewsSetting = async () => {
+    try {
+      const response = await fetch('/api/admin/flash-news', { headers: getAuthHeaders() });
+      const result = await response.json();
+      setFlashNewsEnabled(Boolean(result?.enabled));
+      setFlashNewsVideoUrl(typeof result?.videoUrl === 'string' ? result.videoUrl : '');
+    } catch (error) {
+      console.error('Error fetching flash news:', error);
+      toast.error('Error fetching Flash News setting');
+    }
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / Math.pow(1024, i);
+    const fixed = i === 0 ? 0 : i === 1 ? 0 : 1;
+    return `${value.toFixed(fixed)} ${units[i]}`;
+  };
+
+  const validateFlashNewsFile = (file: File) => {
+    const maxBytes = 300 * 1024 * 1024;
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const okExt = ext === 'mp4' || ext === 'mov';
+    const okType = file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === '';
+
+    if (!okExt && !okType) {
+      toast.error('Only MP4 or MOV videos are allowed');
+      return false;
+    }
+    if (file.size > maxBytes) {
+      toast.error('Max file size is 300MB');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSelectFlashNewsFile = (file: File | null) => {
+    if (!file) return;
+    if (!validateFlashNewsFile(file)) return;
+    setFlashNewsFile(file);
+  };
+
+  const parseR2Ref = (ref: string): { bucket: string; key: string } | null => {
+    if (!ref || typeof ref !== 'string') return null;
+    if (!ref.startsWith('r2://')) return null;
+    const rest = ref.slice('r2://'.length);
+    const parts = rest.split('/').filter(Boolean);
+    if (parts.length < 2) return null;
+    return { bucket: parts[0], key: parts.slice(1).join('/') };
+  };
+
+  const handleToggleFlashNews = async (nextEnabled: boolean) => {
+    setFlashNewsEnabled(nextEnabled);
+    setIsSavingFlashNews(true);
+    try {
+      const response = await fetch('/api/admin/flash-news', {
+        method: 'POST',
+        headers: getAuthHeaders('application/json'),
+        body: JSON.stringify({ enabled: nextEnabled, videoUrl: flashNewsVideoUrl }),
+      });
+      const result = await response.json();
+      if (!response.ok || result?.error) {
+        throw new Error(result?.error || 'Failed to update');
+      }
+      toast.success(`Flash News ${nextEnabled ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('Error updating flash news:', error);
+      toast.error('Failed to update Flash News setting');
+      // revert
+      setFlashNewsEnabled(!nextEnabled);
+    } finally {
+      setIsSavingFlashNews(false);
+    }
+  };
+
+  const uploadFlashNewsVideo = async () => {
+    if (!flashNewsFile) {
+      toast.error('Please select a video file');
+      return;
+    }
+
+    try {
+      const safeName = flashNewsFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const key = `home/video/flash-news/${Date.now()}-${safeName}`;
+      const res = await presignUpload(flashNewsFile, key, { category: 'home-video', title: 'Flash News', skipConfirm: true });
+      if (!res.ok) throw new Error(res.error || 'Upload failed');
+
+      const r2Ref = res.data?.presign?.r2Ref as string | null;
+      if (!r2Ref) throw new Error('Upload succeeded but R2 reference is missing');
+
+      const saveRes = await fetch('/api/admin/flash-news', {
+        method: 'POST',
+        headers: getAuthHeaders('application/json'),
+        body: JSON.stringify({ enabled: flashNewsEnabled, videoUrl: r2Ref }),
+      });
+      const saveJson = await saveRes.json();
+      if (!saveRes.ok || saveJson?.error) throw new Error(saveJson?.error || 'Failed to save setting');
+
+      // Best-effort delete the previous file after saving the new reference
+      const prevRef = flashNewsVideoUrl;
+      const prevParsed = prevRef ? parseR2Ref(prevRef) : null;
+      const nextParsed = parseR2Ref(r2Ref);
+      if (prevParsed?.key && nextParsed?.key && prevParsed.key !== nextParsed.key) {
+        try {
+          await fetch('/api/r2/delete', {
+            method: 'POST',
+            headers: getAuthHeaders('application/json'),
+            body: JSON.stringify({ key: prevParsed.key, bucket: prevParsed.bucket }),
+          });
+        } catch (e) {
+          // ignore delete errors
+        }
+      }
+
+      setFlashNewsVideoUrl(r2Ref);
+      setFlashNewsFile(null);
+      setFlashNewsUploadProgress(null);
+      toast.success('Flash News video uploaded');
+    } catch (error) {
+      console.error('Error uploading flash news video:', error);
+      toast.error('Failed to upload Flash News video');
+    } finally {
+      // handled by hook
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([fetchHeroImages(), fetchHomeVideo()]);
+      await Promise.all([fetchHeroImages(), fetchHomeVideo(), fetchFlashNewsSetting()]);
       setIsLoading(false);
     };
     loadData();
@@ -633,6 +769,123 @@ export function HomeContentManager() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white">Home Management</h1>
         <p className="text-gray-400 text-sm mt-1">Manage hero images and video for the home page</p>
+      </div>
+
+      {/* Flash News Section */}
+      <div className="bg-[#2E2E2E] rounded-lg p-6 border border-[#3a3a3a]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-white">Flash News</h2>
+            <p className="text-gray-400 text-sm mt-1">Enable or disable the Flash News overlay on the home page</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div
+              className={`inline-flex rounded-full bg-black/50 border border-gray-700 p-0.5 ${isSavingFlashNews ? 'opacity-70' : ''}`}
+              aria-label="Flash News toggle"
+            >
+              <button
+                type="button"
+                onClick={() => handleToggleFlashNews(true)}
+                disabled={isSavingFlashNews || flashNewsEnabled}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  flashNewsEnabled ? 'text-black' : 'text-white hover:bg-white/10'
+                } ${isSavingFlashNews || flashNewsEnabled ? 'cursor-default' : 'cursor-pointer'}`}
+                style={flashNewsEnabled ? { backgroundColor: accentGold } : undefined}
+              >
+                ON
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleFlashNews(false)}
+                disabled={isSavingFlashNews || !flashNewsEnabled}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  !flashNewsEnabled ? 'text-black' : 'text-white hover:bg-white/10'
+                } ${isSavingFlashNews || !flashNewsEnabled ? 'cursor-default' : 'cursor-pointer'}`}
+                style={!flashNewsEnabled ? { backgroundColor: accentGold } : undefined}
+              >
+                OFF
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 border-t border-gray-700 pt-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Flash News Video</h3>
+              <p className="text-gray-400 text-sm mt-1">Upload a video (MP4/MOV, max 300MB)</p>
+              {flashNewsVideoUrl ? (
+                <p className="text-xs text-gray-500 mt-2">
+                  Current: <code className="text-[#FDB813] break-all">{flashNewsVideoUrl}</code>
+                </p>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              onClick={uploadFlashNewsVideo}
+              disabled={flashNewsUploadProgress !== null || !flashNewsFile}
+              className="px-4 py-2 text-black rounded transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center gap-2"
+              style={{ backgroundColor: accentGold }}
+            >
+              {flashNewsUploadProgress !== null ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Uploading{typeof flashNewsUploadProgress === 'number' ? ` (${flashNewsUploadProgress}%)` : ''}...
+                </>
+              ) : (
+                'Upload'
+              )}
+            </button>
+          </div>
+          {flashNewsUploadError ? <div className="mt-2 text-sm text-red-400">Upload error: {flashNewsUploadError}</div> : null}
+
+          <div
+            className={`mt-4 rounded-lg border border-dashed p-4 transition-colors cursor-pointer ${
+              isFlashNewsDragActive ? 'border-[#FDB813] bg-black/30' : 'border-gray-600 hover:border-gray-500'
+            }`}
+            onClick={() => document.getElementById('flashNewsVideoFile')?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsFlashNewsDragActive(true);
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              setIsFlashNewsDragActive(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setIsFlashNewsDragActive(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsFlashNewsDragActive(false);
+              const f = e.dataTransfer?.files?.[0];
+              if (f) handleSelectFlashNewsFile(f);
+            }}
+          >
+            <input
+              id="flashNewsVideoFile"
+              type="file"
+              accept=".mp4,.mov,video/mp4,video/quicktime"
+              onChange={(e) => handleSelectFlashNewsFile(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-medium text-white">Drag & drop a video here, or click to choose</div>
+                <div className="text-xs text-gray-400 mt-1">Allowed: MP4, MOV • Max: 300MB</div>
+              </div>
+              {flashNewsFile ? (
+                <div className="text-right">
+                  <div className="text-sm text-white font-medium">{flashNewsFile.name}</div>
+                  <div className="text-xs text-gray-400">{formatBytes(flashNewsFile.size)}</div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Hero Images Section */}

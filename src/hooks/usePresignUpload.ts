@@ -13,7 +13,11 @@ export function usePresignUpload(opts?: { prefix?: string }) {
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const upload = useCallback(async (file: File, key?: string, extra?: { category?: string; title?: string }) : Promise<UploadResult> => {
+  const upload = useCallback(async (
+    file: File,
+    key?: string,
+    extra?: { category?: string; title?: string; skipConfirm?: boolean }
+  ): Promise<UploadResult> => {
     setError(null);
     setProgress(0);
 
@@ -30,7 +34,11 @@ export function usePresignUpload(opts?: { prefix?: string }) {
         const err = await presignResp.text();
         throw new Error('Presign failed: ' + err);
       }
-      const { url } = await presignResp.json();
+      const presigned = await presignResp.json();
+      const url = presigned?.url as string | undefined;
+      const bucket = presigned?.bucket as string | undefined;
+      const returnedKey = presigned?.key as string | undefined;
+      if (!url) throw new Error('Presign failed: missing url');
 
       // 2) upload file with XHR to track progress
       await new Promise<void>((resolve, reject) => {
@@ -46,18 +54,48 @@ export function usePresignUpload(opts?: { prefix?: string }) {
           if (xhr.status >= 200 && xhr.status < 300) resolve();
           else reject(new Error('Upload failed: ' + xhr.statusText));
         };
-        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.onerror = () => {
+          const origin = typeof window !== 'undefined' ? window.location.origin : '';
+          reject(
+            new Error(
+              `Network error during upload (likely CORS). Allow PUT/GET/HEAD from ${origin} on the R2 bucket (CORS rules), then retry.`
+            )
+          );
+        };
         xhr.send(file);
       });
 
       setProgress(100);
 
+      const usedKey = returnedKey || finalKey;
+      const r2Ref = bucket ? `r2://${bucket}/${usedKey}` : null;
+
+      if (extra?.skipConfirm) {
+        return { ok: true, data: { presign: { bucket: bucket || null, key: usedKey, r2Ref } } };
+      }
+
       // 3) confirm to server (admin endpoint). Attach admin token from localStorage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') || '' : '';
+      let token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') || '' : '';
+      if (token) {
+        try {
+          const parsed = JSON.parse(token);
+          token = parsed?.token || token;
+        } catch (e) {
+          // keep raw
+        }
+      }
       const confirmResp = await fetch('/api/admin/media/confirm', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
-        body: JSON.stringify({ key: finalKey, fileName: file.name, contentType: file.type, size: file.size, mediaType: (file.type || '').startsWith('video/') ? 'video' : 'image', category: extra?.category, title: extra?.title })
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({
+          key: finalKey,
+          fileName: file.name,
+          contentType: file.type,
+          size: file.size,
+          mediaType: (file.type || '').startsWith('video/') ? 'video' : 'image',
+          category: extra?.category,
+          title: extra?.title,
+        }),
       });
 
       if (!confirmResp.ok) {
@@ -65,8 +103,8 @@ export function usePresignUpload(opts?: { prefix?: string }) {
         throw new Error('Confirm failed: ' + txt);
       }
 
-      const data = await confirmResp.json();
-      return { ok: true, data };
+      const confirmData = await confirmResp.json();
+      return { ok: true, data: { ...confirmData, presign: { bucket: bucket || null, key: usedKey, r2Ref } } };
     } catch (err: any) {
       logger.error('usePresignUpload error', err);
       setError(err?.message || String(err));

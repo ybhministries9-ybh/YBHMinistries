@@ -56,8 +56,9 @@ export async function getFlashNewsSetting(): Promise<FlashNewsSetting> {
         message: unknown;
         updated_at: unknown;
       };
-      const enabled = toBool(row.bool_value);
       const videoUrl = await resolveVideoUrl(typeof row.message === 'string' ? row.message : null);
+      // Only show the overlay when the flag is enabled AND a non-empty video path is configured.
+      const enabled = toBool(row.bool_value) && Boolean(videoUrl);
       return { enabled, videoUrl, updatedAt: row.updated_at != null ? String(row.updated_at) : null };
     }
   } catch (e) {
@@ -65,5 +66,6 @@ export async function getFlashNewsSetting(): Promise<FlashNewsSetting> {
   }
 
   const file = await readFromFile();
-  return { ...file, videoUrl: await resolveVideoUrl(file.videoUrl) };
+  const resolvedVideoUrl = await resolveVideoUrl(file.videoUrl);
+  return { ...file, enabled: Boolean(file.enabled) && Boolean(resolvedVideoUrl), videoUrl: resolvedVideoUrl };
 }
