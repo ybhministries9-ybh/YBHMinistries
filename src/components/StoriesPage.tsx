@@ -612,7 +612,11 @@ const SubmitTestimonyForm = memo(() => {
                   {...register("name", { 
                     required: t('form.nameRequired'),
                     minLength: { value: 2, message: t('form.nameMinLength') },
-                    maxLength: { value: 100, message: t('form.nameMaxLength') }
+                    maxLength: { value: 100, message: t('form.nameMaxLength') },
+                    pattern: {
+                      value: /^[^\d]*$/,
+                      message: t('form.nameNoNumbers', { defaultValue: 'Numbers are not allowed in the name' }),
+                    },
                   })}
                 />
                 {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message as string}</p>}

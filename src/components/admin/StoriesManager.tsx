@@ -1290,9 +1290,9 @@ export function StoriesManager() {
               className={story.id.startsWith('temp-') ? 'hidden' : ''}
             >
               {editingId === story.id && editModalOpen ? createPortal(
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 overflow-y-auto py-8 px-4" onClick={(e) => { if (e.target === e.currentTarget) handleCancel(story.id); }}>
-                <div className="bg-[#2e2e2e] rounded-lg border border-gray-700 w-full max-w-2xl mx-auto shadow-2xl my-4" style={{ backgroundColor: '#2e2e2e' }}>
-                  <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/70 overflow-y-auto py-8 px-4" onClick={(e) => { if (e.target === e.currentTarget) handleCancel(story.id); }}>
+                <div className="bg-[#2e2e2e] rounded-lg border border-gray-700 w-full max-w-5xl mx-auto shadow-2xl my-4 max-h-[calc(100vh-4rem)] flex flex-col" style={{ backgroundColor: '#2e2e2e' }}>
+                  <div className="flex items-center justify-between p-4 border-b border-gray-700 shrink-0">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                       {story.type === 'text' ? <FileText size={18} /> : <Video size={18} />}
                       {story.id.startsWith('temp-') ? (story.type === 'text' ? 'Add Text Story' : 'Add Video Story') : 'Edit Story'}
@@ -1301,7 +1301,7 @@ export function StoriesManager() {
                       <X size={20} />
                     </button>
                   </div>
-                  <div className="p-5" style={{ ['--input-background' as any]: 'black', ['--input' as any]: 'black', ['--background' as any]: 'black' }}>
+                  <div className="p-5 overflow-y-auto flex-1" style={{ ['--input-background' as any]: 'black', ['--input' as any]: 'black', ['--background' as any]: 'black' }}>
               <div className="space-y-4">
                 {/* Story Type Badge */}
                 <div className="flex items-center gap-2 mb-2">
@@ -1850,8 +1850,8 @@ export function StoriesManager() {
                 <div className={`flex-1 ${story.type === 'text' ? 'p-4' : 'p-5 flex items-start gap-4 mb-3'}`}>
                   {story.type === 'text' ? (
                     <div className="flex h-full flex-col">
-                      <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="flex items-center min-w-0">
+                      <div className="mb-4 relative flex items-start gap-3">
+                        <div className="flex items-center min-w-0 pr-16">
                           <div className="w-14 h-14 rounded-full overflow-hidden mr-3 flex-shrink-0 bg-[#3a3a3a] border border-gray-600 flex items-center justify-center">
                             {story.image ? (
                               <img
@@ -1875,7 +1875,7 @@ export function StoriesManager() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex gap-1 shrink-0">
+                        <div className="absolute top-0 right-0 flex flex-col gap-1 shrink-0">
                           <Button
                             size="sm"
                             onClick={() => toggleVisibility(story)}
