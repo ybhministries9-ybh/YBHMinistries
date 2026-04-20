@@ -3,7 +3,7 @@ import { del } from '@/lib/vercelBlob';
 import { uploadBuffer, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl, headObject } from '@/lib/r2';
 import { upsertHomeVideo, getActiveHomeVideo } from '@/lib/db';
 import { sql } from '@vercel/postgres';
-import { verifySession, getActorName, resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 
 /**
  * GET /api/admin/home/video
@@ -16,6 +16,11 @@ export async function GET(request: NextRequest) {
     // If stored values point to R2 (r2:// or public R2 URL), convert to presigned GET URLs for admin preview
     if (video) {
       try {
+        const rawVideoUrl = (video.video_url as string | null) || null;
+        const rawThumbUrl = (video.thumbnail_image_url as string | null) || null;
+        (video as any).video_url_raw = rawVideoUrl;
+        (video as any).thumbnail_image_url_raw = rawThumbUrl;
+
         // helper to convert a stored url/ref to presigned URL when possible
         const toPresigned = async (val?: string | null) => {
           if (!val) return null;
@@ -80,7 +85,7 @@ export async function POST(request: NextRequest) {
       // verify session and resolve actor
       const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
       if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-      const { session, actor: resolvedName } = resolved;
+      const { actor: resolvedName } = resolved;
       
       if (!file) {
         return NextResponse.json(
@@ -192,7 +197,7 @@ export async function POST(request: NextRequest) {
       // verify session and resolve actor
       const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
       if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-      const { session: _session2, actor } = resolved;
+      const { actor } = resolved;
 
       const { video_url, thumbnail_image_url } = body;
 
@@ -293,7 +298,7 @@ export async function DELETE(request: NextRequest) {
     // verify session for delete
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    const { session: _session, actor } = resolved;
+    const { actor } = resolved;
 
     // Fetch video URL before updating database
     const { rows } = await sql`

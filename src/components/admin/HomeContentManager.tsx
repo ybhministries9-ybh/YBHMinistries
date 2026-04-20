@@ -26,7 +26,9 @@ interface HeroImage {
 interface HomeVideo {
   id: number;
   video_url: string | null; // Nullable to allow video-only deletion
+  video_url_raw?: string | null; // Stored ref/path (e.g. r2://...) from DB for display
   thumbnail_image_url: string | null;
+  thumbnail_image_url_raw?: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -139,7 +141,8 @@ export function HomeContentManager() {
   const [isSavingFlashNews, setIsSavingFlashNews] = useState(false);
   const [flashNewsFile, setFlashNewsFile] = useState<File | null>(null);
   const [isFlashNewsDragActive, setIsFlashNewsDragActive] = useState(false);
-  const { upload: presignUpload, progress: flashNewsUploadProgress, error: flashNewsUploadError, setProgress: setFlashNewsUploadProgress } = usePresignUpload();
+  const { upload: presignFlashNewsUpload, progress: flashNewsUploadProgress, error: flashNewsUploadError, setProgress: setFlashNewsUploadProgress } = usePresignUpload();
+  const { upload: presignHomeVideoUpload, progress: homeVideoUploadProgress, error: homeVideoUploadError, setProgress: setHomeVideoUploadProgress } = usePresignUpload();
   
   // Hero Image Upload State (modal uploader used)
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -256,6 +259,29 @@ export function HomeContentManager() {
     setFlashNewsFile(file);
   };
 
+  const validateHomeVideoFile = (file: File) => {
+    const maxBytes = 300 * 1024 * 1024; // 300MB
+    const ext = (file.name || '').toLowerCase().split('.').pop() || '';
+    const okExt = ['mp4', 'mov', 'webm'].includes(ext);
+    const okType = ['video/mp4', 'video/quicktime', 'video/webm'].includes((file.type || '').toLowerCase());
+
+    if (!okExt && !okType) {
+      toast.error('Only MP4, MOV, or WebM videos are allowed');
+      return false;
+    }
+    if (file.size > maxBytes) {
+      toast.error('Max file size is 300MB');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSelectHomeVideoFile = (file: File | null) => {
+    if (!file) return;
+    if (!validateHomeVideoFile(file)) return;
+    setVideoFile(file);
+  };
+
   const parseR2Ref = (ref: string): { bucket: string; key: string } | null => {
     if (!ref || typeof ref !== 'string') return null;
     if (!ref.startsWith('r2://')) return null;
@@ -298,7 +324,7 @@ export function HomeContentManager() {
     try {
       const safeName = flashNewsFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const key = `home/video/flash-news/${Date.now()}-${safeName}`;
-      const res = await presignUpload(flashNewsFile, key, { category: 'home-video', title: 'Flash News', skipConfirm: true });
+      const res = await presignFlashNewsUpload(flashNewsFile, key, { category: 'home-video', title: 'Flash News', skipConfirm: true });
       if (!res.ok) throw new Error(res.error || 'Upload failed');
 
       const r2Ref = res.data?.presign?.r2Ref as string | null;
@@ -547,13 +573,9 @@ export function HomeContentManager() {
       return;
     }
 
-    // Check file size (Vercel Blob has limits)
+    // Validate file before upload
     if (videoUploadType === 'file' && videoFile) {
-      const maxSize = 500 * 1024 * 1024; // 500MB limit
-      if (videoFile.size > maxSize) {
-        toast.error('Video file is too large. Maximum size is 500MB. Please compress your video or use a URL instead.');
-        return;
-      }
+      if (!validateHomeVideoFile(videoFile)) return;
     }
 
     setIsUploadingVideo(true);
@@ -561,14 +583,18 @@ export function HomeContentManager() {
       let response;
       
       if (videoUploadType === 'file') {
-        const formData = new FormData();
-        formData.append('file', videoFile);
-        // Don't include thumbnail here - it has its own upload
+        const safeName = (videoFile?.name || `video-${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+        const key = `home/video/main/${Date.now()}-${safeName}`;
+        const presignRes = await presignHomeVideoUpload(videoFile!, key, { category: 'home-video', title: 'Home Video', skipConfirm: true });
+        if (!presignRes.ok) throw new Error(presignRes.error || 'Upload failed');
+
+        const r2Ref = presignRes.data?.presign?.r2Ref as string | null;
+        if (!r2Ref) throw new Error('Upload succeeded but R2 reference is missing');
 
         response = await fetch('/api/admin/home/video', {
           method: 'POST',
-          body: formData,
-          headers: getAuthHeaders() // FormData - let browser set Content-Type
+          headers: getAuthHeaders('application/json'),
+          body: JSON.stringify({ video_url: r2Ref }),
         });
       } else {
         response = await fetch('/api/admin/home/video', {
@@ -584,6 +610,9 @@ export function HomeContentManager() {
         toast.success(result.message || 'Video uploaded successfully');
         setVideoFile(null);
         setVideoUrl('');
+        setHomeVideoUploadProgress(null);
+        const input = document.getElementById('videoFile') as HTMLInputElement | null;
+        if (input) input.value = '';
         await fetchHomeVideo();
       } else {
         toast.error(result.error || 'Failed to upload video');
@@ -1060,6 +1089,11 @@ export function HomeContentManager() {
                     </div>
                   </div>
                 )}
+                {homeVideo.video_url_raw ? (
+                  <p className="text-xs text-gray-500">
+                    Stored path: <code className="text-[#FDB813] break-all">{homeVideo.video_url_raw}</code>
+                  </p>
+                ) : null}
               </div>
               
               {/* Thumbnail Preview (render as smaller thumbnail) */}
@@ -1089,6 +1123,11 @@ export function HomeContentManager() {
                     <p className="text-gray-500 text-sm">No thumbnail available</p>
                   </div>
                 )}
+                {homeVideo.thumbnail_image_url_raw ? (
+                  <p className="text-xs text-gray-500">
+                    Stored path: <code className="text-[#FDB813] break-all">{homeVideo.thumbnail_image_url_raw}</code>
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1116,20 +1155,28 @@ export function HomeContentManager() {
                     e.preventDefault();
                     setIsVideoDragActive(false);
                     const f = e.dataTransfer?.files?.[0];
-                    if (f && f.type.startsWith('video/')) setVideoFile(f);
+                    if (f) handleSelectHomeVideoFile(f);
                   }}
                 >
                   <input
                     id="videoFile"
                     type="file"
-                    accept="video/*"
-                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                    accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm"
+                    onChange={(e) => handleSelectHomeVideoFile(e.target.files?.[0] || null)}
                     className="hidden"
                   />
 
-                  <div className="text-center">
-                    <div className="mb-1 font-medium">Click or drag video here to upload</div>
-                    <div className="text-xs text-gray-500">MP4, MOV, WebM — max 500MB</div>
+                  <div className="flex items-start justify-between w-full gap-4">
+                    <div className="text-center flex-1">
+                      <div className="mb-1 font-medium">Click or drag video here to upload</div>
+                      <div className="text-xs text-gray-500">MP4, MOV, WebM — max 300MB</div>
+                    </div>
+                    {videoFile ? (
+                      <div className="text-right">
+                        <div className="text-sm text-white font-medium">{videoFile.name}</div>
+                        <div className="text-xs text-gray-400">{formatBytes(videoFile.size)}</div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -1140,19 +1187,20 @@ export function HomeContentManager() {
 
             <button
               onClick={handleUploadVideo}
-              disabled={isUploadingVideo || (videoUploadType === 'file' && !videoFile) || (videoUploadType === 'url' && !videoUrl.trim())}
+              disabled={isUploadingVideo || homeVideoUploadProgress !== null || (videoUploadType === 'file' && !videoFile) || (videoUploadType === 'url' && !videoUrl.trim())}
               className="mt-4 w-full px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center justify-center gap-2"
               style={{ backgroundColor: accentGold }}
             >
-              {isUploadingVideo ? (
+              {isUploadingVideo || homeVideoUploadProgress !== null ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Uploading...
+                  Uploading{typeof homeVideoUploadProgress === 'number' ? ` (${homeVideoUploadProgress}%)` : ''}...
                 </>
               ) : (
                 'Upload Video'
               )}
             </button>
+            {homeVideoUploadError ? <div className="mt-2 text-sm text-red-400">Upload error: {homeVideoUploadError}</div> : null}
           </div>
 
           {/* Thumbnail Upload Section */}
