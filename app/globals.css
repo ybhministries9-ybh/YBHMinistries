@@ -35,3 +35,21 @@ input[type="checkbox"],
 input[type="radio"] {
   accent-color: #7C3AED;
 }
+
+@media (max-width: 1023px) {
+  .flash-news-player {
+    width: 75vw !important;
+    height: 75vh !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .flash-news-player {
+    width: min(75vw, 420px) !important;
+    height: auto !important;
+    max-height: 70vh !important;
+    aspect-ratio: 9 / 16 !important;
+  }
+}
