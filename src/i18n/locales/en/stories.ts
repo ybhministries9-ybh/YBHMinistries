@@ -16,6 +16,28 @@ export default {
   relatedVideos: "Video Testimonies",
   submitTestimonyHeading: "Share Your Testimony",
 
+  typeTabs: {
+    text: "Text Testimonies",
+    video: "Video Testimonies"
+  },
+
+  filters: {
+    category: "Category",
+    total: "Total"
+  },
+
+  pagination: {
+    previous: "Previous",
+    next: "Next",
+    page: "Page"
+  },
+
+  actions: {
+    shareTestimony: "Share a Testimony"
+  },
+
+  videoShareNotice: "If you'd like to share your video testimonies, please send them to Bro. Augustine WhatsApp number: +918309655233",
+
   tabs: {
     guinness: {
       label: "Guinness World Record",

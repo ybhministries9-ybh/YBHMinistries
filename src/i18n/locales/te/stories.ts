@@ -16,6 +16,28 @@ export default {
   relatedVideos: "వీడియో సాక్ష్యాలు",
   submitTestimonyHeading: "మీ సాక్ష్యం పంచుకోండి",
 
+  typeTabs: {
+    text: "టెక్స్ట్ సాక్ష్యాలు",
+    video: "వీడియో సాక్ష్యాలు"
+  },
+
+  filters: {
+    category: "వర్గం",
+    total: "మొత్తం"
+  },
+
+  pagination: {
+    previous: "మునుపటి",
+    next: "తర్వాత",
+    page: "పేజీ"
+  },
+
+  actions: {
+    shareTestimony: "సాక్ష్యం పంచుకోండి"
+  },
+
+  videoShareNotice: "మీ వీడియో సాక్ష్యాలు పంచుకోవాలనుకుంటే, దయచేసి బ్రో. ఆగస్టీన్ WhatsApp నంబర్: +918309655233 కి పంపండి",
+
   tabs: {
     guinness: {
       label: "గిన్నెస్ రికార్డులు",

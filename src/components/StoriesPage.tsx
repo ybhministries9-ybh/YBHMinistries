@@ -965,49 +965,33 @@ SubmitTestimonyForm.displayName = 'SubmitTestimonyForm';
 export function StoriesPage() {
   const { t } = useTranslation('stories');
   
-  // default tab (server-safe). We will read URL hash on the client and update.
-  const [activeTab, setActiveTab] = useState<string>('guinness');
+  const [activeTypeTab, setActiveTypeTab] = useState<'text' | 'video'>('text');
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<(typeof TAB_CONFIG)[number]['key']>('guinness');
   const [publicStories, setPublicStories] = useState<PublicStory[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({});
-  // Client-side pagination sizes for stories/videos
-  const PAGE_SIZE_TESTIMONIALS = 8;
-  const PAGE_SIZE_VIDEOS = 8;
-  const [testimonialsVisible, setTestimonialsVisible] = useState<number>(PAGE_SIZE_TESTIMONIALS);
-  const [videosVisible, setVideosVisible] = useState<number>(PAGE_SIZE_VIDEOS);
 
-  const handleTabChange = useCallback((tabKey: string) => {
-    setActiveTab(tabKey);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  const pageSize = 12;
+  const [pageIndex, setPageIndex] = useState(0);
 
-  // Reset visible counts when tab changes
   useEffect(() => {
-    setTestimonialsVisible(PAGE_SIZE_TESTIMONIALS);
-    setVideosVisible(PAGE_SIZE_VIDEOS);
-  }, [activeTab]);
-
-  const loadMoreTestimonials = useCallback(() => {
-    setTestimonialsVisible((s) => s + PAGE_SIZE_TESTIMONIALS);
-  }, []);
-
-  const loadMoreVideos = useCallback(() => {
-    setVideosVisible((s) => s + PAGE_SIZE_VIDEOS);
-  }, []);
+    setPageIndex(0);
+  }, [activeTypeTab, selectedCategoryKey]);
 
   // fetch public stories from DB (approved & visible)
   useEffect(() => {
-    // read hash on client only
-    if (typeof window !== 'undefined') {
-      const hash = window.location.hash.substring(1); // Remove the '#'
-      const params = new URLSearchParams(hash);
-      const tab = params.get('tab') || 'guinness';
-      setActiveTab(tab);
-    }
-
     let mounted = true;
     const fetchStories = async () => {
       try {
-        const resp = await fetch('/api/stories');
+        const resp = await fetch('/api/stories', { headers: { Accept: 'application/json' } });
+        const ct = resp.headers.get('content-type') || '';
+        if (!resp.ok) {
+          const bodyText = await resp.text();
+          throw new Error(`Failed to load stories (${resp.status}): ${bodyText.slice(0, 200)}`);
+        }
+        if (!ct.includes('application/json')) {
+          const bodyText = await resp.text();
+          throw new Error(`Expected JSON but got: ${ct || 'unknown'} (${bodyText.slice(0, 200)})`);
+        }
         const j = await resp.json();
         if (!mounted) return;
         if (j?.success) {
@@ -1089,32 +1073,7 @@ export function StoriesPage() {
     }
   }, []);
 
-  // Memoize tab buttons
-  const tabButtons = useMemo(
-    () =>
-      TAB_CONFIG.map((tab) => {
-        const isActive = activeTab === tab.key;
-        return (
-          <button
-            key={tab.key}
-            className={`px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-semibold transition-colors focus:outline-none ${
-              isActive
-                ? "bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]"
-                : "bg-[#2E2E2E] text-white hover:bg-[#FDB813] hover:text-black focus:ring-2 focus:ring-offset-2 focus:ring-[#FDB813]"
-            }`}
-            onClick={() => handleTabChange(tab.key)}
-            style={{ cursor: "pointer" }}
-            aria-selected={isActive}
-            role="tab"
-          >
-            {t(`tabs.${tab.key}.label`)}
-          </button>
-        );
-      }),
-    [activeTab, handleTabChange, t]
-  );
-
-  // No mock `eventsData` — tab-specific titles/descriptions are provided via translations.
+  // No mock `eventsData` — stories are fetched from the DB via /api/stories.
 
   // Map public stories into testimonial/video shapes used by this page
   // Only include stories with status 'approved'
@@ -1152,31 +1111,72 @@ export function StoriesPage() {
       }));
   }, [publicStories, extractYouTubeId]);
 
-  // Map active tab key -> admin category display name
-  const TAB_TO_CATEGORY: Record<string, string> = {
-    guinness: 'Guinness World Record',
-    bibleschool: 'Hallel Bible School',
-    hallelconference: 'Hallel Conference',
-    lcmclasses: 'London College of Music (LCM)',
-    onlineschool: 'Online Free Course (Keyboard & Guitar)',
-    songbooks: 'Song Writing Classes',
-    summercamp: 'Kids Summer Camp'
-  };
+  const selectedCategoryLabel =
+    TAB_CONFIG.find((x) => x.key === selectedCategoryKey)?.label || '';
 
-  // Decide which data to display: only show DB-fed stories; do not fall back to mock data
-  const displayedTestimonials = useMemo(() => {
-    const cat = TAB_TO_CATEGORY[activeTab] || '';
-    return mappedPublicText.filter(t => (t.category || '') === cat);
-  }, [mappedPublicText, activeTab]);
+  const displayedText = useMemo(() => {
+    return mappedPublicText.filter(t => (t.category || '') === selectedCategoryLabel);
+  }, [mappedPublicText, selectedCategoryLabel]);
 
-  const displayedVideos = useMemo(() => {
-    const cat = TAB_TO_CATEGORY[activeTab] || '';
-    return mappedPublicVideos.filter(v => (v.category || '') === cat);
-  }, [mappedPublicVideos, activeTab]);
+  const displayedVideo = useMemo(() => {
+    return mappedPublicVideos.filter(v => (v.category || '') === selectedCategoryLabel);
+  }, [mappedPublicVideos, selectedCategoryLabel]);
 
-  const hasContentForTab = useMemo(() => {
-    return (displayedTestimonials && displayedTestimonials.length > 0) || (displayedVideos && displayedVideos.length > 0);
-  }, [displayedTestimonials, displayedVideos]);
+  const textTabLabel = t('typeTabs.text', { defaultValue: 'Text Testimonies' });
+  const videoTabLabel = t('typeTabs.video', { defaultValue: 'Video Testimonies' });
+  const shareATestimonyLabel = t('actions.shareTestimony', { defaultValue: 'Share a Testimony' });
+  const categoryLabel = t('filters.category', { defaultValue: 'Category' });
+  const totalLabel = t('filters.total', { defaultValue: 'Total' });
+  const prevLabel = t('pagination.previous', { defaultValue: 'Previous' });
+  const nextLabel = t('pagination.next', { defaultValue: 'Next' });
+  const pageLabel = t('pagination.page', { defaultValue: 'Page' });
+  const videoShareNotice = t('videoShareNotice', {
+    defaultValue: "If you'd like to share your video testimonies, please send them to Bro. Augustine WhatsApp number: +918309655233",
+  });
+
+  const activeItemsCount = activeTypeTab === 'text' ? displayedText.length : displayedVideo.length;
+  const totalPages = Math.max(1, Math.ceil(activeItemsCount / pageSize));
+  const canPrev = pageIndex > 0;
+  const canNext = pageIndex < totalPages - 1;
+
+  const pagedText = useMemo(() => {
+    const start = pageIndex * pageSize;
+    return displayedText.slice(start, start + pageSize);
+  }, [displayedText, pageIndex, pageSize]);
+
+  const pagedVideo = useMemo(() => {
+    const start = pageIndex * pageSize;
+    return displayedVideo.slice(start, start + pageSize);
+  }, [displayedVideo, pageIndex, pageSize]);
+
+  const hasContentForSelection = activeItemsCount > 0;
+
+  const typeTabButtons = useMemo(() => {
+    const tabs: Array<{ key: 'text' | 'video'; label: string }> = [
+      { key: 'text', label: textTabLabel },
+      { key: 'video', label: videoTabLabel },
+    ];
+
+    return tabs.map((tab) => {
+      const isActive = activeTypeTab === tab.key;
+      return (
+        <button
+          key={tab.key}
+          className={`px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-semibold transition-colors focus:outline-none ${
+            isActive
+              ? "bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]"
+              : "bg-[#2E2E2E] text-white hover:bg-[#FDB813] hover:text-black focus:ring-2 focus:ring-offset-2 focus:ring-[#FDB813]"
+          }`}
+          onClick={() => { setActiveTypeTab(tab.key); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          style={{ cursor: "pointer" }}
+          aria-selected={isActive}
+          role="tab"
+        >
+          {tab.label}
+        </button>
+      );
+    });
+  }, [activeTypeTab, textTabLabel, videoTabLabel]);
 
   return (
     <div
@@ -1185,10 +1185,10 @@ export function StoriesPage() {
     >
       {/* Main Content */}
       <div className="container mx-auto px-2 md:px-4 pt-12 md:pt-30 pb-16">
-        {/* Tabs */}
+        {/* Type Tabs */}
         <div className="mb-6 my-8">
           <div className="flex flex-wrap justify-center gap-2 md:gap-3" role="tablist">
-            {tabButtons}
+            {typeTabButtons}
           </div>
         </div>
 
@@ -1196,84 +1196,108 @@ export function StoriesPage() {
           <div className="mt-4" role="tabpanel">
             {/* Section Header */}
               <div className="text-center mb-10">
-                <h2 className="text-3xl md:text-4xl text-white mb-2">
-                  {t(`tabs.${activeTab}.title`)}
-                </h2>
+                <h2 className="text-3xl md:text-4xl text-white mb-2">{activeTypeTab === 'text' ? textTabLabel : videoTabLabel}</h2>
                 <div
                   className="w-24 h-1 mx-auto rounded-full mb-4"
                   style={{ backgroundColor: accentGold }}
                 ></div>
-                <div className="mx-auto mt-5 max-w-6xl px-4 md:px-0">
-                  <div className="rounded-2xl border border-[#FDB813] bg-gradient-to-r from-[#2a2106] via-[#3a2c08] to-[#2a2106] px-4 py-4 md:px-4 lg:px-5 shadow-[0_0_30px_rgba(253,184,19,0.18)]">
-                    <p className="text-sm md:text-base lg:text-lg font-semibold leading-relaxed text-[#FFF1C2] md:whitespace-nowrap">
-                      {t(`tabs.${activeTab}.description`)}
-                    </p>
-                  </div>
+                <div className="mt-5 flex justify-center">
+                  {activeTypeTab === 'video' ? (
+                    <div className="mx-auto max-w-5xl rounded-xl border border-[#FDB813] bg-[#FDB813]/10 px-4 py-3 text-center shadow-[0_0_0_1px_rgba(253,184,19,0.15)] md:px-6">
+                      <p className="text-sm md:text-base font-semibold leading-relaxed text-[#FFE08A]">
+                        {videoShareNotice}
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        document.getElementById('submit-testimony')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className="px-6 py-2 bg-[#FDB813] shadow-lg text-black cursor-pointer rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300"
+                    >
+                      {shareATestimonyLabel}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Empty-state when no stories in this tab */}
-              {!hasContentForTab && (
+              {/* Category dropdown */}
+              <div className="mx-auto mb-8 max-w-xl px-4 md:px-0">
+                <div className="mb-2 flex items-end justify-between gap-3">
+                  <label htmlFor="storiesCategoryFilter" className="block text-sm font-medium text-gray-300">
+                    {categoryLabel}
+                  </label>
+                  <div className="text-xs text-gray-400">
+                    {totalLabel}: <span className="text-[#FDB813] font-semibold">{activeItemsCount}</span>
+                  </div>
+                </div>
+                <select
+                  id="storiesCategoryFilter"
+                  value={selectedCategoryKey}
+                  onChange={(e) => setSelectedCategoryKey(e.target.value as any)}
+                  className="w-full px-4 py-2 bg-black rounded-md border border-gray-600 text-white focus:outline-none focus:border-[#FDB813] cursor-pointer"
+                >
+                  {TAB_CONFIG.map((tab) => (
+                    <option key={tab.key} value={tab.key}>
+                      {tab.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Empty-state when no stories in this selection */}
+              {!hasContentForSelection && (
                 <div className="text-center py-12 bg-black border border-gray-700 rounded-lg mb-8">
                   <p className="text-gray-400">No Stories Available.</p>
                 </div>
               )}
 
-              {/* Tab-specific content (testimonies/videos) */}
-              <>
-                  {/* Testimonies Section */}
-                  {displayedTestimonials && displayedTestimonials.length > 0 && (
-                    <div className="mb-12">
-                      <h3 className="text-2xl md:text-3xl text-white mb-6 text-center">{t('testimoniesHeading')}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
-                              {displayedTestimonials.slice(0, testimonialsVisible).map((testimonial) => (
-                                <TestimonialCard key={`disp-${testimonial.id}`} testimonial={testimonial} />
-                              ))}
-                      </div>
-                            {displayedTestimonials.length > testimonialsVisible && (
-                              <div className="mt-6 text-center">
-                                <button
-                                  className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-2 px-6"
-                                  onClick={loadMoreTestimonials}
-                                  style={{ color: '#000' }}
-                                >
-                                  {t('loadMore')}
-                                </button>
-                              </div>
-                            )}
-                    </div>
-                  )}
+              {/* Paged content */}
+              {activeTypeTab === 'text' && pagedText.length > 0 ? (
+                <div className="mb-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
+                    {pagedText.map((testimonial) => (
+                      <TestimonialCard key={`disp-${testimonial.id}`} testimonial={testimonial} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
-                  {/* Videos Section */}
-                  {displayedVideos && displayedVideos.length > 0 && (
-                    <div className="mt-12">
-                      <div className="flex items-center mb-6">
-                        <div className="flex-grow h-px bg-gray-700"></div>
-                        <h3 className="text-xl text-white font-medium px-4 flex items-center">
-                          <Play size={20} className="text-[#FDB813] mr-2" />
-                          {t('relatedVideos')}
-                        </h3>
-                        <div className="flex-grow h-px bg-gray-700"></div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
-                        {displayedVideos.slice(0, videosVisible).map((video) => (
-                          <VideoCard key={`disp-${video.id}`} video={video} />
-                        ))}
-                      </div>
-                      {displayedVideos.length > videosVisible && (
-                        <div className="mt-6 text-center">
-                          <button
-                            className="bg-[#FDB813] shadow-lg text-black rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300 cursor-pointer py-2 px-6"
-                            onClick={loadMoreVideos}
-                            style={{ color: '#000' }}
-                          >
-                            {t('loadMore')}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
+              {activeTypeTab === 'video' && pagedVideo.length > 0 ? (
+                <div className="mb-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
+                    {pagedVideo.map((video) => (
+                      <VideoCard key={`disp-${video.id}`} video={video} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Pagination */}
+              {hasContentForSelection ? (
+                <div className="mt-6 flex items-center justify-center gap-3 px-4 md:px-0">
+                  <button
+                    type="button"
+                    onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+                    disabled={!canPrev}
+                    className="px-4 py-2 rounded-full border-2 border-[#FDB813] text-white hover:bg-[#111] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {prevLabel}
+                  </button>
+                  <div className="text-sm text-gray-300">
+                    {pageLabel} <span className="text-white font-semibold">{pageIndex + 1}</span> / {totalPages}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={!canNext}
+                    className="px-4 py-2 rounded-full bg-[#FDB813] text-black hover:bg-[#e5a711] font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {nextLabel}
+                  </button>
+                </div>
+              ) : null}
         </div>
 
         {/* Submit Testimony Form - Common for all tabs */}
