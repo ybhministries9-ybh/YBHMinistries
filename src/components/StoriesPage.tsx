@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { logger } from '@/lib/logger';
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from 'sonner';
-import { primaryBackground, accentGold } from "../utils/theme";
+import { primaryBackground, accentGold, borderGray } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 import { sanitizeInput } from '@/lib/security';
@@ -326,11 +326,21 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
           </div>
         </div>
 
-        <div className="h-px w-full bg-gray-700/60 mb-4" />
+        <div
+          className="h-px w-full bg-gray-700/60 mb-4"
+          style={{ height: '2px', backgroundColor: borderGray }}
+        />
 
         <p
           className="text-white text-sm text-left leading-relaxed flex-grow break-words whitespace-normal max-w-full line-clamp-3"
-          style={{ wordBreak: 'normal', overflowWrap: 'break-word' }}
+          style={{
+            wordBreak: 'normal',
+            overflowWrap: 'break-word',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden'
+          }}
         >
           {shortText}
         </p>
@@ -631,7 +641,7 @@ const SubmitTestimonyForm = memo(() => {
   }, [clearStoryImage, reset, storyImageFile]);
 
   return (
-    <section id="submit-testimony" className="py-12 mt-12 border-t border-gray-700">
+    <section id="submit-testimony" className="py-12 mt-12 border-t border-gray-700" style={{ borderTopColor: borderGray }}>
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-3xl md:text-4xl text-white font-normal mb-2">{t('form.title')}</h2>
         <div className="w-24 h-1 bg-[#FDB813] mb-4 mx-auto"></div>
@@ -879,6 +889,7 @@ const SubmitTestimonyForm = memo(() => {
                       updateFormattingState();
                     }}
                     className={`px-2 py-1 rounded-md border ${isBold ? 'bg-[#FDB813] text-black border-[#e0a300]' : 'bg-[#1f1f1f] text-white border-gray-700'} hover:bg-[#2a2a2a]`}
+                    style={{ borderColor: isBold ? '#e0a300' : borderGray }}
                     aria-label="Bold"
                   >
                     <strong>B</strong>
@@ -892,6 +903,7 @@ const SubmitTestimonyForm = memo(() => {
                       updateFormattingState();
                     }}
                     className={`px-2 py-1 rounded-md border ${isItalic ? 'bg-[#FDB813] text-black border-[#e0a300]' : 'bg-[#1f1f1f] text-white border-gray-700'} hover:bg-[#2a2a2a]`}
+                    style={{ borderColor: isItalic ? '#e0a300' : borderGray }}
                     aria-label="Italic"
                   >
                     <em>I</em>
@@ -905,6 +917,7 @@ const SubmitTestimonyForm = memo(() => {
                       updateFormattingState();
                     }}
                     className={`px-2 py-1 rounded-md border ${isUnderline ? 'bg-[#FDB813] text-black border-[#e0a300]' : 'bg-[#1f1f1f] text-white border-gray-700'} hover:bg-[#2a2a2a]`}
+                    style={{ borderColor: isUnderline ? '#e0a300' : borderGray }}
                     aria-label="Underline"
                   >
                     <span style={{ textDecoration: 'underline' }}>U</span>
@@ -921,7 +934,7 @@ const SubmitTestimonyForm = memo(() => {
                     >
                       😊
                     </button>
-                    {showEmojiPicker && (
+                      {showEmojiPicker && (
                       <div ref={emojiPickerRef} className="absolute left-0 mt-2 bg-[#2E2E2E] border border-gray-700 rounded-md p-2 shadow-lg z-20 min-w-[380px]" role="dialog" aria-label="Emoji picker">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 40px)', gap: '8px', maxHeight: '40vh', overflow: 'auto', padding: '4px' }}>
                           {[
@@ -1329,12 +1342,12 @@ export function StoriesPage() {
               {/* Search + Category + Filters toolbar */}
               <div className="px-4 md:px-0">
                 <div className="mx-auto w-full">
-                  <div className="h-[2px] w-full bg-gray-700/60" />
+                  <div className="h-[1px] w-full bg-gray-700/60" style={{ height: '1px', backgroundColor: borderGray }} />
                   <div className="pt-4 pb-6">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
                     <div className="relative flex-1">
-                      <div className="group flex h-12 w-full items-center rounded-md border-2 border-gray-700 bg-[#2E2E2E] pl-4 pr-3 focus-within:border-transparent focus-within:ring-2 focus-within:ring-[#FDB813]">
-                        <Search className="pointer-events-none h-5 w-5 flex-shrink-0 text-gray-400 transition-colors group-focus-within:text-yellow-500" />
+                      <div className="group flex h-12 w-full items-center rounded-md border-2 border-gray-700 bg-[#2E2E2E] pl-4 pr-3 focus-within:border-[#FDB813] focus-within:ring-2 focus-within:ring-[#FDB813] hover:border-[#FDB813] transition-colors md:w-64">
+                        <Search className="pointer-events-none h-5 w-5 flex-shrink-0 text-gray-400 transition-colors group-focus-within:text-[#FDB813]" />
                         <input
                           id="storiesFilterName"
                           type="text"
@@ -1365,7 +1378,7 @@ export function StoriesPage() {
                         id="storiesCategoryFilter"
                         value={selectedCategoryKey}
                         onChange={(e) => setSelectedCategoryKey(e.target.value as 'all' | (typeof TAB_CONFIG)[number]['key'])}
-                        className="h-12 w-full rounded-md border-2 border-gray-700 bg-[#2E2E2E] px-4 text-sm text-white outline-none focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent md:w-64 cursor-pointer"
+                        className="h-12 w-full rounded-md border-2 border-gray-700 bg-[#2E2E2E] px-4 text-sm text-white outline-none focus:outline-none focus:ring-1 focus:ring-[#FDB813] focus:border-[#FDB813] hover:border-[#FDB813] transition-colors md:w-64 cursor-pointer"
                       >
                         <option value="all">{categoryFilterLabel}</option>
                         {TAB_CONFIG.map((tab) => (
@@ -1393,7 +1406,7 @@ export function StoriesPage() {
                     ) : null}
                   </div>
 
-                  <div className="mt-6 h-[2px] w-full bg-gray-700/60" />
+                  <div className="mt-6 h-[1px] w-full bg-gray-700/60" style={{ height: '1px', backgroundColor: borderGray }} />
                   <div className="pt-6 text-sm text-gray-300">
                     {totalLabel}:{' '}
                     <span className="font-semibold text-white">{activeItemsCount}</span> <span className="text-gray-300">Testimonies</span>
