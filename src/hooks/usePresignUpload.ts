@@ -24,10 +24,21 @@ export function usePresignUpload(opts?: { prefix?: string }) {
     try {
       const finalKey = key || makeKey(opts?.prefix || 'uploads', file.name);
 
+      // Attach admin token from localStorage for protected presign/confirm endpoints
+      let token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') || '' : '';
+      if (token) {
+        try {
+          const parsed = JSON.parse(token);
+          token = parsed?.token || token;
+        } catch (e) {
+          // keep raw
+        }
+      }
+
       // 1) request presigned PUT URL
       const presignResp = await fetch('/api/r2/presign-put', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ key: finalKey, contentType: file.type, category: extra?.category })
       });
       if (!presignResp.ok) {
@@ -74,16 +85,7 @@ export function usePresignUpload(opts?: { prefix?: string }) {
         return { ok: true, data: { presign: { bucket: bucket || null, key: usedKey, r2Ref } } };
       }
 
-      // 3) confirm to server (admin endpoint). Attach admin token from localStorage
-      let token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') || '' : '';
-      if (token) {
-        try {
-          const parsed = JSON.parse(token);
-          token = parsed?.token || token;
-        } catch (e) {
-          // keep raw
-        }
-      }
+      // 3) confirm to server (admin endpoint)
       const confirmResp = await fetch('/api/admin/media/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },

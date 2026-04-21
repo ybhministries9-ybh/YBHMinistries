@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
         extended_description as "extendedDescription",
         capacity,
         image_url as "imageUrl",
+        video_url as "videoUrl",
         speakers,
         what_to_bring as "whatToBring",
         registration_enabled as "registrationEnabled",
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
       extendedDescription: row.extendedDescription,
       capacity: row.capacity,
       imageUrl: row.imageUrl,
+      videoUrl: row.videoUrl || '',
       speakers: row.speakers || [],
       whatToBring: row.whatToBring || [],
       registration: {

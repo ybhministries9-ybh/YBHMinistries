@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import DateInput from '../ui/date-input';
 import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
+import usePresignUpload from '@/hooks/usePresignUpload';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ interface Event {
   extendedDescription: string;
   capacity: string;
   imageUrl: string;
+  videoUrl: string;
   speakers: string[];
   whatToBring: string[];
   registration: {
@@ -43,6 +45,7 @@ interface Event {
 
 export function EventsManager() {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [dragOverVideoId, setDragOverVideoId] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -51,6 +54,11 @@ export function EventsManager() {
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   // Validation state: map eventId -> field -> error message
   const [validationErrors, setValidationErrors] = useState<Record<string, Record<string, string>>>({});
+
+  const MAX_VIDEO_BYTES = 300 * 1024 * 1024;
+
+  const { upload: uploadEventVideo, progress: videoUploadProgress, error: videoUploadError, setProgress: setVideoUploadProgress } =
+    usePresignUpload({ prefix: 'events/videos' });
 
   // Character limits
   const LIMITS = {
@@ -112,6 +120,7 @@ export function EventsManager() {
         extendedDescription: '',
         capacity: '',
         imageUrl: '',
+        videoUrl: '',
         speakers: [],
         whatToBring: [],
         registration: {
@@ -162,10 +171,36 @@ export function EventsManager() {
         }
       }
 
+      // If a video was selected, upload directly to R2 from the client app and store r2:// path
+      let videoUrlToUse = event.videoUrl || '';
+      const selectedVideo = selectedVideoFilesRef.current.get(event.id);
+      if (selectedVideo) {
+        if (!isAllowedVideo(selectedVideo)) {
+          toast.error('Please select an MP4 or MOV file');
+          return;
+        }
+        if (selectedVideo.size > MAX_VIDEO_BYTES) {
+          toast.error('Video must be 300MB or smaller');
+          return;
+        }
+
+        const uploadResult = await uploadEventVideo(selectedVideo, undefined, { category: 'events', skipConfirm: true });
+        if (!uploadResult.ok) {
+          toast.error(uploadResult.error || 'Failed to upload event video');
+          return;
+        }
+        const r2Ref = uploadResult.data?.presign?.r2Ref as string | undefined;
+        if (!r2Ref) {
+          toast.error('Failed to upload event video (missing R2 reference)');
+          return;
+        }
+        videoUrlToUse = r2Ref;
+      }
+
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const body = { ...event, imageUrl: imageUrlToUse };
+      const body = { ...event, imageUrl: imageUrlToUse, videoUrl: videoUrlToUse };
 
       const response = await fetch(url, {
         method,
@@ -182,6 +217,16 @@ export function EventsManager() {
         setExpandedId(null);
         // If we uploaded a file for this event, clear the selected file reference
         if (selectedFile) selectedFilesRef.current.delete(event.id);
+        if (selectedVideo) {
+          selectedVideoFilesRef.current.delete(event.id);
+          setSelectedVideoInfo(prev => {
+            if (!prev[event.id]) return prev;
+            const copy = { ...prev };
+            delete copy[event.id];
+            return copy;
+          });
+          setVideoUploadProgress(null);
+        }
         fetchEvents(); // Refresh the list
       } else {
         toast.error(result.error || 'Failed to save event');
@@ -325,8 +370,29 @@ export function EventsManager() {
   const generatedUrlsRef = useRef<Set<string>>(new Set());
   // Track the selected File objects per-event so we can upload them when saving
   const selectedFilesRef = useRef<Map<string, File>>(new Map());
+  const selectedVideoFilesRef = useRef<Map<string, File>>(new Map());
   // Local map of resolved preview URLs (handles blob:, https and presigned r2 URLs)
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const [selectedVideoInfo, setSelectedVideoInfo] = useState<Record<string, { name: string; size: number }>>({});
+
+  const formatBytes = (bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    let v = bytes;
+    while (v >= 1024 && i < units.length - 1) {
+      v /= 1024;
+      i++;
+    }
+    return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+  };
+
+  const isAllowedVideo = (file: File) => {
+    const name = (file.name || '').toLowerCase();
+    const isExtOk = name.endsWith('.mp4') || name.endsWith('.mov');
+    const isTypeOk = file.type === 'video/mp4' || file.type === 'video/quicktime';
+    return isExtOk || isTypeOk;
+  };
 
   const handleImageFileSelect = (eventId: string, file?: File | null) => {
     const ev = events.find(e => e.id === eventId);
@@ -353,6 +419,32 @@ export function EventsManager() {
     const url = URL.createObjectURL(file);
     generatedUrlsRef.current.add(url);
     handleUpdate(eventId, { imageUrl: url });
+  };
+
+  const handleVideoFileSelect = (eventId: string, file?: File | null) => {
+    if (!file) {
+      selectedVideoFilesRef.current.delete(eventId);
+      setSelectedVideoInfo(prev => {
+        if (!prev[eventId]) return prev;
+        const copy = { ...prev };
+        delete copy[eventId];
+        return copy;
+      });
+      handleUpdate(eventId, { videoUrl: '' });
+      return;
+    }
+
+    if (!isAllowedVideo(file)) {
+      toast.error('Please select an MP4 or MOV file');
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      toast.error('Video must be 300MB or smaller');
+      return;
+    }
+
+    selectedVideoFilesRef.current.set(eventId, file);
+    setSelectedVideoInfo(prev => ({ ...prev, [eventId]: { name: file.name, size: file.size } }));
   };
 
   // Cleanup generated object URLs on unmount
@@ -461,13 +553,15 @@ export function EventsManager() {
                   }
                 } catch (e) {}
                 try { selectedFilesRef.current.delete(te.id); } catch (e) {}
+                try { selectedVideoFilesRef.current.delete(te.id); } catch (e) {}
               }
               setEvents(prev => prev.filter(e => !e.id.startsWith('temp-')));
+              setSelectedVideoInfo({});
               // create new
               const newEvent: Event = {
                 id: `temp-${Date.now()}`,
                 title: '', date: '', time: '', location: '', type: 'conference',
-                description: '', extendedDescription: '', capacity: '', imageUrl: '',
+                description: '', extendedDescription: '', capacity: '', imageUrl: '', videoUrl: '',
                 speakers: [], whatToBring: [], registration: { enabled: false, description: '', nationalFee: 0, internationalFee: 0, registrationFee: 0 },
                 published: true
               };
@@ -753,6 +847,78 @@ export function EventsManager() {
                         <div className="mt-2 flex items-center gap-2">
                           <Button size="sm" onClick={() => handleImageFileSelect(event.id, null)} className="bg-red-600 hover:bg-red-700 text-white">Remove Image</Button>
                           <span className="text-gray-400 text-sm">Current image shown above</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-white mb-1 block">Event Video</label>
+                      <div
+                        id={`video-drop-area-${event.id}`}
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverVideoId(event.id); }}
+                        onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverVideoId(event.id); }}
+                        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (dragOverVideoId === event.id) setDragOverVideoId(null); }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!isEditing) return;
+                          const f = e.dataTransfer?.files?.[0];
+                          if (f) handleVideoFileSelect(event.id, f);
+                          if (dragOverVideoId === event.id) setDragOverVideoId(null);
+                        }}
+                        onClick={() => {
+                          if (!isEditing) return;
+                          const input = document.getElementById(`video-file-input-${event.id}`) as HTMLInputElement | null;
+                          input?.click();
+                        }}
+                        className={`w-full rounded-md bg-[#1a1a1a] px-4 py-3 cursor-pointer ${dragOverVideoId === event.id ? 'border border-[#FDB813] ring-2 ring-[#FDB813]/30' : 'border border-gray-600'} ${!isEditing ? 'opacity-60 pointer-events-none' : ''}`}
+                      >
+                        <input
+                          id={`video-file-input-${event.id}`}
+                          type="file"
+                          accept="video/mp4,video/quicktime,.mp4,.mov"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (!isEditing) return;
+                            const f = e.target.files?.[0];
+                            if (f) handleVideoFileSelect(event.id, f);
+                          }}
+                        />
+
+                        {selectedVideoInfo[event.id] ? (
+                          <div className="text-gray-200">
+                            <div className="font-medium truncate">{selectedVideoInfo[event.id].name}</div>
+                            <div className="text-xs text-gray-400">{formatBytes(selectedVideoInfo[event.id].size)}</div>
+                            {editingId === event.id && typeof videoUploadProgress === 'number' && (
+                              <div className="mt-2 text-xs text-gray-400">Uploading: {videoUploadProgress}%</div>
+                            )}
+                            {editingId === event.id && videoUploadError && (
+                              <div className="mt-2 text-xs text-red-400">{videoUploadError}</div>
+                            )}
+                          </div>
+                        ) : event.videoUrl ? (
+                          <div className="text-gray-200">
+                            <div className="font-medium truncate">
+                              Current video: {String(event.videoUrl).split('/').pop()}
+                            </div>
+                            <div className="text-xs text-gray-400">Click to replace or use Remove Video</div>
+                          </div>
+                        ) : (
+                          <div className="text-gray-400">
+                            <div className="mb-1">Click or drag & drop a video here</div>
+                            <div className="text-xs">MP4 / MOV, max 300MB</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {isEditing && (selectedVideoInfo[event.id] || event.videoUrl) && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <Button size="sm" onClick={() => handleVideoFileSelect(event.id, null)} className="bg-red-600 hover:bg-red-700 text-white">Remove Video</Button>
+                          {selectedVideoInfo[event.id] ? (
+                            <span className="text-gray-400 text-sm">Selected video shown above</span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Current video will be removed on save</span>
+                          )}
                         </div>
                       )}
                     </div>

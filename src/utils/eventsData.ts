@@ -12,6 +12,7 @@ export interface Event {
   extendedDescription: string;
   whatToBring: string[];
   imageUrl?: string; // Custom image URL for each event
+  videoUrl?: string; // Optional event video (R2 path or URL)
   registration?: {
     enabled: boolean;
     description?: string;

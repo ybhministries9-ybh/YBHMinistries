@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS events (
     extended_description TEXT NOT NULL, -- Detailed description
     capacity VARCHAR(50) NOT NULL, -- Can be number or "Unlimited"
     image_url TEXT, -- Event poster/banner image
+    video_url TEXT, -- Optional event video (R2 path or URL)
     speakers TEXT[], -- Array of speaker names
     what_to_bring TEXT[], -- Array of items to bring
     registration_enabled BOOLEAN DEFAULT false,
@@ -66,6 +67,7 @@ INSERT INTO events (
     extended_description,
     capacity,
     image_url,
+    video_url,
     speakers,
     what_to_bring,
     registration_enabled,
@@ -85,6 +87,7 @@ INSERT INTO events (
     'This is our second attempt at the Guinness World Record, aiming to break the first Guinness World Record that we previously achieved.',
     'Unlimited',
     'https://n3elvywvxxnbjwip.public.blob.vercel-storage.com/News/GWR2/GWR-2%20-%20Poster.jpg',
+    NULL,
     ARRAY['Ps. Augustine Dandingi', 'Master Charlie Aaron Benedict Dandingi', 'Master Nancy Augustina Dandingi'],
     ARRAY['Key Board', 'Key Board Stand', 'Smart Phone with Internet', 'HMS - Song Book'],
     true,

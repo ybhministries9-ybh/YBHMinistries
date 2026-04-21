@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         extended_description as "extendedDescription",
         capacity,
         image_url as "imageUrl",
+        video_url as "videoUrl",
         speakers,
         what_to_bring as "whatToBring",
         registration_enabled as "registrationEnabled",
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
       extendedDescription: row.extendedDescription,
       capacity: row.capacity,
       imageUrl: row.imageUrl || '',
+      videoUrl: row.videoUrl || '',
       speakers: row.speakers || [],
       whatToBring: row.whatToBring || [],
       registration: {
@@ -107,6 +109,7 @@ export async function POST(request: NextRequest) {
       extendedDescription,
       capacity,
       imageUrl,
+      videoUrl,
       speakers,
       whatToBring,
       registration,
@@ -132,6 +135,7 @@ export async function POST(request: NextRequest) {
         extended_description,
         capacity,
         image_url,
+        video_url,
         speakers,
         what_to_bring,
         registration_enabled,
@@ -154,6 +158,7 @@ export async function POST(request: NextRequest) {
         ${extendedDescription},
         ${capacity},
         ${imageUrl || null},
+        ${videoUrl || null},
         ${speakers || []},
         ${whatToBring || []},
         ${registration?.enabled || false},
@@ -211,6 +216,7 @@ export async function PUT(request: NextRequest) {
       extendedDescription,
       capacity,
       imageUrl,
+      videoUrl,
       speakers,
       whatToBring,
       registration,
@@ -224,23 +230,30 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // If the imageUrl is changing, attempt to delete the previous R2 object
+    // If image/video URLs are changing, attempt to delete previous R2 objects
     try {
-      const prevRes = await sql`SELECT image_url FROM events WHERE id = ${id}`;
-      const prevUrl = prevRes.rows?.[0]?.image_url;
-      if (prevUrl && prevUrl !== imageUrl) {
-        const parsed = parseKeyFromUrl(prevUrl);
+      const prevRes = await sql`SELECT image_url, video_url FROM events WHERE id = ${id}`;
+      const prevImageUrl = prevRes.rows?.[0]?.image_url;
+      const prevVideoUrl = prevRes.rows?.[0]?.video_url;
+
+      const candidates: Array<{ prev: any; next: any; label: string }> = [
+        { prev: prevImageUrl, next: imageUrl, label: 'image' },
+        { prev: prevVideoUrl, next: videoUrl, label: 'video' },
+      ];
+
+      for (const c of candidates) {
+        if (!c.prev || c.prev === c.next) continue;
+        const parsed = parseKeyFromUrl(String(c.prev));
         if (parsed && parsed.key) {
           try {
             await deleteObject(parsed.key, parsed.bucket || PRIVATE_BUCKET);
           } catch (e) {
-            // Log but don't fail the whole update if delete fails
-            console.warn('Failed to delete previous event image from R2', e);
+            console.warn(`Failed to delete previous event ${c.label} from R2`, e);
           }
         }
       }
     } catch (e) {
-      console.warn('Error checking previous event image for deletion', e);
+      console.warn('Error checking previous event media for deletion', e);
     }
     await sql`
       UPDATE events
@@ -254,6 +267,7 @@ export async function PUT(request: NextRequest) {
         extended_description = ${extendedDescription},
         capacity = ${capacity},
         image_url = ${imageUrl || null},
+        video_url = ${videoUrl || null},
         speakers = ${speakers || []},
         what_to_bring = ${whatToBring || []},
         registration_enabled = ${registration?.enabled || false},
@@ -310,20 +324,23 @@ export async function DELETE(request: NextRequest) {
 
     // Attempt to delete the stored image from R2 (if any) before removing DB record
     try {
-      const prevRes = await sql`SELECT image_url FROM events WHERE id = ${id}`;
-      const prevUrl = prevRes.rows?.[0]?.image_url;
-      if (prevUrl) {
+      const prevRes = await sql`SELECT image_url, video_url FROM events WHERE id = ${id}`;
+      const prevImage = prevRes.rows?.[0]?.image_url;
+      const prevVideo = prevRes.rows?.[0]?.video_url;
+
+      for (const prevUrl of [prevImage, prevVideo]) {
+        if (!prevUrl) continue;
         const parsed = parseKeyFromUrl(prevUrl);
         if (parsed && parsed.key) {
           try {
             await deleteObject(parsed.key, parsed.bucket || PRIVATE_BUCKET);
           } catch (e) {
-            console.warn('Failed to delete event image from R2 during event delete', e);
+            console.warn('Failed to delete event media from R2 during event delete', e);
           }
         }
       }
     } catch (e) {
-      console.warn('Error while attempting to delete event image before DB delete', e);
+      console.warn('Error while attempting to delete event media before DB delete', e);
     }
 
     await sql`DELETE FROM events WHERE id = ${id}`;

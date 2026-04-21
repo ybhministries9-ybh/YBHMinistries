@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { getPresignedPutUrl } from "@/lib/r2";
+import { resolveSessionAndActorFromAuthHeader } from "@/lib/sessions";
 
 export async function POST(req: Request) {
   try {
+    // Admin-only: prevent anonymous clients from generating upload URLs.
+    const authHeader = req.headers.get('authorization') || '';
+    const sessionInfo = await resolveSessionAndActorFromAuthHeader(authHeader);
+    if (!sessionInfo) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body = await req.json();
     const { key, contentType, expiresIn } = body || {};
     if (!key) return NextResponse.json({ error: "missing key" }, { status: 400 });

@@ -116,6 +116,7 @@ export function NewsPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null);
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState('list');
   const [selectedReportYear, setSelectedReportYear] = useState(2023);
   const [selectedClassType, setSelectedClassType] = useState('keyboard');
@@ -398,6 +399,23 @@ export function NewsPage() {
                     <img src={resolvedImageUrl} alt={selectedEvent.title} loading="lazy" className="w-full h-auto rounded-xl" />
                   ))
                 )}
+
+                {(() => {
+                  const raw = String(selectedEvent.videoUrl || '');
+                  const videoSrc = raw && !raw.startsWith('r2://') ? raw : (resolvedVideoUrl || '');
+                  if (!videoSrc) return null;
+
+                  return (
+                    <div className="mt-4">
+                      <video
+                        controls
+                        preload="metadata"
+                        className="w-full rounded-xl border border-gray-700 bg-black"
+                        src={videoSrc}
+                      />
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -556,7 +574,7 @@ export function NewsPage() {
         </div>
       </div>
     );
-  }, [selectedEvent, handleContactClick, resolvedImageUrl, t, i18n.language]);
+  }, [selectedEvent, handleContactClick, resolvedImageUrl, resolvedVideoUrl, t, i18n.language]);
 
   // Resolve r2:// image references to presigned https URLs for the public event details
   useEffect(() => {
@@ -573,7 +591,7 @@ export function NewsPage() {
         try {
           const rest = img.slice('r2://'.length);
           const parts = rest.split('/').filter(Boolean);
-          const bucket = parts.shift();
+          parts.shift(); // bucket
           const key = parts.join('/');
           const resp = await fetch('/api/r2/presign-get', {
             method: 'POST',
@@ -584,7 +602,7 @@ export function NewsPage() {
           const json = await resp.json();
           if (!cancelled && json && json.url) setResolvedImageUrl(json.url);
         } catch (e) {
-          if (process.env.NODE_ENV !== 'production') console.warn('Failed to resolve event image URL', e);
+          // ignore
         }
       } else {
         // Fallback: use as-is
@@ -592,6 +610,44 @@ export function NewsPage() {
       }
     }
     resolveImage();
+    return () => { cancelled = true; };
+  }, [selectedEvent]);
+
+  // Resolve r2:// video references to presigned https URLs for the public event details
+  useEffect(() => {
+    let cancelled = false;
+    async function resolveVideo() {
+      setResolvedVideoUrl(null);
+      if (!selectedEvent || !selectedEvent.videoUrl) return;
+      const vid = String(selectedEvent.videoUrl || '');
+      if (!vid) return;
+      if (vid.startsWith('http') || vid.startsWith('blob:') || vid.startsWith('data:')) {
+        setResolvedVideoUrl(vid);
+        return;
+      }
+      if (vid.startsWith('r2://')) {
+        try {
+          const rest = vid.slice('r2://'.length);
+          const parts = rest.split('/').filter(Boolean);
+          parts.shift(); // bucket
+          const key = parts.join('/');
+          const resp = await fetch('/api/r2/presign-get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, expiresIn: 3600 })
+          });
+          if (!resp.ok) return;
+          const json = await resp.json();
+          if (!cancelled && json && json.url) setResolvedVideoUrl(json.url);
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        // Fallback: use as-is
+        setResolvedVideoUrl(vid);
+      }
+    }
+    resolveVideo();
     return () => { cancelled = true; };
   }, [selectedEvent]);
 
