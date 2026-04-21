@@ -23,9 +23,17 @@ export default {
 
   filters: {
     category: "వర్గం",
+    allCategories: "అన్ని సాక్ష్యాలు",
     total: "మొత్తం",
     name: "పేరు",
     namePlaceholder: "పేరుతో వెతకండి...",
+    searchPlaceholder: "పేరు, కీవర్డ్, లేదా స్థానంతో సాక్ష్యాలు వెతకండి...",
+    filtersButton: "ఫిల్టర్లు",
+    advancedFilters: "అధిక ఫిల్టర్లు",
+    location: "స్థలం",
+    role: "భూమిక",
+    allLocations: "అన్ని స్థలాలు",
+    allRoles: "అన్ని భూమికలు",
     clear: "ఫిల్టర్లు తొలగించండి",
   },
 

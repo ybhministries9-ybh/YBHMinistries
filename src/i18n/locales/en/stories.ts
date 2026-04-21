@@ -23,9 +23,24 @@ export default {
 
   filters: {
     category: "Category",
+    allCategories: "All Testimonies",
     total: "Total",
     name: "Name",
     namePlaceholder: "Search name...",
+    searchPlaceholder: "Search testimonies by name, keyword, or location...",
+    filtersButton: "Filters",
+    advancedFilters: "Advanced Filters",
+    dateRange: "Date Range",
+    dateRanges: {
+      allTime: "All Time",
+      last7Days: "Last 7 Days",
+      last30Days: "Last 30 Days",
+      last3Months: "Last 3 Months"
+    },
+    location: "Location",
+    role: "Role",
+    allLocations: "All Locations",
+    allRoles: "All Roles",
     clear: "Clear filters"
   },
 

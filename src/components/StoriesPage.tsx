@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect, memo } from "react";
 import { motion } from "motion/react";
-import { MapPin, Play, X, Quote, Maximize, Minimize, Calendar, Upload } from "lucide-react";
+import { MapPin, Play, X, Quote, Maximize, Minimize, Calendar, Upload, Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { logger } from '@/lib/logger';
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -100,6 +100,7 @@ const TAB_CONFIG = [
   const [isFullscreen, setIsFullscreen] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const categoryBadge = useMemo(() => getCategoryShortForm((testimonial as any).category), [testimonial]);
 
   const isExtraLongText = testimonial.text.length > 500;
 
@@ -140,12 +141,19 @@ const TAB_CONFIG = [
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
       <motion.div 
         ref={modalRef}
-        className={`bg-[#2E2E2E] rounded-lg ${isFullscreen ? 'w-full h-full max-h-full' : 'max-w-3xl w-full max-h-[90vh]'} overflow-y-auto overflow-x-hidden`} 
+        className={`relative bg-[#2E2E2E] rounded-lg ${isFullscreen ? 'w-full h-full max-h-full' : 'max-w-3xl w-full max-h-[90vh]'} overflow-y-auto overflow-x-hidden`} 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.3 }}
       >
+        {!isFullscreen && categoryBadge ? (
+          <div
+            className={`pointer-events-none absolute top-4 ${isFullscreen ? 'right-4' : 'right-14'} z-20 rounded-full border border-[#FDB813]/40 bg-black/30 px-3 py-1 text-xs font-semibold tracking-wide text-[#FDB813] backdrop-blur-sm`}
+          >
+            {categoryBadge}
+          </div>
+        ) : null}
         <div className={`${isFullscreen ? 'p-6 md:p-10' : 'p-6 md:p-8'}`}>
           <div className="flex justify-between items-center mb-6">
             <div className="flex">
@@ -215,9 +223,46 @@ const TAB_CONFIG = [
 
 TestimonialModal.displayName = 'TestimonialModal';
 
+const getCategoryShortForm = (category: unknown) => {
+  const raw = String(category || '').trim();
+  if (!raw) return '';
+
+  const normalized = raw
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, '')
+    .split('-')[0]
+    .trim();
+
+  const predefined: Array<[needle: string, label: string]> = [
+    ['guinness world record', 'Guinness'],
+    ['hallel bible school', 'Bible School'],
+    ['hallel conference', 'Conference'],
+    ['london college of music', 'LCM'],
+    ['online free course', 'Online Course'],
+    ['song writing classes', 'Song Writing'],
+    ['kids summer camp', 'Summer Camp'],
+  ];
+
+  for (const [needle, label] of predefined) {
+    if (normalized === needle || normalized.includes(needle)) return label;
+  }
+
+  const words = raw.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return words
+      .slice(0, 3)
+      .map((w) => w[0] || '')
+      .join('')
+      .toLocaleUpperCase();
+  }
+
+  return raw.slice(0, 4).toLocaleUpperCase();
+};
+
 // Testimonial Card Component - Memoized for performance
 const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => {
   const [modalOpen, setModalOpen] = useState(false);
+  const categoryBadge = useMemo(() => getCategoryShortForm((testimonial as any).category), [testimonial]);
   
   // Use plain text for the card preview so line-clamp works reliably.
   const shortText = useMemo(() => {
@@ -241,7 +286,7 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
   return (
     <>
       <div 
-        className="bg-[#2E2E2E] p-6 rounded-lg shadow-lg hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-[#FDB813] flex flex-col justify-between h-full" 
+        className="relative bg-[#2E2E2E] p-6 rounded-lg shadow-lg hover:shadow-xl transition-all cursor-pointer border-2 border-gray-700 hover:border-[#FDB813] flex flex-col justify-between h-full" 
         onClick={handleOpenModal}
         role="button"
         tabIndex={0}
@@ -280,6 +325,9 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
             </div>
           </div>
         </div>
+
+        <div className="h-px w-full bg-gray-700/60 mb-4" />
+
         <p
           className="text-white text-sm text-left leading-relaxed flex-grow break-words whitespace-normal max-w-full line-clamp-3"
           style={{ wordBreak: 'normal', overflowWrap: 'break-word' }}
@@ -289,6 +337,11 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
         <span className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer self-start">
           Read more →
         </span>
+        {categoryBadge ? (
+          <div className="pointer-events-none absolute top-4 right-4 rounded-full border border-[#FDB813]/40 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#FDB813] backdrop-blur-sm">
+            {categoryBadge}
+          </div>
+        ) : null}
       </div>
       <TestimonialModal 
         testimonial={testimonial}
@@ -307,6 +360,8 @@ const VideoCard = memo(({ video }: { video: Video }) => {
     `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`,
     [video.videoId]
   );
+
+  const categoryBadge = useMemo(() => getCategoryShortForm((video as any).category), [video]);
   
   const youtubeUrl = useMemo(() => 
     `https://www.youtube.com/watch?v=${video.videoId}`,
@@ -318,7 +373,7 @@ const VideoCard = memo(({ video }: { video: Video }) => {
       href={youtubeUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="bg-[#2E2E2E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all group border-2 border-transparent hover:border-[#FDB813] cursor-pointer flex flex-col h-full no-underline"
+      className="relative bg-[#2E2E2E] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all group border-2 border-gray-700 hover:border-[#FDB813] cursor-pointer flex flex-col h-full no-underline"
     >
       <div className="relative aspect-video bg-gray-900">
         <img 
@@ -355,6 +410,12 @@ const VideoCard = memo(({ video }: { video: Video }) => {
           <span>{formatDate(video.date)}</span>
         </div>
       </div>
+
+      {categoryBadge ? (
+        <div className="pointer-events-none absolute top-3 right-3 z-10 rounded-full border border-[#FDB813]/40 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#FDB813] backdrop-blur-sm">
+          {categoryBadge}
+        </div>
+      ) : null}
     </a>
   );
 });
@@ -977,7 +1038,7 @@ export function StoriesPage() {
   const { t } = useTranslation('stories');
   
   const [activeTypeTab, setActiveTypeTab] = useState<'text' | 'video'>('text');
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState<(typeof TAB_CONFIG)[number]['key']>('guinness');
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<'all' | (typeof TAB_CONFIG)[number]['key']>('all');
   const [filterNameInput, setFilterNameInput] = useState<string>('');
   const [filterNameQuery, setFilterNameQuery] = useState<string>('');
   const [publicStories, setPublicStories] = useState<PublicStory[]>([]);
@@ -1134,35 +1195,44 @@ export function StoriesPage() {
   }, [publicStories, extractYouTubeId]);
 
   const selectedCategoryLabel =
-    TAB_CONFIG.find((x) => x.key === selectedCategoryKey)?.label || '';
+    selectedCategoryKey === 'all' ? '' : (TAB_CONFIG.find((x) => x.key === selectedCategoryKey)?.label || '');
+
+  const categoryFilterLabel = t('filters.allCategories', { defaultValue: 'All Testimonies' });
+  const searchPlaceholder = t('filters.searchPlaceholder', { defaultValue: 'Search testimonies by name, keyword, or location...' });
+  const filtersButtonLabel = t('filters.filtersButton', { defaultValue: 'Filters' });
+  const locationLabel = t('filters.location', { defaultValue: 'Location' });
+  const roleLabel = t('filters.role', { defaultValue: 'Role' });
 
   const displayedText = useMemo(() => {
     const q = filterNameQuery.trim().toLowerCase();
 
     return mappedPublicText.filter((it) => {
-      if ((it.category || '') !== selectedCategoryLabel) return false;
-      if (q && !String(it.name || '').toLowerCase().includes(q)) return false;
+      if (selectedCategoryKey !== 'all' && (it.category || '') !== selectedCategoryLabel) return false;
+      if (q) {
+        const hay = `${it.name || ''} ${it.role || ''} ${it.location || ''} ${it.text || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
-  }, [mappedPublicText, selectedCategoryLabel, filterNameQuery]);
+  }, [mappedPublicText, selectedCategoryKey, selectedCategoryLabel, filterNameQuery]);
 
   const displayedVideo = useMemo(() => {
     const q = filterNameQuery.trim().toLowerCase();
 
     return mappedPublicVideos.filter((it) => {
-      if ((it.category || '') !== selectedCategoryLabel) return false;
-      if (q && !String(it.title || '').toLowerCase().includes(q)) return false;
+      if (selectedCategoryKey !== 'all' && (it.category || '') !== selectedCategoryLabel) return false;
+      if (q) {
+        const hay = `${it.title || ''} ${it.role || ''} ${it.location || ''} ${it.description || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
-  }, [mappedPublicVideos, selectedCategoryLabel, filterNameQuery]);
+  }, [mappedPublicVideos, selectedCategoryKey, selectedCategoryLabel, filterNameQuery]);
 
   const textTabLabel = t('typeTabs.text', { defaultValue: 'Text Testimonies' });
   const videoTabLabel = t('typeTabs.video', { defaultValue: 'Video Testimonies' });
   const shareATestimonyLabel = t('actions.shareTestimony', { defaultValue: 'Share a Testimony' });
-  const categoryLabel = t('filters.category', { defaultValue: 'Category' });
   const totalLabel = t('filters.total', { defaultValue: 'Total' });
-  const nameLabel = t('filters.name', { defaultValue: 'Name' });
-  const namePlaceholder = t('filters.namePlaceholder', { defaultValue: 'Search name…' });
   const clearFiltersLabel = t('filters.clear', { defaultValue: 'Clear filters' });
   const prevLabel = t('pagination.previous', { defaultValue: 'Previous' });
   const nextLabel = t('pagination.next', { defaultValue: 'Next' });
@@ -1204,7 +1274,7 @@ export function StoriesPage() {
               ? "bg-[#FDB813] text-black shadow-md ring-2 ring-offset-2 ring-[#FDB813]"
               : "bg-[#2E2E2E] text-white hover:bg-[#FDB813] hover:text-black focus:ring-2 focus:ring-offset-2 focus:ring-[#FDB813]"
           }`}
-          onClick={() => { setActiveTypeTab(tab.key); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          onClick={() => setActiveTypeTab(tab.key)}
           style={{ cursor: "pointer" }}
           aria-selected={isActive}
           role="tab"
@@ -1221,9 +1291,11 @@ export function StoriesPage() {
       style={{ backgroundColor: primaryBackground }}
     >
       {/* Main Content */}
-      <div className="container mx-auto px-2 md:px-4 pt-12 md:pt-30 pb-16">
+      <div className="container mx-auto px-2 md:px-4 pt-24 md:pt-72 lg:pt-80 pb-16">
+        <div id="storiesPageTop" className="scroll-mt-28 md:scroll-mt-44" />
+
         {/* Type Tabs */}
-        <div className="mb-6 my-8">
+        <div className="mb-6 my-8 md:pt-16">
           <div className="flex flex-wrap justify-center gap-2 md:gap-3" role="tablist">
             {typeTabButtons}
           </div>
@@ -1231,87 +1303,103 @@ export function StoriesPage() {
 
           {/* Tab Content */}
           <div className="mt-4" role="tabpanel">
-            {/* Section Header */}
-              <div className="text-center mb-10">
-                <h2 className="text-3xl md:text-4xl text-white mb-2">{activeTypeTab === 'text' ? textTabLabel : videoTabLabel}</h2>
-                <div
-                  className="w-24 h-1 mx-auto rounded-full mb-4"
-                  style={{ backgroundColor: accentGold }}
-                ></div>
-                <div className="mt-5 flex justify-center">
-                  {activeTypeTab === 'video' ? (
-                    <div className="mx-auto max-w-5xl rounded-xl border border-[#FDB813] bg-[#FDB813]/10 px-4 py-3 text-center shadow-[0_0_0_1px_rgba(253,184,19,0.15)] md:px-6">
-                      <p className="text-sm md:text-base font-semibold leading-relaxed text-[#FFE08A]">
-                        {videoShareNotice}
-                      </p>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        document.getElementById('submit-testimony')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }}
-                      className="px-6 py-2 bg-[#FDB813] shadow-lg text-black cursor-pointer rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300"
-                    >
-                      {shareATestimonyLabel}
-                    </button>
-                  )}
+            <div className="mb-10 flex justify-center">
+              {activeTypeTab === 'video' ? (
+                <div className="mx-auto max-w-5xl rounded-xl border border-[#FDB813] bg-[#FDB813]/10 px-4 py-3 text-center shadow-[0_0_0_1px_rgba(253,184,19,0.15)] md:px-6">
+                  <p className="text-sm md:text-base font-semibold leading-relaxed text-[#FFE08A]">
+                    {videoShareNotice}
+                  </p>
                 </div>
-              </div>
-
-              {/* Category dropdown */}
-              <div className="mx-auto mb-8 max-w-xl px-4 md:px-0">
-                <div className="mb-2 flex items-end justify-between gap-3">
-                  <label htmlFor="storiesCategoryFilter" className="block text-sm font-medium text-gray-300">
-                    {categoryLabel}
-                  </label>
-                  <div className="text-xs text-gray-400">
-                    {totalLabel}: <span className="text-[#FDB813] font-semibold">{activeItemsCount}</span>
-                  </div>
-                </div>
-                  <select
-                  id="storiesCategoryFilter"
-                  value={selectedCategoryKey}
-                  onChange={(e) => setSelectedCategoryKey(e.target.value as (typeof TAB_CONFIG)[number]['key'])}
-                  className="w-full px-4 py-2 bg-black rounded-md border border-gray-600 text-white focus:outline-none focus:border-[#FDB813] cursor-pointer"
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.getElementById('submit-testimony')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="inline-flex items-center gap-2 whitespace-nowrap px-6 py-2 bg-[#FDB813] shadow-lg text-black cursor-pointer rounded-full hover:bg-[#e5a711] font-semibold transition-colors duration-300"
                 >
-                  {TAB_CONFIG.map((tab) => (
-                    <option key={tab.key} value={tab.key}>
-                      {tab.label}
-                    </option>
-                  ))}
-                </select>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  {shareATestimonyLabel}
+                </button>
+              )}
+            </div>
 
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="md:col-start-3">
-                    <label htmlFor="storiesFilterName" className="block text-xs font-medium text-gray-400 mb-1">
-                      {nameLabel}
-                    </label>
-                    <input
-                      id="storiesFilterName"
-                      type="text"
-                      value={filterNameInput}
-                      onChange={(e) => setFilterNameInput(e.target.value)}
-                      placeholder={namePlaceholder}
-                      className="w-full px-3 py-2 bg-black rounded-md border border-gray-600 text-white focus:outline-none focus:border-[#FDB813] cursor-text"
-                    />
+              {/* Search + Category + Filters toolbar */}
+              <div className="px-4 md:px-0">
+                <div className="mx-auto w-full">
+                  <div className="h-[2px] w-full bg-gray-700/60" />
+                  <div className="pt-4 pb-6">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                    <div className="relative flex-1">
+                      <div className="group flex h-12 w-full items-center rounded-md border-2 border-gray-700 bg-[#2E2E2E] pl-4 pr-3 focus-within:border-transparent focus-within:ring-2 focus-within:ring-[#FDB813]">
+                        <Search className="pointer-events-none h-5 w-5 flex-shrink-0 text-gray-400 transition-colors group-focus-within:text-yellow-500" />
+                        <input
+                          id="storiesFilterName"
+                          type="text"
+                          value={filterNameInput}
+                          onChange={(e) => setFilterNameInput(e.target.value)}
+                          placeholder={searchPlaceholder}
+                          className="ml-3 flex-1 bg-transparent py-3.5 text-sm text-white placeholder:text-gray-400 outline-none"
+                        />
+                        <button
+                          type="button"
+                          aria-label="Clear search"
+                          disabled={!filterNameInput.trim()}
+                          onClick={() => {
+                            if (!filterNameInput.trim()) return;
+                            setFilterNameInput('');
+                            setFilterNameQuery('');
+                            document.getElementById('storiesFilterName')?.focus();
+                          }}
+                          className="ml-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-300 hover:text-white hover:bg-black/20 focus:outline-none focus:ring-2 focus:ring-[#FDB813] disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-default cursor-pointer"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 md:flex md:items-center md:gap-4">
+                      <select
+                        id="storiesCategoryFilter"
+                        value={selectedCategoryKey}
+                        onChange={(e) => setSelectedCategoryKey(e.target.value as 'all' | (typeof TAB_CONFIG)[number]['key'])}
+                        className="h-12 w-full rounded-md border-2 border-gray-700 bg-[#2E2E2E] px-4 text-sm text-white outline-none focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent md:w-64 cursor-pointer"
+                      >
+                        <option value="all">{categoryFilterLabel}</option>
+                        {TAB_CONFIG.map((tab) => (
+                          <option key={tab.key} value={tab.key}>
+                            {tab.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    {filterNameInput.trim() || selectedCategoryKey !== 'all' ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterNameInput('');
+                          setFilterNameQuery('');
+                          setSelectedCategoryKey('all');
+                        }}
+                        className="text-xs text-gray-300 underline hover:text-white cursor-pointer"
+                      >
+                        {clearFiltersLabel}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-6 h-[2px] w-full bg-gray-700/60" />
+                  <div className="pt-6 text-sm text-gray-300">
+                    {totalLabel}:{' '}
+                    <span className="font-semibold text-white">{activeItemsCount}</span> <span className="text-gray-300">Testimonies</span>
                   </div>
                 </div>
-
-                {(filterNameInput.trim()) ? (
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilterNameInput('');
-                        setFilterNameQuery('');
-                      }}
-                      className="text-xs text-gray-300 underline hover:text-white cursor-pointer"
-                    >
-                      {clearFiltersLabel}
-                    </button>
-                  </div>
-                ) : null}
+                </div>
               </div>
 
               {/* Empty-state when no stories in this selection */}
@@ -1347,7 +1435,12 @@ export function StoriesPage() {
                 <div className="mt-6 flex items-center justify-center gap-3 px-4 md:px-0">
                   <button
                     type="button"
-                    onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+                    onClick={() => {
+                      setPageIndex((p) => Math.max(0, p - 1));
+                      requestAnimationFrame(() => {
+                        document.getElementById('storiesPageTop')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      });
+                    }}
                     disabled={!canPrev}
                     className="px-4 py-2 rounded-full border-2 border-[#FDB813] text-white hover:bg-[#111] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
@@ -1358,7 +1451,12 @@ export function StoriesPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
+                    onClick={() => {
+                      setPageIndex((p) => Math.min(totalPages - 1, p + 1));
+                      requestAnimationFrame(() => {
+                        document.getElementById('storiesPageTop')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      });
+                    }}
                     disabled={!canNext}
                     className="px-4 py-2 rounded-full bg-[#FDB813] text-black hover:bg-[#e5a711] font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
