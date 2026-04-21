@@ -74,14 +74,6 @@ const formatDate = (dateStr?: string | null): string => {
   return dateStr;
 };
 
-interface EventData {
-  id: string;
-  title: string;
-  description: string;
-  testimonials?: Testimonial[];
-  videos?: Video[];
-}
-
 // Tab configuration (used for the page tabs and the event select)
 // Tabs ordered by the new category display names (alphabetical by new label)
 const TAB_CONFIG = [
@@ -143,8 +135,6 @@ const TAB_CONFIG = [
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
-
-  const paragraphs = testimonial.text.split('\\n\\n').filter(p => p.trim());
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
@@ -229,8 +219,16 @@ TestimonialModal.displayName = 'TestimonialModal';
 const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => {
   const [modalOpen, setModalOpen] = useState(false);
   
-  // Memoize sanitized short HTML for the card (keeps allowed tags)
-  const shortHtml = useMemo(() => sanitizeInput(testimonial.text, 200) || '', [testimonial.text]);
+  // Use plain text for the card preview so line-clamp works reliably.
+  const shortText = useMemo(() => {
+    const sanitized = sanitizeInput(testimonial.text, 400) || '';
+    return String(sanitized)
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\u00A0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }, [testimonial.text]);
 
   const handleOpenModal = useCallback(() => {
     setModalOpen(true);
@@ -245,6 +243,14 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
       <div 
         className="bg-[#2E2E2E] p-6 rounded-lg shadow-lg hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-[#FDB813] flex flex-col justify-between h-full" 
         onClick={handleOpenModal}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleOpenModal();
+          }
+        }}
       >
         <div className="flex items-center mb-4">
             <div className="w-16 h-16 rounded-full overflow-hidden mr-4 flex-shrink-0">
@@ -274,10 +280,15 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
             </div>
           </div>
         </div>
-        <div className="text-white text-sm text-left leading-relaxed flex-grow break-words whitespace-normal overflow-hidden max-w-full" style={{ wordBreak: 'normal', overflowWrap: 'break-word' }} dangerouslySetInnerHTML={{ __html: shortHtml }} />
-        <button className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer self-start">
+        <p
+          className="text-white text-sm text-left leading-relaxed flex-grow break-words whitespace-normal max-w-full line-clamp-3"
+          style={{ wordBreak: 'normal', overflowWrap: 'break-word' }}
+        >
+          {shortText}
+        </p>
+        <span className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer self-start">
           Read more →
-        </button>
+        </span>
       </div>
       <TestimonialModal 
         testimonial={testimonial}
@@ -967,6 +978,8 @@ export function StoriesPage() {
   
   const [activeTypeTab, setActiveTypeTab] = useState<'text' | 'video'>('text');
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<(typeof TAB_CONFIG)[number]['key']>('guinness');
+  const [filterNameInput, setFilterNameInput] = useState<string>('');
+  const [filterNameQuery, setFilterNameQuery] = useState<string>('');
   const [publicStories, setPublicStories] = useState<PublicStory[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({});
 
@@ -975,7 +988,16 @@ export function StoriesPage() {
 
   useEffect(() => {
     setPageIndex(0);
-  }, [activeTypeTab, selectedCategoryKey]);
+  }, [activeTypeTab, selectedCategoryKey, filterNameQuery]);
+
+  // Debounce name search so filtering happens only after the user pauses typing.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setFilterNameQuery(filterNameInput);
+    }, 350);
+
+    return () => clearTimeout(handle);
+  }, [filterNameInput]);
 
   // fetch public stories from DB (approved & visible)
   useEffect(() => {
@@ -1115,18 +1137,33 @@ export function StoriesPage() {
     TAB_CONFIG.find((x) => x.key === selectedCategoryKey)?.label || '';
 
   const displayedText = useMemo(() => {
-    return mappedPublicText.filter(t => (t.category || '') === selectedCategoryLabel);
-  }, [mappedPublicText, selectedCategoryLabel]);
+    const q = filterNameQuery.trim().toLowerCase();
+
+    return mappedPublicText.filter((it) => {
+      if ((it.category || '') !== selectedCategoryLabel) return false;
+      if (q && !String(it.name || '').toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [mappedPublicText, selectedCategoryLabel, filterNameQuery]);
 
   const displayedVideo = useMemo(() => {
-    return mappedPublicVideos.filter(v => (v.category || '') === selectedCategoryLabel);
-  }, [mappedPublicVideos, selectedCategoryLabel]);
+    const q = filterNameQuery.trim().toLowerCase();
+
+    return mappedPublicVideos.filter((it) => {
+      if ((it.category || '') !== selectedCategoryLabel) return false;
+      if (q && !String(it.title || '').toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [mappedPublicVideos, selectedCategoryLabel, filterNameQuery]);
 
   const textTabLabel = t('typeTabs.text', { defaultValue: 'Text Testimonies' });
   const videoTabLabel = t('typeTabs.video', { defaultValue: 'Video Testimonies' });
   const shareATestimonyLabel = t('actions.shareTestimony', { defaultValue: 'Share a Testimony' });
   const categoryLabel = t('filters.category', { defaultValue: 'Category' });
   const totalLabel = t('filters.total', { defaultValue: 'Total' });
+  const nameLabel = t('filters.name', { defaultValue: 'Name' });
+  const namePlaceholder = t('filters.namePlaceholder', { defaultValue: 'Search name…' });
+  const clearFiltersLabel = t('filters.clear', { defaultValue: 'Clear filters' });
   const prevLabel = t('pagination.previous', { defaultValue: 'Previous' });
   const nextLabel = t('pagination.next', { defaultValue: 'Next' });
   const pageLabel = t('pagination.page', { defaultValue: 'Page' });
@@ -1232,10 +1269,10 @@ export function StoriesPage() {
                     {totalLabel}: <span className="text-[#FDB813] font-semibold">{activeItemsCount}</span>
                   </div>
                 </div>
-                <select
+                  <select
                   id="storiesCategoryFilter"
                   value={selectedCategoryKey}
-                  onChange={(e) => setSelectedCategoryKey(e.target.value as any)}
+                  onChange={(e) => setSelectedCategoryKey(e.target.value as (typeof TAB_CONFIG)[number]['key'])}
                   className="w-full px-4 py-2 bg-black rounded-md border border-gray-600 text-white focus:outline-none focus:border-[#FDB813] cursor-pointer"
                 >
                   {TAB_CONFIG.map((tab) => (
@@ -1244,6 +1281,37 @@ export function StoriesPage() {
                     </option>
                   ))}
                 </select>
+
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-start-3">
+                    <label htmlFor="storiesFilterName" className="block text-xs font-medium text-gray-400 mb-1">
+                      {nameLabel}
+                    </label>
+                    <input
+                      id="storiesFilterName"
+                      type="text"
+                      value={filterNameInput}
+                      onChange={(e) => setFilterNameInput(e.target.value)}
+                      placeholder={namePlaceholder}
+                      className="w-full px-3 py-2 bg-black rounded-md border border-gray-600 text-white focus:outline-none focus:border-[#FDB813] cursor-text"
+                    />
+                  </div>
+                </div>
+
+                {(filterNameInput.trim()) ? (
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterNameInput('');
+                        setFilterNameQuery('');
+                      }}
+                      className="text-xs text-gray-300 underline hover:text-white cursor-pointer"
+                    >
+                      {clearFiltersLabel}
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               {/* Empty-state when no stories in this selection */}
@@ -1256,7 +1324,7 @@ export function StoriesPage() {
               {/* Paged content */}
               {activeTypeTab === 'text' && pagedText.length > 0 ? (
                 <div className="mb-10">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
                     {pagedText.map((testimonial) => (
                       <TestimonialCard key={`disp-${testimonial.id}`} testimonial={testimonial} />
                     ))}
@@ -1266,7 +1334,7 @@ export function StoriesPage() {
 
               {activeTypeTab === 'video' && pagedVideo.length > 0 ? (
                 <div className="mb-10">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 md:px-0 items-stretch">
                     {pagedVideo.map((video) => (
                       <VideoCard key={`disp-${video.id}`} video={video} />
                     ))}

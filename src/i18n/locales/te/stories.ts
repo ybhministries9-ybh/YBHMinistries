@@ -23,7 +23,10 @@ export default {
 
   filters: {
     category: "వర్గం",
-    total: "మొత్తం"
+    total: "మొత్తం",
+    name: "పేరు",
+    namePlaceholder: "పేరుతో వెతకండి...",
+    clear: "ఫిల్టర్లు తొలగించండి",
   },
 
   pagination: {

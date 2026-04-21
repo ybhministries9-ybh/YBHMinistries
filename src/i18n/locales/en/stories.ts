@@ -23,7 +23,10 @@ export default {
 
   filters: {
     category: "Category",
-    total: "Total"
+    total: "Total",
+    name: "Name",
+    namePlaceholder: "Search name...",
+    clear: "Clear filters"
   },
 
   pagination: {
