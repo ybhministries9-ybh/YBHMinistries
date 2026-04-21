@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
 
 export default function FlashNewsOverlay({ enabled, videoUrl }: Props) {
   const [isClosed, setIsClosed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const isOpen = enabled && Boolean(videoUrl) && !isClosed;
 
@@ -35,6 +36,39 @@ export default function FlashNewsOverlay({ enabled, videoUrl }: Props) {
     };
   }, [isOpen]);
 
+  // Autoplay on open (fallback to muted autoplay if the browser blocks sound).
+  useEffect(() => {
+    if (!isOpen || !videoUrl) return;
+
+    const el = videoRef.current;
+    if (!el) return;
+
+    let cancelled = false;
+
+    const tryPlay = async (muted: boolean) => {
+      if (cancelled) return false;
+      try {
+        el.muted = muted;
+        await el.play();
+        return !el.paused;
+      } catch {
+        return false;
+      }
+    };
+
+    void (async () => {
+      // First attempt: normal playback.
+      const ok = await tryPlay(false);
+      if (ok) return;
+      // Fallback: autoplay may require muted.
+      await tryPlay(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, videoUrl]);
+
   if (!isOpen) return null;
 
   return (
@@ -56,10 +90,13 @@ export default function FlashNewsOverlay({ enabled, videoUrl }: Props) {
           <div className="w-full h-full flex items-center justify-center bg-black">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video
+              ref={videoRef}
               className="w-full h-full object-contain bg-black"
               controls
               playsInline
+              autoPlay
               controlsList="nodownload"
+              preload="auto"
               onContextMenu={(e) => e.preventDefault()}
             >
               <source src={videoUrl} type="video/mp4" />

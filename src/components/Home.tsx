@@ -8,9 +8,10 @@ import { useTranslation } from 'react-i18next';
 import logger from '../lib/logger';
 import { ScrollToTop } from './ScrollToTop';
 import { EventScrollBanner } from './EventScrollBanner';
-import { getUpcomingEvents, Event } from '../utils/eventsData';
+import { getUpcomingEvents, type Event as EventType } from '../utils/eventsData';
 
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+const MINISTRY_IN_ACTION_PLAY_EVENT = 'ministryInActionPlay';
 
 // ImageWithFallback component for handling image loading errors
 function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElement>) {
@@ -34,8 +35,8 @@ function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElement>) {
 // Lazy-loaded Video Section Component for improved performance
 function VideoSection() {
   const { t } = useTranslation('home');
-  const videoRef = useRef(null);
-  const sectionRef = useRef(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
   const [isVideoVisible, setIsVideoVisible] = useState(false);
   const [videoData, setVideoData] = useState<{
     videoUrl: string;
@@ -96,6 +97,48 @@ function VideoSection() {
       }
     };
   }, [isVideoVisible]);
+
+  // Allow other parts of the page (hero overlay button) to request autoplay.
+  useEffect(() => {
+    const onPlayRequest = () => {
+      setIsVideoVisible(true);
+
+      const tryPlay = () => {
+        const el = videoRef.current;
+        if (!el) return false;
+
+        try {
+          el.load?.();
+          const p = el.play();
+          if (p && typeof (p as Promise<void>).catch === 'function') {
+            (p as Promise<void>).catch(() => {
+              try {
+                el.muted = true;
+                void el.play();
+              } catch {}
+            });
+          }
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      // Retry briefly in case the <video> isn't mounted yet.
+      let attempts = 0;
+      const maxAttempts = 25; // ~2.5s
+      const tick = () => {
+        attempts += 1;
+        if (tryPlay()) return;
+        if (attempts >= maxAttempts) return;
+        setTimeout(tick, 100);
+      };
+      tick();
+    };
+
+    window.addEventListener(MINISTRY_IN_ACTION_PLAY_EVENT, onPlayRequest as EventListener);
+    return () => window.removeEventListener(MINISTRY_IN_ACTION_PLAY_EVENT, onPlayRequest as EventListener);
+  }, []);
 
   return (
     <section id="ministry-in-action" ref={sectionRef} className="pt-10 pb-10 px-4 md:px-16 lg:px-24 bg-black">
@@ -398,7 +441,7 @@ interface HomeProps {
 export function Home({ initialHeroImages }: HomeProps) {
   const { t } = useTranslation('home');
   const router = useRouter();
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<EventType[]>([]);
   const [heroImages, setHeroImages] = useState<string[]>(initialHeroImages || []);
   const [isLoading, setIsLoading] = useState(!initialHeroImages || initialHeroImages.length === 0);
   
@@ -513,6 +556,11 @@ export function Home({ initialHeroImages }: HomeProps) {
     window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
   };
 
+  const handleMinistryInActionClick = () => {
+    scrollToMinistryInAction();
+    window.dispatchEvent(new window.Event(MINISTRY_IN_ACTION_PLAY_EVENT));
+  };
+
   return (
     <div className="w-full min-h-screen bg-black text-white home-pill-buttons">
       {/* Hero Section - Image Slideshow */}
@@ -526,7 +574,7 @@ export function Home({ initialHeroImages }: HomeProps) {
             </div>
           </div>
         ) : (
-          <ImageCarousel images={heroImages} interval={3000} onOverlayClick={scrollToMinistryInAction} />
+          <ImageCarousel images={heroImages} interval={3000} onOverlayClick={handleMinistryInActionClick} />
         )}
         
         {/* Event Scroll Banner - Only show when there are upcoming events */}
