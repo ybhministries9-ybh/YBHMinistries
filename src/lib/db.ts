@@ -1047,7 +1047,7 @@ export async function getAllStories(): Promise<Story[]> {
 export async function getVisibleApprovedStories(): Promise<any[]> {
   try {
     const { rows } = await sql`
-      SELECT id, title, location, role, status, category, body, media_type, video_url, thumbnail_url, date, created_by, email, phone
+      SELECT id, title, location, role, status, category, body, media_type, video_url, thumbnail_url, date, created_at, created_by, email, phone
       FROM stories
       WHERE is_active = true AND is_visible = true AND status = 'Approved'
       ORDER BY created_at ASC

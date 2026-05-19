@@ -38,6 +38,7 @@ interface PublicStory {
   video_url?: string | null;
   thumbnail_url?: string | null;
   date?: string | null;
+  created_at?: string | null;
   created_by?: string | null;
   email?: string | null;
 }
@@ -47,6 +48,7 @@ interface Video {
   videoId: string;
   title: string;
   date: string;
+  createdAt?: string;
   description: string;
   location?: string;
   role?: string;
@@ -1201,12 +1203,18 @@ export function StoriesPage() {
         videoId: extractYouTubeId(s.video_url) || (s.video_url || '').replace(/.*\//, ''),
         title: s.title || 'Video Story',
         date: s.date || '',
+        createdAt: s.created_at || '',
         description: s.body || '',
         // Use the story `location` field as the displayed location
         location: s.location || '',
         role: s.role || '',
         category: s.category || ''
-      }));
+      }))
+      .sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return aTime - bTime;
+      });
   }, [publicStories, extractYouTubeId]);
 
   const selectedCategoryLabel =
