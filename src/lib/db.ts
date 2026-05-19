@@ -1050,7 +1050,7 @@ export async function getVisibleApprovedStories(): Promise<any[]> {
       SELECT id, title, location, role, status, category, body, media_type, video_url, thumbnail_url, date, created_by, email, phone
       FROM stories
       WHERE is_active = true AND is_visible = true AND status = 'Approved'
-      ORDER BY created_at DESC
+      ORDER BY created_at ASC
     `;
     return rows;
   } catch (error) {

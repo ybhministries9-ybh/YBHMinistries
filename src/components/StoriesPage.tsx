@@ -297,33 +297,40 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
           }
         }}
       >
-        <div className="flex items-center mb-4">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center">
             <div className="w-16 h-16 rounded-full overflow-hidden mr-4 flex-shrink-0">
-            <ImageWithFallback 
-              src={testimonial.image} 
-              alt={testimonial.name} 
-              className="w-full h-full object-cover"
-              fallbackVariant="person"
-              fallbackIconClassName="text-white"
-              fallbackBgClassName="bg-[#1f1f1f]"
-                  fallbackIconSize={40}
-            />
-          </div>
-          <div className="text-left">
-            <h4 className="text-white font-medium">{testimonial.name}</h4>
-            <p className="text-white text-sm">{testimonial.role}</p>
-            {/* Do not display email or phone in public testimonial cards */}
-            <div className="flex flex-col text-white text-xs mt-1 gap-0.5">
-              <div className="flex items-center">
-                <Calendar size={12} className="mr-1" />
-                <span>{formatDate(testimonial.date)}</span>
-              </div>
-              <div className="flex items-center">
-                <MapPin size={12} className="mr-1" />
-                <span>{testimonial.location}</span>
+              <ImageWithFallback 
+                src={testimonial.image} 
+                alt={testimonial.name} 
+                className="w-full h-full object-cover"
+                fallbackVariant="person"
+                fallbackIconClassName="text-white"
+                fallbackBgClassName="bg-[#1f1f1f]"
+                fallbackIconSize={40}
+              />
+            </div>
+            <div className="min-w-0 text-left">
+              <h4 className="text-white font-medium">{testimonial.name}</h4>
+              <p className="text-white text-sm">{testimonial.role}</p>
+              {/* Do not display email or phone in public testimonial cards */}
+              <div className="flex flex-col text-white text-xs mt-1 gap-0.5">
+                <div className="flex items-center">
+                  <Calendar size={12} className="mr-1" />
+                  <span>{formatDate(testimonial.date)}</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin size={12} className="mr-1" />
+                  <span>{testimonial.location}</span>
+                </div>
               </div>
             </div>
           </div>
+          {categoryBadge ? (
+            <div className="pointer-events-none flex-shrink-0 rounded-full border border-[#FDB813]/40 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#FDB813] backdrop-blur-sm">
+              {categoryBadge}
+            </div>
+          ) : null}
         </div>
 
         <div
@@ -347,11 +354,6 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
         <span className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer self-start">
           Read more →
         </span>
-        {categoryBadge ? (
-          <div className="pointer-events-none absolute top-4 right-4 rounded-full border border-[#FDB813]/40 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#FDB813] backdrop-blur-sm">
-            {categoryBadge}
-          </div>
-        ) : null}
       </div>
       <TestimonialModal 
         testimonial={testimonial}
