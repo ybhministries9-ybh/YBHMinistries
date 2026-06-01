@@ -211,9 +211,11 @@ const TAB_CONFIG = [
             <Quote className="text-gray-400 opacity-20 mb-4" size={48} />
               <div className={`${isFullscreen ? 'max-w-4xl mx-auto' : ''}`}>
                 <div
-                  className={`text-white ${isFullscreen ? 'text-lg md:text-xl' : 'text-base md:text-lg'} leading-relaxed mb-4 break-words whitespace-normal`}
+                  className={`text-white ${isFullscreen ? 'text-lg md:text-xl' : 'text-base md:text-lg'} leading-relaxed mb-4 break-words whitespace-pre-wrap`}
                   style={{ overflowWrap: 'break-word', wordBreak: 'normal' }}
-                  dangerouslySetInnerHTML={{ __html: sanitizeInput(testimonial.text) || '' }}
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeInput(testimonial.text, 0, { preserveWhitespace: true }) || ''
+                  }}
                 />
               </div>
           </div>

@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     const role = sanitizeInput(body.role, 100);
     const categoryKey = sanitizeInput(body.category, 50);
     const location = sanitizeInput(body.location, 100);
-    const testimony = sanitizeInput(body.testimony, 5000);
+    const testimony = sanitizeInput(body.testimony, 5000, { preserveWhitespace: true });
     const thumbnailUrl = typeof body.thumbnail_url === 'string' ? body.thumbnail_url.trim().slice(0, 500) : null;
 
     const parsed = storySchema.safeParse({ name, email: email || undefined, phone: phone || undefined, role, category: categoryKey, location, testimony });

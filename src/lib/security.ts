@@ -4,7 +4,11 @@ type RateEntry = { count: number; windowStart: number };
 // but provides immediate protection for development and single-instance hosts.
 const RATE_LIMIT_STORE: Map<string, RateEntry> = (globalThis as any).__RATE_LIMIT_STORE ||= new Map();
 
-export function sanitizeInput(input: any, maxLength = 2000) {
+type SanitizeOptions = {
+  preserveWhitespace?: boolean;
+};
+
+export function sanitizeInput(input: any, maxLength = 2000, options: SanitizeOptions = {}) {
   if (input === undefined || input === null) return null;
   let s = String(input);
   // Allow a small whitelist of harmless formatting tags while stripping
@@ -28,8 +32,12 @@ export function sanitizeInput(input: any, maxLength = 2000) {
       return '';
     });
 
-    // Collapse whitespace and trim
-    s = s.replace(/\s+/g, ' ').trim();
+    if (options.preserveWhitespace) {
+      s = s.trim();
+    } else {
+      // Collapse whitespace and trim
+      s = s.replace(/\s+/g, ' ').trim();
+    }
     // Truncate the textual content to maxLength characters for safety
     if (maxLength) {
       // Strip tags to count text length, then truncate text and return.
@@ -42,7 +50,7 @@ export function sanitizeInput(input: any, maxLength = 2000) {
     return s;
   } catch (e) {
     let out = String(input).replace(/<[^>]*>/g, '');
-    out = out.replace(/\s+/g, ' ').trim();
+    out = options.preserveWhitespace ? out.trim() : out.replace(/\s+/g, ' ').trim();
     if (maxLength && out.length > maxLength) out = out.substring(0, maxLength);
     return out;
   }
