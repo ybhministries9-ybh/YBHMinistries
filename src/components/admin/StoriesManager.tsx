@@ -30,7 +30,9 @@ interface Story {
   // Text story fields
   name?: string;
   email?: string;
-  phone?: string;
+  phone?: string;       // combined value stored in DB: e.g. "+911234567890"
+  phoneCode?: string;   // UI-only: country dial code, e.g. "+91"
+  phoneNumber?: string; // UI-only: 10-digit number part
   role?: string;
   location?: string;
   image?: string;
@@ -63,6 +65,226 @@ interface ValidationErrors {
   title?: string;
   youtubeUrl?: string;
   image?: string;
+}
+
+// Country dial codes for phone field
+const COUNTRY_CODES: { code: string; label: string }[] = [
+  { code: '+1', label: '+1 (US/Canada)' },
+  { code: '+7', label: '+7 (Russia/Kazakhstan)' },
+  { code: '+20', label: '+20 (Egypt)' },
+  { code: '+27', label: '+27 (South Africa)' },
+  { code: '+30', label: '+30 (Greece)' },
+  { code: '+31', label: '+31 (Netherlands)' },
+  { code: '+32', label: '+32 (Belgium)' },
+  { code: '+33', label: '+33 (France)' },
+  { code: '+34', label: '+34 (Spain)' },
+  { code: '+36', label: '+36 (Hungary)' },
+  { code: '+39', label: '+39 (Italy)' },
+  { code: '+40', label: '+40 (Romania)' },
+  { code: '+41', label: '+41 (Switzerland)' },
+  { code: '+43', label: '+43 (Austria)' },
+  { code: '+44', label: '+44 (UK)' },
+  { code: '+45', label: '+45 (Denmark)' },
+  { code: '+46', label: '+46 (Sweden)' },
+  { code: '+47', label: '+47 (Norway)' },
+  { code: '+48', label: '+48 (Poland)' },
+  { code: '+49', label: '+49 (Germany)' },
+  { code: '+51', label: '+51 (Peru)' },
+  { code: '+52', label: '+52 (Mexico)' },
+  { code: '+53', label: '+53 (Cuba)' },
+  { code: '+54', label: '+54 (Argentina)' },
+  { code: '+55', label: '+55 (Brazil)' },
+  { code: '+56', label: '+56 (Chile)' },
+  { code: '+57', label: '+57 (Colombia)' },
+  { code: '+58', label: '+58 (Venezuela)' },
+  { code: '+60', label: '+60 (Malaysia)' },
+  { code: '+61', label: '+61 (Australia)' },
+  { code: '+62', label: '+62 (Indonesia)' },
+  { code: '+63', label: '+63 (Philippines)' },
+  { code: '+64', label: '+64 (New Zealand)' },
+  { code: '+65', label: '+65 (Singapore)' },
+  { code: '+66', label: '+66 (Thailand)' },
+  { code: '+81', label: '+81 (Japan)' },
+  { code: '+82', label: '+82 (South Korea)' },
+  { code: '+84', label: '+84 (Vietnam)' },
+  { code: '+86', label: '+86 (China)' },
+  { code: '+90', label: '+90 (Turkey)' },
+  { code: '+91', label: '+91 (India)' },
+  { code: '+92', label: '+92 (Pakistan)' },
+  { code: '+93', label: '+93 (Afghanistan)' },
+  { code: '+94', label: '+94 (Sri Lanka)' },
+  { code: '+95', label: '+95 (Myanmar)' },
+  { code: '+98', label: '+98 (Iran)' },
+  { code: '+212', label: '+212 (Morocco)' },
+  { code: '+213', label: '+213 (Algeria)' },
+  { code: '+216', label: '+216 (Tunisia)' },
+  { code: '+218', label: '+218 (Libya)' },
+  { code: '+220', label: '+220 (Gambia)' },
+  { code: '+221', label: '+221 (Senegal)' },
+  { code: '+222', label: '+222 (Mauritania)' },
+  { code: '+223', label: '+223 (Mali)' },
+  { code: '+224', label: '+224 (Guinea)' },
+  { code: '+225', label: '+225 (Ivory Coast)' },
+  { code: '+226', label: '+226 (Burkina Faso)' },
+  { code: '+227', label: '+227 (Niger)' },
+  { code: '+228', label: '+228 (Togo)' },
+  { code: '+229', label: '+229 (Benin)' },
+  { code: '+230', label: '+230 (Mauritius)' },
+  { code: '+231', label: '+231 (Liberia)' },
+  { code: '+232', label: '+232 (Sierra Leone)' },
+  { code: '+233', label: '+233 (Ghana)' },
+  { code: '+234', label: '+234 (Nigeria)' },
+  { code: '+235', label: '+235 (Chad)' },
+  { code: '+236', label: '+236 (Central African Republic)' },
+  { code: '+237', label: '+237 (Cameroon)' },
+  { code: '+238', label: '+238 (Cape Verde)' },
+  { code: '+239', label: '+239 (São Tomé and Príncipe)' },
+  { code: '+240', label: '+240 (Equatorial Guinea)' },
+  { code: '+241', label: '+241 (Gabon)' },
+  { code: '+242', label: '+242 (Republic of the Congo)' },
+  { code: '+243', label: '+243 (DR Congo)' },
+  { code: '+244', label: '+244 (Angola)' },
+  { code: '+245', label: '+245 (Guinea-Bissau)' },
+  { code: '+246', label: '+246 (British Indian Ocean Territory)' },
+  { code: '+248', label: '+248 (Seychelles)' },
+  { code: '+249', label: '+249 (Sudan)' },
+  { code: '+250', label: '+250 (Rwanda)' },
+  { code: '+251', label: '+251 (Ethiopia)' },
+  { code: '+252', label: '+252 (Somalia)' },
+  { code: '+253', label: '+253 (Djibouti)' },
+  { code: '+254', label: '+254 (Kenya)' },
+  { code: '+255', label: '+255 (Tanzania)' },
+  { code: '+256', label: '+256 (Uganda)' },
+  { code: '+257', label: '+257 (Burundi)' },
+  { code: '+258', label: '+258 (Mozambique)' },
+  { code: '+260', label: '+260 (Zambia)' },
+  { code: '+261', label: '+261 (Madagascar)' },
+  { code: '+262', label: '+262 (Reunion)' },
+  { code: '+263', label: '+263 (Zimbabwe)' },
+  { code: '+264', label: '+264 (Namibia)' },
+  { code: '+265', label: '+265 (Malawi)' },
+  { code: '+266', label: '+266 (Lesotho)' },
+  { code: '+267', label: '+267 (Botswana)' },
+  { code: '+268', label: '+268 (Swaziland)' },
+  { code: '+269', label: '+269 (Comoros)' },
+  { code: '+290', label: '+290 (Saint Helena)' },
+  { code: '+291', label: '+291 (Eritrea)' },
+  { code: '+297', label: '+297 (Aruba)' },
+  { code: '+298', label: '+298 (Faroe Islands)' },
+  { code: '+299', label: '+299 (Greenland)' },
+  { code: '+350', label: '+350 (Gibraltar)' },
+  { code: '+351', label: '+351 (Portugal)' },
+  { code: '+352', label: '+352 (Luxembourg)' },
+  { code: '+353', label: '+353 (Ireland)' },
+  { code: '+354', label: '+354 (Iceland)' },
+  { code: '+355', label: '+355 (Albania)' },
+  { code: '+356', label: '+356 (Malta)' },
+  { code: '+357', label: '+357 (Cyprus)' },
+  { code: '+358', label: '+358 (Finland)' },
+  { code: '+359', label: '+359 (Bulgaria)' },
+  { code: '+370', label: '+370 (Lithuania)' },
+  { code: '+371', label: '+371 (Latvia)' },
+  { code: '+372', label: '+372 (Estonia)' },
+  { code: '+373', label: '+373 (Moldova)' },
+  { code: '+374', label: '+374 (Armenia)' },
+  { code: '+375', label: '+375 (Belarus)' },
+  { code: '+376', label: '+376 (Andorra)' },
+  { code: '+377', label: '+377 (Monaco)' },
+  { code: '+380', label: '+380 (Ukraine)' },
+  { code: '+381', label: '+381 (Serbia)' },
+  { code: '+382', label: '+382 (Montenegro)' },
+  { code: '+385', label: '+385 (Croatia)' },
+  { code: '+386', label: '+386 (Slovenia)' },
+  { code: '+387', label: '+387 (Bosnia and Herzegovina)' },
+  { code: '+389', label: '+389 (Macedonia)' },
+  { code: '+420', label: '+420 (Czech Republic)' },
+  { code: '+421', label: '+421 (Slovakia)' },
+  { code: '+423', label: '+423 (Liechtenstein)' },
+  { code: '+500', label: '+500 (Falkland Islands)' },
+  { code: '+501', label: '+501 (Belize)' },
+  { code: '+502', label: '+502 (Guatemala)' },
+  { code: '+503', label: '+503 (El Salvador)' },
+  { code: '+504', label: '+504 (Honduras)' },
+  { code: '+505', label: '+505 (Nicaragua)' },
+  { code: '+506', label: '+506 (Costa Rica)' },
+  { code: '+507', label: '+507 (Panama)' },
+  { code: '+508', label: '+508 (Saint Pierre and Miquelon)' },
+  { code: '+509', label: '+509 (Haiti)' },
+  { code: '+590', label: '+590 (Guadeloupe)' },
+  { code: '+591', label: '+591 (Bolivia)' },
+  { code: '+592', label: '+592 (Guyana)' },
+  { code: '+593', label: '+593 (Ecuador)' },
+  { code: '+594', label: '+594 (French Guiana)' },
+  { code: '+595', label: '+595 (Paraguay)' },
+  { code: '+596', label: '+596 (Martinique)' },
+  { code: '+597', label: '+597 (Suriname)' },
+  { code: '+598', label: '+598 (Uruguay)' },
+  { code: '+599', label: '+599 (Netherlands Antilles)' },
+  { code: '+670', label: '+670 (East Timor)' },
+  { code: '+672', label: '+672 (Norfolk Island)' },
+  { code: '+673', label: '+673 (Brunei)' },
+  { code: '+674', label: '+674 (Nauru)' },
+  { code: '+675', label: '+675 (Papua New Guinea)' },
+  { code: '+676', label: '+676 (Tonga)' },
+  { code: '+677', label: '+677 (Solomon Islands)' },
+  { code: '+678', label: '+678 (Vanuatu)' },
+  { code: '+679', label: '+679 (Fiji)' },
+  { code: '+680', label: '+680 (Palau)' },
+  { code: '+682', label: '+682 (Cook Islands)' },
+  { code: '+685', label: '+685 (Samoa)' },
+  { code: '+686', label: '+686 (Kiribati)' },
+  { code: '+688', label: '+688 (Tuvalu)' },
+  { code: '+689', label: '+689 (French Polynesia)' },
+  { code: '+690', label: '+690 (Tokelau)' },
+  { code: '+691', label: '+691 (Micronesia)' },
+  { code: '+692', label: '+692 (Marshall Islands)' },
+  { code: '+850', label: '+850 (North Korea)' },
+  { code: '+852', label: '+852 (Hong Kong)' },
+  { code: '+853', label: '+853 (Macau)' },
+  { code: '+855', label: '+855 (Cambodia)' },
+  { code: '+856', label: '+856 (Laos)' },
+  { code: '+880', label: '+880 (Bangladesh)' },
+  { code: '+886', label: '+886 (Taiwan)' },
+  { code: '+960', label: '+960 (Maldives)' },
+  { code: '+961', label: '+961 (Lebanon)' },
+  { code: '+962', label: '+962 (Jordan)' },
+  { code: '+963', label: '+963 (Syria)' },
+  { code: '+964', label: '+964 (Iraq)' },
+  { code: '+965', label: '+965 (Kuwait)' },
+  { code: '+966', label: '+966 (Saudi Arabia)' },
+  { code: '+967', label: '+967 (Yemen)' },
+  { code: '+968', label: '+968 (Oman)' },
+  { code: '+970', label: '+970 (Palestine)' },
+  { code: '+971', label: '+971 (UAE)' },
+  { code: '+972', label: '+972 (Israel)' },
+  { code: '+973', label: '+973 (Bahrain)' },
+  { code: '+974', label: '+974 (Qatar)' },
+  { code: '+975', label: '+975 (Bhutan)' },
+  { code: '+976', label: '+976 (Mongolia)' },
+  { code: '+977', label: '+977 (Nepal)' },
+  { code: '+992', label: '+992 (Tajikistan)' },
+  { code: '+993', label: '+993 (Turkmenistan)' },
+  { code: '+994', label: '+994 (Azerbaijan)' },
+  { code: '+995', label: '+995 (Georgia)' },
+  { code: '+996', label: '+996 (Kyrgyzstan)' },
+  { code: '+998', label: '+998 (Uzbekistan)' },
+];
+
+// Sort codes longest-first for reliable parsing
+const SORTED_COUNTRY_CODES = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+
+/** Parse a combined phone string into { phoneCode, phoneNumber }. */
+function parsePhoneField(combined: string): { phoneCode: string; phoneNumber: string } {
+  if (!combined) return { phoneCode: '+91', phoneNumber: '' };
+  if (combined.startsWith('+')) {
+    for (const c of SORTED_COUNTRY_CODES) {
+      if (combined.startsWith(c.code)) {
+        return { phoneCode: c.code, phoneNumber: combined.slice(c.code.length) };
+      }
+    }
+  }
+  // No code found – treat whole value as number, default code India
+  return { phoneCode: '+91', phoneNumber: combined };
 }
 
 const ALL_CATEGORY = 'All';
@@ -420,7 +642,9 @@ export function StoriesManager() {
     if (type === 'text') {
       const name = row.title || existing?.name || '';
       const email = row.email || existing?.email || '';
-      const phone = row.phone || existing?.phone || '';
+      const rawPhone = row.phone || existing?.phone || '';
+      const { phoneCode, phoneNumber } = parsePhoneField(rawPhone);
+      const phone = rawPhone;
       // Prefer explicit role/location columns if present, otherwise fall back to legacy `summary` parsing
       let role = '';
       let location = '';
@@ -446,6 +670,8 @@ export function StoriesManager() {
         name,
         email,
         phone,
+        phoneCode,
+        phoneNumber,
         role,
         location,
         image: (row as any).signedThumbUrl || row.thumbnail_url || existing?.image || '',
@@ -494,14 +720,14 @@ export function StoriesManager() {
         }
       }
 
-      if (!story.phone?.trim()) {
+      if (!story.phoneNumber?.trim()) {
         errors.phone = 'Phone is required';
       } else {
-        const phoneRe = /^[0-9+()\-\.\s]+$/;
-        if (!phoneRe.test(story.phone)) {
-          errors.phone = 'Invalid phone number';
-        } else if (story.phone.length > CHAR_LIMITS.phone) {
-          errors.phone = `Phone must be ${CHAR_LIMITS.phone} characters or less`;
+        const phoneRe = /^[0-9]{1,10}$/;
+        if (!phoneRe.test(story.phoneNumber)) {
+          errors.phone = 'Phone must contain digits only (max 10)';
+        } else if (story.phoneNumber.length > CHAR_LIMITS.phone) {
+          errors.phone = `Phone must be ${CHAR_LIMITS.phone} digits or less`;
         }
       }
 
@@ -787,7 +1013,10 @@ export function StoriesManager() {
       text: '',
       status: 'Submitted',
       featured: false,
-      is_visible: true
+      is_visible: true,
+      phone: '',
+      phoneCode: '+91',
+      phoneNumber: '',
     };
     setStories(prev => [newStory, ...prev]);
     setEditingId(newStory.id);
@@ -892,7 +1121,10 @@ export function StoriesManager() {
         image: '',
         text: '',
         status: 'Submitted',
-        featured: false
+        featured: false,
+        phone: '',
+        phoneCode: '+91',
+        phoneNumber: '',
       };
       setStories(prev => [newStory, ...prev]);
       setEditingId(newStory.id);
@@ -937,7 +1169,10 @@ export function StoriesManager() {
         image: '',
         text: '',
         status: 'Submitted',
-        featured: false
+        featured: false,
+        phone: '',
+        phoneCode: '+91',
+        phoneNumber: '',
       };
       setStories(prev => [newStory, ...prev]);
       setEditingId(newStory.id);
@@ -1001,8 +1236,17 @@ export function StoriesManager() {
       value = value.replace(/\d/g, '');
     }
 
-    // Single state update using functional setter to avoid stale closures
-    setStories(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+    // When phoneCode or phoneNumber changes, keep phone (combined) in sync
+    setStories(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      const updated = { ...s, [field]: value };
+      if (field === 'phoneCode' || field === 'phoneNumber') {
+        const code = field === 'phoneCode' ? value : (s.phoneCode || '+91');
+        const num = field === 'phoneNumber' ? value : (s.phoneNumber || '');
+        updated.phone = `${code}${num}`;
+      }
+      return updated;
+    }));
 
     // Clear validation error for this field when user starts typing
     setValidationErrors(prev => {
@@ -1407,17 +1651,33 @@ export function StoriesManager() {
 
                       {/* Phone */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300">Phone <span className="text-red-500">*</span> <span className="text-xs text-gray-500 ml-2">({(story.phone||'').length}/{CHAR_LIMITS.phone})</span></Label>
-                        <Input
-                          value={story.phone || ''}
-                          onChange={(e) => handleUpdate(story.id, 'phone', e.target.value.slice(0, CHAR_LIMITS.phone))}
-                          placeholder="Phone number"
-                          className={`!bg-black border-gray-600 text-white ${
-                            validationErrors[story.id]?.phone ? 'border-red-500' : ''
-                          }`}
-                          maxLength={CHAR_LIMITS.phone}
-                          required
-                        />
+                        <Label className="text-gray-300">Phone <span className="text-red-500">*</span> <span className="text-xs text-gray-500 ml-2">({(story.phoneNumber||'').length}/{CHAR_LIMITS.phone})</span></Label>
+                        <div className="flex gap-2">
+                          <Select
+                            value={story.phoneCode || '+91'}
+                            onValueChange={(value) => handleUpdate(story.id, 'phoneCode', value)}
+                          >
+                            <SelectTrigger className="!bg-black text-white border border-gray-600 rounded-md w-40 shrink-0" style={{ backgroundColor: '#000', color: '#fff' }}>
+                              <SelectValue placeholder="+91" />
+                            </SelectTrigger>
+                            <SelectContent className="!bg-black border border-gray-600 rounded-md max-h-60 overflow-y-auto" style={{ backgroundColor: '#000', color: '#fff' }}>
+                              {COUNTRY_CODES.map(c => (
+                                <SelectItem key={c.code} value={c.code} className="!bg-black text-white cursor-pointer hover:bg-blue-600 hover:text-white px-3 py-1 text-sm">{c.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            value={story.phoneNumber || ''}
+                            onChange={(e) => handleUpdate(story.id, 'phoneNumber', e.target.value.replace(/\D/g, '').slice(0, CHAR_LIMITS.phone))}
+                            placeholder="Phone number"
+                            className={`!bg-black border-gray-600 text-white flex-1 ${
+                              validationErrors[story.id]?.phone ? 'border-red-500' : ''
+                            }`}
+                            maxLength={CHAR_LIMITS.phone}
+                            inputMode="numeric"
+                            required
+                          />
+                        </div>
                         {validationErrors[story.id]?.phone && (
                           <p className="text-xs text-red-500">{validationErrors[story.id].phone}</p>
                         )}
