@@ -297,6 +297,7 @@ const CATEGORIES = [
   'Hallel Conference',
   'Song Writing Classes',
   'Hallel Bible School',
+  'Songs Book',
 ];
 const DEFAULT_STORY_CATEGORY = CATEGORIES[1];
 

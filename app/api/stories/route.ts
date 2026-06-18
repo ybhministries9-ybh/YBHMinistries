@@ -109,7 +109,8 @@ export async function POST(request: Request) {
         bibleschool: 'Bible School Training',
         summercamp: 'Kids Summer Camp',
         hallelconference: 'Hallel Conference',
-        hallelconferences: 'Hallel Conference'
+        hallelconferences: 'Hallel Conference',
+        songsbook: 'Songs Book'
       };
 
       const normalize = (s?: string) => (s || '').toString().toLowerCase().replace(/[\s_\-]+/g, '').replace(/[^a-z0-9]/g, '');

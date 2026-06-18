@@ -1,0 +1,21 @@
+/sessions/nice-affectionate-maxwell/mnt/YBHMinistries/node_modules/esbuild/bin/esbuild:180
+        throw new Error(`The package "${pkg}" could not be found, and is needed by esbuild.
+        ^
+
+Error: The package "@esbuild/linux-x64" could not be found, and is needed by esbuild.
+
+If you are installing esbuild with npm, make sure that you don't specify the
+"--no-optional" or "--omit=optional" flags. The "optionalDependencies" feature
+of "package.json" is used by esbuild to install the correct binary executable
+for your current platform.
+    at generateBinPath (/sessions/nice-affectionate-maxwell/mnt/YBHMinistries/node_modules/esbuild/bin/esbuild:180:15)
+    at Object.<anonymous> (/sessions/nice-affectionate-maxwell/mnt/YBHMinistries/node_modules/esbuild/bin/esbuild:217:27)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object..js (node:internal/modules/cjs/loader:1913:10)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49
+
+Node.js v22.22.3

@@ -1,4 +1,4 @@
-const sharedVideoNotice = "మీ వీడియో సాక్ష్యాలను పంచుకోవాలనుకుంటే, దయచేసి వాటిని బ్రో. ఆగస్టిన్ గారి WhatsApp నంబర్ +918309655233 కు పంపించండి.";
+const sharedVideoNotice = "మీ వీడియో సాక్ష్యాలు పంచుకోవాలనుకుంటే, దయచేసి బ్రో. ఆగస్టీన్ WhatsApp నంబర్: +918309655233 కి పంపించండి.";
 
 export default {
   meta: {
@@ -83,6 +83,11 @@ export default {
     summercamp: {
       label: "సమ్మర్ క్యాంప్",
       title: "సమ్మర్ క్యాంప్",
+      description: sharedVideoNotice
+    },
+    songsbook: {
+      label: "సాంగ్స్ బుక్",
+      title: "సాంగ్స్ బుక్",
       description: sharedVideoNotice
     }
   },

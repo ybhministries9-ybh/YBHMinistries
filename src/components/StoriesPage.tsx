@@ -85,7 +85,8 @@ const TAB_CONFIG = [
   { key: "lcmclasses", label: "London College of Music (LCM)", title: "London College of Music (LCM)" },
   { key: "onlineschool", label: "Online Free Course (Keyboard & Guitar)", title: "Online Free Course (Keyboard & Guitar)" },
   { key: "songbooks", label: "Song Writing Classes", title: "Song Writing Classes" },
-  { key: "summercamp", label: "Kids Summer Camp", title: "Kids Summer Camp" }
+  { key: "summercamp", label: "Kids Summer Camp", title: "Kids Summer Camp" },
+  { key: "songsbook", label: "Songs Book", title: "Songs Book" }
 ] as const;
 
 
@@ -245,6 +246,7 @@ const getCategoryShortForm = (category: unknown) => {
     ['online free course', 'Online Course'],
     ['song writing classes', 'Song Writing'],
     ['kids summer camp', 'Summer Camp'],
+    ['songs book', 'Songs Book'],
   ];
 
   for (const [needle, label] of predefined) {
@@ -1395,7 +1397,7 @@ export function StoriesPage() {
                         <option value="all">{categoryFilterLabel}</option>
                         {TAB_CONFIG.map((tab) => (
                           <option key={tab.key} value={tab.key}>
-                            {tab.label}
+                            {t(`tabs.${tab.key}.label`, { defaultValue: tab.label })}
                           </option>
                         ))}
                       </select>

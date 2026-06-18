@@ -92,6 +92,11 @@ export default {
       title: "Hallel Bible School",
       description: sharedVideoNotice
     },
+    songsbook: {
+      label: "Songs Book",
+      title: "Songs Book",
+      description: sharedVideoNotice
+    },
   },
 
   categories: {
