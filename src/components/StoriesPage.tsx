@@ -150,13 +150,6 @@ const TAB_CONFIG = [
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.3 }}
       >
-        {!isFullscreen && categoryBadge ? (
-          <div
-            className={`pointer-events-none absolute top-4 ${isFullscreen ? 'right-4' : 'right-14'} z-20 rounded-full border border-[#FDB813]/40 bg-black/30 px-3 py-1 text-xs font-semibold tracking-wide text-[#FDB813] backdrop-blur-sm`}
-          >
-            {categoryBadge}
-          </div>
-        ) : null}
         <div className={`${isFullscreen ? 'p-6 md:p-10' : 'p-6 md:p-8'}`}>
           <div className="flex justify-between items-center mb-6">
             <div className="flex">
@@ -220,6 +213,14 @@ const TAB_CONFIG = [
                 />
               </div>
           </div>
+
+          {categoryBadge ? (
+            <div className={`flex justify-end ${isFullscreen ? 'mt-8' : 'mt-6'}`}>
+              <div className="rounded-full border border-[#FDB813]/40 bg-black/30 px-4 py-1.5 text-sm font-semibold tracking-wide text-[#FDB813] backdrop-blur-sm">
+                {categoryBadge}
+              </div>
+            </div>
+          ) : null}
         </div>
       </motion.div>
     </div>
@@ -303,38 +304,35 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
           }
         }}
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center">
-            <div className="w-16 h-16 rounded-full overflow-hidden mr-4 flex-shrink-0">
-              <ImageWithFallback 
-                src={testimonial.image} 
-                alt={testimonial.name} 
-                className="w-full h-full object-cover"
-                fallbackVariant="person"
-                fallbackIconClassName="text-white"
-                fallbackBgClassName="bg-[#1f1f1f]"
-                fallbackIconSize={40}
-              />
-            </div>
-            <div className="min-w-0 text-left">
-              <h4 className="text-white font-medium">{testimonial.name}</h4>
-              <p className="text-white text-sm">{testimonial.role}</p>
-              {/* Do not display email or phone in public testimonial cards */}
-              <div className="flex flex-col text-white text-xs mt-1 gap-0.5">
-                <div className="flex items-center">
-                  <Calendar size={12} className="mr-1" />
-                  <span>{formatDate(testimonial.date)}</span>
-                </div>
-                <div className="flex items-center">
-                  <MapPin size={12} className="mr-1" />
-                  <span>{testimonial.location}</span>
-                </div>
-              </div>
-            </div>
+        <div className="mb-3 flex items-center">
+          <div className="w-16 h-16 rounded-full overflow-hidden mr-4 flex-shrink-0">
+            <ImageWithFallback
+              src={testimonial.image}
+              alt={testimonial.name}
+              className="w-full h-full object-cover"
+              fallbackVariant="person"
+              fallbackIconClassName="text-white"
+              fallbackBgClassName="bg-[#1f1f1f]"
+              fallbackIconSize={40}
+            />
           </div>
-          {categoryBadge ? (
-            <div className="pointer-events-none flex-shrink-0 rounded-full border border-[#FDB813]/40 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#FDB813] backdrop-blur-sm">
-              {categoryBadge}
+          <div className="min-w-0 text-left">
+            <h4 className="text-white font-semibold leading-snug break-words">{testimonial.name}</h4>
+            <p className="text-gray-300 text-sm">{testimonial.role}</p>
+            {/* Do not display email or phone in public testimonial cards */}
+          </div>
+        </div>
+
+        {/* Date & location on their own full-width row below the header */}
+        <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-gray-300 text-xs">
+          <div className="flex items-center pr-2">
+            <Calendar size={13} className="mr-1.5 text-[#FDB813]" />
+            <span>{formatDate(testimonial.date)}</span>
+          </div>
+          {testimonial.location ? (
+            <div className="flex items-center pl-1">
+              <MapPin size={13} className="mr-1.5 text-[#FDB813]" />
+              <span>{testimonial.location}</span>
             </div>
           ) : null}
         </div>
@@ -357,9 +355,16 @@ const TestimonialCard = memo(({ testimonial }: { testimonial: Testimonial }) => 
         >
           {shortText}
         </p>
-        <span className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer self-start">
-          Read more →
-        </span>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <span className="text-[#FDB813] hover:text-[#DAA520] transition-colors text-sm cursor-pointer">
+            Read more →
+          </span>
+          {categoryBadge ? (
+            <div className="pointer-events-none flex-shrink-0 rounded-full border border-[#FDB813]/40 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#FDB813] backdrop-blur-sm">
+              {categoryBadge}
+            </div>
+          ) : null}
+        </div>
       </div>
       <TestimonialModal 
         testimonial={testimonial}
@@ -423,17 +428,18 @@ const VideoCard = memo(({ video }: { video: Video }) => {
           ) : null}
         </div>
 
-        <div className="mt-auto flex items-center text-white text-xs">
-          <Calendar size={12} className="mr-1" />
-          <span>{formatDate(video.date)}</span>
+        <div className="mt-auto flex items-center justify-between gap-3 pt-2">
+          <div className="flex items-center text-white text-xs">
+            <Calendar size={12} className="mr-1" />
+            <span>{formatDate(video.date)}</span>
+          </div>
+          {categoryBadge ? (
+            <div className="pointer-events-none flex-shrink-0 rounded-full border border-[#FDB813]/40 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#FDB813] backdrop-blur-sm">
+              {categoryBadge}
+            </div>
+          ) : null}
         </div>
       </div>
-
-      {categoryBadge ? (
-        <div className="pointer-events-none absolute top-3 right-3 z-10 rounded-full border border-[#FDB813]/40 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#FDB813] backdrop-blur-sm">
-          {categoryBadge}
-        </div>
-      ) : null}
     </a>
   );
 });
