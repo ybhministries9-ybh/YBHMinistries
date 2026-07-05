@@ -428,6 +428,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
       if (activeSearchQuery && activeSearchQuery.trim().length > 0) params.append('q', activeSearchQuery.trim());
       if (worshipExportMonth) params.append('month', worshipExportMonth);
       if (worshipExportYear) params.append('year', worshipExportYear);
+      if (worshipExportStatus) params.append('status', worshipExportStatus);
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const resp = await fetch(`/api/admin/worship24/export${queryString}`, {
         headers: getAuthHeader(),
@@ -443,7 +444,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
       console.error('Worship export failed:', err);
       alert('Failed to export data. Please try again.');
     } finally { setExporting(false); }
-  }, [activeSearchQuery, worshipExportMonth, worshipExportYear]);
+  }, [activeSearchQuery, worshipExportMonth, worshipExportYear, worshipExportStatus]);
 
   // Memoize export button disabled state
   const isExportDisabled = useMemo(() => {

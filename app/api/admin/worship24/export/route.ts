@@ -4,7 +4,6 @@ import { sql } from '@vercel/postgres';
 import {
   generateExcelBuffer,
   formatISTDate,
-  buildDateRangeCondition,
   generateExportFilename,
 } from '@/lib/exportUtils';
 
@@ -17,6 +16,7 @@ export async function GET(request: NextRequest) {
     const q = url.searchParams.get('q') || undefined;
     const month = url.searchParams.get('month') || undefined;
     const year = url.searchParams.get('year') || undefined;
+    const status = url.searchParams.get('status') || undefined;
 
     let query = 'SELECT id, name, email, phone, booking_date, timeslot, facebook_link, location, message, status, created_at FROM worship24';
     const values: any[] = [];
@@ -28,10 +28,39 @@ export async function GET(request: NextRequest) {
       values.push(searchPattern, searchPattern, searchPattern, searchPattern);
     }
 
-    const dateFilter = buildDateRangeCondition(month, year, values.length);
-    if (dateFilter) {
-      conditions.push(dateFilter.condition);
-      values.push(...dateFilter.values);
+    // Add status filter. Legacy rows may have a NULL or 'New' status, which the
+    // UI displays as "Submitted" -- treat those the same way here so the filter
+    // matches what the admin sees on screen.
+    if (status && status.trim().length > 0) {
+      const trimmedStatus = status.trim();
+      if (trimmedStatus.toLowerCase() === 'submitted') {
+        conditions.push(`(status IS NULL OR LOWER(status) IN ('new', 'submitted'))`);
+      } else {
+        conditions.push(`status = $${values.length + 1}`);
+        values.push(trimmedStatus);
+      }
+    }
+
+    // Filter by booking_date (not created_at) to match the admin table view,
+    // which filters worship24 bookings by their booking date, not submission date.
+    if (month && year) {
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const nextMonth = parseInt(month) === 12 ? 1 : parseInt(month) + 1;
+      const nextYear = parseInt(month) === 12 ? parseInt(year) + 1 : parseInt(year);
+      const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      conditions.push(`DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${values.length + 1} AND DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${values.length + 2}`);
+      values.push(startDate, endDate);
+    } else if (year) {
+      const startDate = `${year}-01-01`;
+      const endDate = `${parseInt(year) + 1}-01-01`;
+      conditions.push(`DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') >= $${values.length + 1} AND DATE(booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') < $${values.length + 2}`);
+      values.push(startDate, endDate);
+    } else if (month) {
+      const m = parseInt(String(month));
+      if (!Number.isNaN(m) && m >= 1 && m <= 12) {
+        conditions.push(`EXTRACT(MONTH FROM (booking_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')) = $${values.length + 1}`);
+        values.push(m);
+      }
     }
 
     if (conditions.length > 0) query += ` WHERE ${conditions.join(' AND ')}`;
@@ -53,10 +82,12 @@ export async function GET(request: NextRequest) {
       'Submitted Date': formatISTDate(record.created_at),
     }));
 
+    const filename = generateExportFilename('worship24-export', month, year);
+
     const excelBuffer = await generateExcelBuffer({
       data: exportData,
       sheetName: 'Worship24',
-      filename: generateExportFilename('worship24-export', month, year),
+      filename,
       columnWidths: [
         { wch: 8 },
         { wch: 25 },
@@ -71,8 +102,6 @@ export async function GET(request: NextRequest) {
         { wch: 15 },
       ],
     });
-
-    const filename = generateExportFilename('worship24-export', month, year);
 
     return new NextResponse(excelBuffer as any, {
       status: 200,
