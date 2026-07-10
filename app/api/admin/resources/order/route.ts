@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { getActorName } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
 // POST: Bulk update display_order for resources (supports 'worship' and 'sermons')
 export async function POST(request: NextRequest) {
   try {
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+
     const data = await request.json();
     const items: Array<{ id: string | number; display_order: number }> = data?.items || [];
     // optional type to indicate which table to update (default: worship)
@@ -15,10 +20,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No items provided' }, { status: 400 });
     }
 
-    // resolve actor for audit fields if available
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const actor = await getActorName(token);
+    // resolve actor for audit fields
+    const actor = resolved.actor;
 
     // Update items in a simple loop; could be wrapped in a transaction if supported
     for (const it of items) {

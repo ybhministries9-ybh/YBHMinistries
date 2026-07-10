@@ -1,23 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { hashPassword } from '@/lib/password';
-import { getActorName, verifySession } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, ADMIN_ROLES } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
+// User Management is off-limits to Viewers entirely -- no read, no write,
+// regardless of how the page/API is reached (sidebar hidden client-side is
+// not enough on its own, since the API must also refuse a direct call).
+function isViewer(role: string | null) {
+  return String(role || '') === ADMIN_ROLES.VIEWER;
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // allow public reads for users list (admin mutations remain protected)
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (isViewer(resolved.role)) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || null;
-    // Only return Active users (soft-deleted users have status 'Deleted')
+    // Return both Active and Inactive users -- only soft-deleted users
+    // (status = 'Deleted') are excluded from the list.
     let result;
     if (q) {
       const like = `%${q}%`;
-      result = await sql`SELECT * FROM users WHERE status = 'Active' AND (name ILIKE ${like} OR email ILIKE ${like}) ORDER BY created_at DESC`;
+      result = await sql`SELECT * FROM users WHERE status <> 'Deleted' AND (name ILIKE ${like} OR email ILIKE ${like}) ORDER BY created_at DESC`;
     } else {
-      result = await sql`SELECT * FROM users WHERE status = 'Active' ORDER BY created_at DESC`;
+      result = await sql`SELECT * FROM users WHERE status <> 'Deleted' ORDER BY created_at DESC`;
     }
     return NextResponse.json({ success: true, data: result.rows });
   } catch (err) {
@@ -28,13 +38,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (isViewer(resolved.role)) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    const actor = resolved.actor;
 
     const data = await request.json();
-    const actor = await getActorName(token);
     // normalize email to lowercase for storage
     if (data.email) data.email = String(data.email).toLowerCase();
     if (!data || !data.name || !data.email) return NextResponse.json({ success: false, error: 'name & email required' }, { status: 400 });
@@ -76,22 +85,19 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (isViewer(resolved.role)) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    const { session, actor } = resolved;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
 
     const data = await request.json();
-    const actor = await getActorName(token);
 
-    // Resolve actor role to enforce permissions
-    const actorUser = await sql`SELECT id, role FROM users WHERE id = ${session.user_id} LIMIT 1`;
-    const actorRole = actorUser.rows.length ? actorUser.rows[0].role : null;
-    const actorId = actorUser.rows.length ? String(actorUser.rows[0].id) : null;
+    const actorRole = resolved.role;
+    const actorId = String(session.user_id);
 
     // If updating email, ensure uniqueness among Active users (emails stored lowercase)
     if (data.email) {
@@ -101,12 +107,21 @@ export async function PUT(request: NextRequest) {
     }
 
     // Non-super admins may only update their own profile and may not change role/status
-    if (actorRole !== 'Super Admin') {
+    if (actorRole !== ADMIN_ROLES.SUPER_ADMIN) {
       if (id !== actorId) {
         return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
       }
       if (data.role || data.status) {
         return NextResponse.json({ success: false, error: 'Insufficient privileges to change role or status' }, { status: 403 });
+      }
+    }
+
+    // Nobody may change their own status -- prevents a user (including a
+    // Super Admin) from accidentally locking themselves out.
+    if (id === actorId && data.status) {
+      const current = await sql`SELECT status FROM users WHERE id = ${id} LIMIT 1`;
+      if (current.rows.length && String(data.status) !== current.rows[0].status) {
+        return NextResponse.json({ success: false, error: 'Cannot change your own status' }, { status: 403 });
       }
     }
 
@@ -133,10 +148,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (isViewer(resolved.role)) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    const { session } = resolved;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -150,16 +165,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Cannot delete yourself' }, { status: 403 });
     }
 
-    if (select.rows[0].role === 'Super Admin') {
+    if (select.rows[0].role === ADMIN_ROLES.SUPER_ADMIN) {
       return NextResponse.json({ success: false, error: 'Cannot delete Super Admin' }, { status: 403 });
     }
 
     // Soft delete: Update status to 'Deleted' instead of permanent deletion
     const result = await sql`
-      UPDATE users SET 
+      UPDATE users SET
         status = 'Deleted',
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${id} 
+      WHERE id = ${id}
       RETURNING id
     `;
     if (!result.rows.length) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });

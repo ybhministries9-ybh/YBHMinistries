@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put, del } from '@/lib/vercelBlob';
 import { sql } from '@vercel/postgres';
 import { withApiGuard, safeParseJson } from '@/lib/apiGuard';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
 export const POST = withApiGuard(async (request: NextRequest) => {
+  const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+  if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const denied = readOnlyResponse(resolved);
+  if (denied) return denied;
+
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) return NextResponse.json({ success: false, error: 'Server config: BLOB_READ_WRITE_TOKEN missing' }, { status: 500 });
 

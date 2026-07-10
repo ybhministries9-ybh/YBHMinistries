@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getGetInTouch, getGetInTouchById, updateGetInTouch, deleteGetInTouch } from '@/lib/db';
-import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 const ALLOWED_STATUSES = new Set(['Submitted', 'Accepted', 'Rejected', 'Archived']);
 const GET_IN_TOUCH_URL = 'https://ybhministries.org/contact/getintouch';
@@ -88,6 +88,8 @@ export async function PUT(request: NextRequest) {
   try {
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
     const { actor } = resolved;
 
     const body = await request.json();
@@ -164,6 +166,8 @@ export async function DELETE(request: NextRequest) {
   try {
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
 
     const url = new URL(request.url);
     const id = Number(url.searchParams.get('id'));

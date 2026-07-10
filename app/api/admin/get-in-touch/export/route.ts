@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { sql } from '@vercel/postgres';
 import { 
   generateExcelBuffer, 
@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
     if (!resolved) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
 
     const url = new URL(request.url);
     const q = url.searchParams.get('q') || undefined;

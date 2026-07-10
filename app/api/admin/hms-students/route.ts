@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getHMSStudents, getHMSStudentById, updateHMSStudent, deleteHMSStudent } from '@/lib/db';
-import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 const HMS_STUDENT_FORM_URL = 'https://ybhministries.org/contact/student-form';
 
@@ -43,6 +43,8 @@ export async function PUT(request: NextRequest) {
   try {
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
     const { actor } = resolved;
 
     const body = await request.json();
@@ -169,6 +171,8 @@ export async function DELETE(request: NextRequest) {
   try {
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
 
     const url = new URL(request.url);
     const id = Number(url.searchParams.get('id'));

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { sql } from '@vercel/postgres'
-import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions'
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions'
 
 // Try to use the Postgres table `site_settings` if available. If the
 // database is unavailable or the table doesn't exist yet, fall back to
@@ -52,18 +52,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     if (typeof body.enabled !== 'boolean') return NextResponse.json({ error: 'enabled must be boolean' }, { status: 422 })
 
-    // Resolve actor from Authorization header so we can record who made the change.
-    // Prefer server-resolved actor; if resolution fails, keep any client-provided value.
-    try {
-      const auth = req.headers.get('authorization') || ''
-      const resolved = await resolveSessionAndActorFromAuthHeader(auth).catch(() => null)
-      if (resolved) {
-        body.updated_by = resolved.actor
-        if (!body.created_by) body.created_by = resolved.actor
-      }
-    } catch (resolveErr) {
-      // ignore resolution errors and continue
+    // Resolve actor/role from Authorization header. This is a write endpoint,
+    // so require a valid session and reject read-only (Viewer) roles.
+    const auth = req.headers.get('authorization') || ''
+    const resolved = await resolveSessionAndActorFromAuthHeader(auth).catch(() => null)
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const denied = readOnlyResponse(resolved)
+    if (denied) return denied
+
+    body.updated_by = resolved.actor
+    if (!body.created_by) body.created_by = resolved.actor
 
     // Try DB upsert first
     try {

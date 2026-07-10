@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { accentGold } from '../../utils/theme';
 import { ConfirmDialog } from './ConfirmDialog';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface AboutHeroImage {
   id: number;
@@ -19,6 +20,7 @@ const RECOMMENDED_SIZES = '1920x1080 / 2560×1440 / 3840×2160 pixels';
 const SUPPORTED_FORMATS = 'JPG, PNG';
 
 export function AboutHeroImageManager() {
+  const { isViewer } = useAdminUser();
   const [heroImage, setHeroImage] = useState<AboutHeroImage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -85,9 +87,10 @@ export function AboutHeroImageManager() {
     e.preventDefault();
     e.stopPropagation();
     setIsDragActive(false);
+    if (isViewer) return;
     const file = e.dataTransfer?.files?.[0] ?? null;
     processSelectedFile(file);
-  }, [processSelectedFile]);
+  }, [processSelectedFile, isViewer]);
 
   const clearFileInput = useCallback(() => {
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -201,9 +204,9 @@ export function AboutHeroImageManager() {
                 />
                 <button
                   onClick={() => setDeleteDialogOpen(true)}
-                  disabled={isLoading}
+                  disabled={isLoading || isViewer}
                   className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded transition-all cursor-pointer shadow-lg opacity-0 group-hover:opacity-100"
-                  style={{ cursor: isLoading ? 'default' : 'pointer' }}
+                  style={{ cursor: isLoading || isViewer ? 'default' : 'pointer' }}
                   title="Delete Image"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -228,8 +231,8 @@ export function AboutHeroImageManager() {
                   onDragEnter={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`w-full min-h-[120px] flex flex-col items-center justify-center gap-2 bg-black border-2 border-dashed border-[#3a3a3a] rounded-md overflow-hidden cursor-pointer px-4 py-6 ${isDragActive ? 'ring-2 ring-[#FDB813]' : ''}`}
+                  onClick={() => { if (!isViewer) fileInputRef.current?.click(); }}
+                  className={`w-full min-h-[120px] flex flex-col items-center justify-center gap-2 bg-black border-2 border-dashed border-[#3a3a3a] rounded-md overflow-hidden cursor-pointer px-4 py-6 ${isDragActive ? 'ring-2 ring-[#FDB813]' : ''}${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <input
                     id="hero-image-file"
@@ -237,7 +240,7 @@ export function AboutHeroImageManager() {
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
-                    disabled={isLoading}
+                    disabled={isLoading || isViewer}
                     className="hidden"
                   />
                   <div className="text-center">
@@ -252,7 +255,7 @@ export function AboutHeroImageManager() {
                 <div className="pt-2">
                   <Button
                     onClick={handleUploadFile}
-                    disabled={!imageFile || isLoading}
+                    disabled={!imageFile || isLoading || isViewer}
                     className="text-black font-medium hover:opacity-90"
                     style={{ backgroundColor: accentGold, cursor: !imageFile || isLoading ? 'default' : 'pointer' }}
                   >
@@ -287,8 +290,9 @@ export function AboutHeroImageManager() {
                       {/* delete overlay button for preview (clears selection) */}
                       <button
                         onClick={clearFileInput}
+                        disabled={isViewer}
                         title="Remove selected file"
-                        className="absolute right-0 top-0 -mt-1 -mr-1 w-8 h-8 flex items-center justify-center bg-red-600 hover:bg-red-700 text-white rounded-sm shadow-lg"
+                        className={`absolute right-0 top-0 -mt-1 -mr-1 w-8 h-8 flex items-center justify-center bg-red-600 hover:bg-red-700 text-white rounded-sm shadow-lg${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

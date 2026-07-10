@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@/lib/vercelBlob';
 import { parseKeyFromUrl, deleteObject } from '@/lib/r2';
 import { sql } from '@vercel/postgres';
-import { getActorName } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
@@ -195,10 +195,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // verify session and resolve actor (server-side) for created_by/updated_by
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+
     const data = await request.json();
-    // verify session and resolve actor (server-side) for updated_by
-    // (session already verified above in this function)
-    const actor = await getActorName((request.headers.get('authorization') || '').startsWith('Bearer ') ? (request.headers.get('authorization') || '').slice(7) : (request.headers.get('authorization') || '') || null);
+    const actor = resolved.actor;
     // Server-side validation
     let validationErrors: Record<string, string> | null = null;
     if (type === 'books') validationErrors = validateBookForCreate(data);
@@ -211,9 +215,7 @@ export async function POST(request: NextRequest) {
     }
     let result;
 
-    // verify session and resolve actor (server-side) for created_by/updated_by
-    // (session already verified above in this function)
-    const actor2 = await getActorName((request.headers.get('authorization') || '').startsWith('Bearer ') ? (request.headers.get('authorization') || '').slice(7) : (request.headers.get('authorization') || '') || null);
+    const actor2 = resolved.actor;
 
     switch (type) {
       case 'books':
@@ -325,8 +327,12 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // resolve actor (server-side)
-    const actor = await getActorName((request.headers.get('authorization') || '').startsWith('Bearer ') ? (request.headers.get('authorization') || '').slice(7) : (request.headers.get('authorization') || '') || null);
+    // resolve actor (server-side) and enforce read-only for Viewer
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+    const actor = resolved.actor;
 
     let result;
 
@@ -503,6 +509,11 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
 
     let result;
 

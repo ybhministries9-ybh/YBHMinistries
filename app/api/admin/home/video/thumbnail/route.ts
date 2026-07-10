@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@/lib/vercelBlob';
 import { sql } from '@vercel/postgres';
-import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { parseKeyFromUrl, deleteObject } from '@/lib/r2';
 
 /**
@@ -40,6 +40,8 @@ export async function PUT(request: NextRequest) {
     // resolve session and actor
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
     const { actor } = resolved;
 
     // Update thumbnail in database and record actor
@@ -101,6 +103,8 @@ export async function DELETE(request: NextRequest) {
     // resolve session and actor
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
     const { actor } = resolved;
 
     // Remove thumbnail from database and record actor

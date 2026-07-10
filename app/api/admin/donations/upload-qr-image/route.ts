@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { uploadBuffer, deleteObject, parseKeyFromUrl, PRIVATE_BUCKET } from '@/lib/r2';
-import { verifySession } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { withApiGuard, streamUploadGuard, ApiError } from '@/lib/apiGuard';
 
 export const dynamic = 'force-dynamic';
@@ -14,10 +14,10 @@ export const dynamic = 'force-dynamic';
  */
 export const POST = withApiGuard(async (request: NextRequest) => {
   // verify session
-  const auth = request.headers.get('authorization') || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-  const session = await verifySession(token);
-  if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+  if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const denied = readOnlyResponse(resolved);
+  if (denied) return denied;
 
   await streamUploadGuard(request, 5_000_000);
   const parsePromise = request.formData();

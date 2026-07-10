@@ -21,6 +21,7 @@ import {
 } from '../ui/alert-dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface Story {
   id: string;
@@ -475,6 +476,7 @@ function DatePicker({
 }
 
 export function StoriesManager() {
+  const { isViewer } = useAdminUser();
   const [stories, setStories] = useState<Story[]>([]);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectStoryId, setRejectStoryId] = useState<string | null>(null);
@@ -1478,7 +1480,8 @@ export function StoriesManager() {
           </div>
           <Button
             onClick={addStoryForActiveTab}
-            className="flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#3E3E3E] transition-colors cursor-pointer shrink-0"
+            disabled={isViewer}
+            className={`flex items-center gap-3 px-4 py-2 bg-[#111] text-white border border-[#FDB813] rounded-md hover:bg-[#3E3E3E] transition-colors cursor-pointer shrink-0${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
           >
             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full">
               <Plus size={14} className="text-white" />
@@ -2140,7 +2143,8 @@ export function StoriesManager() {
                           <Button
                             size="sm"
                             onClick={() => toggleVisibility(story)}
-                            className="rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors"
+                            disabled={isViewer}
+                            className={`rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                             aria-label={story.is_visible ? 'Unpublish' : 'Publish'}
                             title={story.is_visible ? 'Unpublish' : 'Publish'}
                           >
@@ -2149,7 +2153,8 @@ export function StoriesManager() {
                           <Button
                             size="sm"
                             onClick={() => { setEditingId(story.id); setEditModalOpen(true); }}
-                            className="rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors"
+                            disabled={isViewer}
+                            className={`rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                             aria-label="Edit"
                             title="Edit"
                           >
@@ -2158,7 +2163,8 @@ export function StoriesManager() {
                           <Button
                             size="sm"
                             onClick={() => handleDelete(story.id)}
-                            className="rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors"
+                            disabled={isViewer}
+                            className={`rounded-md border border-[#FDB813] bg-[#1a1a1a] hover:bg-black text-white p-2 transition-colors${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                             aria-label="Delete"
                             title="Delete"
                           >
@@ -2263,7 +2269,8 @@ export function StoriesManager() {
                   {story.status !== 'In-Review' && (
                     <button
                       onClick={() => handleStatusChange(story.id, 'In-Review')}
-                      className="px-3 py-1 text-xs bg-blue-900/30 text-blue-400 rounded hover:bg-blue-900/50 transition-colors cursor-pointer"
+                      disabled={isViewer}
+                      className={`px-3 py-1 text-xs bg-blue-900/30 text-blue-400 rounded hover:bg-blue-900/50 transition-colors cursor-pointer${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                     >
                       Mark In-Review
                     </button>
@@ -2271,7 +2278,8 @@ export function StoriesManager() {
                   {story.status !== 'Approved' && (
                     <button
                       onClick={() => handleStatusChange(story.id, 'Approved')}
-                      className="px-3 py-1 text-xs bg-green-900/30 text-green-400 rounded hover:bg-green-900/50 transition-colors cursor-pointer"
+                      disabled={isViewer}
+                      className={`px-3 py-1 text-xs bg-green-900/30 text-green-400 rounded hover:bg-green-900/50 transition-colors cursor-pointer${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                     >
                       Approve
                     </button>
@@ -2283,7 +2291,8 @@ export function StoriesManager() {
                         setRejectMessage('');
                         setShowRejectModal(true);
                       }}
-                      className="px-3 py-1 text-xs bg-red-900/30 text-red-400 rounded hover:bg-red-900/50 transition-colors cursor-pointer"
+                      disabled={isViewer}
+                      className={`px-3 py-1 text-xs bg-red-900/30 text-red-400 rounded hover:bg-red-900/50 transition-colors cursor-pointer${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                     >
                       Reject
                     </button>

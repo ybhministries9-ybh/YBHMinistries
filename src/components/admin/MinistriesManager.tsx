@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { Book, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface Ministry {
   id: number;
@@ -10,6 +11,7 @@ interface Ministry {
 }
 
 export function MinistriesManager() {
+  const { isViewer } = useAdminUser();
   const [ministries, setMinistries] = useState<Ministry[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState<{ [key: number]: boolean }>({});
@@ -150,7 +152,7 @@ export function MinistriesManager() {
                 {/* Show/Hide Toggle */}
                 <button
                   onClick={() => handleToggleActive(ministry)}
-                  disabled={updatingStatus[ministry.id]}
+                  disabled={updatingStatus[ministry.id] || isViewer}
                   className={`px-4 py-2 rounded transition-all cursor-pointer font-medium text-sm flex items-center gap-2 ${
                     ministry.is_active
                       ? 'bg-red-600 hover:bg-red-700 text-white'

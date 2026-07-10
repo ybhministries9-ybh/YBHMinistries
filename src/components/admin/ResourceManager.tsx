@@ -14,6 +14,7 @@ import { ImageUpload } from './ImageUpload';
 import { MultipleImageUpload } from './MultipleImageUpload';
 import { FileUpload } from './FileUpload';
 import { toast } from 'sonner';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 // Validation limits (shared between managers)
 const TITLE_MAX = 150;
@@ -240,6 +241,7 @@ export function ResourceManager() {
 
 // Music Books Manager Sub-Component
 function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
+  const { isViewer } = useAdminUser();
   const [books, setBooks] = useState<MusicBook[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -798,7 +800,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
         </div>
         <Button
           onClick={handleAdd}
-          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+          disabled={isViewer}
+          className={`bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
         >
           <Plus size={16} className="mr-2" />
           Add Music Book
@@ -866,16 +869,17 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           title={book.published ? 'Unpublish' : 'Publish'}
                           onClick={() => togglePublished(book.id)}
                           size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+                          disabled={isViewer}
+                          className={`h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                         >
                           {book.published ? <EyeOff size={14} /> : <Eye size={14} />}
                         </Button>
                         <Button
-                          title="Edit"
-                          aria-label="Edit"
+                          title={isViewer ? 'View' : 'Edit'}
+                          aria-label={isViewer ? 'View' : 'Edit'}
                           onClick={() => {
-                            setEditingId(book.id);
                             setExpandedBook(book.id);
+                            if (!isViewer) setEditingId(book.id);
                           }}
                           size="sm"
                           className="h-9 w-9 p-2 flex items-center justify-center rounded-md rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
@@ -886,7 +890,8 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                           title="Delete"
                           onClick={() => handleDelete(book.id)}
                           size="sm"
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+                          disabled={isViewer}
+                          className={`h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -1189,6 +1194,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
 
 // Worship Videos Manager Sub-Component
 function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
+  const { isViewer } = useAdminUser();
   const [videos, setVideos] = useState<WorshipVideo[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -1311,7 +1317,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
         <div className="relative bg-black rounded-lg border border-gray-700 overflow-hidden">
           {/* Drag handle (left edge) - only shown when sortable */}
           {sortable ? (
-            <div {...attributes} {...listeners} className="absolute left-2 top-2 z-40 cursor-grab active:cursor-grabbing p-1 text-gray-200 bg-black/40 rounded-md hover:text-white">
+            <div {...(isViewer ? {} : attributes)} {...(isViewer ? {} : listeners)} className={`absolute left-2 top-2 z-40 p-1 text-gray-200 bg-black/40 rounded-md hover:text-white ${isViewer ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}>
               <GripVertical />
             </div>
           ) : null}
@@ -1351,14 +1357,16 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
               <button
                 title={video.published ? 'Unpublish' : 'Publish'}
                 onClick={() => togglePublishedVideo(video.id)}
-                className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+                disabled={isViewer}
+                className={`h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
               >
                 {video.published ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
               <button
                 title="Delete"
                 onClick={() => handleDelete(video.id)}
-                className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"
+                disabled={isViewer}
+                className={`h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Trash2 size={14} />
               </button>
@@ -1684,7 +1692,8 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
           {!reorderMode ? (
             <Button
               onClick={() => { setOriginalVideosSnapshot([...videos]); setReorderMode(true); }}
-              className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+              disabled={isViewer}
+              className={`bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
             >
               <GripVertical size={16} className="mr-2" />
               Enable Reorder
@@ -1720,7 +1729,8 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
 
           <Button
             onClick={handleAdd}
-            className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+            disabled={isViewer}
+            className={`bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
           >
             <Plus size={16} className="mr-2" />
             Add Worship Video
@@ -1828,6 +1838,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
 
 // Sermons Manager Sub-Component
 function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
+  const { isViewer } = useAdminUser();
   const [sermons, setSermons] = useState<WorshipVideo[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -1934,7 +1945,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
       <div {...outerRefProps} style={style} className={`${!sermon.published ? 'opacity-70' : ''}`}>
         <div className="relative bg-black rounded-lg border border-gray-700 overflow-hidden">
           {sortable ? (
-            <div {...attributes} {...listeners} className="absolute left-2 top-2 z-40 cursor-grab active:cursor-grabbing p-1 text-gray-200 bg-black/40 rounded-md hover:text-white">
+            <div {...(isViewer ? {} : attributes)} {...(isViewer ? {} : listeners)} className={`absolute left-2 top-2 z-40 p-1 text-gray-200 bg-black/40 rounded-md hover:text-white ${isViewer ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}>
               <GripVertical />
             </div>
           ) : null}
@@ -1960,8 +1971,8 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
             </div>
 
             <div className="absolute top-2 right-2 z-30 flex items-center gap-2">
-              <button title={sermon.published ? 'Unpublish' : 'Publish'} onClick={() => togglePublishedSermon(sermon.id)} className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white">{sermon.published ? <EyeOff size={14} /> : <Eye size={14} />}</button>
-              <button title="Delete" onClick={() => handleDelete(sermon.id)} className="h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white"><Trash2 size={14} /></button>
+              <button title={sermon.published ? 'Unpublish' : 'Publish'} onClick={() => togglePublishedSermon(sermon.id)} disabled={isViewer} className={`h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}>{sermon.published ? <EyeOff size={14} /> : <Eye size={14} />}</button>
+              <button title="Delete" onClick={() => handleDelete(sermon.id)} disabled={isViewer} className={`h-8 w-8 p-1 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}><Trash2 size={14} /></button>
             </div>
           </div>
         </div>
@@ -2107,7 +2118,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
         <div className="text-white text-base font-medium">Total: <span className="text-[#FDB813] font-bold">{sermons.length}</span> Sermon(s) {' | '} Published: <span className="text-[#FDB813] font-bold">{sermons.filter(s => s.published).length}</span></div>
         <div className="flex items-center gap-3">
           {!reorderMode ? (
-            <Button onClick={() => { setOriginalSnapshot([...sermons]); setReorderMode(true); }} className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"><GripVertical size={16} className="mr-2" />Enable Reorder</Button>
+            <Button onClick={() => { setOriginalSnapshot([...sermons]); setReorderMode(true); }} disabled={isViewer} className={`bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}><GripVertical size={16} className="mr-2" />Enable Reorder</Button>
           ) : (
             <div className="flex items-center gap-2">
               <Button onClick={() => { setSermons(originalSnapshot ?? sermons); setOriginalSnapshot(null); setReorderMode(false); }} className="h-9 px-4 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-gray-600">Cancel</Button>
@@ -2122,7 +2133,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
               }} className="h-9 px-4 bg-[#FDB813] hover:bg-[#e5a711]  text-black">Save Order</Button>
             </div>
           )}
-          <Button onClick={handleAdd} className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"><Plus size={16} className="mr-2" />Add Sermon</Button>
+          <Button onClick={handleAdd} disabled={isViewer} className={`bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}><Plus size={16} className="mr-2" />Add Sermon</Button>
         </div>
       </div>
 

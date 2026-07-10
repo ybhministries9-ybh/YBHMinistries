@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { verifySession, getActorName } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { deleteObject, parseKeyFromUrl, PRIVATE_BUCKET } from '@/lib/r2';
 
 /**
@@ -92,11 +92,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // verify session and resolve actor
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    const actor = await getActorName(token);
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+    const actor = resolved.actor;
 
     const body = await request.json();
     const {
@@ -198,11 +198,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // verify session and resolve actor
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    const actor = await getActorName(token);
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+    const actor = resolved.actor;
 
     const body = await request.json();
     const {
@@ -317,10 +317,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // verify session for delete
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
 
     // Attempt to delete the stored image from R2 (if any) before removing DB record
     try {

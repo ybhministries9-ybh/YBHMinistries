@@ -7,7 +7,7 @@ import {
   updateGalleryItem, 
   deleteGalleryItems 
 } from '@/lib/db';
-import { getActorName, verifySession } from '@/lib/sessions';
+import { getActorName, verifySession, resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { extractYouTubeId } from '@/lib/youtube';
 
 /**
@@ -107,7 +107,10 @@ export async function POST(request: NextRequest) {
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
     const session = await verifySession(token);
     if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    
+    const resolvedRole = await resolveSessionAndActorFromAuthHeader(auth);
+    const denied = readOnlyResponse(resolvedRole);
+    if (denied) return denied;
+
     // Handle file upload
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
@@ -309,6 +312,9 @@ export async function PUT(request: NextRequest) {
     const token2 = auth2.startsWith('Bearer ') ? auth2.slice(7) : auth2 || null;
     const session2 = await verifySession(token2);
     if (!session2) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const resolved2 = await resolveSessionAndActorFromAuthHeader(auth2);
+    const denied2 = readOnlyResponse(resolved2);
+    if (denied2) return denied2;
     const actor2 = await getActorName(token2);
 
     const updatedItem = await updateGalleryItem(id, { ...updates, updated_by: actor2 });
@@ -431,6 +437,9 @@ export async function DELETE(request: NextRequest) {
     const token3 = auth3.startsWith('Bearer ') ? auth3.slice(7) : auth3 || null;
     const session3 = await verifySession(token3);
     if (!session3) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const resolved3 = await resolveSessionAndActorFromAuthHeader(auth3);
+    const denied3 = readOnlyResponse(resolved3);
+    if (denied3) return denied3;
 
     // Delete from database
     await deleteGalleryItems(itemIds);

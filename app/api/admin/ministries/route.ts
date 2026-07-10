@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
-import { verifySession, getActorName } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 // GET - Fetch all ministries (admin)
 export async function GET() {
@@ -55,12 +55,12 @@ export async function PUT(request: NextRequest) {
     }
 
     // verify session and resolve actor
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const updatedBy = await getActorName(token);
-    
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+    const updatedBy = resolved.actor;
+
     const { rows } = await sql`
       UPDATE ministries
       SET is_active = ${is_active}, 

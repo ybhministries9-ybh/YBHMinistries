@@ -2,24 +2,34 @@
 
 import React, { useEffect, useState } from 'react';
 import { Home, Info, Book, Image, Newspaper, FileText, BookOpen, Mail, DollarSign, Users } from 'lucide-react';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
+// Each card has a default (write-access) description and a `viewerDescription`
+// used when the signed-in user has the read-only Viewer role, since Viewers
+// can only look at these sections, not add/edit/delete/export anything in
+// them. The Users card is Super Admin / Content Manager only -- Viewers have
+// no access to User Management at all, so it's filtered out below rather
+// than given a viewer description.
 const CARD_CONFIG = [
-  { id: 'home', title: 'Home', icon: Home, description: 'Manage hero images and the video.' },
-  { id: 'about', title: 'About', icon: Info, description: 'Add / update the hero image.' },
-  { id: 'ministries', title: 'Ministries', icon: Book, description: 'Enable / disable the ministries.' },
-  { id: 'gallery', title: 'Gallery', icon: Image, description: 'Manage the images and videos.' },
-  { id: 'news', title: 'News', icon: Newspaper, description: 'Manage the Events and reports.' },
-  { id: 'resources', title: 'Resources', icon: FileText, description: 'Manage books, videos and sermons.' },
-  { id: 'stories', title: 'Stories', icon: BookOpen, description: 'Manage the text and video stories.' },
-  { id: 'donate', title: 'Donate', icon: DollarSign, description: 'Manage UPI and Bank account details.' },
-  { id: 'contacts', title: 'Contacts', icon: Mail, description: 'View the Enrollments and messages.' },
-  { id: 'users', title: 'Users', icon: Users, description: 'Manage admin users and permissions.' },
+  { id: 'home', title: 'Home', icon: Home, description: 'Manage hero images and the video.', viewerDescription: 'View hero images and the video.' },
+  { id: 'about', title: 'About', icon: Info, description: 'Add / update the hero image.', viewerDescription: 'View the hero image.' },
+  { id: 'ministries', title: 'Ministries', icon: Book, description: 'Enable / disable the ministries.', viewerDescription: 'View the ministries.' },
+  { id: 'gallery', title: 'Gallery', icon: Image, description: 'Manage the images and videos.', viewerDescription: 'View the images and videos.' },
+  { id: 'news', title: 'News', icon: Newspaper, description: 'Manage the Events and reports.', viewerDescription: 'View the Events and reports.' },
+  { id: 'resources', title: 'Resources', icon: FileText, description: 'Manage books, videos and sermons.', viewerDescription: 'View books, videos and sermons.' },
+  { id: 'stories', title: 'Stories', icon: BookOpen, description: 'Manage the text and video stories.', viewerDescription: 'View the text and video stories.' },
+  { id: 'donate', title: 'Donate', icon: DollarSign, description: 'Manage UPI and Bank account details.', viewerDescription: 'View UPI and Bank account details.' },
+  { id: 'contacts', title: 'Contacts', icon: Mail, description: 'View the Enrollments and messages.', viewerDescription: 'View the Enrollments and messages.' },
+  { id: 'users', title: 'Users', icon: Users, description: 'Manage admin users and permissions.', hideForViewer: true },
   // Video Manager card removed as requested
 ];
 
 export function Welcome() {
   const [maintenance, setMaintenance] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Viewers are read-only: they cannot toggle site maintenance mode. The
+  // /api/admin/maintenance route also rejects this server-side.
+  const { isViewer } = useAdminUser();
 
   function getAuthHeaders(withContentType = false) {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('admin_token') || '' : '';
@@ -48,6 +58,7 @@ export function Welcome() {
   }, []);
 
   const setMaintenanceState = async (enabled: boolean) => {
+    if (isViewer) return;
     setLoading(true);
     try {
       const headers = getAuthHeaders(true);
@@ -80,18 +91,20 @@ export function Welcome() {
             <button
               type="button"
               onClick={() => setMaintenanceState(true)}
-              disabled={loading}
+              disabled={loading || isViewer}
               aria-pressed={maintenance === true}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'} cursor-pointer disabled:cursor-not-allowed`}
+              title={isViewer ? 'Read-only: your role cannot change site maintenance mode' : undefined}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'} cursor-pointer disabled:cursor-not-allowed disabled:opacity-50`}
             >
               ON
             </button>
             <button
               type="button"
               onClick={() => setMaintenanceState(false)}
-              disabled={loading}
+              disabled={loading || isViewer}
               aria-pressed={maintenance === false}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${!maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'} cursor-pointer disabled:cursor-not-allowed`}
+              title={isViewer ? 'Read-only: your role cannot change site maintenance mode' : undefined}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${!maintenance ? 'bg-[#FDB813] text-black' : 'text-gray-300 hover:bg-gray-700'} cursor-pointer disabled:cursor-not-allowed disabled:opacity-50`}
             >
               OFF
             </button>
@@ -103,14 +116,15 @@ export function Welcome() {
           <p className="text-gray-300 mb-6">Welcome to the Yeshua Beth Hallel Ministries Admin Portal.</p>
           <p className="text-gray-300 mb-1">Tap a card to view/manage each section.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {CARD_CONFIG.map((cfg) => {
+            {CARD_CONFIG.filter((cfg) => !(cfg.hideForViewer && isViewer)).map((cfg) => {
               const Icon = cfg.icon;
+              const description = isViewer && cfg.viewerDescription ? cfg.viewerDescription : cfg.description;
               return (
                 <button
                   key={cfg.id}
                   onClick={() => handleNavigate(cfg.id)}
                   onKeyDown={(e) => onKey(e, cfg.id)}
-                  aria-label={`${cfg.title} - ${cfg.description}`}
+                  aria-label={`${cfg.title} - ${description}`}
                   className="group text-left p-4 rounded-lg border border-gray-700 bg-black hover:bg-[#111] hover:border-[#FDB813] focus:outline-none focus:ring-2 focus:ring-[#FDB813] transition-shadow shadow-sm hover:shadow-md cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
@@ -119,7 +133,7 @@ export function Welcome() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-lg font-semibold truncate text-white">{cfg.title}</div>
-                      <div className="text-sm text-gray-300 truncate mt-1">{cfg.description}</div>
+                      <div className="text-sm text-gray-300 truncate mt-1">{description}</div>
                     </div>
                   </div>
                 </button>

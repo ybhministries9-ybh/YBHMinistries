@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import HMSStudentForm from './HMSStudentFormAdmin';
 import { toast } from 'sonner';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 function getAuthHeader() {
   try {
@@ -32,6 +33,9 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
+  // Viewers are read-only: they may view this record but cannot change its
+  // status, edit it, or delete it. The API also enforces this server-side.
+  const { isViewer } = useAdminUser();
 
   const searchParams = useSearchParams();
   const forcedType = forcedTypeProp || searchParams?.get('type');
@@ -358,23 +362,23 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={() => { setAcceptMessage(''); setShowGetInTouchAcceptModal(true); }}
-                disabled={updatingStatus || normalizeStatus(r.status) === 'Accepted'}
+                disabled={updatingStatus || isViewer || normalizeStatus(r.status) === 'Accepted'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   normalizeStatus(r.status) === 'Accepted'
                     ? 'bg-blue-600 text-white cursor-not-allowed opacity-70'
                     : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {normalizeStatus(r.status) === 'Accepted' ? 'Accepted' : 'Accept'}
               </button>
               <button
                 onClick={() => { setRejectMessage(''); setShowRejectModal(true); }}
-                disabled={updatingStatus || normalizeStatus(r.status) === 'Rejected'}
+                disabled={updatingStatus || isViewer || normalizeStatus(r.status) === 'Rejected'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   normalizeStatus(r.status) === 'Rejected'
                     ? 'bg-red-600 text-white cursor-not-allowed opacity-70'
                     : 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
-                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {normalizeStatus(r.status) === 'Rejected' ? 'Rejected' : 'Reject'}
               </button>
@@ -393,18 +397,18 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
           </button>
           <button
             onClick={() => handleStatusUpdate('Archived')}
-            disabled={updatingStatus || normalizeStatus(r.status) === 'Archived'}
+            disabled={updatingStatus || isViewer || normalizeStatus(r.status) === 'Archived'}
             className={`px-8 py-3 rounded border text-center transition-colors ${
               normalizeStatus(r.status) === 'Archived'
                 ? 'bg-gray-600 text-white border-gray-600 cursor-not-allowed opacity-70'
                 : 'bg-gray-600 hover:bg-gray-700 text-white border-gray-600 cursor-pointer'
-            } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {normalizeStatus(r.status) === 'Archived' ? 'Archived' : 'Archive'}
           </button>
           <button
             onClick={() => setShowDeleteModal(true)}
-            disabled={deleting}
+            disabled={deleting || isViewer}
             className="px-8 py-3 bg-red-700 hover:bg-red-800 text-white rounded border border-red-700 text-center transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Delete
@@ -602,23 +606,23 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={() => handleStatusUpdate('Accepted')}
-                disabled={updatingStatus || normalizeStatus(r.status) === 'Accepted'}
+                disabled={updatingStatus || isViewer || normalizeStatus(r.status) === 'Accepted'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   normalizeStatus(r.status) === 'Accepted'
                     ? 'bg-blue-600 text-white cursor-not-allowed opacity-70'
                     : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {normalizeStatus(r.status) === 'Accepted' ? 'Accepted' : 'Accept'}
               </button>
               <button
                 onClick={() => { setRejectMessage(''); setShowRejectModal(true); }}
-                disabled={updatingStatus || normalizeStatus(r.status) === 'Rejected'}
+                disabled={updatingStatus || isViewer || normalizeStatus(r.status) === 'Rejected'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   normalizeStatus(r.status) === 'Rejected'
                     ? 'bg-red-600 text-white cursor-not-allowed opacity-70'
                     : 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
-                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {normalizeStatus(r.status) === 'Rejected' ? 'Rejected' : 'Reject'}
               </button>
@@ -637,18 +641,18 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
           </button>
           <button
             onClick={() => handleStatusUpdate('Archived')}
-            disabled={updatingStatus || normalizeStatus(r.status) === 'Archived'}
+            disabled={updatingStatus || isViewer || normalizeStatus(r.status) === 'Archived'}
             className={`px-8 py-3 rounded border text-center transition-colors ${
               normalizeStatus(r.status) === 'Archived'
                 ? 'bg-gray-600 text-white border-gray-600 cursor-not-allowed opacity-70'
                 : 'bg-gray-600 hover:bg-gray-700 text-white border-gray-600 cursor-pointer'
-            } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {normalizeStatus(r.status) === 'Archived' ? 'Archived' : 'Archive'}
           </button>
           <button
             onClick={() => setShowDeleteModal(true)}
-            disabled={deleting}
+            disabled={deleting || isViewer}
             className="px-8 py-3 bg-red-700 hover:bg-red-800 text-white rounded border border-red-700 text-center transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Delete
@@ -820,34 +824,34 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={() => { setAcceptWhatsappLink(''); setShowAcceptModal(true); }}
-                disabled={updatingStatus || normalizeStatus(record.status) === 'Accepted'}
+                disabled={updatingStatus || isViewer || normalizeStatus(record.status) === 'Accepted'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   normalizeStatus(record.status) === 'Accepted'
                     ? 'bg-blue-600 text-white cursor-not-allowed opacity-70'
                     : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {normalizeStatus(record.status) === 'Accepted' ? 'Accepted' : 'Accept'}
               </button>
               <button
                 onClick={() => { setRejectMessage(''); setShowRejectModal(true); }}
-                disabled={updatingStatus || normalizeStatus(record.status) === 'Rejected'}
+                disabled={updatingStatus || isViewer || normalizeStatus(record.status) === 'Rejected'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   normalizeStatus(record.status) === 'Rejected'
                     ? 'bg-red-600 text-white cursor-not-allowed opacity-70'
                     : 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
-                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {normalizeStatus(record.status) === 'Rejected' ? 'Rejected' : 'Reject'}
               </button>
               <button
                 onClick={() => { setEnrolledMessage(''); setShowEnrolledModal(true); }}
-                disabled={updatingStatus || normalizeStatus(record.status) === 'Enrolled'}
+                disabled={updatingStatus || isViewer || normalizeStatus(record.status) === 'Enrolled'}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                   normalizeStatus(record.status) === 'Enrolled'
                     ? 'bg-green-600 text-white cursor-not-allowed opacity-70'
                     : 'bg-green-600 hover:bg-green-700 text-white cursor-pointer'
-                } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Enrolled
               </button>
@@ -973,18 +977,18 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             </button>
             <button
               onClick={() => handleStatusUpdate('Archived')}
-              disabled={updatingStatus || normalizeStatus(record.status) === 'Archived'}
+              disabled={updatingStatus || isViewer || normalizeStatus(record.status) === 'Archived'}
               className={`px-8 py-3 rounded border text-center transition-colors ${
                 normalizeStatus(record.status) === 'Archived'
                   ? 'bg-gray-600 text-white border-gray-600 cursor-not-allowed opacity-70'
                   : 'bg-gray-600 hover:bg-gray-700 text-white border-gray-600 cursor-pointer'
-              } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${(updatingStatus || isViewer) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {normalizeStatus(record.status) === 'Archived' ? 'Archived' : 'Archive'}
             </button>
             <button
               onClick={() => setShowDeleteModal(true)}
-              disabled={deleting}
+              disabled={deleting || isViewer}
               className="px-8 py-3 bg-red-700 hover:bg-red-800 text-white rounded border border-red-700 text-center transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Delete

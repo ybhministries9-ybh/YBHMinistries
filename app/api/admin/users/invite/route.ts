@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import crypto from 'crypto';
 import { sendInviteEmail } from '@/lib/email';
+import { resolveSessionAndActorFromAuthHeader, ADMIN_ROLES } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (String(resolved.role || '') === ADMIN_ROLES.VIEWER) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
     const data = await request.json();
     const id = data?.id || null;
     if (!id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });

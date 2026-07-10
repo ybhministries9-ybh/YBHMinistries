@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadBuffer, PRIVATE_BUCKET } from '@/lib/r2';
 import { withApiGuard, streamUploadGuard, ApiError } from '@/lib/apiGuard';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 /**
  * POST /api/admin/upload/event-image
@@ -8,6 +9,13 @@ import { withApiGuard, streamUploadGuard, ApiError } from '@/lib/apiGuard';
  * news/events/<uniqueId>/orig/<filename>
  */
 export const POST = withApiGuard(async (request: NextRequest) => {
+  const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+  if (!resolved) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+  const denied = readOnlyResponse(resolved);
+  if (denied) return denied;
+
   await streamUploadGuard(request, 5_000_000);
 
   const parsePromise = request.formData();

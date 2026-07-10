@@ -7,6 +7,7 @@ import DateInput from '../ui/date-input';
 import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
 import usePresignUpload from '@/hooks/usePresignUpload';
+import { useAdminUser } from '@/hooks/useAdminUser';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ interface Event {
 }
 
 export function EventsManager() {
+  const { isViewer } = useAdminUser();
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverVideoId, setDragOverVideoId] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
@@ -585,7 +587,8 @@ export function EventsManager() {
         <Button
           title="Add a new event"
           onClick={handleAdd}
-          className="bg-[#2E2E2E] text-white border border-[#FDB813] hover:bg-[#3E3E3E] px-4 py-2 rounded-md font-semibold flex items-center gap-2"
+          disabled={isViewer}
+          className={`bg-[#2E2E2E] text-white border border-[#FDB813] hover:bg-[#3E3E3E] px-4 py-2 rounded-md font-semibold flex items-center gap-2${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
         >
           <Plus size={16} className="text-white mr-2" />
           Add Event
@@ -631,7 +634,8 @@ export function EventsManager() {
                       <Button
                         title={event.published ? 'Unpublish event' : 'Publish event'}
                         onClick={() => togglePublished(event)}
-                        className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
+                        disabled={isViewer}
+                        className={`h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {event.published ? <EyeOff size={16} /> : <Eye size={16} />}
                       </Button>
@@ -640,10 +644,10 @@ export function EventsManager() {
                     {!isEditing && (
                       <>
                         <Button
-                          title="Edit"
+                          title={isViewer ? 'View' : 'Edit'}
                           onClick={() => {
                             setExpandedId(isExpanded ? null : event.id);
-                            if (!isExpanded) setEditingId(event.id);
+                            if (!isExpanded && !isViewer) setEditingId(event.id);
                           }}
                           className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
                         >
@@ -662,7 +666,8 @@ export function EventsManager() {
                         <Button
                           title="Delete"
                           onClick={() => setDeleteConfirm(event.id)}
-                          className="h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer"
+                          disabled={isViewer}
+                          className={`h-9 w-9 p-2 flex items-center justify-center rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white cursor-pointer${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <Trash2 size={16} />
                         </Button>

@@ -4,10 +4,16 @@ import { parseKeyFromUrl, getPresignedGetUrl, uploadBuffer, PRIVATE_BUCKET } fro
 import { sql, } from '@vercel/postgres';
 import { updateHeroImage } from '@/lib/db';
 import processHeroImageById from '@/lib/imageProcessor';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 // Simple processing endpoint to process one queue item or a specific hero_image_id.
 export async function POST(request: NextRequest) {
   try {
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+
     const body = await request.json().catch(() => ({}));
     // If hero_image_id provided, process that; otherwise process one pending item
     if (body && body.hero_image_id) {

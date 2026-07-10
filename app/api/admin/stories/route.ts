@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAllStories, createStory, updateStory, deleteStories } from '@/lib/db';
 import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl, deleteObject } from '@/lib/r2';
 import { del } from '@/lib/vercelBlob';
-import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { sql } from '@vercel/postgres';
 
 function escapeHtml(value: string) {
@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
   try {
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
     const { actor } = resolved;
 
     const body = await request.json();
@@ -226,6 +228,8 @@ export async function PUT(request: NextRequest) {
   try {
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
     const { actor } = resolved;
 
     const body = await request.json();
@@ -441,6 +445,8 @@ export async function DELETE(request: NextRequest) {
   try {
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
 
     const { searchParams } = new URL(request.url);
     const idsParam = searchParams.get('ids') || searchParams.get('id');

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { del } from '@/lib/vercelBlob';
-import { verifySession, getActorName } from '@/lib/sessions';
+import { readOnlyResponse, resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
 import { deleteObject, parseKeyFromUrl } from '@/lib/r2';
 import { logger } from '@/lib/logger';
 
@@ -46,11 +46,11 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const idParam = searchParams.get('id');
     // verify session and resolve actor
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    const actor = await getActorName(token);
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+    const actor = resolved.actor;
     let result;
 
     switch (type) {
@@ -123,11 +123,11 @@ export async function PUT(request: NextRequest) {
 
     const data = await request.json();
     // verify session and resolve actor
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    const actor = await getActorName(token);
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+    const actor = resolved.actor;
     let result;
 
     switch (type) {
@@ -172,10 +172,10 @@ export async function DELETE(request: NextRequest) {
     if (!type || !id) return NextResponse.json({ success: false, error: 'type & id required' }, { status: 400 });
 
     // verify session for delete
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
 
     let result;
     switch (type) {

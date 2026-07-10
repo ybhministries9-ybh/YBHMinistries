@@ -11,6 +11,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { API_ENDPOINTS, apiCall } from '../../utils/api-config';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface HeroImage {
   id: number;
@@ -21,10 +22,11 @@ interface HeroImage {
   isActive: boolean;
 }
 
-function SortableImageCard({ image, onToggle, onDelete }: { 
-  image: HeroImage; 
+function SortableImageCard({ image, onToggle, onDelete, isViewer = false }: {
+  image: HeroImage;
   onToggle: (id: number, currentStatus: boolean) => void;
   onDelete: (id: number) => void;
+  isViewer?: boolean;
 }) {
   const {
     attributes,
@@ -46,10 +48,10 @@ function SortableImageCard({ image, onToggle, onDelete }: {
       <Card className="overflow-hidden bg-black border-gray-700">
         <div className="flex items-start gap-3 p-4">
           {/* Drag Handle */}
-          <div 
-            {...attributes} 
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing pt-2"
+          <div
+            {...(isViewer ? {} : attributes)}
+            {...(isViewer ? {} : listeners)}
+            className={`pt-2 ${isViewer ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
           >
             <GripVertical className="text-gray-600" size={20} />
           </div>
@@ -93,7 +95,8 @@ function SortableImageCard({ image, onToggle, onDelete }: {
               variant={image.isActive ? 'outline' : 'default'}
               size="sm"
               onClick={() => onToggle(image.id, image.isActive)}
-              className={`flex-1 ${image.isActive ? 'border-gray-600 text-gray-300 hover:bg-[#2E2E2E]' : 'bg-[#FDB813] text-black hover:bg-[#e5a711]'}`}
+              disabled={isViewer}
+              className={`flex-1 ${image.isActive ? 'border-gray-600 text-gray-300 hover:bg-[#2E2E2E]' : 'bg-[#FDB813] text-black hover:bg-[#e5a711]'}${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
             >
               {image.isActive ? (
                 <>
@@ -111,7 +114,8 @@ function SortableImageCard({ image, onToggle, onDelete }: {
               variant="destructive"
               size="sm"
               onClick={() => onDelete(image.id)}
-              className="flex-1 bg-red-900/30 text-red-400 hover:bg-red-900/50"
+              disabled={isViewer}
+              className={`flex-1 bg-red-900/30 text-red-400 hover:bg-red-900/50${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
             >
               <X size={16} className="mr-1" />
               Delete
@@ -124,6 +128,7 @@ function SortableImageCard({ image, onToggle, onDelete }: {
 }
 
 export function HeroImageManager() {
+  const { isViewer } = useAdminUser();
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -226,6 +231,7 @@ export function HeroImageManager() {
   };
 
   const handleDragEnd = async (event: any) => {
+    if (isViewer) return;
     const { active, over } = event;
 
     if (active.id !== over.id) {
@@ -291,7 +297,8 @@ export function HeroImageManager() {
             <Button
               onClick={() => setShowAddForm(!showAddForm)}
               variant={showAddForm ? 'outline' : 'default'}
-              className={showAddForm ? 'border-gray-600 text-gray-300 hover:bg-[#2E2E2E]' : 'bg-[#FDB813] text-black hover:bg-[#e5a711]'}
+              disabled={isViewer}
+              className={`${showAddForm ? 'border-gray-600 text-gray-300 hover:bg-[#2E2E2E]' : 'bg-[#FDB813] text-black hover:bg-[#e5a711]'}${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
             >
               {showAddForm ? 'Cancel' : <><Plus size={16} className="mr-1" /> Add Image</>}
             </Button>
@@ -385,7 +392,7 @@ export function HeroImageManager() {
             💡 Drag images to reorder them. The order will be reflected in the homepage slideshow.
           </p>
           <DndContext
-            sensors={sensors}
+            sensors={isViewer ? [] : sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
@@ -400,6 +407,7 @@ export function HeroImageManager() {
                     image={image}
                     onToggle={toggleImageVisibility}
                     onDelete={deleteImage}
+                    isViewer={isViewer}
                   />
                 ))}
               </div>

@@ -159,6 +159,20 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
     return () => window.removeEventListener('admin-navigate', onNavigate as EventListener);
   }, []);
 
+  // User Management is off-limits to Viewers entirely -- they must not see
+  // the menu item or be able to render the section, even if `activeSection`
+  // is set directly (e.g. via the `initialSection` prop or the
+  // `admin-navigate` event). Other roles (Super Admin, Content Manager)
+  // keep their existing access, which UserManager itself further restricts
+  // per-action (e.g. Content Manager can only edit their own profile).
+  const isViewer = userRole === 'Viewer';
+
+  useEffect(() => {
+    if (userRole && activeSection === 'users' && isViewer) {
+      setActiveSection('welcome');
+    }
+  }, [userRole, activeSection, isViewer]);
+
   const menuItems = [
     { id: 'welcome' as Section, label: 'Welcome', icon: Star },
     { id: 'home' as Section, label: 'Home', icon: Home },
@@ -170,7 +184,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
     { id: 'stories' as Section, label: 'Stories', icon: BookOpen },
     { id: 'donate' as Section, label: 'Donate', icon: DollarSign },
     { id: 'contacts' as Section, label: 'Contacts', icon: Mail },
-    { id: 'users' as Section, label: 'Users', icon: Users },
+    { id: 'users' as Section, label: 'Users', icon: Users, hidden: isViewer },
     { id: 'menu' as Section, label: 'Menu', icon: Menu, hidden: true }, // UI-hidden but code retained
   ];
 
@@ -289,7 +303,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
                 {activeSection === 'donate' && <DonateManager />}
                 {activeSection === 'contacts' && <ContactsManager />}
                 {activeSection === 'menu' && <MenuManager />}
-                {activeSection === 'users' && <UserManager />}
+                {activeSection === 'users' && !isViewer && <UserManager />}
               </div>
             )}
           </div>

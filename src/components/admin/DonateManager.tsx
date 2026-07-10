@@ -8,6 +8,7 @@ import { accentGold } from '../../utils/theme';
 import { toast } from 'sonner';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { DiscardConfirmDialog } from './DiscardConfirmDialog';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 type UpiItem = {
   id: string | number;
@@ -32,6 +33,7 @@ type BankItem = {
 };
 
 export function DonateManager(): React.ReactElement {
+  const { isViewer } = useAdminUser();
   const [upiList, setUpiList] = useState<UpiItem[]>([]);
   const [bankList, setBankList] = useState<BankItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -465,7 +467,7 @@ export function DonateManager(): React.ReactElement {
 
           <div className="mb-3 flex justify-between items-center">
             <div className="text-white font-medium">UPI Entries</div>
-            <Button onClick={handleAddNewUpi} className="flex items-center gap-2 px-3 py-2 rounded-md border border-[#FDB813] bg-[#111] text-white hover:bg-[#3E3E3E]">
+            <Button onClick={handleAddNewUpi} disabled={isViewer} className={`flex items-center gap-2 px-3 py-2 rounded-md border border-[#FDB813] bg-[#111] text-white hover:bg-[#3E3E3E]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}>
               <Plus size={14} />
               <span className="font-medium">Add UPI</span>
             </Button>
@@ -519,6 +521,7 @@ export function DonateManager(): React.ReactElement {
                   onGenerate={(item: UpiItem) => onGenerateQr(item)}
                   generating={generating === String(u.id)}
                   onToggleVisible={(item: UpiItem, newVal: boolean) => toggleVisibleUpi(item, newVal)}
+                  isViewer={isViewer}
                 />
               ))
             )}
@@ -534,7 +537,7 @@ export function DonateManager(): React.ReactElement {
 
           <div className="mb-3 flex justify-between items-center">
             <div className="text-white font-medium">Bank Entries</div>
-            <Button onClick={handleAddNewBank} className="flex items-center gap-2 px-3 py-2 rounded-md border border-[#FDB813] bg-[#111] text-white hover:bg-[#3E3E3E]">
+            <Button onClick={handleAddNewBank} disabled={isViewer} className={`flex items-center gap-2 px-3 py-2 rounded-md border border-[#FDB813] bg-[#111] text-white hover:bg-[#3E3E3E]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}>
               <Plus size={14} />
               <span className="font-medium">Add Bank</span>
             </Button>
@@ -710,13 +713,13 @@ export function DonateManager(): React.ReactElement {
                         </div>
 
                       <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-700">
-                        <Button onClick={() => toggleVisibleBank(b)} className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white ${!b.visible ? 'opacity-60' : ''}`} title={b.visible ? 'Unpublish' : 'Publish'}>
+                        <Button onClick={() => toggleVisibleBank(b)} disabled={isViewer} className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white ${!b.visible ? 'opacity-60' : ''}${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`} title={b.visible ? 'Unpublish' : 'Publish'}>
                           {b.visible ? <Eye size={14} /> : <EyeOff size={14} />}
                         </Button>
-                        <Button onClick={() => { setExpandedBankId(null); setEditingBankId(String(b.id)); }} className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white flex items-center gap-2" title="Edit">
+                        <Button onClick={() => { setExpandedBankId(null); setEditingBankId(String(b.id)); }} disabled={isViewer} className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white flex items-center gap-2${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`} title="Edit">
                           <Edit2 size={14} />
                         </Button>
-                        <Button onClick={() => { setDeleteTarget({ type: 'bank', id: b.id, name: b.account_name }); setDeleteDialogOpen(true); }} className="bg-transparent rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white" title="Delete">
+                        <Button onClick={() => { setDeleteTarget({ type: 'bank', id: b.id, name: b.account_name }); setDeleteDialogOpen(true); }} disabled={isViewer} className={`bg-transparent rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`} title="Delete">
                           <Trash2 size={14} />
                         </Button>
                       </div>

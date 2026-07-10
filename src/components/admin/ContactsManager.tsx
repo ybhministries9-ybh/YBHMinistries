@@ -7,6 +7,7 @@ import { accentGold } from '../../utils/theme';
 import Link from 'next/link';
 import { downloadExcelFile } from '@/lib/exportUtils';
 import { useSearchParams } from 'next/navigation';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 const normalizeContactStatus = (status?: string | null) => {
   const s = String(status || '').trim();
@@ -41,6 +42,9 @@ function getAuthHeader() {
 
 export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' | 'getintouch' | 'worship24' }) {
   const searchParams = useSearchParams();
+  // Viewers are read-only: no exporting/downloading data. The export API
+  // routes also enforce this server-side.
+  const { isViewer } = useAdminUser();
   const [activeTab, setActiveTab] = useState<'hms' | 'getintouch' | 'worship24'>(forcedActiveTab || 'hms');
   const [worship24SubTab, setWorship24SubTab] = useState<'notifications' | 'slots'>('notifications');
   const getInTouchReturnTo = '/admin/contacts/getintouch';
@@ -454,7 +458,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
   // Memoize export button disabled state
   const isExportDisabled = useMemo(() => {
-    if (exporting || totalCount === 0) return true;
+    if (isViewer || exporting || totalCount === 0) return true;
     
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
@@ -468,7 +472,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     }
     
     return false;
-  }, [exporting, totalCount, exportMonth, exportYear]);
+  }, [isViewer, exporting, totalCount, exportMonth, exportYear]);
 
   // Export HMS enrollments to Excel - exports the currently filtered/searched data
   const handleHmsExport = useCallback(async () => {
@@ -518,7 +522,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
   // Memoize HMS export button disabled state
   const isHmsExportDisabled = useMemo(() => {
-    if (hmsExporting || hmsTotalCount === 0) return true;
+    if (isViewer || hmsExporting || hmsTotalCount === 0) return true;
     
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
@@ -532,7 +536,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     }
     
     return false;
-  }, [hmsExporting, hmsTotalCount, hmsAppliedMonth, hmsAppliedYear]);
+  }, [isViewer, hmsExporting, hmsTotalCount, hmsAppliedMonth, hmsAppliedYear]);
 
   // modal removed — detail page used instead
 
@@ -803,7 +807,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   }, [sortedWorship, formatDatePretty]);
 
   const isWorshipExportDisabled = useMemo(() => {
-    if (exporting) return true;
+    if (isViewer || exporting) return true;
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
     if (worshipExportYear && worshipExportMonth) {
@@ -821,7 +825,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     // matching submissions only, so there's nothing to export when the
     // filtered table is empty.
     return worshipTotalCount === 0;
-  }, [exporting, worshipTotalCount, worshipExportMonth, worshipExportYear]);
+  }, [isViewer, exporting, worshipTotalCount, worshipExportMonth, worshipExportYear]);
 
   const handleSort = useCallback((column: string) => {
     if (sortBy === column) {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { addGalleryItems } from '@/lib/db';
 import { getPublicUrl, headObject } from '@/lib/r2';
 
@@ -13,6 +13,8 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get('authorization') || '';
     const sessionInfo = await resolveSessionAndActorFromAuthHeader(authHeader);
     if (!sessionInfo) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(sessionInfo);
+    if (denied) return denied;
 
     const actor = sessionInfo.actor;
     const body = await req.json();

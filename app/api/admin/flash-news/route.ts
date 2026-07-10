@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 import fs from 'fs/promises';
 import path from 'path';
@@ -65,6 +65,12 @@ export async function GET(_: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = req.headers.get('authorization') || '';
+    const resolved = await resolveSessionAndActorFromAuthHeader(auth);
+    if (!resolved) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+
     const body: unknown = await req.json();
     if (typeof body !== 'object' || body === null) return NextResponse.json({ error: 'invalid json' }, { status: 400 });
     const enabled = (body as { enabled?: unknown }).enabled;
@@ -74,18 +80,8 @@ export async function POST(req: NextRequest) {
     if (videoUrl != null && typeof videoUrl !== 'string') return NextResponse.json({ error: 'videoUrl must be string' }, { status: 422 });
     const safeVideoUrl = typeof videoUrl === 'string' ? videoUrl : '';
 
-    let updatedBy: string | null = null;
-    let createdBy: string | null = null;
-    try {
-      const auth = req.headers.get('authorization') || '';
-      const resolved = await resolveSessionAndActorFromAuthHeader(auth).catch(() => null);
-      if (resolved) {
-        updatedBy = resolved.actor;
-        createdBy = resolved.actor;
-      }
-    } catch (e) {
-      // ignore resolution errors and continue
-    }
+    const updatedBy: string | null = resolved.actor;
+    const createdBy: string | null = resolved.actor;
 
     try {
       await sql`

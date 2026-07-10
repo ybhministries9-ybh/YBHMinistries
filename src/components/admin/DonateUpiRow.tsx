@@ -7,7 +7,7 @@ import { accentGold } from '../../utils/theme';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { toast } from 'sonner';
 
-export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, onRemoveConfirmed, startEditing, onConsumeStartEditing, onSave, onToggleVisible } : any) {
+export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, onRemoveConfirmed, startEditing, onConsumeStartEditing, onSave, onToggleVisible, isViewer } : any) {
   const [editing, setEditing] = useState<boolean>(false);
   const [local, setLocal] = useState<any>(u);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -291,16 +291,17 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-700">
             <Button
               onClick={() => toggleVisibleImmediate(!u.visible)}
-              className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white ${!u.visible ? 'opacity-60' : ''}`}
+              disabled={isViewer}
+              className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white ${!u.visible ? 'opacity-60' : ''}${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
               title={u.visible ? 'Unpublish' : 'Publish'}
               aria-label="Toggle visible"
             >
               {u.visible ? <Eye size={14} /> : <EyeOff size={14} />}
             </Button>
-            <Button onClick={startEdit} title="Edit" className="rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white flex items-center gap-2">
+            <Button onClick={startEdit} disabled={isViewer} title="Edit" className={`rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white flex items-center gap-2${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}>
               <Edit2 size={14} />
             </Button>
-            <Button onClick={() => setDeleteOpen(true)} title="Delete" className="bg-transparent rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white">
+            <Button onClick={() => setDeleteOpen(true)} disabled={isViewer} title="Delete" className={`bg-transparent rounded-md border border-[#FDB813] bg-[#2E2E2E] hover:bg-[#1a1a1a] text-white${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}>
               <Trash2 size={14} />
             </Button>
             <DeleteConfirmDialog

@@ -576,14 +576,17 @@ export function UserManager() {
                 <select
                   value={formData.status}
                   onChange={(e) => handleFieldChange('status', e.target.value)}
+                  disabled={!!editingUser && currentUser?.id === editingUser.id}
                   style={{ backgroundColor: '#2e2e2e' }}
-                  className="w-full px-3 py-2 !bg-[#2e2e2e] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent"
+                  className="w-full px-3 py-2 !bg-[#2e2e2e] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Inactive users cannot log in to the admin portal
+                  {editingUser && currentUser?.id === editingUser.id
+                    ? 'You cannot change your own status'
+                    : 'Inactive users cannot log in to the admin portal'}
                 </p>
               </div>
             </div>

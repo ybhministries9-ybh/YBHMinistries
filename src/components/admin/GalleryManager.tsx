@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { toast } from 'sonner';
 import { accentGold } from '../../utils/theme';
 import { ConfirmDialog } from './ConfirmDialog';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface GalleryItem {
   id: number;
@@ -62,6 +63,7 @@ interface MediaCardProps {
   onDelete: (id: number) => void;
   isSelected: boolean;
   onToggleSelect: (id: number) => void;
+  isViewer?: boolean;
 }
 
 function getYouTubeThumbnail(url: string): string | null {
@@ -91,7 +93,7 @@ function getYouTubeThumbnail(url: string): string | null {
   return null;
 }
 
-function MediaCard({ item, onDelete, isSelected, onToggleSelect }: MediaCardProps) {
+function MediaCard({ item, onDelete, isSelected, onToggleSelect, isViewer }: MediaCardProps) {
   const renderMedia = () => {
     if (item.media_type === 'image') {
       const src = (item as any).thumbnail_url || (item as any).medium_url || item.url;
@@ -139,7 +141,8 @@ function MediaCard({ item, onDelete, isSelected, onToggleSelect }: MediaCardProp
         {/* Delete Button */}
         <button
           onClick={() => onDelete(item.id)}
-          className="absolute top-2 right-2 z-10 p-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors cursor-pointer shadow-lg"
+          disabled={isViewer}
+          className={`absolute top-2 right-2 z-10 p-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors cursor-pointer shadow-lg${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -183,6 +186,7 @@ function getAuthHeaders(contentType?: string) {
 }
 
 export function GalleryManager() {
+  const { isViewer } = useAdminUser();
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -765,11 +769,12 @@ export function GalleryManager() {
                     e.preventDefault();
                     e.stopPropagation();
                     setIsDragActive(false);
+                    if (isViewer) return;
                     const files = Array.from(e.dataTransfer?.files || []);
                     if (files.length > 0) setMediaFiles(files.filter(f => f.type.startsWith('image/')));
                   }}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`w-full min-h-[120px] flex flex-col items-center justify-center gap-2 bg-black border-2 border-dashed border-[#2E2E2E] rounded-md overflow-hidden cursor-pointer px-4 py-6 ${isDragActive ? 'border-dashed border-[#FDB813]' : ''}`}
+                  onClick={() => { if (!isViewer) fileInputRef.current?.click(); }}
+                  className={`w-full min-h-[120px] flex flex-col items-center justify-center gap-2 bg-black border-2 border-dashed border-[#2E2E2E] rounded-md overflow-hidden cursor-pointer px-4 py-6 ${isDragActive ? 'border-dashed border-[#FDB813]' : ''}${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <input
                     id="mediaFiles"
@@ -777,6 +782,7 @@ export function GalleryManager() {
                     type="file"
                     accept="image/*"
                     multiple
+                    disabled={isViewer}
                     onChange={(e) => setMediaFiles(Array.from(e.target.files || []).filter(f => f.type.startsWith('image/')))}
                     className="hidden"
                   />
@@ -797,7 +803,8 @@ export function GalleryManager() {
                       {videoEntries.length > 1 && (
                         <button
                           onClick={() => setVideoEntries(videoEntries.filter((_, i) => i !== index))}
-                          className="text-red-500 hover:text-red-400 text-sm"
+                          disabled={isViewer}
+                          className={`text-red-500 hover:text-red-400 text-sm${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                         >
                           Remove
                         </button>
@@ -829,7 +836,8 @@ export function GalleryManager() {
                 ))}
                 <button
                   onClick={() => setVideoEntries([...videoEntries, { url: '' }])}
-                  className="px-4 py-2 bg-[#2E2E2E] text-white border border-[#3a3a3a] hover:bg-[#3a3a3a] rounded transition-all cursor-pointer flex items-center gap-2 text-sm"
+                  disabled={isViewer}
+                  className={`px-4 py-2 bg-[#2E2E2E] text-white border border-[#3a3a3a] hover:bg-[#3a3a3a] rounded transition-all cursor-pointer flex items-center gap-2 text-sm${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <Plus className="h-4 w-4" />
                   Add Another Video
@@ -846,9 +854,10 @@ export function GalleryManager() {
                     <div key={i} className="relative rounded overflow-hidden border border-[#3a3a3a] h-20 w-20 group">
                       <img src={p} alt={mediaFiles[i]?.name || `preview-${i}`} className="w-full h-full object-cover" />
                       <button
-                        onClick={(e) => { e.stopPropagation(); removeSelectedFile(i); }}
+                        onClick={(e) => { e.stopPropagation(); if (!isViewer) removeSelectedFile(i); }}
+                        disabled={isViewer}
                         title="Remove"
-                        className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                        className={`absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity${isViewer ? ' cursor-not-allowed' : ''}`}
                         aria-label={`Remove ${mediaFiles[i]?.name || `preview-${i}`}`}>
                         <div className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2">
                           <Trash2 className="h-4 w-4" />
@@ -862,8 +871,8 @@ export function GalleryManager() {
 
             <button
               onClick={handleUpload}
-              disabled={!canUpload}
-              aria-disabled={!canUpload}
+              disabled={!canUpload || isViewer}
+              aria-disabled={!canUpload || isViewer}
               className="px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center gap-2"
               style={{ backgroundColor: accentGold }}
             >
@@ -938,7 +947,8 @@ export function GalleryManager() {
                     {selectedImageIds.length > 0 && (
                       <button
                         onClick={handleBulkDeleteImages}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2 text-sm"
+                        disabled={isViewer}
+                        className={`px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2 text-sm${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete Selected ({selectedImageIds.length})
@@ -956,6 +966,7 @@ export function GalleryManager() {
                       onDelete={handleDelete}
                       isSelected={selectedIds.has(item.id)}
                       onToggleSelect={handleToggleSelect}
+                      isViewer={isViewer}
                     />
                   ))}
                 </div>
@@ -990,7 +1001,8 @@ export function GalleryManager() {
                     {selectedVideoIds.length > 0 && (
                       <button
                         onClick={handleBulkDeleteVideos}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2 text-sm"
+                        disabled={isViewer}
+                        className={`px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2 text-sm${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete Selected ({selectedVideoIds.length})
@@ -1008,6 +1020,7 @@ export function GalleryManager() {
                       onDelete={handleDelete}
                       isSelected={selectedIds.has(item.id)}
                       onToggleSelect={handleToggleSelect}
+                      isViewer={isViewer}
                     />
                   ))}
                 </div>

@@ -12,6 +12,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { accentGold } from '../../utils/theme';
 import { ConfirmDialog } from './ConfirmDialog';
 import usePresignUpload from '@/hooks/usePresignUpload';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface HeroImage {
   id: number;
@@ -54,12 +55,13 @@ function getAuthHeaders(contentType?: string) {
   return headers;
 }
 
-function SortableImageCard({ image, onDelete, isSelected, onToggleSelect, isMobilePreview = false }: { 
+function SortableImageCard({ image, onDelete, isSelected, onToggleSelect, isMobilePreview = false, isViewer = false }: {
   image: HeroImage;
   onDelete: (id: number) => void;
   isSelected: boolean;
   onToggleSelect: (id: number) => void;
   isMobilePreview?: boolean;
+  isViewer?: boolean;
 }) {
   const {
     attributes,
@@ -97,9 +99,9 @@ function SortableImageCard({ image, onDelete, isSelected, onToggleSelect, isMobi
         
         {/* Drag Handle Overlay */}
         <div
-          {...attributes}
-          {...listeners}
-          className="absolute inset-0 cursor-grab active:cursor-grabbing bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center group"
+          {...(isViewer ? {} : attributes)}
+          {...(isViewer ? {} : listeners)}
+          className={`absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center group ${isViewer ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
         >
           <GripVertical className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
         </div>
@@ -118,7 +120,8 @@ function SortableImageCard({ image, onDelete, isSelected, onToggleSelect, isMobi
         {/* Delete Button */}
         <button
           onClick={() => onDelete(image.id)}
-          className="absolute top-2 right-2 z-10 p-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors cursor-pointer shadow-lg"
+          disabled={isViewer}
+          className={`absolute top-2 right-2 z-10 p-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors cursor-pointer shadow-lg${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -130,6 +133,7 @@ function SortableImageCard({ image, onDelete, isSelected, onToggleSelect, isMobi
 }
 
 export function HomeContentManager() {
+  const { isViewer } = useAdminUser();
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
   const [showUploader, setShowUploader] = useState(false);
   const [uploaderCategory, setUploaderCategory] = useState<'desktop' | 'mobile'>('desktop');
@@ -523,6 +527,7 @@ export function HomeContentManager() {
 
   // Reorder hero images
   const handleDragEnd = async (event: any) => {
+    if (isViewer) return;
     const { active, over } = event;
 
     if (!over || active.id === over.id) return;
@@ -815,10 +820,10 @@ export function HomeContentManager() {
               <button
                 type="button"
                 onClick={() => handleToggleFlashNews(true)}
-                disabled={isSavingFlashNews || flashNewsEnabled}
+                disabled={isSavingFlashNews || flashNewsEnabled || isViewer}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   flashNewsEnabled ? 'text-black' : 'text-white hover:bg-white/10'
-                } ${isSavingFlashNews || flashNewsEnabled ? 'cursor-default' : 'cursor-pointer'}`}
+                } ${isSavingFlashNews || flashNewsEnabled || isViewer ? 'cursor-default' : 'cursor-pointer'}`}
                 style={flashNewsEnabled ? { backgroundColor: accentGold } : undefined}
               >
                 ON
@@ -826,10 +831,10 @@ export function HomeContentManager() {
               <button
                 type="button"
                 onClick={() => handleToggleFlashNews(false)}
-                disabled={isSavingFlashNews || !flashNewsEnabled}
+                disabled={isSavingFlashNews || !flashNewsEnabled || isViewer}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   !flashNewsEnabled ? 'text-black' : 'text-white hover:bg-white/10'
-                } ${isSavingFlashNews || !flashNewsEnabled ? 'cursor-default' : 'cursor-pointer'}`}
+                } ${isSavingFlashNews || !flashNewsEnabled || isViewer ? 'cursor-default' : 'cursor-pointer'}`}
                 style={!flashNewsEnabled ? { backgroundColor: accentGold } : undefined}
               >
                 OFF
@@ -853,7 +858,7 @@ export function HomeContentManager() {
             <button
               type="button"
               onClick={uploadFlashNewsVideo}
-              disabled={flashNewsUploadProgress !== null || !flashNewsFile}
+              disabled={flashNewsUploadProgress !== null || !flashNewsFile || isViewer}
               className="px-4 py-2 text-black rounded transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center gap-2"
               style={{ backgroundColor: accentGold }}
             >
@@ -872,8 +877,8 @@ export function HomeContentManager() {
           <div
             className={`mt-4 rounded-lg border border-dashed p-4 transition-colors cursor-pointer ${
               isFlashNewsDragActive ? 'border-[#FDB813] bg-black/30' : 'border-gray-600 hover:border-gray-500'
-            }`}
-            onClick={() => document.getElementById('flashNewsVideoFile')?.click()}
+            }${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => { if (!isViewer) document.getElementById('flashNewsVideoFile')?.click(); }}
             onDragOver={(e) => {
               e.preventDefault();
               setIsFlashNewsDragActive(true);
@@ -889,6 +894,7 @@ export function HomeContentManager() {
             onDrop={(e) => {
               e.preventDefault();
               setIsFlashNewsDragActive(false);
+              if (isViewer) return;
               const f = e.dataTransfer?.files?.[0];
               if (f) handleSelectFlashNewsFile(f);
             }}
@@ -897,6 +903,7 @@ export function HomeContentManager() {
               id="flashNewsVideoFile"
               type="file"
               accept=".mp4,.mov,video/mp4,video/quicktime"
+              disabled={isViewer}
               onChange={(e) => handleSelectFlashNewsFile(e.target.files?.[0] || null)}
               className="hidden"
             />
@@ -929,14 +936,16 @@ export function HomeContentManager() {
           <div className="flex items-center gap-2">
             <Button
               onClick={() => { setUploaderCategory('desktop'); setShowUploader(true); }}
-              className="px-4 py-2 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+              disabled={isViewer}
+              className={`px-4 py-2 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
             >
               Upload Desktop Files
             </Button>
 
             <Button
               onClick={() => { setUploaderCategory('mobile'); setShowUploader(true); }}
-              className="px-4 py-2 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+              disabled={isViewer}
+              className={`px-4 py-2 bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
             >
               Upload Mobile Files
             </Button>
@@ -994,7 +1003,8 @@ export function HomeContentManager() {
                   return selectedInVisible.length > 0 ? (
                     <button
                       onClick={handleBulkDelete}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2"
+                      disabled={isViewer}
+                      className={`px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer flex items-center gap-2${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <Trash2 className="h-4 w-4" />
                       Delete Selected ({selectedInVisible.length})
@@ -1009,7 +1019,7 @@ export function HomeContentManager() {
             <p className="text-gray-400 text-center py-8 bg-black rounded-lg border border-[#3a3a3a]">No hero images yet. Upload some above!</p>
           ) : (
             <DndContext
-              sensors={sensors}
+              sensors={isViewer ? [] : sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
             >
@@ -1028,6 +1038,7 @@ export function HomeContentManager() {
                         isSelected={selectedImageIds.has(image.id)}
                         onToggleSelect={handleToggleSelect}
                         isMobilePreview={activeTab === 'mobile'}
+                        isViewer={isViewer}
                       />
                     ))}
                 </div>
@@ -1073,7 +1084,8 @@ export function HomeContentManager() {
                         />
                         <button
                           onClick={handleDeleteVideo}
-                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-red-600"
+                          disabled={isViewer}
+                          className={`absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-red-600${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                           title="Delete video"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -1112,7 +1124,8 @@ export function HomeContentManager() {
 
                     <button
                       onClick={handleDeleteThumbnail}
-                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-red-600"
+                      disabled={isViewer}
+                      className={`absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-red-600${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                       title="Delete thumbnail"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1146,14 +1159,15 @@ export function HomeContentManager() {
               <div>
                 <Label htmlFor="videoFile" className="text-white mb-2 block text-sm">Video File</Label>
                 <div
-                  className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md ${isVideoDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 bg-black'} text-gray-300 cursor-pointer`}
-                  onClick={() => document.getElementById('videoFile')?.click()}
+                  className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-md ${isVideoDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 bg-black'} text-gray-300 cursor-pointer${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => { if (!isViewer) document.getElementById('videoFile')?.click(); }}
                   onDragOver={(e) => { e.preventDefault(); setIsVideoDragActive(true); }}
                   onDragEnter={(e) => { e.preventDefault(); setIsVideoDragActive(true); }}
                   onDragLeave={(e) => { e.preventDefault(); setIsVideoDragActive(false); }}
                   onDrop={(e) => {
                     e.preventDefault();
                     setIsVideoDragActive(false);
+                    if (isViewer) return;
                     const f = e.dataTransfer?.files?.[0];
                     if (f) handleSelectHomeVideoFile(f);
                   }}
@@ -1162,6 +1176,7 @@ export function HomeContentManager() {
                     id="videoFile"
                     type="file"
                     accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm"
+                    disabled={isViewer}
                     onChange={(e) => handleSelectHomeVideoFile(e.target.files?.[0] || null)}
                     className="hidden"
                   />
@@ -1187,7 +1202,7 @@ export function HomeContentManager() {
 
             <button
               onClick={handleUploadVideo}
-              disabled={isUploadingVideo || homeVideoUploadProgress !== null || (videoUploadType === 'file' && !videoFile) || (videoUploadType === 'url' && !videoUrl.trim())}
+              disabled={isUploadingVideo || homeVideoUploadProgress !== null || (videoUploadType === 'file' && !videoFile) || (videoUploadType === 'url' && !videoUrl.trim()) || isViewer}
               className="mt-4 w-full px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center justify-center gap-2"
               style={{ backgroundColor: accentGold }}
             >
@@ -1214,14 +1229,15 @@ export function HomeContentManager() {
               <div>
                 <Label htmlFor="thumbnailFileOnly" className="text-white mb-2 block text-sm">Thumbnail Image</Label>
                 <div
-                  className={`flex items-center justify-center w-full px-4 py-4 border-2 border-dashed rounded-md ${isThumbDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 bg-black'} text-gray-300 cursor-pointer`}
-                  onClick={() => document.getElementById('thumbnailFileOnly')?.click()}
+                  className={`flex items-center justify-center w-full px-4 py-4 border-2 border-dashed rounded-md ${isThumbDragActive ? 'border-[#FDB813] bg-[#1a1a1a]' : 'border-gray-700 bg-black'} text-gray-300 cursor-pointer${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => { if (!isViewer) document.getElementById('thumbnailFileOnly')?.click(); }}
                   onDragOver={(e) => { e.preventDefault(); setIsThumbDragActive(true); }}
                   onDragEnter={(e) => { e.preventDefault(); setIsThumbDragActive(true); }}
                   onDragLeave={(e) => { e.preventDefault(); setIsThumbDragActive(false); }}
                   onDrop={(e) => {
                     e.preventDefault();
                     setIsThumbDragActive(false);
+                    if (isViewer) return;
                     const f = e.dataTransfer?.files?.[0];
                     if (f && f.type.startsWith('image/')) setThumbnailFile(f);
                   }}
@@ -1230,6 +1246,7 @@ export function HomeContentManager() {
                     id="thumbnailFileOnly"
                     type="file"
                     accept=".jpg,.jpeg,.png"
+                    disabled={isViewer}
                     onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
                     className="hidden"
                   />
@@ -1248,8 +1265,9 @@ export function HomeContentManager() {
                       <div className="w-full aspect-square bg-gray-900 overflow-hidden">
                         <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-full object-cover" />
                         <button
-                          onClick={(e) => { e.stopPropagation(); setThumbnailFile(null); const input = document.getElementById('thumbnailFileOnly') as HTMLInputElement; if (input) input.value = ''; }}
-                          className="absolute top-1 right-1 z-10 p-1 bg-red-600 hover:bg-red-700 text-white rounded"
+                          onClick={(e) => { e.stopPropagation(); if (isViewer) return; setThumbnailFile(null); const input = document.getElementById('thumbnailFileOnly') as HTMLInputElement; if (input) input.value = ''; }}
+                          disabled={isViewer}
+                          className={`absolute top-1 right-1 z-10 p-1 bg-red-600 hover:bg-red-700 text-white rounded${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                           title="Remove"
                           aria-label="Remove thumbnail"
                         >
@@ -1264,7 +1282,7 @@ export function HomeContentManager() {
 
             <button
               onClick={handleUploadThumbnail}
-              disabled={isUploadingThumbnail || (thumbnailUploadType === 'file' && !thumbnailFile) || (thumbnailUploadType === 'url' && !videoThumbnailUrl.trim())}
+              disabled={isUploadingThumbnail || (thumbnailUploadType === 'file' && !thumbnailFile) || (thumbnailUploadType === 'url' && !videoThumbnailUrl.trim()) || isViewer}
               className="mt-4 w-full px-6 py-2 rounded font-medium text-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center justify-center gap-2"
               style={{ backgroundColor: accentGold }}
             >

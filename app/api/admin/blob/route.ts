@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@/lib/vercelBlob';
 import { withApiGuard, safeParseJson } from '@/lib/apiGuard';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,13 @@ export const dynamic = 'force-dynamic';
  * Deletes one or more Vercel Blob URLs (only deletes URLs that include blob.vercel-storage.com)
  */
 export const POST = withApiGuard(async (request: NextRequest) => {
+  const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+  if (!resolved) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+  const denied = readOnlyResponse(resolved);
+  if (denied) return denied;
+
   const body = await safeParseJson(request, 200 * 1024);
   const urls: string[] = body?.urls || (body?.url ? [body.url] : []);
 

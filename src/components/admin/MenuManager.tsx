@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { toast } from 'sonner';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface MenuItem {
   id: string;
@@ -15,6 +16,7 @@ interface MenuItem {
 }
 
 export function MenuManager() {
+  const { isViewer } = useAdminUser();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([
     {
       id: '1',
@@ -200,7 +202,7 @@ export function MenuManager() {
                   id={`menu-${item.id}`}
                   checked={item.isEnabled}
                   onCheckedChange={() => handleToggle(item.id)}
-                  disabled={item.isLocked}
+                  disabled={item.isLocked || isViewer}
                   className="data-[state=checked]:bg-[#FDB813]"
                 />
               </div>

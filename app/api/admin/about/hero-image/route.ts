@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveAboutHeroImage, upsertAboutHeroImage, deleteAboutHeroImage } from '@/lib/db';
 import { sql } from '@vercel/postgres';
-import { verifySession, getActorName } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { uploadBuffer, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
 import { del } from '@/lib/vercelBlob';
 
@@ -71,11 +71,11 @@ export async function POST(request: NextRequest) {
       const formData = await request.formData();
       const file = formData.get('file') as File;
       // verify session and resolve actor
-      const auth = request.headers.get('authorization') || '';
-      const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-      const session = await verifySession(token);
-      if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-      const createdBy = await getActorName(token);
+      const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+      if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const denied = readOnlyResponse(resolved);
+      if (denied) return denied;
+      const createdBy = resolved.actor;
 
       if (!file) {
         return NextResponse.json(
@@ -124,11 +124,11 @@ export async function POST(request: NextRequest) {
     else {
       const body = await request.json();
       // verify session and resolve actor
-      const auth2 = request.headers.get('authorization') || '';
-      const token2 = auth2.startsWith('Bearer ') ? auth2.slice(7) : auth2 || null;
-      const session2 = await verifySession(token2);
-      if (!session2) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-      const actor = await getActorName(token2);
+      const resolved2 = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+      if (!resolved2) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const denied2 = readOnlyResponse(resolved2);
+      if (denied2) return denied2;
+      const actor = resolved2.actor;
       const { image_url } = body;
 
       if (!image_url) {
@@ -193,10 +193,10 @@ export async function DELETE(request: NextRequest) {
     const imageId = parseInt(id);
 
     // verify session for delete
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
 
     // Get image URL before deleting from database
     const { rows } = await sql`

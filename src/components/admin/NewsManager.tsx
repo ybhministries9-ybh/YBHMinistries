@@ -15,6 +15,7 @@ import {
 } from '../ui/dialog';
 import { toast } from 'sonner';
 import { EventsManager } from './EventsManager';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface EnrollmentMonth {
   month: string;
@@ -83,6 +84,7 @@ export function NewsManager() {
 
 // Reports Manager Sub-Component
 function ReportsManager() {
+  const { isViewer } = useAdminUser();
   const [reports, setReports] = useState<YearlyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -347,7 +349,8 @@ function ReportsManager() {
         <Button
           onClick={handleAdd}
           title="Add a new report"
-          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+          disabled={isViewer}
+          className={`bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
         >
           <Plus size={16} className="mr-2" />
           Add Report
@@ -424,8 +427,9 @@ function ReportsManager() {
                       title={report.published ? 'Unpublish' : 'Publish'}
                       onClick={() => togglePublished(report.id)}
                       size="sm"
+                      disabled={isViewer}
                       aria-label={report.published ? 'Unpublish report' : 'Publish report'}
-                      className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+                      className={`bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {report.published ? <EyeOff size={14} /> : <Eye size={14} />}
                     </Button>
@@ -433,8 +437,8 @@ function ReportsManager() {
                     {!isEditing && (
                       <>
                         <Button
-                          title="Edit"
-                          onClick={() => { setEditingId(report.id); setExpandedReport(report.id); }}
+                          title={isViewer ? 'View' : 'Edit'}
+                          onClick={() => { setExpandedReport(report.id); if (!isViewer) setEditingId(report.id); }}
                           size="sm"
                           className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
                         >
@@ -444,7 +448,8 @@ function ReportsManager() {
                           title="Delete"
                           onClick={() => handleDelete(report.id)}
                           size="sm"
-                          className="bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]"
+                          disabled={isViewer}
+                          className={`bg-[#2E2E2E] hover:bg-[#3E3E3E] text-white border border-[#FDB813]${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <Trash2 size={14} />
                         </Button>

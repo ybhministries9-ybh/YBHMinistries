@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,13 @@ export async function GET(request: NextRequest) {
 // POST: Create a new report
 export async function POST(request: NextRequest) {
   try {
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+
     const body = await request.json();
     const { year, classType, data, published } = body;
 
@@ -105,6 +113,13 @@ export async function POST(request: NextRequest) {
 // PUT: Update an existing report
 export async function PUT(request: NextRequest) {
   try {
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+
     const body = await request.json();
     const { id, year, classType, data, published } = body;
 
@@ -190,6 +205,13 @@ export async function PUT(request: NextRequest) {
 // DELETE: Delete a report
 export async function DELETE(request: NextRequest) {
   try {
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

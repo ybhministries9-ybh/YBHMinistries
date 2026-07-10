@@ -3,7 +3,7 @@ import { del } from '@/lib/vercelBlob';
 import { uploadBuffer, getPublicUrl, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl } from '@/lib/r2';
 import { createHeroImage, updateHeroImage, deleteHeroImage, deleteHeroImages, reorderHeroImages, getActiveHeroImages } from '@/lib/db';
 import { sql } from '@vercel/postgres';
-import { verifySession, getActorName } from '@/lib/sessions';
+import { verifySession, getActorName, resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { withApiGuard, streamUploadGuard, safeParseJson, ApiError } from '@/lib/apiGuard';
 import processHeroImageById, { processBufferToVariants } from '@/lib/imageProcessor';
 
@@ -88,6 +88,9 @@ export const POST = withApiGuard(async (request: NextRequest) => {
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
   const session = await verifySession(token);
   if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const resolvedRole = await resolveSessionAndActorFromAuthHeader(auth);
+  const denied = readOnlyResponse(resolvedRole);
+  if (denied) return denied;
   const createdBy = await getActorName(token);
 
   if (!files || files.length === 0) {
@@ -167,9 +170,16 @@ export const POST = withApiGuard(async (request: NextRequest) => {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await safeParseJson(request, 200 * 1024);
-    
+
     // Handle reordering
     if (body.action === 'reorder' && body.images) {
+      // verify session and resolve actor for reorder
+      const auth = request.headers.get('authorization') || '';
+      const resolvedForReorder = await resolveSessionAndActorFromAuthHeader(auth);
+      if (!resolvedForReorder) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const deniedForReorder = readOnlyResponse(resolvedForReorder);
+      if (deniedForReorder) return deniedForReorder;
+
       // Extract IDs from the images array
       const imageIds = body.images.map((img: any) => img.id);
       await reorderHeroImages(imageIds);
@@ -187,6 +197,9 @@ export async function PATCH(request: NextRequest) {
       const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
       const session = await verifySession(token);
       if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const resolvedRole = await resolveSessionAndActorFromAuthHeader(auth);
+      const denied = readOnlyResponse(resolvedRole);
+      if (denied) return denied;
       const actor = await getActorName(token);
 
       // attach updated_by
@@ -242,6 +255,9 @@ export async function DELETE(request: NextRequest) {
       const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
       const session = await verifySession(token);
       if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const resolvedRole = await resolveSessionAndActorFromAuthHeader(auth);
+      const denied = readOnlyResponse(resolvedRole);
+      if (denied) return denied;
 
       // Build list of URLs to delete (include mobile variants)
       const blobUrls = rows.map((row: any) => ({
@@ -299,6 +315,9 @@ export async function DELETE(request: NextRequest) {
       const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth || null;
       const session = await verifySession(token);
       if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const resolvedRole = await resolveSessionAndActorFromAuthHeader(auth);
+      const denied = readOnlyResponse(resolvedRole);
+      if (denied) return denied;
 
       // Delete from storage first
       for (const url of urlsToDelete) {

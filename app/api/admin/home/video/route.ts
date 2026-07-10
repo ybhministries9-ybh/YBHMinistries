@@ -3,7 +3,7 @@ import { del } from '@/lib/vercelBlob';
 import { uploadBuffer, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl, headObject } from '@/lib/r2';
 import { upsertHomeVideo, getActiveHomeVideo } from '@/lib/db';
 import { sql } from '@vercel/postgres';
-import { resolveSessionAndActorFromAuthHeader } from '@/lib/sessions';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 /**
  * GET /api/admin/home/video
@@ -85,8 +85,10 @@ export async function POST(request: NextRequest) {
       // verify session and resolve actor
       const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
       if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const denied = readOnlyResponse(resolved);
+      if (denied) return denied;
       const { actor: resolvedName } = resolved;
-      
+
       if (!file) {
         return NextResponse.json(
           { success: false, error: 'No video file provided' },
@@ -197,6 +199,8 @@ export async function POST(request: NextRequest) {
       // verify session and resolve actor
       const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
       if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      const denied = readOnlyResponse(resolved);
+      if (denied) return denied;
       const { actor } = resolved;
 
       const { video_url, thumbnail_image_url } = body;
@@ -298,6 +302,8 @@ export async function DELETE(request: NextRequest) {
     // verify session for delete
     const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
     if (!resolved) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
     const { actor } = resolved;
 
     // Fetch video URL before updating database
