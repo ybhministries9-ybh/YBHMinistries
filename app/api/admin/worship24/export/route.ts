@@ -104,7 +104,7 @@ function emptySlotRow(bookingDate: string, timeslot: string): Worship24ExportRow
     Email: BLANK,
     Phone: BLANK,
     Location: BLANK,
-    Status: 'Available',
+    Status: BLANK,
     Facebook: BLANK,
     Message: BLANK,
     'Submitted Date': BLANK,
