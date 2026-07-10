@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Book, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Download, ArrowUpDown } from 'lucide-react';
 import ManageSlots from './ManageSlots';
+import { ConfirmDialog } from './ConfirmDialog';
 import { accentGold } from '../../utils/theme';
 import Link from 'next/link';
 import { downloadExcelFile } from '@/lib/exportUtils';
@@ -81,6 +82,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const [worshipExportYear, setWorshipExportYear] = useState<string>('');
   const [worshipExportStatus, setWorshipExportStatus] = useState<string>('');
   const [worshipYears, setWorshipYears] = useState<number[] | null>(null);
+  const [showWorshipExportFilterModal, setShowWorshipExportFilterModal] = useState(false);
   
   // Export filters for HMS
   const [hmsExportMonth, setHmsExportMonth] = useState<string>('');
@@ -422,6 +424,10 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
   // Export worship24 data to Excel
   const handleWorshipExport = useCallback(async () => {
+    if (!worshipExportMonth || !worshipExportYear) {
+      setShowWorshipExportFilterModal(true);
+      return;
+    }
     try {
       setExporting(true);
       const params = new URLSearchParams();
@@ -797,7 +803,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   }, [sortedWorship, formatDatePretty]);
 
   const isWorshipExportDisabled = useMemo(() => {
-    if (exporting || worshipTotalCount === 0) return true;
+    if (exporting) return true;
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
     if (worshipExportYear && worshipExportMonth) {
@@ -805,8 +811,16 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
       const selectedMonth = parseInt(worshipExportMonth);
       if (selectedYear === currentYear && selectedMonth > currentMonth) return true;
       if (selectedYear > currentYear) return true;
+      // With both Month and Year selected, the export always produces the
+      // full 48-slot schedule (booked + open slots), so it's never blocked
+      // by an empty result count -- a month with zero bookings still yields
+      // 48 "Available" rows.
+      return false;
     }
-    return false;
+    // Without both Month and Year selected, export falls back to listing
+    // matching submissions only, so there's nothing to export when the
+    // filtered table is empty.
+    return worshipTotalCount === 0;
   }, [exporting, worshipTotalCount, worshipExportMonth, worshipExportYear]);
 
   const handleSort = useCallback((column: string) => {
@@ -1405,11 +1419,18 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                       onClick={handleWorshipExport}
                       disabled={isWorshipExportDisabled}
                       className="px-3 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      title="Export worship24 to Excel file"
+                      title={worshipExportMonth && worshipExportYear
+                        ? 'Exports all 48 timeslots for the selected month (booked slots show details, open slots are left blank)'
+                        : 'Select both Month and Year from the dropdowns above to export the full 48-slot schedule'}
                     >
                       <Download size={16} />
                       {exporting ? 'Exporting...' : 'Export to Excel'}
                     </button>
+                    <p className="text-xs text-gray-400">
+                      {worshipExportMonth && worshipExportYear
+                        ? 'Full 48-slot schedule for the selected month/year'
+                        : 'Select Month + Year to enable export'}
+                    </p>
                   </div>
                 </div>
 
@@ -1515,6 +1536,17 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         )}
 
       {/* "Other" tab removed; only HMS Enrollments are shown here now */}
+
+      <ConfirmDialog
+        isOpen={showWorshipExportFilterModal}
+        title="Select Month & Year"
+        message="Please select both Month and Year from the dropdowns to export the 24 Hours Worship schedule."
+        onConfirm={() => setShowWorshipExportFilterModal(false)}
+        onCancel={() => setShowWorshipExportFilterModal(false)}
+        confirmText="OK"
+        type="warning"
+        hideCancel
+      />
     </div>
   );
 }
