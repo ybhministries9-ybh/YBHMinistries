@@ -121,14 +121,17 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
     return map;
   }, [groups, bookings]);
 
+  // This is an admin viewing tool, not the public booking form -- the
+  // current month's slots (and its 2nd Saturday booking date) should always
+  // be visible here, even after that date has passed, so admins can look
+  // back at what was booked. Unlike the public Worship24Section form, this
+  // list is never restricted to "not yet passed" months.
   const monthOptions = useMemo(() => {
     const now = new Date();
-    const currentSecondSat = secondSaturdayOfMonth(now.getFullYear(), now.getMonth());
-    const startMonthIndex = now.getTime() >= currentSecondSat.getTime() ? now.getMonth() + 1 : now.getMonth();
 
     const months: { label: string; bookingDate: string }[] = [];
     for (let i = 0; i < 3; i++) {
-      const m = new Date(now.getFullYear(), startMonthIndex + i, 1);
+      const m = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const secondSat = secondSaturdayOfMonth(m.getFullYear(), m.getMonth());
       months.push({
         label: formatMonthYear(m),
