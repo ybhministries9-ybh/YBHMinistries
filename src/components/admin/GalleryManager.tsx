@@ -53,7 +53,7 @@ function formatDateToDisplay(isoDate: string): string {
     const month = monthNames[date.getMonth()];
     const year = date.getFullYear();
     return `${day}-${month}-${year}`;
-  } catch (error) {
+  } catch {
     return '';
   }
 }
@@ -113,7 +113,7 @@ function MediaCard({ item, onDelete, isSelected, onToggleSelect, isViewer }: Med
           </div>
         );
       } else {
-        return <video src={item.url} className="w-full h-full object-cover" controls={false} />;
+        return <video src={item.url} className="w-full h-full object-cover" controls={false}><track kind="captions" label="No captions available" srcLang="en" /></video>;
       }
     }
   };
@@ -173,7 +173,7 @@ function getAuthHeaders(contentType?: string) {
       try {
         const parsed = JSON.parse(raw);
         token = parsed?.token || raw;
-      } catch (e) {
+      } catch {
         token = raw;
       }
     }
@@ -187,11 +187,11 @@ function getAuthHeaders(contentType?: string) {
 
 export function GalleryManager() {
   const { isViewer } = useAdminUser();
-  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [_galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('asia-records');
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  const [_categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   
   // Memoize filtered items by type for performance
   const imageItems = useMemo(() => filteredItems.filter(item => item.media_type === 'image'), [filteredItems]);
@@ -496,7 +496,7 @@ export function GalleryManager() {
     });
   };
 
-  const handleBulkDelete = async () => {
+  const _handleBulkDelete = async () => {
     if (selectedIds.size === 0) {
       toast.error('No items selected');
       return;
@@ -542,7 +542,7 @@ export function GalleryManager() {
     setSelectedIds(newSelection);
   };
 
-  const handleSelectAll = () => {
+  const _handleSelectAll = () => {
     if (selectedIds.size === filteredItems.length) {
       setSelectedIds(new Set());
     } else {
@@ -604,7 +604,7 @@ export function GalleryManager() {
                 deletedCount++;
                 succeeded.push(id);
               }
-            } catch (err) {
+            } catch {
               // continue on per-item errors
             }
             setDeleteProgress(prev => ({ ...prev, current: i + 1 }));
@@ -660,7 +660,7 @@ export function GalleryManager() {
                 deletedCount++;
                 succeeded.push(id);
               }
-            } catch (err) {
+            } catch {
               // continue on per-item errors
             }
             setDeleteProgress(prev => ({ ...prev, current: i + 1 }));
@@ -775,7 +775,7 @@ export function GalleryManager() {
                   }}
                   onClick={() => { if (!isViewer) fileInputRef.current?.click(); }}
                   className={`w-full min-h-[120px] flex flex-col items-center justify-center gap-2 bg-black border-2 border-dashed border-[#2E2E2E] rounded-md overflow-hidden cursor-pointer px-4 py-6 ${isDragActive ? 'border-dashed border-[#FDB813]' : ''}${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
-                >
+                 role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => { if (!isViewer) fileInputRef.current?.click(); })(); } }}>
                   <input
                     id="mediaFiles"
                     ref={fileInputRef}

@@ -68,7 +68,7 @@ export function OtherMinistries() {
 
         {/* Ministry Sections */}
         <div className="space-y-24">
-          {ministries.map((ministry, index) => (
+          {ministries.map((ministry, _index) => (
             <section
               key={ministry.id}
               id={ministry.id}

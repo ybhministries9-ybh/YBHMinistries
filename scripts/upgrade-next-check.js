@@ -3,7 +3,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-function semverCompare(a, b) {
+function _semverCompare(a, b) {
   const pa = a.split('.').map(Number);
   const pb = b.split('.').map(Number);
   for (let i = 0; i < 3; i++) {
@@ -23,12 +23,12 @@ function main() {
     process.exit(1);
   }
 
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  const _pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
   let installed = 'none';
   try {
     const installedPkg = require(path.join(root, 'node_modules', 'next', 'package.json'));
     installed = installedPkg.version;
-  } catch (e) {
+  } catch {
     // not installed in node_modules
   }
 
@@ -38,7 +38,7 @@ function main() {
   let versions;
   try {
     versions = JSON.parse(out);
-  } catch (e) {
+  } catch {
     console.error('Failed to parse npm view output');
     process.exit(1);
   }
@@ -57,14 +57,14 @@ function main() {
   }
   try {
     execSync(`npm install next@${latest16} --save`, { stdio: 'inherit', shell: true });
-    try { execSync('npm audit fix', { stdio: 'inherit', shell: true }); } catch (e) {}
+    try { execSync('npm audit fix', { stdio: 'inherit', shell: true }); } catch {}
 
     // Commit changes if any
     try {
       execSync('git add package.json package-lock.json', { stdio: 'inherit', shell: true });
       execSync(`git commit -m "chore(deps): upgrade next to ${latest16} (security patch)" || true`, { stdio: 'inherit', shell: true });
       execSync('git push origin HEAD', { stdio: 'inherit', shell: true });
-    } catch (e) {
+    } catch {
       console.warn('Git commit/push step failed or nothing to commit');
     }
 

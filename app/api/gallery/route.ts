@@ -56,12 +56,12 @@ export async function GET(request: NextRequest) {
             const parsed3 = parseKeyFromUrl(out.url);
             if (parsed3?.key) out.url = await getPresignedGetUrl(parsed3.key, 3600, parsed3.bucket || undefined);
           }
-        } catch (e) {
+        } catch {
           // ignore presign failures and return raw URL
         }
         return out;
       }));
-    } catch (e) {
+    } catch {
       // If r2 utilities are not available, fall back to raw values
       images = imagesRaw;
     }

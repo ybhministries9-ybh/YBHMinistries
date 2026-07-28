@@ -41,12 +41,12 @@ export async function GET() {
           if (!head) return { ...s };
           const url = await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || undefined);
           return { ...s, signedThumbUrl: url };
-        } catch (e) {
+        } catch {
           // Fallback: try to build a public url using getPublicUrl
           try {
             const pub = getPublicUrl(parsed.key, parsed.bucket || undefined);
             if (pub && !pub.startsWith('r2://')) return { ...s, signedThumbUrl: pub };
-          } catch (err) {}
+          } catch {}
           return { ...s };
         }
       }
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
         try {
           const { logger } = await import('@/lib/logger');
           logger.error('Failed sending admin stories confirmation email', { error: (e as any)?.message || e });
-        } catch (_) {}
+        } catch {}
       }
     }
 
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-    } catch (e) {}
+    } catch {}
     return NextResponse.json({ success: true, data: story });
   } catch (err: any) {
     console.error('POST /api/admin/stories error', err);
@@ -261,7 +261,7 @@ export async function PUT(request: NextRequest) {
           }
         }
       }
-    } catch (e) {}
+    } catch {}
     // If thumbnail changed, delete the old thumbnail from storage (best-effort)
     try {
       const old = currentRow.thumbnail_url;

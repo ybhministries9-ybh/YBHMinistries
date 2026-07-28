@@ -11,9 +11,9 @@ function getAuthHeader() {
     const raw = localStorage.getItem('admin_token');
     if (!raw) return {};
     let token = raw;
-    try { const parsed = JSON.parse(raw); token = parsed.token || token; } catch (e) {}
+    try { const parsed = JSON.parse(raw); token = parsed.token || token; } catch {}
     return { Authorization: `Bearer ${token}` };
-  } catch (e) {
+  } catch {
     return {};
   }
 }
@@ -73,7 +73,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         }
       }
       return dateStr || String(raw);
-    } catch (e) {
+    } catch {
       return String(raw).split('T')[0] || String(raw);
     }
   };
@@ -88,7 +88,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         if (forcedType === 'getintouch') {
           try {
             const resp2 = await fetch(`/api/admin/get-in-touch?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
-            if (resp2.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+            if (resp2.status === 401) { try { localStorage.removeItem('admin_token'); } catch {} router.push('/admin'); return; }
             const j2 = await resp2.json();
             if (mounted && j2 && j2.success && j2.data) {
               setRecord(j2.data || null);
@@ -100,7 +100,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
           // fallback to HMS if get-in-touch not found
           try {
             const resp = await fetch(`/api/admin/hms-students?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
-            if (resp.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+            if (resp.status === 401) { try { localStorage.removeItem('admin_token'); } catch {} router.push('/admin'); return; }
             const j = await resp.json();
             if (mounted && j && j.success && j.data) {
               setRecord(j.data || null);
@@ -117,7 +117,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         if (forcedType === 'worship24') {
           try {
             const resp3 = await fetch(`/api/admin/worship24?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
-            if (resp3.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+            if (resp3.status === 401) { try { localStorage.removeItem('admin_token'); } catch {} router.push('/admin'); return; }
             const j3 = await resp3.json();
             if (mounted && j3 && j3.success && j3.data) {
               setRecord(j3.data || null);
@@ -136,7 +136,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         // Default behavior: try HMS first, then fallback to worship24, then get-in-touch
         try {
           const resp = await fetch(`/api/admin/hms-students?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
-          if (resp.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+          if (resp.status === 401) { try { localStorage.removeItem('admin_token'); } catch {} router.push('/admin'); return; }
           const j = await resp.json();
           if (mounted && j && j.success && j.data) {
             setRecord(j.data || null);
@@ -149,7 +149,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         // fallback to worship24
         try {
           const resp3 = await fetch(`/api/admin/worship24?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
-          if (resp3.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+          if (resp3.status === 401) { try { localStorage.removeItem('admin_token'); } catch {} router.push('/admin'); return; }
           const j3 = await resp3.json();
           if (mounted && j3 && j3.success && j3.data) {
             setRecord(j3.data || null);
@@ -162,7 +162,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
         // fallback to get-in-touch
         try {
           const resp2 = await fetch(`/api/admin/get-in-touch?id=${id}`, { headers: { ...(getAuthHeader() as any) } });
-          if (resp2.status === 401) { try { localStorage.removeItem('admin_token'); } catch (e) {} router.push('/admin'); return; }
+          if (resp2.status === 401) { try { localStorage.removeItem('admin_token'); } catch {} router.push('/admin'); return; }
           const j2 = await resp2.json();
           if (mounted && j2 && j2.success && j2.data) {
             setRecord(j2.data || null);
@@ -341,8 +341,8 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                 <input disabled value={r.location || '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
               </div>
               <div className="min-w-0">
-                <label className="block text-white text-sm font-medium mb-1">How did you hear about us? <span className="text-[#FDB813]">*</span></label>
-                <input disabled value={r.hear_about_us ? (r.hear_about_us + (r.other_hear_about_us ? `: ${r.other_hear_about_us}` : '')) : '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+                <label className="block text-white text-sm font-medium mb-1" htmlFor="how-did-you-hear-about-us">How did you hear about us? <span className="text-[#FDB813]">*</span></label>
+                <input disabled value={r.hear_about_us ? (r.hear_about_us + (r.other_hear_about_us ? `: ${r.other_hear_about_us}` : '')) : '-'} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600"  id="how-did-you-hear-about-us" />
               </div>
               <div className="md:col-span-2 min-w-0">
                 <h3 className="text-sm text-gray-300">Message</h3>
@@ -420,7 +420,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
             <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
               <h3 className="text-lg font-semibold text-white mb-4">Accept Submission</h3>
-              <label className="block text-sm text-gray-300 mb-2">Message to the submitter (optional, max 100 characters)</label>
+              <label className="block text-sm text-gray-300 mb-2" htmlFor="message-to-the-submitter-optional-">Message to the submitter (optional, max 100 characters)</label>
               <textarea
                 value={acceptMessage}
                 onChange={(e) => setAcceptMessage(e.target.value.slice(0, 100))}
@@ -428,7 +428,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                 rows={3}
                 className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
                 placeholder="Enter a message for the submitter..."
-              />
+               id="message-to-the-submitter-optional-" />
               <div className="text-xs text-gray-400 mt-1 text-right">{acceptMessage.length}/100</div>
               <div className="flex justify-end gap-3 mt-4">
                 <button
@@ -455,7 +455,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
             <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
               <h3 className="text-lg font-semibold text-white mb-4">Reject Submission</h3>
-              <label className="block text-sm text-gray-300 mb-2">Message to the submitter (optional, max 100 characters)</label>
+              <label className="block text-sm text-gray-300 mb-2" htmlFor="message-to-the-submitter-optional--2">Message to the submitter (optional, max 100 characters)</label>
               <textarea
                 value={rejectMessage}
                 onChange={(e) => setRejectMessage(e.target.value.slice(0, 100))}
@@ -463,7 +463,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                 rows={3}
                 className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
                 placeholder="Enter reason for rejection..."
-              />
+               id="message-to-the-submitter-optional--2" />
               <div className="text-xs text-gray-400 mt-1 text-right">{rejectMessage.length}/100</div>
               <div className="flex justify-end gap-3 mt-4">
                 <button
@@ -663,7 +663,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
             <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
               <h3 className="text-lg font-semibold text-white mb-4">Reject Booking</h3>
-              <label className="block text-sm text-gray-300 mb-2">Message to the submitter (optional, max 100 characters)</label>
+              <label className="block text-sm text-gray-300 mb-2" htmlFor="message-to-the-submitter-optional--3">Message to the submitter (optional, max 100 characters)</label>
               <textarea
                 value={rejectMessage}
                 onChange={(e) => setRejectMessage(e.target.value.slice(0, 100))}
@@ -671,7 +671,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                 rows={3}
                 className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
                 placeholder="Enter reason for rejection..."
-              />
+               id="message-to-the-submitter-optional--3" />
               <div className="text-xs text-gray-400 mt-1 text-right">{rejectMessage.length}/100</div>
               <div className="flex justify-end gap-3 mt-4">
                 <button
@@ -866,14 +866,14 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
               <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
                 <h3 className="text-lg font-semibold text-white mb-4">Accept Enrollment</h3>
-                <label className="block text-sm text-gray-300 mb-2">Enter WhatsApp group link (optional)</label>
+                <label className="block text-sm text-gray-300 mb-2" htmlFor="enter-whatsapp-group-link-optional">Enter WhatsApp group link (optional)</label>
                 <input
                   type="text"
                   value={acceptWhatsappLink}
                   onChange={(e) => setAcceptWhatsappLink(e.target.value)}
                   className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813]"
                   placeholder="https://chat.whatsapp.com/..."
-                />
+                 id="enter-whatsapp-group-link-optional" />
                 <div className="flex justify-end gap-3 mt-4">
                   <button
                     onClick={() => setShowAcceptModal(false)}
@@ -900,7 +900,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
               <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
                 <h3 className="text-lg font-semibold text-white mb-4">Reject Enrollment</h3>
-                <label className="block text-sm text-gray-300 mb-2">Message to the applicant (optional, max 100 characters)</label>
+                <label className="block text-sm text-gray-300 mb-2" htmlFor="message-to-the-applicant-optional-">Message to the applicant (optional, max 100 characters)</label>
                 <textarea
                   value={rejectMessage}
                   onChange={(e) => setRejectMessage(e.target.value.slice(0, 100))}
@@ -908,7 +908,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                   rows={3}
                   className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
                   placeholder="Enter reason for rejection..."
-                />
+                 id="message-to-the-applicant-optional-" />
                 <div className="text-xs text-gray-400 mt-1 text-right">{rejectMessage.length}/100</div>
                 <div className="flex justify-end gap-3 mt-4">
                   <button
@@ -936,7 +936,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
               <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
                 <h3 className="text-lg font-semibold text-white mb-4">Enroll Student</h3>
-                <label className="block text-sm text-gray-300 mb-2">Message to the applicant (optional, max 100 characters)</label>
+                <label className="block text-sm text-gray-300 mb-2" htmlFor="message-to-the-applicant-optional--2">Message to the applicant (optional, max 100 characters)</label>
                 <textarea
                   value={enrolledMessage}
                   onChange={(e) => setEnrolledMessage(e.target.value.slice(0, 100))}
@@ -944,7 +944,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
                   rows={3}
                   className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
                   placeholder="Enter message for the applicant..."
-                />
+                 id="message-to-the-applicant-optional--2" />
                 <div className="text-xs text-gray-400 mt-1 text-right">{enrolledMessage.length}/100</div>
                 <div className="flex justify-end gap-3 mt-4">
                   <button

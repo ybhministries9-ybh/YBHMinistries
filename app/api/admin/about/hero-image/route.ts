@@ -9,7 +9,7 @@ import { del } from '@/lib/vercelBlob';
  * GET /api/admin/about/hero-image
  * Fetch active about hero image
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const heroImage = await getActiveAboutHeroImage();
     if (!heroImage) {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
             const pub = getPublicUrl(parsed.key, parsed.bucket || PRIVATE_BUCKET);
             // If getPublicUrl returns an r2:// reference then treat as unavailable
             if (pub && !pub.startsWith('r2://')) return pub;
-          } catch (err) {
+          } catch {
             // ignore
           }
           return null;

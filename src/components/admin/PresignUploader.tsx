@@ -19,16 +19,16 @@ export default function PresignUploader({ prefix = 'gallery' }: { prefix?: strin
   return (
     <div className="p-4 border rounded-md">
       <div className="mb-2">
-        <label className="block text-sm font-medium">File</label>
-        <input type="file" onChange={(e) => setSelected(e.target.files?.[0] || null)} className="mt-1" />
+        <label className="block text-sm font-medium" htmlFor="file">File</label>
+        <input type="file" onChange={(e) => setSelected(e.target.files?.[0] || null)} className="mt-1"  id="file" />
       </div>
       <div className="mb-2">
-        <label className="block text-sm font-medium">Category</label>
-        <input value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1 w-full" />
+        <label className="block text-sm font-medium" htmlFor="category">Category</label>
+        <input value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1 w-full"  id="category" />
       </div>
       <div className="mb-2">
-        <label className="block text-sm font-medium">Title</label>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 w-full" />
+        <label className="block text-sm font-medium" htmlFor="title">Title</label>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 w-full"  id="title" />
       </div>
       <div className="flex gap-2">
         <button onClick={handleUpload} className="px-3 py-1 bg-[#FDB813] text-black rounded disabled:opacity-60" disabled={!selected}>

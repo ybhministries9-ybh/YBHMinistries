@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
     if (denied) return denied;
 
     const data = await request.json();
-    const actor = resolved.actor;
+    const _actor = resolved.actor;
     // Server-side validation
     let validationErrors: Record<string, string> | null = null;
     if (type === 'books') validationErrors = validateBookForCreate(data);

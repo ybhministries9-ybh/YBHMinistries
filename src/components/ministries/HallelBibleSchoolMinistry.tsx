@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from 'next/link';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
 
 export function HallelBibleSchoolMinistry() {

@@ -17,7 +17,7 @@ import logger from '@/lib/logger';
 
 // Default fallback image URL (derived from env; leave blank if not provided)
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
-const FALLBACK_HERO_IMAGE = `${R2_BASE}/defaults/about-default.jpg`;
+const _FALLBACK_HERO_IMAGE = `${R2_BASE}/defaults/about-default.jpg`;
 
 // Tab configuration
 const TAB_CONFIG = [
@@ -227,7 +227,7 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
       setTimeout(() => {
         try {
           (el as HTMLElement).focus();
-        } catch (e) {
+        } catch {
           // ignore
         }
       }, 300);

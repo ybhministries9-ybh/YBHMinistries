@@ -107,7 +107,7 @@ export async function getEventById(id: number): Promise<Event | null> {
       const json = await resp.json();
       if (json && json.success && json.data) return json.data as Event;
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 
@@ -116,7 +116,7 @@ export async function getEventById(id: number): Promise<Event | null> {
     const all = await getEvents();
     const found = all.find(ev => ev.id === id);
     return found || null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }

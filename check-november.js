@@ -3,7 +3,7 @@ const { sql } = require('@vercel/postgres');
 
 async function checkData() {
   try {
-    const result = await sql`
+    const _result = await sql`
       SELECT year, class_type, monthly_data 
       FROM reports 
       WHERE published = true

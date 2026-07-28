@@ -9,7 +9,7 @@ import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/se
  * GET /api/admin/home/video
  * Fetch current home video
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const video = await getActiveHomeVideo();
 

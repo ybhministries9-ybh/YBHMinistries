@@ -34,7 +34,7 @@ export function Welcome() {
   function getAuthHeaders(withContentType = false) {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('admin_token') || '' : '';
     let token = '';
-    if (raw) try { token = JSON.parse(raw).token || raw } catch (e) { token = raw }
+    if (raw) try { token = JSON.parse(raw).token || raw } catch { token = raw }
     const headers: Record<string,string> = withContentType ? { 'Content-Type': 'application/json' } : {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return headers;
@@ -48,7 +48,7 @@ export function Welcome() {
         const resp = await fetch('/api/admin/maintenance', { headers });
         const j = await resp.json();
         if (mounted) { setMaintenance(Boolean(j.enabled)); setLoading(false); }
-      } catch (e) {
+      } catch {
         if (mounted) setLoading(false);
       }
     }
@@ -72,7 +72,7 @@ export function Welcome() {
   };
   const handleNavigate = (section: string) => {
     // dispatch a custom event so AdminDashboard can change the active section
-    try { window.dispatchEvent(new CustomEvent('admin-navigate', { detail: { section } })); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent('admin-navigate', { detail: { section } })); } catch {}
   };
 
   const onKey = (e: React.KeyboardEvent, section: string) => {

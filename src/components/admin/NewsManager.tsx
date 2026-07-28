@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Calendar, BarChart3, X, Eye, EyeOff, Save } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import {
   Dialog,
@@ -394,7 +393,7 @@ function ReportsManager() {
       {reports.length === 0 ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
           <BarChart3 size={48} className="mx-auto mb-4 text-gray-600" />
-          <p className="text-gray-400">No reports yet. Click "Add Report" to create one.</p>
+          <p className="text-gray-400">No reports yet. Click &quot;Add Report&quot; to create one.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -463,7 +462,7 @@ function ReportsManager() {
                   <div className="px-4 pb-4 space-y-4 border-t border-gray-700 pt-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-white mb-1 block">Year <span className="text-[#FDB813]">*</span></label>
+                        <label className="text-sm text-white mb-1 block" htmlFor={`year-${report.id}`}>Year <span className="text-[#FDB813]">*</span></label>
                         <Input
                           type="text"
                           inputMode="numeric"
@@ -486,17 +485,17 @@ function ReportsManager() {
                           placeholder="YYYY"
                           className="bg-[#2E2E2E] border-gray-600 text-white"
                           disabled={!isEditing}
-                        />
+                         id={`year-${report.id}`} />
                         <div className="text-xs mt-1">{validationErrors[report.id] ? <span className="text-red-400">{validationErrors[report.id]}</span> : <span>&nbsp;</span>}</div>
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Class Type</label>
+                        <label className="text-sm text-white mb-1 block" htmlFor={`class-type-${report.id}`}>Class Type</label>
                         <select
                           value={report.classType}
                           onChange={(e) => handleUpdate(report.id, { classType: e.target.value as any })}
                           className="w-full bg-[#2E2E2E] border border-gray-600 rounded-md px-3 py-2 text-white"
                           disabled={!isEditing}
-                        >
+                         id={`class-type-${report.id}`} >
                           <option value="keyboard">Keyboard</option>
                           <option value="guitar">Guitar</option>
                           <option value="lcm">LCM (London College of Music)</option>
@@ -506,7 +505,7 @@ function ReportsManager() {
 
                     {/* Monthly Data Table */}
                     <div>
-                      <label className="text-sm text-white mb-2 block">Monthly Enrollment Data</label>
+                      <label className="text-sm text-white mb-2 block" htmlFor={`monthly-enrollment-data-${report.id}`}>Monthly Enrollment Data</label>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead className="bg-[#2E2E2E]">
@@ -534,7 +533,7 @@ function ReportsManager() {
                                     className="bg-[#2E2E2E] border-gray-600 text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     disabled={!isEditing}
                                     placeholder="0"
-                                  />
+                                   id={`monthly-enrollment-data-${report.id}`} />
                                 </td>
                                 <td className="p-2 border border-gray-700">
                                   <Input

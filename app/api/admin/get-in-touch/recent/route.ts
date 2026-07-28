@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const mapped = result.rows.map((r: any) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, hear_about_us: r.hear_about_us, other_hear_about_us: r.other_hear_about_us, message: r.message, created_at: r.created_at }));
     return NextResponse.json({ success: true, data: mapped });
   } catch (err: any) {
-    try { const { logger } = await import('@/lib/logger'); logger.error('GET /api/admin/get-in-touch/recent error', { error: String(err) }); } catch (_) {}
+    try { const { logger } = await import('@/lib/logger'); logger.error('GET /api/admin/get-in-touch/recent error', { error: String(err) }); } catch {}
     return NextResponse.json({ error: 'failed' }, { status: 500 });
   }
 }

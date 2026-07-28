@@ -32,7 +32,7 @@ export async function getRecaptchaToken(action = 'submit') {
   try {
     const token = await w.grecaptcha.execute(siteKey, { action });
     return token;
-  } catch (e) {
+  } catch {
     return null;
   }
 }

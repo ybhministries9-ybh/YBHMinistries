@@ -60,7 +60,7 @@ export function MinistriesManager() {
           try {
             const parsed = JSON.parse(raw);
             token = parsed?.token || raw;
-          } catch (e) {
+          } catch {
             token = raw;
           }
         }
@@ -123,8 +123,8 @@ export function MinistriesManager() {
           <div className="text-sm text-gray-300">
             <p className="font-medium mb-1 text-white">Manage Ministry Visibility:</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>Click "Show" or "Hide" to control which ministries appear on the website</li>
-              <li>Hidden ministries will have a red status bar and won't appear to visitors</li>
+              <li>Click &quot;Show&quot; or &quot;Hide&quot; to control which ministries appear on the website</li>
+              <li>Hidden ministries will have a red status bar and won&apos;t appear to visitors</li>
               <li>Visible ministries will have a green status bar and appear in the navigation</li>
             </ul>
           </div>

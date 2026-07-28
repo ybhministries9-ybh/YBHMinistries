@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       if (size > maxSizeBytes) {
         return new Response(JSON.stringify({ error: `File too large. Maximum allowed size is ${maxSizeMB}MB.` }), { status: 413 });
       }
-    } catch (e) {
+    } catch {
       // If we cannot determine size, proceed and rely on later checks
     }
 
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     const publicUrl = (() => {
       try {
         return getPublicUrl(key, bucketToUse as string);
-      } catch (e) {
+      } catch {
         return null;
       }
     })();

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     if (!rl.ok) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
     let body: any = null;
-    try { body = await request.json(); } catch (e) { return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }); }
+    try { body = await request.json(); } catch { return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }); }
 
     // Honeypot check
     if (isHoneypotFilled(body)) return NextResponse.json({ error: 'bot detected' }, { status: 400 });
@@ -35,10 +35,10 @@ export async function POST(request: Request) {
       const token = body?.recaptchaToken || body?.recaptcha_token;
       const rc = await verifyRecaptcha(token);
       if (!rc.ok && !rc.skipped) {
-        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for worship24 submission', { details: rc }); } catch (_) {}
+        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for worship24 submission', { details: rc }); } catch {}
       }
     } catch (e) {
-      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for worship24', { error: String(e) }); } catch (_) {}
+      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for worship24', { error: String(e) }); } catch {}
     }
 
     const name = sanitizeInput(body?.name, 200);
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     try {
       const taken = await isTimeslotTaken(booking_date, timeslot);
       if (taken) return NextResponse.json({ error: 'Timeslot already taken' }, { status: 409 });
-    } catch (e) {
+    } catch {
       return NextResponse.json({ error: 'DB error' }, { status: 500 });
     }
 
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
           const dt = new Date(String(booking_date) + 'T00:00:00');
           if (isNaN(dt.getTime())) return String(booking_date || '');
           return dt.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-        } catch (e) { return String(booking_date || ''); }
+        } catch { return String(booking_date || ''); }
       })();
 
       push('Full name', name);
@@ -169,17 +169,17 @@ export async function POST(request: Request) {
         try {
           await sendTransactional({ to: emailVal, subject, text: plain, html, from: process.env.EMAIL_FROM });
         } catch (e) {
-          try { const { logger } = await import('../../../src/lib/logger'); logger.error('worship24: failed to send confirmation', { error: String(e) }); } catch (_) {}
+          try { const { logger } = await import('../../../src/lib/logger'); logger.error('worship24: failed to send confirmation', { error: String(e) }); } catch {}
         }
       }
 
       // NOTE: admin notification removed — only send confirmation to submitter.
     } catch (err) {
-      try { const { logger } = await import('../../../src/lib/logger'); logger.error('worship24: email send failed', { error: String(err) }); } catch (_) {}
+      try { const { logger } = await import('../../../src/lib/logger'); logger.error('worship24: email send failed', { error: String(err) }); } catch {}
     }
 
     return NextResponse.json({ success: true, id: (saved as any).id });
-  } catch (err: any) {
+  } catch (_err: any) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -193,12 +193,12 @@ export async function GET(request: Request) {
       try {
         const booked = await getBookedTimeslotsForDate(date);
         return NextResponse.json({ success: true, booked });
-      } catch (e) {
+      } catch {
         return NextResponse.json({ success: false, error: 'DB error' }, { status: 500 });
       }
     }
     return NextResponse.json({ ok: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

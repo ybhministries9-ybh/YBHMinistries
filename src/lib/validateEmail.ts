@@ -33,7 +33,7 @@ export function validateEmail(
     return { valid: false, normalized: null, errors };
   }
 
-  let email = String(input).trim();
+  const email = String(input).trim();
   if (email.length === 0) {
     errors.push({ code: 'empty', message: 'Email is empty' });
     return { valid: false, normalized: null, errors };

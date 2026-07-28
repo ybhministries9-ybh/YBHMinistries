@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     try {
       const rows = await getActiveWorship24ByDate(date);
       return NextResponse.json({ success: true, data: rows });
-    } catch (e) {
+    } catch {
       return NextResponse.json({ success: false, error: 'DB error' }, { status: 500 });
     }
   } catch {

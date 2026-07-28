@@ -27,11 +27,11 @@ export async function POST(request: Request) {
       const { logger } = await import('@/lib/logger');
       if (res?.success) logger.info('Admin test-email sent', { to });
       else logger.warn('Admin test-email failed', { to, error: res?.error });
-    } catch (_) {}
+    } catch {}
 
     return NextResponse.json({ success: !!res?.success, result: res });
   } catch (err: any) {
-    try { const { logger } = await import('@/lib/logger'); logger.error('POST /api/admin/test-email error', { error: String(err) }); } catch (_) {}
+    try { const { logger } = await import('@/lib/logger'); logger.error('POST /api/admin/test-email error', { error: String(err) }); } catch {}
     return NextResponse.json({ error: 'failed' }, { status: 500 });
   }
 }

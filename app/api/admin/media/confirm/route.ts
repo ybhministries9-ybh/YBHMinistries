@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
     const actor = sessionInfo.actor;
     const body = await req.json();
-    const { key, fileName, contentType, size, mediaType, category, title } = body || {};
+    const { key, fileName, contentType: _contentType, size, mediaType, category, title } = body || {};
 
     if (!key || !mediaType) return NextResponse.json({ success: false, error: 'Missing key or mediaType' }, { status: 400 });
 

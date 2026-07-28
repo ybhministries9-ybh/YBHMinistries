@@ -5,7 +5,7 @@ import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/se
 export const dynamic = 'force-dynamic';
 
 // GET: Fetch all reports for admin (published and unpublished)
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const result = await sql`
       SELECT id, year, class_type, monthly_data, published, created_at, updated_at

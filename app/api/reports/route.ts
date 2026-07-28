@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 60; // Cache for 60 seconds to balance freshness and performance
 
 // GET: Fetch published reports for public website
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Fetch all published reports with optimized query
     const result = await sql`

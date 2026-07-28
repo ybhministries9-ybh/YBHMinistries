@@ -6,7 +6,7 @@ import { parseKeyFromUrl, getPresignedGetUrl, PRIVATE_BUCKET } from '@/lib/r2';
  * GET /api/home/hero-images
  * Fetch all active hero images
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const images = await getActiveHeroImages();
 

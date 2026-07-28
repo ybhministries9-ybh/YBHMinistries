@@ -22,7 +22,7 @@ async function presignQrUrls(upiRows: any[]): Promise<any[]> {
       }
       return row;
     }));
-  } catch (e) {
+  } catch {
     console.error('R2 utilities not available, returning raw URLs');
     return upiRows;
   }

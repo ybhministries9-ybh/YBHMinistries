@@ -30,7 +30,7 @@ export function usePresignUpload(opts?: { prefix?: string }) {
         try {
           const parsed = JSON.parse(token);
           token = parsed?.token || token;
-        } catch (e) {
+        } catch {
           // keep raw
         }
       }

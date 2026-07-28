@@ -24,7 +24,7 @@ export async function safeParseJson(req: NextRequest, maxBytes = 100 * 1024) {
     if (raw.length > maxBytes) throw new ApiError(413, 'Payload too large');
     try {
       return JSON.parse(raw || '{}');
-    } catch (e) {
+    } catch {
       throw new ApiError(400, 'Invalid JSON body');
     }
   } catch (e: any) {

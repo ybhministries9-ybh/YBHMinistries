@@ -92,7 +92,7 @@ export function HMSStudentFormAdmin({
     ...initialData
   };
 
-  const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting: _isSubmitting } } = useForm<FormData>({
     mode: 'onBlur',
     defaultValues: mergedDefaults as any
   });
@@ -510,9 +510,9 @@ export function HMSStudentFormAdmin({
           <div className="space-y-6">
             {/* Program Applying For */}
             <div>
-              <label className="block text-white text-sm font-medium mb-3">
+              <span className="block text-white text-sm font-medium mb-3">
                 {t('studentForm.fields.programApplyingFor')} <span className="text-[#FDB813]">*</span>
-              </label>
+              </span>
               <div className="flex flex-wrap gap-4">
                 {PROGRAM_LEVELS.map((level) => (
                   <div key={level} className="flex items-center space-x-2">
@@ -535,9 +535,9 @@ export function HMSStudentFormAdmin({
 
             {/* Instrument / Specialization */}
             <div>
-              <label className="block text-white text-sm font-medium mb-3">
+              <span className="block text-white text-sm font-medium mb-3">
                 {t('studentForm.fields.instrumentSpecialization')} <span className="text-[#FDB813]">*</span>
-              </label>
+              </span>
               <div className="flex flex-wrap gap-4">
                 {INSTRUMENTS.map((instrument) => {
                   const selected = instruments.includes(instrument);
@@ -592,9 +592,9 @@ export function HMSStudentFormAdmin({
 
             {/* Preferred Class Type */}
             <div>
-              <label className="block text-white text-sm font-medium mb-3">
+              <span className="block text-white text-sm font-medium mb-3">
                 {t('studentForm.fields.preferredClassType')} <span className="text-[#FDB813]">*</span>
-              </label>
+              </span>
               <div className="flex flex-wrap gap-4">
                 {CLASS_TYPES.map((type) => {
                   const selected = classTypes.includes(type);
@@ -619,9 +619,9 @@ export function HMSStudentFormAdmin({
 
             {/* Preferred Schedule */}
             <div>
-              <label className="block text-white text-sm font-medium mb-3">
+              <span className="block text-white text-sm font-medium mb-3">
                 {t('studentForm.fields.preferredSchedule')} <span className="text-[#FDB813]">*</span>
-              </label>
+              </span>
               <div className="flex flex-wrap gap-4">
                 {SCHEDULES.map((schedule) => {
                   const selected = schedules.includes(schedule);
@@ -711,7 +711,7 @@ export function HMSStudentFormAdmin({
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/[^0-9]/g, '');
                   // clamp
-                  let num = cleaned === '' ? '' : String(Math.min(100, Math.max(0, parseInt(cleaned, 10))));
+                  const num = cleaned === '' ? '' : String(Math.min(100, Math.max(0, parseInt(cleaned, 10))));
                   setValue('yearsOfExperience', num as any, { shouldValidate: true, shouldDirty: true });
                 }}
                 readOnly
@@ -762,9 +762,9 @@ export function HMSStudentFormAdmin({
             </div>
             
             <div>
-              <label className="block text-white text-sm font-medium mb-3">
+              <span className="block text-white text-sm font-medium mb-3">
                 {t('studentForm.fields.performanceExperience')}
-              </label>
+              </span>
               <div className="flex flex-wrap gap-4">
                 {PERFORMANCE_OPTIONS.map((perf) => {
                   const selected = performances.includes(perf);
@@ -858,7 +858,7 @@ export function HMSStudentFormAdmin({
           
           <div className="space-y-4">
             <div>
-              <label className="block text-white text-sm font-medium mb-3">
+              <label className="block text-white text-sm font-medium mb-3" htmlFor="volunteer-yes">
                 {t('studentForm.fields.volunteerPrompt')}
               </label>
               <div className="flex gap-4">
@@ -893,9 +893,9 @@ export function HMSStudentFormAdmin({
 
             {volunteerInterested === 'yes' && (
               <div className="space-y-3 pt-4 border-t border-gray-700 bg-[#252525] p-4 rounded-md">
-                <label className="block text-white text-sm font-medium mb-3">
+                <span className="block text-white text-sm font-medium mb-3">
                   {t('studentForm.fields.volunteerDetailsPrompt')}
-                </label>
+                </span>
                 {VOLUNTEER_AREAS.map((area) => {
                   const selected = volunteerAreas.includes(area);
                   return (
@@ -1012,8 +1012,8 @@ export function HMSStudentFormAdmin({
             <div className="bg-[#2e2e2e] rounded-lg p-0">
               <div className="grid grid-cols-1 gap-6 min-w-0 w-full">
                 <div className="min-w-0">
-                  <label className="block text-white text-sm font-medium mb-1">How did you hear about us? <span className="text-[#FDB813]">*</span></label>
-                  <input disabled value={display(watch('hearAboutUs')) + (watch('otherHearAboutUs') ? (': ' + watch('otherHearAboutUs')) : '')} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600" />
+                  <label className="block text-white text-sm font-medium mb-1" htmlFor="how-did-you-hear-about-us">How did you hear about us? <span className="text-[#FDB813]">*</span></label>
+                  <input disabled value={display(watch('hearAboutUs')) + (watch('otherHearAboutUs') ? (': ' + watch('otherHearAboutUs')) : '')} className="w-full mt-1 px-4 py-2 bg-black text-white rounded-md border border-gray-600"  id="how-did-you-hear-about-us" />
                 </div>
               </div>
             </div>

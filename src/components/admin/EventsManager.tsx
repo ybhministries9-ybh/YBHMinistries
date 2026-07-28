@@ -15,8 +15,7 @@ import {
   DialogFooter,
   DialogTitle,
   DialogDescription,
-  DialogClose,
-  DialogOverlay,
+  DialogOverlay
 } from '../ui/dialog';
 
 interface Event {
@@ -85,7 +84,7 @@ export function EventsManager() {
       setLoading(true);
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
       const response = await fetch('/api/admin/events', { headers });
       const result = await response.json();
@@ -150,7 +149,7 @@ export function EventsManager() {
       const method = isNew ? 'POST' : 'PUT';
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       // If a file was selected for this event, upload it first and replace imageUrl
       let imageUrlToUse = event.imageUrl || '';
       const selectedFile = selectedFilesRef.current.get(event.id);
@@ -304,7 +303,7 @@ export function EventsManager() {
 
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
       const response = await fetch(`/api/admin/events?id=${id}`, {
         method: 'DELETE',
@@ -405,7 +404,7 @@ export function EventsManager() {
         URL.revokeObjectURL(ev.imageUrl);
         generatedUrlsRef.current.delete(ev.imageUrl);
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
 
@@ -453,7 +452,7 @@ export function EventsManager() {
   useEffect(() => {
     return () => {
       for (const u of generatedUrlsRef.current) {
-        try { URL.revokeObjectURL(u); } catch (e) {}
+        try { URL.revokeObjectURL(u); } catch {}
       }
       generatedUrlsRef.current.clear();
     };
@@ -486,7 +485,7 @@ export function EventsManager() {
           const rest = ev.imageUrl.slice('r2://'.length);
           const parts = rest.split('/').filter(Boolean);
           // bucket is parts[0], key is rest
-          const bucket = parts.shift();
+          const _bucket = parts.shift();
           const key = parts.join('/');
           if (!key) return;
           const resp = await fetch('/api/r2/presign-get', {
@@ -500,7 +499,7 @@ export function EventsManager() {
           if (json && json.url) {
             setPreviewUrls(prev => ({ ...prev, [ev.id]: json.url }));
           }
-        } catch (e) {
+        } catch {
           // ignore
         }
         return;
@@ -553,9 +552,9 @@ export function EventsManager() {
                     URL.revokeObjectURL(te.imageUrl);
                     generatedUrlsRef.current.delete(te.imageUrl);
                   }
-                } catch (e) {}
-                try { selectedFilesRef.current.delete(te.id); } catch (e) {}
-                try { selectedVideoFilesRef.current.delete(te.id); } catch (e) {}
+                } catch {}
+                try { selectedFilesRef.current.delete(te.id); } catch {}
+                try { selectedVideoFilesRef.current.delete(te.id); } catch {}
               }
               setEvents(prev => prev.filter(e => !e.id.startsWith('temp-')));
               setSelectedVideoInfo({});
@@ -599,7 +598,7 @@ export function EventsManager() {
       {events.length === 0 ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
           <Calendar size={48} className="mx-auto mb-4 text-gray-600" />
-          <p className="text-gray-400">No events yet. Click "Add Event" to create one.</p>
+          <p className="text-gray-400">No events yet. Click &quot;Add Event&quot; to create one.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -682,7 +681,7 @@ export function EventsManager() {
                     {/* Basic Info */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-white mb-1 block">Event Title <span className="text-[#FDB813]">*</span></label>
+                        <label className="text-sm text-white mb-1 block" htmlFor={`event-title-${event.id}`}>Event Title <span className="text-[#FDB813]">*</span></label>
                         <Input
                           value={event.title}
                           onChange={(e) => handleUpdate(event.id, { title: e.target.value })}
@@ -690,7 +689,7 @@ export function EventsManager() {
                           className="bg-[#2E2E2E] border-gray-600 text-white"
                           disabled={!isEditing}
                           maxLength={LIMITS.title}
-                        />
+                         id={`event-title-${event.id}`} />
                         <div className="flex items-center justify-between mt-1">
                           <div className="text-xs text-gray-400">{(validationErrors[event.id]?.title) ? <span className="text-red-400">{validationErrors[event.id].title}</span> : <span>&nbsp;</span>}</div>
                           <div className="text-xs text-gray-400">{event.title.length}/{LIMITS.title}</div>
@@ -698,13 +697,13 @@ export function EventsManager() {
                       </div>
 
                       <div>
-                        <label className="text-sm text-white mb-1 block">Event Type <span className="text-[#FDB813]">*</span></label>
+                        <label className="text-sm text-white mb-1 block" htmlFor={`event-type-${event.id}`}>Event Type <span className="text-[#FDB813]">*</span></label>
                         <select
                           value={event.type}
                           onChange={(e) => handleUpdate(event.id, { type: e.target.value as any })}
                           className="w-full bg-[#2E2E2E] border border-gray-600 text-white rounded-md px-3 py-2 cursor-pointer"
                           disabled={!isEditing}
-                        >
+                         id={`event-type-${event.id}`} >
                           <option value="conference">Conference</option>
                           <option value="class">Class</option>
                           <option value="record">Record Attempt</option>
@@ -714,18 +713,18 @@ export function EventsManager() {
 
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <label className="text-sm text-white mb-1 block">Date <span className="text-[#FDB813]">*</span></label>
+                        <label className="text-sm text-white mb-1 block" htmlFor={`date-${event.id}`}>Date <span className="text-[#FDB813]">*</span></label>
                           <DateInput
                             value={event.date}
                             onChange={(v) => handleUpdate(event.id, { date: v })}
                             allowFuture={true}
                             disabled={!isEditing}
                             className="bg-[#2E2E2E] border-gray-600 text-white"
-                          />
+                           id={`date-${event.id}`} />
                         <div className="text-xs mt-1">{validationErrors[event.id]?.date ? <span className="text-red-400">{validationErrors[event.id].date}</span> : <span>&nbsp;</span>}</div>
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Time <span className="text-[#FDB813]">*</span></label>
+                        <label className="text-sm text-white mb-1 block" htmlFor={`time-${event.id}`}>Time <span className="text-[#FDB813]">*</span></label>
                         <Input
                           value={event.time}
                           onChange={(e) => handleUpdate(event.id, { time: e.target.value })}
@@ -733,14 +732,14 @@ export function EventsManager() {
                           className="bg-[#2E2E2E] border-gray-600 text-white"
                           disabled={!isEditing}
                           maxLength={LIMITS.time}
-                        />
+                         id={`time-${event.id}`} />
                         <div className="flex items-center justify-between mt-1">
                           <div className="text-xs text-gray-400">{validationErrors[event.id]?.time ? <span className="text-red-400">{validationErrors[event.id].time}</span> : <span>&nbsp;</span>}</div>
                           <div className="text-xs text-gray-400">{event.time.length}/{LIMITS.time}</div>
                         </div>
                       </div>
                       <div>
-                        <label className="text-sm text-white mb-1 block">Location <span className="text-[#FDB813]">*</span></label>
+                        <label className="text-sm text-white mb-1 block" htmlFor={`location-${event.id}`}>Location <span className="text-[#FDB813]">*</span></label>
                         <Input
                           value={event.location}
                           onChange={(e) => handleUpdate(event.id, { location: e.target.value })}
@@ -748,7 +747,7 @@ export function EventsManager() {
                           className="bg-[#2E2E2E] border-gray-600 text-white"
                           disabled={!isEditing}
                           maxLength={LIMITS.location}
-                        />
+                         id={`location-${event.id}`} />
                         <div className="flex items-center justify-between mt-1">
                           <div className="text-xs text-gray-400">{validationErrors[event.id]?.location ? <span className="text-red-400">{validationErrors[event.id].location}</span> : <span>&nbsp;</span>}</div>
                           <div className="text-xs text-gray-400">{event.location.length}/{LIMITS.location}</div>
@@ -757,7 +756,7 @@ export function EventsManager() {
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Capacity <span className="text-[#FDB813]">*</span></label>
+                      <label className="text-sm text-white mb-1 block" htmlFor={`capacity-${event.id}`}>Capacity <span className="text-[#FDB813]">*</span></label>
                       <Input
                         value={event.capacity}
                         onChange={(e) => handleUpdate(event.id, { capacity: e.target.value })}
@@ -765,7 +764,7 @@ export function EventsManager() {
                         className="bg-[#2E2E2E] border-gray-600 text-white"
                         disabled={!isEditing}
                         maxLength={LIMITS.capacity}
-                      />
+                       id={`capacity-${event.id}`} />
                       <div className="flex items-center justify-between mt-1">
                         <div className="text-xs text-gray-400">{validationErrors[event.id]?.capacity ? <span className="text-red-400">{validationErrors[event.id].capacity}</span> : <span>&nbsp;</span>}</div>
                         <div className="text-xs text-gray-400">{String(event.capacity).length}/{LIMITS.capacity}</div>
@@ -773,7 +772,7 @@ export function EventsManager() {
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Short Description <span className="text-[#FDB813]">*</span></label>
+                      <label className="text-sm text-white mb-1 block" htmlFor={`short-description-${event.id}`}>Short Description <span className="text-[#FDB813]">*</span></label>
                       <Textarea
                         value={event.description}
                         onChange={(e) => handleUpdate(event.id, { description: e.target.value })}
@@ -782,7 +781,7 @@ export function EventsManager() {
                         rows={2}
                         disabled={!isEditing}
                         maxLength={LIMITS.description}
-                      />
+                       id={`short-description-${event.id}`} />
                       <div className="flex items-center justify-between mt-1">
                         <div className="text-xs text-gray-400">{validationErrors[event.id]?.description ? <span className="text-red-400">{validationErrors[event.id].description}</span> : <span>&nbsp;</span>}</div>
                         <div className="text-xs text-gray-400">{event.description.length}/{LIMITS.description}</div>
@@ -790,7 +789,7 @@ export function EventsManager() {
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Extended Description <span className="text-[#FDB813]">*</span></label>
+                      <label className="text-sm text-white mb-1 block" htmlFor={`extended-description-${event.id}`}>Extended Description <span className="text-[#FDB813]">*</span></label>
                       <Textarea
                         value={event.extendedDescription}
                         onChange={(e) => handleUpdate(event.id, { extendedDescription: e.target.value })}
@@ -799,7 +798,7 @@ export function EventsManager() {
                         rows={4}
                         disabled={!isEditing}
                         maxLength={LIMITS.extendedDescription}
-                      />
+                       id={`extended-description-${event.id}`} />
                       <div className="flex items-center justify-between mt-1">
                         <div className="text-xs text-gray-400">{validationErrors[event.id]?.extendedDescription ? <span className="text-red-400">{validationErrors[event.id].extendedDescription}</span> : <span>&nbsp;</span>}</div>
                         <div className="text-xs text-gray-400">{event.extendedDescription.length}/{LIMITS.extendedDescription}</div>
@@ -807,7 +806,7 @@ export function EventsManager() {
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Event Image</label>
+                      <label className="text-sm text-white mb-1 block" htmlFor={`file-input-${event.id}`}>Event Image</label>
                       <div
                         id={`drop-area-${event.id}`}
                         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverId(event.id); }}
@@ -830,7 +829,11 @@ export function EventsManager() {
                           input?.click();
                         }}
                         className={`w-full h-40 rounded-md bg-[#1a1a1a] flex items-center justify-center cursor-pointer ${dragOverId === event.id ? 'border border-[#FDB813] ring-2 ring-[#FDB813]/30' : 'border border-gray-600'} ${!isEditing ? 'opacity-60 pointer-events-none' : ''}`}
-                      >
+                       role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => {
+                          if (!isEditing) return;
+                          const input = document.getElementById(`file-input-${event.id}`) as HTMLInputElement | null;
+                          input?.click();
+                        })(); } }}>
                         <input id={`file-input-${event.id}`} type="file" accept="image/*" className="hidden" onChange={(e) => {
                           if (!isEditing) return;
                           const f = e.target.files?.[0];
@@ -857,7 +860,7 @@ export function EventsManager() {
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-1 block">Event Video</label>
+                      <label className="text-sm text-white mb-1 block" htmlFor={`video-file-input-${event.id}`}>Event Video</label>
                       <div
                         id={`video-drop-area-${event.id}`}
                         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverVideoId(event.id); }}
@@ -877,7 +880,11 @@ export function EventsManager() {
                           input?.click();
                         }}
                         className={`w-full rounded-md bg-[#1a1a1a] px-4 py-3 cursor-pointer ${dragOverVideoId === event.id ? 'border border-[#FDB813] ring-2 ring-[#FDB813]/30' : 'border border-gray-600'} ${!isEditing ? 'opacity-60 pointer-events-none' : ''}`}
-                      >
+                       role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => {
+                          if (!isEditing) return;
+                          const input = document.getElementById(`video-file-input-${event.id}`) as HTMLInputElement | null;
+                          input?.click();
+                        })(); } }}>
                         <input
                           id={`video-file-input-${event.id}`}
                           type="file"
@@ -931,7 +938,7 @@ export function EventsManager() {
                     {/* Speakers */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm text-white">Speakers / Instructors</label>
+                        <label className="text-sm text-white" htmlFor={`speakers-instructors-${event.id}`}>Speakers / Instructors</label>
                         {isEditing && (
                           <Button
                             onClick={() => addArrayItem(event.id, 'speakers')}
@@ -953,7 +960,7 @@ export function EventsManager() {
                               className="bg-[#2E2E2E] border-gray-600 text-white"
                               maxLength={LIMITS.speaker}
                               disabled={!isEditing}
-                            />
+                             id={`speakers-instructors-${event.id}`} />
                             <div className="flex items-center justify-between">
                               <div className="text-xs text-gray-400">{validationErrors[event.id]?.[`speakers.${index}`] ? <span className="text-red-400">{validationErrors[event.id][`speakers.${index}`]}</span> : <span>&nbsp;</span>}</div>
                               <div className="text-xs text-gray-400">{speaker.length}/{LIMITS.speaker}</div>
@@ -978,7 +985,7 @@ export function EventsManager() {
                     {/* What to Bring */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm text-white">What to Bring</label>
+                        <label className="text-sm text-white" htmlFor={`what-to-bring-${event.id}`}>What to Bring</label>
                         {isEditing && (
                           <Button
                             onClick={() => addArrayItem(event.id, 'whatToBring')}
@@ -1000,7 +1007,7 @@ export function EventsManager() {
                                 className="bg-[#2E2E2E] border-gray-600 text-white"
                                 maxLength={LIMITS.bringItem}
                               disabled={!isEditing}
-                            />
+                             id={`what-to-bring-${event.id}`} />
                               <div className="flex items-center justify-between">
                                 <div className="text-xs text-gray-400">{validationErrors[event.id]?.[`whatToBring.${index}`] ? <span className="text-red-400">{validationErrors[event.id][`whatToBring.${index}`]}</span> : <span>&nbsp;</span>}</div>
                                 <div className="text-xs text-gray-400">{item.length}/{LIMITS.bringItem}</div>
@@ -1034,7 +1041,7 @@ export function EventsManager() {
                           className="cursor-pointer"
                           disabled={!isEditing}
                         />
-                        <label className="text-sm text-white">Enable Registration</label>
+                        <label className="text-sm text-white" htmlFor={`enable-registration-${event.id}`}>Enable Registration</label>
                       </div>
 
                       <div className="flex items-center gap-2 mb-3">
@@ -1046,14 +1053,14 @@ export function EventsManager() {
                           })}
                           className="cursor-pointer"
                           disabled={!isEditing}
-                        />
-                        <label className="text-sm text-white">Enable 24 Hours Worship Form (only for 24 Hours Worship Event)</label>
+                         id={`enable-registration-${event.id}`} />
+                        <span className="text-sm text-white">Enable 24 Hours Worship Form (only for 24 Hours Worship Event)</span>
                       </div>
 
                       {event.registration.enabled && (
                         <div className="space-y-4 pl-6">
                           <div>
-                            <label className="text-sm text-white mb-1 block">Registration Description</label>
+                            <label className="text-sm text-white mb-1 block" htmlFor={`registration-description-${event.id}`}>Registration Description</label>
                             <Textarea
                               value={event.registration.description || ''}
                               onChange={(e) => handleUpdate(event.id, {
@@ -1064,7 +1071,7 @@ export function EventsManager() {
                               rows={2}
                               disabled={!isEditing}
                               maxLength={LIMITS.registrationDescription}
-                            />
+                             id={`registration-description-${event.id}`} />
                             <div className="flex items-center justify-between mt-1">
                               <div className="text-xs text-gray-400">{validationErrors[event.id]?.registrationDescription ? <span className="text-red-400">{validationErrors[event.id].registrationDescription}</span> : <span>&nbsp;</span>}</div>
                               <div className="text-xs text-gray-400">{(event.registration.description || '').length}/{LIMITS.registrationDescription}</div>
@@ -1073,7 +1080,7 @@ export function EventsManager() {
 
                           <div className="grid grid-cols-3 gap-4">
                             <div>
-                              <label className="text-sm text-white mb-1 block">National Fee (₹)</label>
+                              <label className="text-sm text-white mb-1 block" htmlFor={`national-fee-${event.id}`}>National Fee (₹)</label>
                               <Input
                                 type="text"
                                 inputMode="numeric"
@@ -1090,10 +1097,10 @@ export function EventsManager() {
                                 }}
                                 className="bg-[#2E2E2E] border-gray-600 text-white"
                                 disabled={!isEditing}
-                              />
+                               id={`national-fee-${event.id}`} />
                             </div>
                             <div>
-                              <label className="text-sm text-white mb-1 block">International Fee (₹)</label>
+                              <label className="text-sm text-white mb-1 block" htmlFor={`international-fee-${event.id}`}>International Fee (₹)</label>
                               <Input
                                 type="text"
                                 inputMode="numeric"
@@ -1110,10 +1117,10 @@ export function EventsManager() {
                                 }}
                                 className="bg-[#2E2E2E] border-gray-600 text-white"
                                 disabled={!isEditing}
-                              />
+                               id={`international-fee-${event.id}`} />
                             </div>
                             <div>
-                              <label className="text-sm text-white mb-1 block">Registration Fee (₹)</label>
+                              <label className="text-sm text-white mb-1 block" htmlFor={`registration-fee-${event.id}`}>Registration Fee (₹)</label>
                               <Input
                                 type="text"
                                 inputMode="numeric"
@@ -1130,7 +1137,7 @@ export function EventsManager() {
                                 }}
                                 className="bg-[#2E2E2E] border-gray-600 text-white"
                                 disabled={!isEditing}
-                              />
+                               id={`registration-fee-${event.id}`} />
                             </div>
                           </div>
                         </div>

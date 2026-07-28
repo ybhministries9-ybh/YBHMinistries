@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
-import { primaryBackground, accentGold } from "../../utils/theme";
+import { primaryBackground} from "../../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { HMSPage } from './HMSPage';
 import { HallelBibleSchoolMinistry } from './HallelBibleSchoolMinistry';
@@ -59,7 +59,7 @@ export function MinistriesPage() {
   const [ministries, setMinistries] = useState<Ministry[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("");
-  const router = useRouter();
+  const _router = useRouter();
   const searchParams = useSearchParams();
 
   // Fetch ministries and set initial tab from URL or default
@@ -70,13 +70,13 @@ export function MinistriesPage() {
         const data = await response.ok ? await response.json() : [];
         const sortedMinistries = sortMinistries(data);
         setMinistries(sortedMinistries);
-        let tab = searchParams.get('tab') || "";
+        const tab = searchParams.get('tab') || "";
         if (tab && sortedMinistries.some(m => m.slug === tab)) {
           setActiveTab(tab);
         } else if (sortedMinistries.length > 0) {
           setActiveTab(sortedMinistries[0].slug);
         }
-      } catch (error) {
+      } catch {
         setMinistries([]);
       } finally {
         setLoading(false);

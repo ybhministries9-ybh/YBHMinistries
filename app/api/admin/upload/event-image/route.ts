@@ -45,7 +45,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
       // retry once
       await uploadBuffer(origKey, buffer, file.type || 'application/octet-stream', PRIVATE_BUCKET);
     }
-  } catch (e) {
+  } catch {
     // ignore head check failures
   }
 

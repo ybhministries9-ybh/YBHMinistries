@@ -14,7 +14,7 @@ function redact(obj: any) {
       }
     }
     return redacted;
-  } catch (e) {
+  } catch {
     return '[REDACTED]';
   }
 }
@@ -27,7 +27,7 @@ function sendToSink(level: LogLevel, message: string, meta?: any) {
       const Sentry = (globalThis as any).Sentry;
       if (level === 'error') Sentry.captureException(meta || new Error(message));
       else Sentry.captureMessage(message, level);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }

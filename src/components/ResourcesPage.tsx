@@ -67,7 +67,7 @@ export function ResourcesPage() {
     // Run once on mount to set initial tab from the location hash (client-only)
     try {
       handleHashChange();
-    } catch (e) {
+    } catch {
       // ignore if window is not available
     }
 
@@ -258,7 +258,7 @@ export function ResourcesPage() {
     sermons: resources.sermons
   };
 
-  const addToCart = (book) => {
+  const _addToCart = (book) => {
     const existingItem = cartItems.find(item => item.id === book.id);
     if (existingItem) {
       setCartItems(cartItems.map(item => 
@@ -328,7 +328,7 @@ export function ResourcesPage() {
   };
 
   // Memoize selected book images to avoid re-computing on every render
-  const selectedBookImages = useMemo(() => getAllBookImages(selectedBook), [selectedBook]);
+  const _selectedBookImages = useMemo(() => getAllBookImages(selectedBook), [selectedBook]);
 
   // Format date to be more readable (returns empty string for invalid/missing values)
   const formatDate = (dateInput) => {
@@ -337,7 +337,7 @@ export function ResourcesPage() {
     if (!dt) return '';
     try {
       return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
-    } catch (err) {
+    } catch {
       return '';
     }
   };
@@ -370,19 +370,19 @@ export function ResourcesPage() {
       // Fallback to Date constructor (handles ISO strings)
       const dt = new Date(s);
       if (!isNaN(dt.getTime())) return dt;
-    } catch (err) {
+    } catch {
       // ignore
     }
     return null;
   };
 
-  const formatCardMonth = (dateInput) => {
+  const _formatCardMonth = (dateInput) => {
     const dt = parseLocalDate(dateInput);
     if (!dt) return '';
     return dt.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
   };
 
-  const formatCardDay = (dateInput) => {
+  const _formatCardDay = (dateInput) => {
     const dt = parseLocalDate(dateInput);
     if (!dt) return '';
     return String(dt.getDate());
@@ -525,7 +525,7 @@ export function ResourcesPage() {
                         selectedImage === index ? 'border-[#FDB813]' : 'border-transparent hover:border-gray-500'
                       }`}
                       onClick={() => setSelectedImage(index)}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => setSelectedImage(index))(); } }}>
                       <ImageWithFallback
                         src={image}
                         alt={`${selectedBook.title} - Image ${index + 1}`}

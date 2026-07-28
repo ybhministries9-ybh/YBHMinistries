@@ -121,14 +121,14 @@ interface ImageUploadProps {
   onFileSelect?: (file: File | null) => void; // called when a file is selected/dropped (but not uploaded)
 }
 
-export function ImageUpload({ 
-  bucket, 
+export function ImageUpload({
+  bucket: _bucket,
   onUploadComplete, 
   currentImage,
   maxSizeMB = 5,
   acceptedFormats = ['image/jpeg', 'image/jpg', 'image/png'],
   imageType = 'gallery',
-  showPreviewNotice = true,
+  showPreviewNotice: _showPreviewNotice = true,
   optional = false,
   squarePreview = false,
   allowRemove = true,
@@ -155,7 +155,7 @@ export function ImageUpload({
       if (!event.target.files || event.target.files.length === 0) return;
       const originalFile = event.target.files[0];
       await processFile(originalFile);
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred while processing the image');
     }
   };
@@ -178,7 +178,7 @@ export function ImageUpload({
 
       // show immediate preview while processing/uploading
       const initialPreview = URL.createObjectURL(originalFile);
-      try { generatedUrlsRef.current.add(initialPreview); } catch (e) {}
+      try { generatedUrlsRef.current.add(initialPreview); } catch {}
       setPreview(initialPreview);
 
       if (shouldCompress) {
@@ -189,13 +189,13 @@ export function ImageUpload({
           fileToUpload = compressed.file;
           // replace preview with compressed data URL and revoke the initial object URL
           setPreview(compressed.dataUrl);
-          try { if (initialPreview && generatedUrlsRef.current.has(initialPreview)) { URL.revokeObjectURL(initialPreview); generatedUrlsRef.current.delete(initialPreview); } } catch (e) {}
+          try { if (initialPreview && generatedUrlsRef.current.has(initialPreview)) { URL.revokeObjectURL(initialPreview); generatedUrlsRef.current.delete(initialPreview); } } catch {}
           setCompressionInfo({
             originalSize: compressed.originalSize,
             compressedSize: compressed.compressedSize,
             ratio: compressed.compressionRatio
           });
-        } catch (compressionError) {
+        } catch {
           fileToUpload = originalFile;
         } finally {
           setCompressing(false);
@@ -211,8 +211,8 @@ export function ImageUpload({
       // Do not upload here. Inform parent about selected file so parent can upload on Save.
       try {
         if (onFileSelect) onFileSelect(fileToUpload);
-      } catch (e) {}
-    } catch (err) {
+      } catch {}
+    } catch {
       setError('An unexpected error occurred while processing the image');
       setUploading(false);
       setCompressing(false);
@@ -226,11 +226,11 @@ export function ImageUpload({
         URL.revokeObjectURL(preview);
         generatedUrlsRef.current.delete(preview);
       }
-    } catch (e) {}
+    } catch {}
     setPreview(null);
     setError(null);
     setCompressionInfo(null);
-    try { if (onFileSelect) onFileSelect(null); } catch (e) {}
+    try { if (onFileSelect) onFileSelect(null); } catch {}
     onUploadComplete('');
   };
 
@@ -239,10 +239,10 @@ export function ImageUpload({
     // If parent passes a new currentImage, clear our generated blob urls and use the provided URL
     try {
       for (const u of generatedUrlsRef.current) {
-        try { URL.revokeObjectURL(u); } catch (e) {}
+        try { URL.revokeObjectURL(u); } catch {}
       }
       generatedUrlsRef.current.clear();
-    } catch (e) {}
+    } catch {}
     // If the parent provided an R2 reference (r2://bucket/key) or a plain key, request a presigned GET URL
     const resolvePreview = async () => {
       if (!currentImage) {
@@ -287,7 +287,7 @@ export function ImageUpload({
         } else {
           setPreview(s);
         }
-      } catch (e) {
+      } catch {
         setPreview(s);
       }
     };
@@ -299,10 +299,10 @@ export function ImageUpload({
     return () => {
       try {
         for (const u of generatedUrlsRef.current) {
-          try { URL.revokeObjectURL(u); } catch (e) {}
+          try { URL.revokeObjectURL(u); } catch {}
         }
         generatedUrlsRef.current.clear();
-      } catch (e) {}
+      } catch {}
     };
   }, [currentImage]);
 

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { accentGold } from '../../utils/theme';
@@ -109,7 +108,7 @@ export function AboutHeroImageManager() {
 
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
 
       const headers: Record<string,string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -146,7 +145,7 @@ export function AboutHeroImageManager() {
     try {
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -233,7 +232,7 @@ export function AboutHeroImageManager() {
                   onDrop={handleDrop}
                   onClick={() => { if (!isViewer) fileInputRef.current?.click(); }}
                   className={`w-full min-h-[120px] flex flex-col items-center justify-center gap-2 bg-black border-2 border-dashed border-[#3a3a3a] rounded-md overflow-hidden cursor-pointer px-4 py-6 ${isDragActive ? 'ring-2 ring-[#FDB813]' : ''}${isViewer ? ' opacity-50 cursor-not-allowed' : ''}`}
-                >
+                 role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => { if (!isViewer) fileInputRef.current?.click(); })(); } }}>
                   <input
                     id="hero-image-file"
                     ref={fileInputRef}

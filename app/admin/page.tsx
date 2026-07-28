@@ -28,7 +28,7 @@ export default function AdminPage() {
       try {
         const parsed = JSON.parse(raw);
         token = parsed?.token || '';
-      } catch (e) {
+      } catch {
         token = raw;
       }
 
@@ -56,7 +56,7 @@ export default function AdminPage() {
     void checkStoredToken();
   }, []);
 
-  const handleLogin = (token: string) => {
+  const handleLogin = (_token: string) => {
     // The login component is responsible for storing `admin_token` (with a server-provided
     // `expiresAt`). Do not overwrite that value here (a previous testing value caused the
     // session warning to appear immediately after login). Just mark the UI as logged in.
@@ -91,7 +91,7 @@ export default function AdminPage() {
           const ms = expiresAt - Date.now();
           timer = setTimeout(() => handleLogout(), ms);
         }
-      } catch (err) {
+      } catch {
         // ignore (legacy token format)
       }
     };
@@ -127,21 +127,26 @@ export default function AdminPage() {
         const raw = localStorage.getItem('admin_token');
         if (!raw) return;
         let token = '';
-        try { token = JSON.parse(raw).token || raw; } catch (e) { token = raw; }
+        try { token = JSON.parse(raw).token || raw; } catch { token = raw; }
         if (!token) return;
 
+        // The middleware rejects non-upload API POSTs that don't declare a JSON
+        // content type, and it does so with a plain-text body - so the header and
+        // body below are required for this request to reach the route at all.
         const resp = await fetch('/api/admin/auth/extend', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: '{}'
         });
+        if (!resp.ok) return;
         const j = await resp.json();
         if (j && j.success && j.expiresAt) {
           const expiresMs = typeof j.expiresAt === 'string' ? new Date(j.expiresAt).getTime() : j.expiresAt;
           localStorage.setItem('admin_token', JSON.stringify({ token, expiresAt: expiresMs }));
-          try { window.dispatchEvent(new CustomEvent('session-extended', { detail: { expiresAt: expiresMs } })); } catch (e) { try { window.dispatchEvent(new Event('session-extended')); } catch {} }
-          try { localStorage.setItem('admin_token_updated', String(Date.now())); localStorage.removeItem('admin_token_updated'); } catch (e) {}
+          try { window.dispatchEvent(new CustomEvent('session-extended', { detail: { expiresAt: expiresMs } })); } catch { try { window.dispatchEvent(new Event('session-extended')); } catch {} }
+          try { localStorage.setItem('admin_token_updated', String(Date.now())); localStorage.removeItem('admin_token_updated'); } catch {}
         }
-      } catch (err) {
+      } catch {
         // ignore network errors silently — do not log too often
       }
     };
@@ -166,17 +171,24 @@ export default function AdminPage() {
               void extendSessionOnInteraction();
             }
           }
-        } catch (e) {
+        } catch {
           // ignore URL parsing errors
         }
         return resp;
       };
-    } catch (err) {
+    } catch {
       // if fetch monkey-patching fails, ignore and continue
       originalFetch = null;
     }
 
+    // The session-expiry dialog is explicitly not "activity": dismissing it (X or
+    // Ignore) must leave the countdown running. Its own "Extend session" button
+    // calls the endpoint directly, so nothing inside it needs this handler.
+    const isInsideSessionWarning = (target: EventTarget | null) =>
+      target instanceof Element && !!target.closest('[data-session-warning]');
+
     const onClick = (e: MouseEvent) => {
+      if (isInsideSessionWarning(e.target)) return;
       const now = Date.now();
       if (now - lastExtend < MIN_MS_BETWEEN_EXTENDS) return;
       lastExtend = now;
@@ -184,6 +196,7 @@ export default function AdminPage() {
     };
 
     const onKey = (e: KeyboardEvent) => {
+      if (isInsideSessionWarning(e.target)) return;
       // consider Enter and Space as interaction (buttons/links)
       if (e.key === 'Enter' || e.key === ' ') {
         const now = Date.now();
@@ -202,7 +215,7 @@ export default function AdminPage() {
 
     const onNavigate = () => onPop();
 
-    const onSubmit = (e: Event) => {
+    const onSubmit = (_e: Event) => {
       const now = Date.now();
       if (now - lastExtend < MIN_MS_BETWEEN_EXTENDS) return;
       lastExtend = now;
@@ -228,7 +241,7 @@ export default function AdminPage() {
       // restore original fetch
       try {
         if (originalFetch) (window.fetch as any) = originalFetch;
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
@@ -244,7 +257,7 @@ export default function AdminPage() {
         const raw = localStorage.getItem('admin_token');
         if (!raw) return;
         let token = '';
-        try { token = JSON.parse(raw).token || raw; } catch (e) { token = raw; }
+        try { token = JSON.parse(raw).token || raw; } catch { token = raw; }
         if (!token) return;
         // remove stored token locally so a reopened tab doesn't auto-login
         try { localStorage.removeItem('admin_token'); } catch {}
@@ -262,11 +275,11 @@ export default function AdminPage() {
             xhr.open('POST', '/api/admin/auth/logout', false); // synchronous
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.send(body.toString());
-          } catch (e) {
+          } catch {
             // ignore
           }
         }
-      } catch (err) {
+      } catch {
         // ignore
       }
     };
@@ -293,7 +306,7 @@ export default function AdminPage() {
     try {
       const parsed = JSON.parse(raw);
       return parsed?.token || '';
-    } catch (err) {
+    } catch {
       return raw;
     }
   })() : '';

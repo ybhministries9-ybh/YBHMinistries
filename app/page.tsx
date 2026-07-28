@@ -60,7 +60,7 @@ async function getHeroImages(): Promise<string[]> {
             const bucket = parsed.bucket || PRIVATE_BUCKET;
             const signedUrl = await getPresignedGetUrl(parsed.key, 3600, bucket || undefined);
             return signedUrl;
-          } catch (err) {
+          } catch {
             // Fallback to original URL if signing fails
             return image_url;
           }

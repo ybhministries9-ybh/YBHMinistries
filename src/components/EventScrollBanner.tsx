@@ -8,7 +8,7 @@ import { getUpcomingEvents, formatEventDate, Event } from '../utils/eventsData';
 
 const ORDINAL_REGEX = /(\d+)(st|nd|rd|th)\b/gi;
 
-function renderTitleWithSuperscript(title: string) {
+function _renderTitleWithSuperscript(title: string) {
   const regex = new RegExp(ORDINAL_REGEX);
   const parts: Array<string | ReactNode> = [];
   let lastIndex = 0;
@@ -50,7 +50,7 @@ export function EventScrollBanner() {
 
   const handleBannerClick = () => {
     // fallback: open upcoming events list using client-side navigation
-    try { router.push('/news?section=upcoming-events'); } catch (e) { window.location.href = '/news?section=upcoming-events'; }
+    try { router.push('/news?section=upcoming-events'); } catch { window.location.href = '/news?section=upcoming-events'; }
   };
 
   // Calculate animation duration based on number of events
@@ -116,8 +116,8 @@ export function EventScrollBanner() {
                   className="event-item"
                   role="button"
                   tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch (err) { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch (err) { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } } }}
+                  onClick={(e) => { e.stopPropagation(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } } }}
                 >
                   {/* Event Name */}
                   <div className="text-white font-semibold text-base">
@@ -139,8 +139,8 @@ export function EventScrollBanner() {
                   className="event-item"
                   role="button"
                   tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch (err) { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch (err) { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } } }}
+                  onClick={(e) => { e.stopPropagation(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); try { router.push(`/news?section=upcoming-events&eventId=${event.id}`); } catch { window.location.href = `/news?section=upcoming-events&eventId=${event.id}`; } } }}
                 >
                   {/* Event Name */}
                   <div className="text-white font-semibold text-base">

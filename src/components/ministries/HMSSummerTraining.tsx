@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 export function HMSSummerTraining() {
   const { t } = useTranslation('ministries');
   
-  const scrollToSection = (sectionId: string) => {
+  const _scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
     if (section) {
       const headerOffset = 100; // Adjust based on your header height

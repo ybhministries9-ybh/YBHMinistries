@@ -47,7 +47,7 @@ export const POST = withApiGuard(async (request: NextRequest) => {
         console.error(`Failed to delete blob ${url}:`, err && err.message ? err.message : err);
         results.push({ url, deleted: false, error: 'delete_failed' });
       }
-    } catch (e: any) {
+    } catch (_e: any) {
       results.push({ url: url, deleted: false, error: 'invalid_url' });
     }
   }

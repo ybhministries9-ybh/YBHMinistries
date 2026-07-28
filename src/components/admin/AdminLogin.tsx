@@ -1,8 +1,6 @@
 import { useState } from 'react';
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { SetupHelper } from './SetupHelper';
-
 interface AdminLoginProps {
   onLogin: (token: string) => void;
 }
@@ -12,8 +10,8 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showSetup, setShowSetup] = useState(false);
-  const [mustReset, setMustReset] = useState(false);
+  const [_showSetup, _setShowSetup] = useState(false);
+  const [mustReset, _setMustReset] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -34,7 +32,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
       if (j.mustReset) {
         try {
           sessionStorage.setItem('must_reset_email', email);
-        } catch (err) {
+        } catch {
           // ignore
         }
         window.location.assign('/admin/change-password');
@@ -46,7 +44,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
           // ensure stored format is a ms-timestamp number for existing code
           const expiresMs = typeof expiresAt === 'string' ? new Date(expiresAt).getTime() : expiresAt;
           localStorage.setItem('admin_token', JSON.stringify({ token: j.access_token, expiresAt: expiresMs }));
-        } catch (err) {
+        } catch {
           // ignore storage errors
           localStorage.setItem('admin_token', j.access_token as string);
         }
@@ -88,7 +86,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         const expiresAt = loginJson.expiresAt || new Date(Date.now() + 60 * 1000).toISOString();
         const expiresMs = typeof expiresAt === 'string' ? new Date(expiresAt).getTime() : expiresAt;
         localStorage.setItem('admin_token', JSON.stringify({ token: loginJson.access_token, expiresAt: expiresMs }));
-      } catch (err) {
+      } catch {
         localStorage.setItem('admin_token', loginJson.access_token);
       }
       onLogin(loginJson.access_token);
@@ -184,12 +182,12 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         {mustReset && (
           <form onSubmit={handleReset} className="space-y-4 mt-6">
             <div>
-              <label className="block text-sm text-gray-300 mb-2">New Password</label>
-              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+              <label className="block text-sm text-gray-300 mb-2" htmlFor="new-password">New Password</label>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required  id="new-password" />
             </div>
             <div>
-              <label className="block text-sm text-gray-300 mb-2">Confirm Password</label>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+              <label className="block text-sm text-gray-300 mb-2" htmlFor="confirm-password">Confirm Password</label>
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required  id="confirm-password" />
             </div>
             <div>
               <button type="submit" className="w-full py-3.5 bg-green-600 text-white rounded-xl">Set New Password</button>

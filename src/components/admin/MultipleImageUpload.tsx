@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, X, Loader2, CheckCircle2, AlertCircle, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Upload, X, Loader2, CheckCircle2, AlertCircle, Image as ImageIcon} from 'lucide-react';
 import { Button } from '../ui/button';
 
 // Utility functions for image handling
-const formatFileSize = (bytes: number): string => {
+const _formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -177,14 +177,14 @@ export function MultipleImageUpload({
             const compressed = await compressImage(image.file, settings);
             fileToUpload = compressed.file;
             previewUrl = compressed.dataUrl;
-          } catch (compressionError) {
+          } catch {
             fileToUpload = image.file;
           }
         }
         // Do not upload now — just create a preview and mark complete. Parent will upload on Save.
         try {
           const p = previewUrl || URL.createObjectURL(fileToUpload);
-          try { generatedUrlsRef.current.add(p); } catch (e) {}
+          try { generatedUrlsRef.current.add(p); } catch {}
           setUploadedImages(prev => prev.map(img =>
             img.id === image.id
               ? {
@@ -198,14 +198,14 @@ export function MultipleImageUpload({
                 }
               : img
           ));
-        } catch (err) {
+        } catch {
           setUploadedImages(prev => prev.map(img =>
             img.id === image.id
               ? { ...img, status: 'error' as const, error: 'Failed to process preview' }
               : img
           ));
         }
-      } catch (error) {
+      } catch {
         setUploadedImages(prev => prev.map(img =>
           img.id === image.id
             ? { ...img, status: 'error' as const, error: 'Failed to process image' }
@@ -246,10 +246,10 @@ export function MultipleImageUpload({
     try {
       const img = uploadedImages.find(i => i.id === id);
       if (img && img.preview && img.preview.startsWith('blob:') && generatedUrlsRef.current.has(img.preview)) {
-        try { URL.revokeObjectURL(img.preview); } catch (e) {}
+        try { URL.revokeObjectURL(img.preview); } catch {}
         generatedUrlsRef.current.delete(img.preview);
       }
-    } catch (e) {}
+    } catch {}
     setUploadedImages(prev => prev.filter(img => img.id !== id));
   };
 
@@ -258,10 +258,10 @@ export function MultipleImageUpload({
     return () => {
       try {
         for (const u of generatedUrlsRef.current) {
-          try { URL.revokeObjectURL(u); } catch (e) {}
+          try { URL.revokeObjectURL(u); } catch {}
         }
         generatedUrlsRef.current.clear();
-      } catch (e) {}
+      } catch {}
     };
   }, []);
 

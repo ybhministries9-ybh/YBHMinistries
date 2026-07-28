@@ -19,7 +19,7 @@ async function readFlagFromFile() {
     const enabled = toBool(parsed?.enabled);
     const videoUrl = typeof parsed?.videoUrl === 'string' ? parsed.videoUrl : '';
     return { enabled, videoUrl };
-  } catch (e) {
+  } catch {
     return { enabled: false, videoUrl: '' };
   }
 }
@@ -29,7 +29,7 @@ async function writeFlagToFile(data: { enabled: boolean; videoUrl?: string }) {
     await fs.mkdir(path.dirname(FILE_PATH), { recursive: true });
     await fs.writeFile(FILE_PATH, JSON.stringify({ ...data, updatedAt: new Date().toISOString() }, null, 2), 'utf8');
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -56,7 +56,7 @@ export async function GET(_: NextRequest) {
         updated_at: row.updated_at,
       });
     }
-  } catch (e) {
+  } catch {
     // ignore and fallback to file
   }
 
@@ -94,12 +94,12 @@ export async function POST(req: NextRequest) {
             updated_at = now();
       `;
       return NextResponse.json({ success: true });
-    } catch (dbErr) {
+    } catch {
       const ok = await writeFlagToFile({ enabled, videoUrl: safeVideoUrl });
       if (!ok) return NextResponse.json({ error: 'failed to write flag' }, { status: 500 });
       return NextResponse.json({ success: true, fallback: true });
     }
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 });
   }
 }

@@ -10,7 +10,7 @@ async function post() {
     body: JSON.stringify(payload),
   });
   // dev logging removed
-  const data = await res.json();
+  const _data = await res.json();
   // dev logging removed
 }
 

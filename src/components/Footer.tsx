@@ -1,4 +1,4 @@
-import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, Twitter, Languages } from 'lucide-react';
+import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, Languages } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SmartImage from './SmartImage';
 
@@ -106,9 +106,9 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
                 </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <button type="button" className="hover:text-white transition-colors">
                   Donate
-                </a>
+                </button>
               </li>
             </ul>
           </div>
@@ -118,34 +118,34 @@ export function Footer({ siteTitle = 'Yeshua Beth Hallel Ministries' }: FooterPr
             <h3 className="text-white mb-4">Ministries</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Children's Ministry
-                </a>
+                <button type="button" className="hover:text-white transition-colors">
+                  Children&apos;s Ministry
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <button type="button" className="hover:text-white transition-colors">
                   Youth Ministry
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Women's Fellowship
-                </a>
+                <button type="button" className="hover:text-white transition-colors">
+                  Women&apos;s Fellowship
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Men's Group
-                </a>
+                <button type="button" className="hover:text-white transition-colors">
+                  Men&apos;s Group
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <button type="button" className="hover:text-white transition-colors">
                   Senior Ministry
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <button type="button" className="hover:text-white transition-colors">
                   Music Ministry
-                </a>
+                </button>
               </li>
             </ul>
           </div>

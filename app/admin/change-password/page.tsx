@@ -15,7 +15,7 @@ export default function ChangePasswordPage() {
     try {
       const e = sessionStorage.getItem('must_reset_email') || '';
       setEmail(e);
-    } catch (err) {
+    } catch {
       setEmail('');
     }
   }, []);
@@ -55,13 +55,13 @@ export default function ChangePasswordPage() {
         localStorage.setItem('admin_token', JSON.stringify({ token: loginJson.access_token, expiresAt }));
         // Suppress the session-expiring warning for the immediate first login after password reset
         // Store a short-lived timestamp until which the warning should be suppressed.
-        try { localStorage.setItem('suppress_session_warning_until', String(Date.now() + 15 * 1000)); } catch (e) {}
-      } catch (err) {
-        try { localStorage.setItem('admin_token', loginJson.access_token); } catch (e) {}
+        try { localStorage.setItem('suppress_session_warning_until', String(Date.now() + 15 * 1000)); } catch {}
+      } catch {
+        try { localStorage.setItem('admin_token', loginJson.access_token); } catch {}
       }
 
       // Clean up sessionStorage
-      try { sessionStorage.removeItem('must_reset_email'); } catch (err) {}
+      try { sessionStorage.removeItem('must_reset_email'); } catch {}
 
       // Go to admin dashboard
       router.push('/admin');
@@ -83,12 +83,12 @@ export default function ChangePasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-2">New Password</label>
-            <input type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+            <label className="block text-sm text-gray-300 mb-2" htmlFor="new-password">New Password</label>
+            <input type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required  id="new-password" />
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Confirm Password</label>
-            <input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required />
+            <label className="block text-sm text-gray-300 mb-2" htmlFor="confirm-password">Confirm Password</label>
+            <input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md" required  id="confirm-password" />
           </div>
 
           {error && (

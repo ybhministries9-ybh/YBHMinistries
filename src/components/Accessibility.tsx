@@ -9,14 +9,14 @@ export function Accessibility() {
   
   useEffect(() => {
     window.scrollTo(0, 0);
-    try { hidePageLoader(); } catch (e) {}
+    try { hidePageLoader(); } catch {}
   }, []);
 
   const handleBack = () => {
     // Navigate to the site's home page
     try {
       window.location.href = '/';
-    } catch (e) {
+    } catch {
       // fallback: use history API
       window.history.pushState({}, '', '/');
       window.dispatchEvent(new PopStateEvent('popstate'));

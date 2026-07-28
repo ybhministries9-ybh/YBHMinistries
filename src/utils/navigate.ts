@@ -6,7 +6,7 @@ export function navigate(path: string) {
     showPageLoader();
     // Perform navigation. Use href to keep behavior predictable.
     window.location.href = path;
-  } catch (e) {
+  } catch {
     // If window isn't available (e.g., during SSR) do nothing.
   }
 }

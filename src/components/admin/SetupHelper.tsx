@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, CheckCircle, Copy } from 'lucide-react';
+import { AlertCircle, CheckCircle} from 'lucide-react';
 
 export function SetupHelper() {
   const [email, setEmail] = useState('admin@ybhministries.org');
@@ -61,18 +61,18 @@ export function SetupHelper() {
 
       <form onSubmit={handleCreateAccount} className="space-y-4">
         <div>
-          <label className="block text-sm text-gray-300 mb-2">Name</label>
+          <label className="block text-sm text-gray-300 mb-2" htmlFor="name">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full px-4 py-2 bg-black border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FDB813]"
             required
-          />
+           id="name" />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-300 mb-2">Email Address</label>
+          <label className="block text-sm text-gray-300 mb-2" htmlFor="email-address">Email Address</label>
           <input
             type="email"
             value={email}
@@ -80,11 +80,11 @@ export function SetupHelper() {
             autoComplete="email"
             className="w-full px-4 py-2 bg-black border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FDB813]"
             required
-          />
+           id="email-address" />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-300 mb-2">Password</label>
+          <label className="block text-sm text-gray-300 mb-2" htmlFor="password">Password</label>
           <input
             type="password"
             value={password}
@@ -94,7 +94,7 @@ export function SetupHelper() {
             placeholder="Choose a strong password"
             required
             minLength={6}
-          />
+           id="password" />
           <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
         </div>
 
@@ -120,7 +120,7 @@ export function SetupHelper() {
 
       <div className="mt-6 pt-6 border-t border-gray-700">
         <p className="text-sm text-gray-400 mb-2">
-          <strong>Note:</strong> Keep your credentials safe. You'll need them to login to the admin panel.
+          <strong>Note:</strong> Keep your credentials safe. You&apos;ll need them to login to the admin panel.
         </p>
       </div>
     </div>

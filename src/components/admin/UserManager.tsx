@@ -64,7 +64,7 @@ export function UserManager() {
         // include admin token for server-side validation
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
-        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
         const qParam = activeSearchQuery && activeSearchQuery.trim().length > 0 ? `?q=${encodeURIComponent(activeSearchQuery.trim())}` : '';
         const res = await fetch(`/api/admin/users${qParam}`, { headers: { 'Authorization': `Bearer ${token}` } });
         const j = await res.json();
@@ -83,7 +83,7 @@ export function UserManager() {
         } else {
           toast.error('Failed to load users');
         }
-      } catch (err) {
+      } catch {
         toast.error('Failed to load users');
       }
     };
@@ -104,7 +104,7 @@ export function UserManager() {
       try {
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
-        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
         const resp = await fetch('/api/admin/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
         const j = await resp.json();
         if (j.success && j.user) {
@@ -176,7 +176,7 @@ export function UserManager() {
         if (editingUser) {
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
-        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
         const resp = await fetch(`/api/admin/users?id=${editingUser.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -204,18 +204,18 @@ export function UserManager() {
           try {
             // dispatch custom event
             window.dispatchEvent(new CustomEvent('admin-user-updated', { detail: payload }));
-          } catch (e) {}
+          } catch {}
           try {
             // also trigger a storage event for other tabs
             localStorage.setItem('admin_user_updated', JSON.stringify({ ...payload, ts: Date.now() }));
             // remove quickly to avoid persistent value
             localStorage.removeItem('admin_user_updated');
-          } catch (e) {}
+          } catch {}
         }
       } else {
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
-        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
         const resp = await fetch('/api/admin/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -260,7 +260,7 @@ export function UserManager() {
       try {
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
-        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
         const resp = await fetch(`/api/admin/users?id=${userToDelete.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
         const j = await resp.json();
         if (!j.success) {
@@ -299,7 +299,7 @@ export function UserManager() {
     try {
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
         const resp = await fetch(`/api/admin/users?id=${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -500,7 +500,7 @@ export function UserManager() {
             <div className="grid grid-cols-2 gap-4">
               {/* Full Name */}
               <div>
-                <label className="block text-sm text-gray-300 mb-1.5">
+                <label className="block text-sm text-gray-300 mb-1.5" htmlFor="full-name">
                   Full Name <span className="text-red-500">*</span>
                   <span className="text-xs text-gray-500 ml-2">
                     ({formData.name.length}/{CHAR_LIMITS.name})
@@ -516,7 +516,7 @@ export function UserManager() {
                     validationErrors.name ? 'border-red-500' : 'border-gray-600'
                   } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent selection:bg-[#FDB813] selection:text-black`}
                   maxLength={CHAR_LIMITS.name}
-                />
+                 id="full-name" />
                 {validationErrors.name && (
                   <p className="text-xs text-red-500 mt-1">{validationErrors.name}</p>
                 )}
@@ -524,7 +524,7 @@ export function UserManager() {
 
               {/* Email Address */}
               <div>
-                <label className="block text-sm text-gray-300 mb-1.5">
+                <label className="block text-sm text-gray-300 mb-1.5" htmlFor="email-address">
                   Email Address <span className="text-red-500">*</span>
                   <span className="text-xs text-gray-500 ml-2">
                     ({formData.email.length}/{CHAR_LIMITS.email})
@@ -540,7 +540,7 @@ export function UserManager() {
                     validationErrors.email ? 'border-red-500' : 'border-gray-600'
                   } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent selection:bg-[#FDB813] selection:text-black`}
                   maxLength={CHAR_LIMITS.email}
-                />
+                 id="email-address" />
                 {validationErrors.email && (
                   <p className="text-xs text-red-500 mt-1">{validationErrors.email}</p>
                 )}
@@ -550,7 +550,7 @@ export function UserManager() {
             <div className="grid grid-cols-2 gap-4">
               {/* Role */}
               <div>
-                <label className="block text-sm text-gray-300 mb-1.5">
+                <label className="block text-sm text-gray-300 mb-1.5" htmlFor="role">
                   Role <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -558,7 +558,7 @@ export function UserManager() {
                   onChange={(e) => handleFieldChange('role', e.target.value)}
                   style={{ backgroundColor: '#2e2e2e' }}
                   className="w-full px-3 py-2 !bg-[#2e2e2e] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent"
-                >
+                 id="role" >
                   <option value="Super Admin">Super Admin</option>
                   <option value="Content Manager">Content Manager</option>
                   <option value="Viewer">Viewer</option>
@@ -570,7 +570,7 @@ export function UserManager() {
 
               {/* Status */}
               <div>
-                <label className="block text-sm text-gray-300 mb-1.5">
+                <label className="block text-sm text-gray-300 mb-1.5" htmlFor="status">
                   Status <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -579,7 +579,7 @@ export function UserManager() {
                   disabled={!!editingUser && currentUser?.id === editingUser.id}
                   style={{ backgroundColor: '#2e2e2e' }}
                   className="w-full px-3 py-2 !bg-[#2e2e2e] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                 id="status" >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
@@ -662,7 +662,7 @@ export function UserManager() {
                     try {
                       const rawToken = localStorage.getItem('admin_token');
                       let token = '';
-                      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+                      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
                       const resp = await fetch('/api/admin/users/reset', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: user.id }) });
                       const j = await resp.json();
                       if (!j.success) { toast.error(j.error || 'Failed to set require-reset'); return; }
@@ -903,7 +903,7 @@ export function UserManager() {
                                 try {
                                   const rawToken = localStorage.getItem('admin_token');
                                   let token = '';
-                                  if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+                                  if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
                                   const resp = await fetch('/api/admin/users/reset', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: user.id }) });
                                   const j = await resp.json();
                                   if (!j.success) { toast.error(j.error || 'Failed to set require-reset'); return; }

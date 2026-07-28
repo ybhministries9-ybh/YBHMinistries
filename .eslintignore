@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+public/
+next-env.d.ts
+
+# Legacy Vite entry points - excluded from tsconfig, not used by the Next.js app
+src/main.tsx
+src/App.tsx
+vite.config.ts

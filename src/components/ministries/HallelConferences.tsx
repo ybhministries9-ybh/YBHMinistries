@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from 'next/link';
-import { Music, Heart, MessageCircle, Users, Globe, Star, Calendar, Mic2, BookOpen, RefreshCcw } from "lucide-react";
+import { Music, Heart, Users, Star, Calendar, Mic2, BookOpen, RefreshCcw } from "lucide-react";
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
 
@@ -55,7 +55,7 @@ export function HallelConferences() {
             <div className="md:w-3/5 order-2 md:order-1">
               <div className="relative pl-6 mb-8 border-l-4 border-[#FDB813]">
                 <p className="text-xl italic font-light">
-                  "{t('hallelConferencesPage.heartOfHallel.quote')}"
+                  &quot;{t('hallelConferencesPage.heartOfHallel.quote')}&quot;
                 </p>
               </div>
               <p className="text-lg leading-relaxed mb-6">
@@ -161,7 +161,7 @@ export function HallelConferences() {
           </div>
           <div className="bg-black p-6 rounded-lg mt-12 mb-8">
                 <p className="text-xl italic">
-                  "{t('hallelConferencesPage.whyMatters.quote')}"
+                  &quot;{t('hallelConferencesPage.whyMatters.quote')}&quot;
                 </p>
               </div>
         </div>
@@ -196,7 +196,7 @@ export function HallelConferences() {
                 <Music className="w-12 h-12 text-[#FDB813] mx-auto" />
               </div>
               <p className="text-lg leading-relaxed italic text-center mb-6">
-                "{t('hallelConferencesPage.movementOfPraise.quote1')}"
+                &quot;{t('hallelConferencesPage.movementOfPraise.quote1')}&quot;
               </p>
               <p className="text-lg leading-relaxed text-center">
                 {t('hallelConferencesPage.movementOfPraise.quote2')}

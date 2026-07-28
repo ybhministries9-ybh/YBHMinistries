@@ -134,7 +134,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
     if (!data.facebook || data.facebook.trim().length === 0) errs.facebook = String(t('contactForm.validation.worship24_facebookRequired'));
     else if (data.facebook.length > LIMITS.facebook) errs.facebook = String(t('contactForm.validation.worship24_facebookTooLong'));
     else {
-      try { new URL(data.facebook); } catch (e) { errs.facebook = String(t('contactForm.validation.worship24_facebookInvalid')); }
+      try { new URL(data.facebook); } catch { errs.facebook = String(t('contactForm.validation.worship24_facebookInvalid')); }
     }
 
     // Message is optional for Worship24; no length validation applied
@@ -179,7 +179,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
       try {
         const { getRecaptchaToken } = await import('@/lib/recaptcha');
         recaptchaToken = await getRecaptchaToken('worship24');
-      } catch (e) { recaptchaToken = null; }
+      } catch { recaptchaToken = null; }
       const payload = { ...form, phone: combinedPhone, recaptchaToken };
         const res = await fetch('/api/worship24', {
         method: 'POST',
@@ -194,7 +194,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
         if (formRef.current) formRef.current.reset();
         setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
       }
-    } catch (err) {
+    } catch {
       setStatus({ submitted: false, message: 'Server error' });
     } finally {
       setSubmitting(false);
@@ -262,7 +262,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
         } else {
           setBookedSlots([]);
         }
-      } catch (e) {
+      } catch {
         if (!aborted) setBookedSlots([]);
       }
     }
@@ -276,8 +276,8 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
         if (typeof window !== 'undefined' && window.scrollTo) {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-      } catch (e) {}
-      try { successRef.current?.focus(); } catch (e) {}
+      } catch {}
+      try { successRef.current?.focus(); } catch {}
     }
   }, [status.submitted]);
 
@@ -315,7 +315,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                   setErrors({});
                   setStatus({ submitted: false, message: '' });
                   // focus first input after returning to the form
-                  setTimeout(() => { try { nameInputRef.current?.focus(); } catch (e) {} }, 50);
+                  setTimeout(() => { try { nameInputRef.current?.focus(); } catch {} }, 50);
                 }}
                 aria-label={t('worship24.bookAnother', { defaultValue: 'Book Another' })}
                 className="px-6 py-2 rounded-full text-black font-bold transition-all duration-300 shadow-md inline-flex items-center justify-center cursor-pointer"

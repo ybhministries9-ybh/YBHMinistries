@@ -16,7 +16,7 @@ function ImageWithFallback(props) {
       style={style}
     >
       <div className="flex items-center justify-center w-full h-full">
-        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg==" alt="Error loading image" {...rest} data-original-url={src} />
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg==" alt="Failed to load" {...rest} data-original-url={src} />
       </div>
     </div>
   ) : (
@@ -164,7 +164,7 @@ export function AwardsPage() {
           if (!resp.ok) { out[rec.id] = v; return; }
           const j = await resp.json();
           out[rec.id] = j.url || v;
-        } catch (err) {
+        } catch {
           out[rec.id] = rec.image;
         }
       }));
@@ -176,7 +176,7 @@ export function AwardsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const ActionButtons = ({ id }) => (
+  const _ActionButtons = ({ id }) => (
     <div className="flex flex-wrap md:flex-wrap gap-3 mt-6">
       <button
         className="px-5 py-2 bg-[#FDB813] text-black rounded-full hover:bg-opacity-80 transition-all duration-300 inline-flex items-center justify-center"

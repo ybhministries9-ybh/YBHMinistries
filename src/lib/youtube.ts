@@ -8,7 +8,7 @@ export function extractYouTubeId(url: string | null | undefined): string | null 
     if (s.includes('youtube.com/shorts/')) return s.split('shorts/')[1]?.split('?')[0] || null;
     // Support live stream short links like: https://www.youtube.com/live/<id>
     if (s.includes('youtube.com/live/')) return s.split('live/')[1]?.split('?')[0] || null;
-  } catch (err) {
+  } catch {
     return null;
   }
   return null;
@@ -34,7 +34,7 @@ export async function fetchYouTubeMeta(videoId: string) {
     if (!res.ok) return null;
     const data = await res.json();
     return data;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -46,7 +46,7 @@ export async function fetchYouTubeTitle(urlOrId: string | null | undefined): Pro
   try {
     const meta = await fetchYouTubeMeta(id);
     return meta?.title || null;
-  } catch (err) {
+  } catch {
     return null;
   }
 }

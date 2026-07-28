@@ -46,10 +46,10 @@ export async function POST(request: Request) {
       const token = body?.recaptchaToken || body?.recaptcha_token;
       const rc = await verifyRecaptcha(token);
       if (!rc.ok && !rc.skipped) {
-        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for get-in-touch submission', { details: rc }); } catch (_) {}
+        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for get-in-touch submission', { details: rc }); } catch {}
       }
     } catch (e) {
-      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for get-in-touch', { error: String(e) }); } catch (_) {}
+      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for get-in-touch', { error: String(e) }); } catch {}
     }
 
     // Sanitize inputs early
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         return e.replace(/(.{2}).+(@.+)/, '$1***$2');
       };
       logger.info('get-in-touch: email presence', { hasEmail: !!emailVal, email: obfuscate(emailVal) });
-    } catch (e) {
+    } catch {
       // ignore logging errors
     }
     if (!messageClean || messageClean.length < 10) {
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
           location,
         });
       }
-    } catch (e) {
+    } catch {
       // ignore logging errors
     }
 
@@ -218,7 +218,7 @@ export async function POST(request: Request) {
         try {
           const { logger } = await import('../../../src/lib/logger');
           logger.info('get-in-touch: attempting confirmation send', { to: String(emailVal).replace(/(.{2}).+(@.+)/, '$1***$2') });
-        } catch (e) {}
+        } catch {}
 
         const res = await sendTransactional({
           from: process.env.EMAIL_FROM || undefined,
@@ -238,7 +238,7 @@ export async function POST(request: Request) {
         try {
           const { logger } = await import('../../../src/lib/logger');
           logger.error('Failed to send confirmation email for get-in-touch', { error: String(emailErr?.message || emailErr) });
-        } catch (_) {
+        } catch {
           // ignore
         }
       }

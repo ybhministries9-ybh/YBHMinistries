@@ -2,14 +2,14 @@
 
 import React from "react";
 import { useTranslation } from 'react-i18next';
-import { Clock, Calendar, Sun, Moon, Heart, Music } from 'lucide-react';
+import { Clock, Calendar, Heart, Music } from 'lucide-react';
 
 function ThemedSectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   // SEO: Use h1 if this is the main page title, otherwise h2
   return (
     <div className="text-center mb-12 mt-32 md:mt-48">
-      <h2 className="text-3xl font mb-2" tabIndex={0}>{title}</h2>
-      {subtitle && <p className="text-lg text-gray-400" tabIndex={0}>{subtitle}</p>}
+      <h2 className="text-3xl font mb-2">{title}</h2>
+      {subtitle && <p className="text-lg text-gray-400">{subtitle}</p>}
       <div className="w-24 h-1 rounded-full mx-auto mt-4" style={{ backgroundColor: '#FDB813' }}></div>
     </div>
   );
@@ -151,14 +151,12 @@ export function HallelChurch() {
                       <h3 
                         className={`font-bold mb-2 text-xl text-white text-center`}
                         style={{ color: '#fff' }}
-                        tabIndex={0}
                       >
                         {t(`hallelChurchPage.${activity.titleKey}`)}
                       </h3>
                       <p 
                         className="mb-4 leading-relaxed text-center"
                         style={{ color: theme.textMuted }}
-                        tabIndex={0}
                       >
                         {t(`hallelChurchPage.${activity.descriptionKey}`)}
                       </p>

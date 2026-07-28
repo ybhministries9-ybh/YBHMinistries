@@ -5,7 +5,7 @@ async function readFlagFromFile() {
   try {
     const raw = await fs.readFile(process.cwd() + '/data/maintenance.json', 'utf8');
     return JSON.parse(raw);
-  } catch (e) {
+  } catch {
     return { enabled: false };
   }
 }
@@ -17,7 +17,7 @@ export async function isMaintenanceEnabled(): Promise<boolean> {
       const v = r.rows[0].bool_value;
       return v === true || v === 't' || v === 'true' || v === 1 || v === '1';
     }
-  } catch (e) {
+  } catch {
     // ignore and fall back to file
   }
   const file = await readFlagFromFile();

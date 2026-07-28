@@ -111,7 +111,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
   const isValid = Object.keys(validate(formData)).length === 0;
 
   // Detect small screens (Tailwind `sm` breakpoint = 640px)
-  const [isMobile, setIsMobile] = useState(false);
+  const [_isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)');
     const onChange = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(!!('matches' in e ? e.matches : mq.matches));
@@ -124,7 +124,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
     };
   }, []);
 
-  const shortCountry = (name: string) => {
+  const _shortCountry = (name: string) => {
     const trimmed = name.trim();
     if (trimmed.length <= 12) return trimmed;
     const words = trimmed.split(/\s+/).filter(Boolean);
@@ -149,7 +149,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
       try {
         const { getRecaptchaToken } = await import('@/lib/recaptcha');
         recaptchaToken = await getRecaptchaToken('get_in_touch');
-      } catch (e) {
+      } catch {
         // ignore token errors; server will handle verification if configured
         recaptchaToken = null;
       }
@@ -178,7 +178,7 @@ export const GetInTouchSection = memo(({ accentColor = '#FDB813', contactId = 'c
       // reset selected index to default (+91)
       const defaultIdx = COUNTRY_CODES.findIndex(c => c.code === '+91');
       setSelectedCountryIndex(defaultIdx >= 0 ? defaultIdx : 0);
-    } catch (err) {
+    } catch {
       setFormStatus({ submitted: false, messageKey: 'contactForm.error' });
     } finally {
       setSubmitting(false);

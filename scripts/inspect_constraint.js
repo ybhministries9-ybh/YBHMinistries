@@ -22,7 +22,7 @@ import { sql } from '@vercel/postgres';
 
 async function inspect() {
   try {
-    const { rows } = await sql`
+    const { rows: _rows } = await sql`
       SELECT conname, pg_get_constraintdef(c.oid) as def
       FROM pg_catalog.pg_constraint c
       WHERE conname = 'chk_get_in_touch_email_format'

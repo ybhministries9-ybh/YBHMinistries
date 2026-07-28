@@ -7,7 +7,7 @@ import { accentGold } from '../../utils/theme';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { toast } from 'sonner';
 
-export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, onRemoveConfirmed, startEditing, onConsumeStartEditing, onSave, onToggleVisible, isViewer } : any) {
+export function DonateUpiRow({ u, onChange, onRemove, onGenerate: _onGenerate, generating: _generating, onRemoveConfirmed, startEditing, onConsumeStartEditing, onSave, onToggleVisible, isViewer } : any) {
   const [editing, setEditing] = useState<boolean>(false);
   const [local, setLocal] = useState<any>(u);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -225,7 +225,7 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate, generating, on
       onChange({ ...itemToSend, visible: newVal });
       try {
         await onToggleVisible(itemToSend, newVal);
-      } catch (err) {
+      } catch {
         // delegate error handling to parent; revert optimistic update
         onChange({ ...itemToSend, visible: !newVal });
       }

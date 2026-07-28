@@ -32,7 +32,7 @@ export async function sendInviteEmail(to: string, name: string | null, link: str
 
       const text = await res.text();
       let parsed: any = text;
-      try { parsed = JSON.parse(text); } catch (e) { /* keep raw text */ }
+      try { parsed = JSON.parse(text); } catch { /* keep raw text */ }
 
       if (!res.ok) {
         logger.error('Brevo responded with non-OK status', { status: res.status, body: parsed });
@@ -72,7 +72,7 @@ export async function sendInviteEmail(to: string, name: string | null, link: str
 
       const text = await res.text();
       let parsed: any = text;
-      try { parsed = JSON.parse(text); } catch (e) { /* keep raw text */ }
+      try { parsed = JSON.parse(text); } catch { /* keep raw text */ }
 
       if (!res.ok) {
         logger.error('SendGrid responded with non-OK status', { status: res.status, body: parsed });
@@ -118,7 +118,7 @@ export async function sendTransactional(payload: TransactionPayload) {
       });
       const text = await res.text();
       let parsed: any = text;
-      try { parsed = JSON.parse(text); } catch (e) {}
+      try { parsed = JSON.parse(text); } catch {}
       if (!res.ok) {
         logger.error('Brevo transactional responded non-OK', { status: res.status, body: parsed });
         return { success: false, error: 'brevo_error', status: res.status, body: parsed };
@@ -141,7 +141,7 @@ export async function sendTransactional(payload: TransactionPayload) {
       });
       const text = await res.text();
       let parsed: any = text;
-      try { parsed = JSON.parse(text); } catch (e) {}
+      try { parsed = JSON.parse(text); } catch {}
       if (!res.ok) {
         logger.error('SendGrid transactional responded non-OK', { status: res.status, body: parsed });
         return { success: false, error: 'sendgrid_error', status: res.status, body: parsed };

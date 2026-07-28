@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import sharp from 'sharp';
-import { parseKeyFromUrl, getPresignedGetUrl, uploadBuffer, PRIVATE_BUCKET } from '@/lib/r2';
 import { sql, } from '@vercel/postgres';
-import { updateHeroImage } from '@/lib/db';
 import processHeroImageById from '@/lib/imageProcessor';
 import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 

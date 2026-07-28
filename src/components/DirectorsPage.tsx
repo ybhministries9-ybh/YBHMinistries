@@ -2,9 +2,8 @@
 
 import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Music, Globe, Mail, Youtube, Instagram, ExternalLink, ChevronRight, Award, Mic, BookOpen, Heart, Users, Calendar, MapPin, Wind } from 'lucide-react';
+import { Music, Globe, ChevronRight, Award, Mic, BookOpen, Heart, Users, Calendar, MapPin, Wind } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
 import { useTranslation } from 'react-i18next';
 
@@ -56,7 +55,7 @@ export function DirectorsPage() {
   const [activeTab, setActiveTab] = useState<string>("augustine");
   const [augustineTab, setAugustineTab] = useState("ministries");
   const contactFormRef = useRef<HTMLFormElement | null>(null);
-  const [formStatus, setFormStatus] = useState({ submitted: false, message: "" });
+  const [_formStatus, setFormStatus] = useState({ submitted: false, message: "" });
   const [imagePreloaded, setImagePreloaded] = useState(false);
   
   const accentColor = "#FDB813";
@@ -65,7 +64,7 @@ export function DirectorsPage() {
   // in `IMAGE_URLS` (e.g. 'augustine', 'vijaya'). We prefetch presigned GET
   // URLs on mount so tab switches are fast.
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
-  const router = useRouter();
+  const _router = useRouter();
 
   // Set up image URLs directly (static/public assets don't need presigning)
   useEffect(() => {
@@ -77,7 +76,7 @@ export function DirectorsPage() {
     
     // Preload ALL director images on mount for instant tab switching
     const preloadLinks: HTMLLinkElement[] = [];
-    Object.entries(IMAGE_URLS).forEach(([key, url], index) => {
+    Object.entries(IMAGE_URLS).forEach(([_key, url], index) => {
       const link = document.createElement('link');
       // Preload only the first (active) image; use prefetch for others to avoid
       // browser warnings about preloaded resources not used quickly.
@@ -124,7 +123,7 @@ export function DirectorsPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const _handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormStatus({
       submitted: true,
@@ -946,7 +945,7 @@ VijayaTab.displayName = 'VijayaTab';
 
 // Memoized Charles Tab Component
 const CharlesTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentColor: string; imagePreloaded: boolean; t: any; signedUrls: Record<string,string> }) => {
-  const router = useRouter();
+  const _router = useRouter();
   return (
     <div>
       {/* Hero Section */}
@@ -1103,7 +1102,7 @@ CharlesTab.displayName = 'CharlesTab';
 
 // Memoized Nancy Tab Component
 const NancyTab = memo(({ accentColor, imagePreloaded, t, signedUrls }: { accentColor: string; imagePreloaded: boolean; t: any; signedUrls: Record<string,string> }) => {
-  const router = useRouter();
+  const _router = useRouter();
   return (
     <div>
       {/* Hero Section */}

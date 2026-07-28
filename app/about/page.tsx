@@ -37,7 +37,7 @@ async function resolveAccessibleUrl(raw?: string | null) {
       try {
         const pub = getPublicUrl(parsed.key, parsed.bucket || undefined);
         if (pub && !pub.startsWith('r2://')) return pub;
-      } catch (err) {
+      } catch {
         // ignore
       }
       return null;
@@ -67,7 +67,7 @@ async function generateBlurDataURL(url?: string | null) {
           for await (const chunk of stream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
           buffer = Buffer.concat(chunks);
         }
-      } catch (sdkErr) {
+      } catch {
         // fallback to using fetch below (silent in dev, only log in production)
         if (process.env.NODE_ENV === 'production') {
           console.warn('SDK GetObject failed, falling back to fetch for', url);

@@ -7,7 +7,7 @@ import { parseKeyFromUrl, getPresignedGetUrl } from '@/lib/r2';
  * Public endpoint to fetch upcoming published events
  * Query params: none (returns all upcoming published events)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Fetch all upcoming published events ordered by date
     const result = await sql`
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
             }
           }
         }
-      } catch (e) {
+      } catch {
         // ignore per-event errors
       }
     }

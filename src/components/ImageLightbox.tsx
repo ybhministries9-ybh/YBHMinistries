@@ -37,7 +37,7 @@ export function ImageLightbox({
     <div
       className="fixed inset-0 bg-black z-50 flex items-center justify-center"
       onClick={handleBackdropClick}
-    >
+     role="presentation">
       {/* Close Button */}
       <button
         onClick={onClose}
@@ -51,7 +51,7 @@ export function ImageLightbox({
       <div className="relative w-full h-full flex items-center justify-center">
         <img
           src={images[currentIndex]}
-          alt={`Gallery image ${currentIndex + 1}`}
+          alt={`Gallery item ${currentIndex + 1}`}
           className="w-full h-full object-contain"
         />
 

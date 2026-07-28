@@ -33,9 +33,9 @@ function getAuthHeader() {
     const raw = localStorage.getItem('admin_token');
     if (!raw) return {};
     let token = raw;
-    try { const parsed = JSON.parse(raw); token = parsed.token || token; } catch (e) {}
+    try { const parsed = JSON.parse(raw); token = parsed.token || token; } catch {}
     return { Authorization: `Bearer ${token}` };
-  } catch (e) {
+  } catch {
     return {};
   }
 }
@@ -55,7 +55,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchInputValue, setSearchInputValue] = useState<string>('');
   const [activeSearchQuery, setActiveSearchQuery] = useState<string>('');
-  const [hmsSearchQuery, setHmsSearchQuery] = useState<string>('');
+  const [_hmsSearchQuery, setHmsSearchQuery] = useState<string>('');
   const [hmsInputValue, setHmsInputValue] = useState<string>('');
   const [activeHmsSearchQuery, setActiveHmsSearchQuery] = useState<string>('');
   const [searching, setSearching] = useState<boolean>(false);
@@ -272,7 +272,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         if (j && j.success) {
           setWorshipYears(Array.isArray(j.data) ? j.data.map((y: any) => Number(y)) : []);
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     })();
@@ -540,13 +540,13 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
 
   // modal removed — detail page used instead
 
-  const formatDateOnly = useCallback((raw?: string | null) => {
+  const _formatDateOnly = useCallback((raw?: string | null) => {
     if (!raw) return '-';
     try {
       const d = new Date(raw);
       if (Number.isNaN(d.getTime())) return raw.split('T')[0] || raw;
       return d.toISOString().split('T')[0];
-    } catch (e) {
+    } catch {
       return String(raw).split('T')[0] || String(raw);
     }
   }, []);
@@ -564,7 +564,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         }
       }
       return dateStr || raw;
-    } catch (e) {
+    } catch {
       return String(raw).split('T')[0] || String(raw);
     }
   }, []);
@@ -575,7 +575,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
       // Extract date part only (YYYY-MM-DD format)
       const dateStr = String(raw).split('T')[0];
       return dateStr;
-    } catch (e) {
+    } catch {
       return '-';
     }
   }, []);
@@ -1166,7 +1166,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
                   <option value="" style={{ background: '#2e2e2e', color: 'white' }}>All Years</option>
                   {(() => {
                     const currentYear = new Date().getFullYear();
-                    const currentMonth = new Date().getMonth() + 1;
+                    const _currentMonth = new Date().getMonth() + 1;
                     const years = [];
                     for (let year = currentYear; year >= 2020; year--) {
                       years.push(year);

@@ -36,11 +36,11 @@ export function showPageLoader() {
 
     // Safety fallback: remove loader after 10s if something went wrong
     const fallback = window.setTimeout(() => {
-      try { hidePageLoader(); } catch (e) {}
+      try { hidePageLoader(); } catch {}
     }, 10000);
     // store timeout id so hidePageLoader can clear it
     (loader as any).__gcpFallback = fallback;
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
@@ -53,7 +53,7 @@ export function hidePageLoader() {
     // clear fallback timer if present
     const to = (el as any).__gcpFallback;
     if (to) {
-      try { window.clearTimeout(to); } catch (e) {}
+      try { window.clearTimeout(to); } catch {}
     }
 
     // fade out then remove
@@ -61,7 +61,7 @@ export function hidePageLoader() {
     setTimeout(() => {
       if (el && el.parentNode) el.parentNode.removeChild(el);
     }, 220);
-  } catch (e) {
+  } catch {
     // ignore
   }
 }

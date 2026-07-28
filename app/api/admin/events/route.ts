@@ -7,7 +7,7 @@ import { deleteObject, parseKeyFromUrl, PRIVATE_BUCKET } from '@/lib/r2';
  * GET /api/admin/events
  * Admin endpoint to fetch all events (including unpublished)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // allow public reads for events (admin mutations remain protected)
 

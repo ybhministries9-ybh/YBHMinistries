@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { logger } from '@/lib/logger';
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from 'sonner';
-import { primaryBackground, accentGold, borderGray } from "../utils/theme";
+import { primaryBackground, borderGray } from "../utils/theme";
 import { useTranslation } from 'react-i18next';
 import { ScrollToTop } from './ScrollToTop';
 import { sanitizeInput } from '@/lib/security';
@@ -538,7 +538,7 @@ const SubmitTestimonyForm = memo(() => {
       setIsBold(Boolean((document as any).queryCommandState && (document as any).queryCommandState('bold')));
       setIsItalic(Boolean((document as any).queryCommandState && (document as any).queryCommandState('italic')));
       setIsUnderline(Boolean((document as any).queryCommandState && (document as any).queryCommandState('underline')));
-    } catch (e) {
+    } catch {
       // ignore
     }
   }, []);
@@ -629,7 +629,7 @@ const SubmitTestimonyForm = memo(() => {
         const { getRecaptchaToken } = await import('@/lib/recaptcha');
         const token = await getRecaptchaToken('stories');
         if (token) (payload as any).recaptchaToken = token;
-      } catch (e) {}
+      } catch {}
 
       const resp = await fetch('/api/stories', {
         method: 'POST',
@@ -965,7 +965,7 @@ const SubmitTestimonyForm = memo(() => {
                                 testimonyRef.current.focus();
                                 try {
                                   document.execCommand('insertText', false, e);
-                                } catch (err) {
+                                } catch {
                                   const sel = document.getSelection();
                                   if (!sel || !sel.rangeCount) return;
                                   const range = sel.getRangeAt(0);
@@ -1153,7 +1153,7 @@ export function StoriesPage() {
           const json = await resp.json();
           if (cancelled) return;
           if (json && json.url) resolved[s.id] = json.url;
-        } catch (e) {
+        } catch {
           // ignore
         }
       }));
@@ -1178,7 +1178,7 @@ export function StoriesPage() {
       // check path formats like /embed/ID or /watch/ID or /ID
       const parts = u.pathname.split('/').filter(Boolean);
       return parts.length ? parts[parts.length - 1] : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   }, []);
@@ -1232,9 +1232,9 @@ export function StoriesPage() {
 
   const categoryFilterLabel = t('filters.allCategories', { defaultValue: 'All Testimonies' });
   const searchPlaceholder = t('filters.searchPlaceholder', { defaultValue: 'Search testimonies by name, keyword, or location...' });
-  const filtersButtonLabel = t('filters.filtersButton', { defaultValue: 'Filters' });
-  const locationLabel = t('filters.location', { defaultValue: 'Location' });
-  const roleLabel = t('filters.role', { defaultValue: 'Role' });
+  const _filtersButtonLabel = t('filters.filtersButton', { defaultValue: 'Filters' });
+  const _locationLabel = t('filters.location', { defaultValue: 'Location' });
+  const _roleLabel = t('filters.role', { defaultValue: 'Role' });
 
   const displayedText = useMemo(() => {
     const q = filterNameQuery.trim().toLowerCase();

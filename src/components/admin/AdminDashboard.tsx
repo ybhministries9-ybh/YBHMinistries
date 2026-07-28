@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, MessageCircle, LogOut, Home, FileText, Users, AlertCircle, Book, Newspaper, DollarSign, Info, Menu, Calendar, ExternalLink, Clock, Star, BookOpen, Mail } from 'lucide-react';
+import { Image, LogOut, Home, FileText, Users, Book, Newspaper, DollarSign, Info, Menu, ExternalLink, Clock, Star, BookOpen, Mail } from 'lucide-react';
 import { GalleryManager } from './GalleryManager';
 import { ResourceManager } from './ResourceManager';
 import { UserManager } from './UserManager';
@@ -8,13 +8,12 @@ import { AboutManager } from './AboutManager';
 import { MinistriesManager } from './MinistriesManager';
 import { NewsManager } from './NewsManager';
 import { StoriesManager } from './StoriesManager';
-import { SetupHelper } from './SetupHelper';
-import { HeroImageManager } from './HeroImageManager';
 import { DonateManager } from './DonateManager';
 import ContactsManager from './ContactsManager';
 import { MenuManager } from './MenuManager';
 import { Welcome } from './Welcome';
 import { AdminScrollToTop } from './AdminScrollToTop';
+import { SESSION_WARNING_MS } from './SessionWarning';
 
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 const logoImage = `${R2_BASE}/logo/ybh.png`;
@@ -50,7 +49,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
         const raw = localStorage.getItem('admin_token');
         if (!raw) { if (mounted) setRemainingMs(null); return; }
         let parsed: any = null;
-        try { parsed = JSON.parse(raw); } catch (e) { parsed = { token: raw, expiresAt: null }; }
+        try { parsed = JSON.parse(raw); } catch { parsed = { token: raw, expiresAt: null }; }
         let expiresAt: any = parsed?.expiresAt;
         if (typeof expiresAt === 'string') {
           const asMs = new Date(expiresAt).getTime();
@@ -63,7 +62,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
           // session expired — call logout
           onLogout();
         }
-      } catch (err) {
+      } catch {
         // ignore
       }
     };
@@ -84,6 +83,9 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
     };
   }, [onLogout]);
 
+  // Highlight the header badge on the same threshold the warning dialog uses.
+  const isSessionExpiringSoon = remainingMs != null && remainingMs <= SESSION_WARNING_MS;
+
   const formatRemaining = (ms: number | null) => {
     if (ms == null) return '';
     const seconds = Math.max(0, Math.ceil(ms / 1000));
@@ -92,7 +94,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
     return `${mins}:${String(secs).padStart(2, '0')}`;
   };
 
-  const handleBackToSite = () => {
+  const _handleBackToSite = () => {
     window.location.href = '/';
   };
 
@@ -108,7 +110,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
           setUserName(j.user.name || '');
           setUserRole(j.user.role || '');
         }
-      } catch (err) {
+      } catch {
         // ignore
       }
     }
@@ -123,7 +125,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
         const d = e?.detail || null;
         if (d?.name) setUserName(d.name || '');
         if (d?.role) setUserRole(d.role || '');
-      } catch (err) {
+      } catch {
         // ignore
       }
     };
@@ -134,7 +136,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
         const val = e.newValue ? JSON.parse(e.newValue) : null;
         if (val?.name) setUserName(val.name);
         if (val?.role) setUserRole(val.role);
-      } catch (err) {}
+      } catch {}
     };
 
     window.addEventListener('admin-user-updated', onUserUpdated as EventListener);
@@ -151,7 +153,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
       try {
         const section = e?.detail?.section;
         if (section) setActiveSection(section);
-      } catch (err) {
+      } catch {
         // ignore
       }
     };
@@ -217,11 +219,21 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
               </div>
             </div>
             <div className="flex items-center gap-2 mt-2 md:mt-0 justify-center lg:justify-end">
-              {/* Session remaining badge - keep beside the site button */}
+              {/* Session remaining badge - keep beside the site button.
+                  Switches to a red, pulsing treatment once the session is inside
+                  the warning window (same threshold the warning dialog uses). */}
               {remainingMs != null && (
-                <div aria-live="polite" className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#2E2E2E] border border-[#FDB813] text-[#FDB813] text-sm font-medium mr-2">
+                <div
+                  aria-live="polite"
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#2E2E2E] text-sm font-medium mr-2 transition-colors ${
+                    isSessionExpiringSoon
+                      ? 'border border-red-500 text-red-400 animate-pulse'
+                      : 'border border-[#FDB813] text-[#FDB813]'
+                  }`}
+                >
                   <Clock size={14} />
                   <span>Expires in {formatRemaining(remainingMs)}</span>
+                  {isSessionExpiringSoon && <span className="sr-only">Session expiring soon</span>}
                 </div>
               )}
               <a
@@ -269,7 +281,7 @@ export function AdminDashboard({ token, onLogout, initialSection }: AdminDashboa
                     key={item.id}
                     onClick={() => {
                       setActiveSection(item.id);
-                      try { window.dispatchEvent(new Event('admin-interaction')); } catch (e) {}
+                      try { window.dispatchEvent(new Event('admin-interaction')); } catch {}
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                       activeSection === item.id

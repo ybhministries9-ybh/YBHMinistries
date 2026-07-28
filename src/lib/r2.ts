@@ -252,13 +252,13 @@ export function parseKeyFromUrl(url: string): { bucket: string | null; key: stri
           if (parts.length >= 1) return { bucket: null, key: parts.join('/') };
           return { bucket: null, key: null };
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
 
     return { bucket: null, key: null };
-  } catch (err) {
+  } catch {
     return { bucket: null, key: null };
   }
 }

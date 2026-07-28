@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { useRouter } from 'next/navigation';
-import { Calendar, CalendarPlus, FileText, ChevronRight, Plus, Users, Music, Globe, BookOpen, X, Clock, MapPin, User, ArrowRight, ArrowLeft, MessageSquare, Star, Medal, Mic, UserCheck, BarChart3, Share2 } from "lucide-react";
+import { Calendar, FileText, ChevronRight, Users, Clock, MapPin, User, ArrowRight, ArrowLeft, BarChart3, Share2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import logger from '../../lib/logger';
 import SharePopup from '../SharePopup';
@@ -54,7 +54,7 @@ const EventCard = memo(({ event, onViewDetails, t }: { event: any; onViewDetails
     <div 
       onClick={() => onViewDetails(event)}
       className="bg-[#2E2E2E] rounded-lg flex overflow-hidden hover:bg-[#3a3a3a] transition-all cursor-pointer shadow-md group"
-    >
+     role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => onViewDetails(event))(); } }}>
       {/* Date Column */}
       <div className="bg-[#1a1a1a] flex flex-col items-center justify-center px-4 py-6 min-w-[80px]">
         <div className="text-[10px] text-gray-400 tracking-wider mb-1">
@@ -124,7 +124,7 @@ export function NewsPage() {
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [enrollmentData, setEnrollmentData] = useState<any>({});
   const [isLoadingReports, setIsLoadingReports] = useState(true);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedLink, _setCopiedLink] = useState(false);
   const [showSharePopup, setShowSharePopup] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   
@@ -259,7 +259,7 @@ export function NewsPage() {
     }), { indian: 0, nonIndian: 0, total: 0 });
   }, [enrollmentData]);
 
-  const getMaxEnrollment = useCallback((year: number, classType: string) => {
+  const _getMaxEnrollment = useCallback((year: number, classType: string) => {
     if (!enrollmentData[year] || !enrollmentData[year][classType]) return 0;
     const data = enrollmentData[year][classType];
     return Math.max(...data.map(month => month.total));
@@ -299,8 +299,8 @@ export function NewsPage() {
       url.searchParams.set('section', 'upcoming-events');
       url.searchParams.set('eventId', String(event.id));
       window.history.replaceState({}, '', url.toString());
-      try { hidePageLoader(); } catch (e) {}
-    } catch (e) {
+      try { hidePageLoader(); } catch {}
+    } catch {
       // ignore
     }
     handleViewDetails(event);
@@ -312,14 +312,14 @@ export function NewsPage() {
   }, []);
 
   // Remove event query params when going back to list
-  const goBackToListWithUrl = useCallback(() => {
+  const _goBackToListWithUrl = useCallback(() => {
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete('eventId');
       url.searchParams.delete('section');
       window.history.replaceState({}, '', url.toString());
-      try { hidePageLoader(); } catch (e) {}
-    } catch (e) {
+      try { hidePageLoader(); } catch {}
+    } catch {
       // ignore
     }
     goBackToList();
@@ -331,7 +331,7 @@ export function NewsPage() {
       const url = window.location.href;
       setShareUrl(url);
       setShowSharePopup(true);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }, [selectedEvent]);
@@ -366,12 +366,12 @@ export function NewsPage() {
 
 
   // Memoize date formatting functions
-  const formatDate = useCallback((dateString: string) => {
+  const _formatDate = useCallback((dateString: string) => {
     const date = parseLocalDate(dateString);
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }, []);
 
-  const formatDay = useCallback((dateString: string) => {
+  const _formatDay = useCallback((dateString: string) => {
     const date = parseLocalDate(dateString);
     return date.getDate();
   }, []);
@@ -412,7 +412,9 @@ export function NewsPage() {
                         preload="metadata"
                         className="w-full rounded-xl border border-gray-700 bg-black"
                         src={videoSrc}
-                      />
+                      >
+                        <track kind="captions" label="No captions available" srcLang="en" />
+                      </video>
                     </div>
                   );
                 })()}
@@ -601,7 +603,7 @@ export function NewsPage() {
           if (!resp.ok) return;
           const json = await resp.json();
           if (!cancelled && json && json.url) setResolvedImageUrl(json.url);
-        } catch (e) {
+        } catch {
           // ignore
         }
       } else {
@@ -639,7 +641,7 @@ export function NewsPage() {
           if (!resp.ok) return;
           const json = await resp.json();
           if (!cancelled && json && json.url) setResolvedVideoUrl(json.url);
-        } catch (e) {
+        } catch {
           // ignore
         }
       } else {

@@ -2,7 +2,7 @@ import { Menu, X } from 'lucide-react';
 import SmartImage from './SmartImage';
 
 // Allow local assets (in `public/`) for a small set of logos, else fall back to R2 public URL.
-const USE_LOCAL_ASSETS = process.env.NEXT_PUBLIC_USE_LOCAL_ASSETS === 'true';
+const _USE_LOCAL_ASSETS = process.env.NEXT_PUBLIC_USE_LOCAL_ASSETS === 'true';
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 
 const LOCAL_YBH_LOGO = '/logo/ybh.png';
@@ -12,7 +12,7 @@ const LOCAL_INGENIOUS = '/logo/awards/ingenious.png';
 const LOCAL_INTERNATIONAL_STAR = '/logo/awards/Star%20book%20of%20records.png';
 const LOCAL_INTERNATIONAL_STAR_FINAL = '/logo/awards/Star%20book%20of%20records.png';
 
-const ybhR2 = `${R2_BASE}/logo/ybh.png`;
+const _ybhR2 = `${R2_BASE}/logo/ybh.png`;
 const ybhR2Png = `${R2_BASE}/logo/ybh.png`;
 const ybhR2Jpg = `${R2_BASE}/logo/ybh.png`;
 const guinnessR2 = `${R2_BASE}/logo/awards/guiness.png`;

@@ -24,7 +24,7 @@ function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElement>) {
       style={style}
     >
       <div className="flex items-center justify-center w-full h-full">
-        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg==" alt="Error loading image" {...rest} data-original-url={src} />
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg==" alt="Failed to load" {...rest} data-original-url={src} />
       </div>
     </div>
   ) : (
@@ -202,6 +202,7 @@ function VideoSection() {
               onContextMenu={(e) => e.preventDefault()}
             >
               <source src={videoData.videoUrl} type="video/mp4" />
+              <track kind="captions" label="No captions available" srcLang="en" />
               {t('video.noSupport')}
             </video>
           ) : (
@@ -380,7 +381,8 @@ function ImageCarousel({ images, interval = 3000, onOverlayClick }: { images: st
       {isFullscreen && (
         <div
           className="fixed inset-0 z-50 bg-black flex items-center justify-center"
-          onClick={() => setIsFullscreen(false)}
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setIsFullscreen(false); }}
         >
           <button
             onClick={(e) => { e.stopPropagation(); setIsFullscreen(false); }}
@@ -403,7 +405,6 @@ function ImageCarousel({ images, interval = 3000, onOverlayClick }: { images: st
             src={images[fullscreenIndex]}
             alt={t('hero.slideAlt', { number: fullscreenIndex + 1 })}
             className="max-w-full max-h-full object-contain"
-            onClick={(e) => e.stopPropagation()}
           />
 
           {/* Next button - vertically centered at right side */}
@@ -480,7 +481,7 @@ export function Home({ initialHeroImages }: HomeProps) {
                         if (img.image_url && img.image_url !== img.medium_url && img.image_url !== img.thumbnail_url) {
                           return img.signedUrl || img.image_url;
                         }
-                      } catch (e) {}
+                      } catch {}
                       if (img.signedUrl && !/(\/medium\/|\/thumbs\/)/.test(String(img.signedUrl))) return img.signedUrl;
                       return img.signedUrl || img.signedMediumUrl || img.signedThumbUrl || img.image_url || img.medium_url || img.thumbnail_url || img.url || null;
                     })

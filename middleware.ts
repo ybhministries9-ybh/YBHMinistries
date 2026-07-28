@@ -153,7 +153,7 @@ export async function middleware(req: NextRequest) {
       applySecurityHeaders(req, rewrite);
       return rewrite;
     }
-  } catch (e) {
+  } catch {
     // On errors, fall back to normal behavior.
   }
 

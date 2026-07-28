@@ -10,7 +10,7 @@ async function waitForServer(retries = 40, interval = 500) {
     try {
       const res = await fetch(`${BASE}/api/admin/users`);
       if (res.ok) return true;
-    } catch (e) {}
+    } catch {}
     await waitMs(interval);
   }
   return false;
@@ -37,7 +37,7 @@ async function main() {
   });
   const createBody = await createRes.text();
   let created;
-  try { created = JSON.parse(createBody); } catch (e) { console.error('Invalid JSON from create:', createBody); process.exit(4); }
+  try { created = JSON.parse(createBody); } catch { console.error('Invalid JSON from create:', createBody); process.exit(4); }
   if (!createRes.ok || !created?.data?.id) {
     console.error('Create failed:', createRes.status, created);
     process.exit(5);
@@ -50,8 +50,8 @@ async function main() {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
   });
   const inviteBody = await inviteRes.text();
-  let inviteJson;
-  try { inviteJson = JSON.parse(inviteBody); } catch (e) { console.error('Invalid JSON from invite:', inviteBody); process.exit(6); }
+  let _inviteJson;
+  try { _inviteJson = JSON.parse(inviteBody); } catch { console.error('Invalid JSON from invite:', inviteBody); process.exit(6); }
 
   // dev logging removed
   process.exit(0);

@@ -48,7 +48,7 @@ export function sanitizeInput(input: any, maxLength = 2000, options: SanitizeOpt
       return s;
     }
     return s;
-  } catch (e) {
+  } catch {
     let out = String(input).replace(/<[^>]*>/g, '');
     out = options.preserveWhitespace ? out.trim() : out.replace(/\s+/g, ' ').trim();
     if (maxLength && out.length > maxLength) out = out.substring(0, maxLength);
@@ -95,7 +95,7 @@ export async function rateLimit(key: string, limit = 10, windowMs = 60 * 60 * 10
       try {
         const { logger } = await import('./logger');
         logger.warn('Upstash rateLimit error, falling back to in-memory', { error: detail });
-      } catch (_) {
+      } catch {
         console.warn('Upstash rateLimit error, falling back to in-memory', detail);
       }
     }
@@ -120,11 +120,11 @@ export async function rateLimit(key: string, limit = 10, windowMs = 60 * 60 * 10
 export async function verifyRecaptcha(token?: string | null) {
   const secret = process.env.RECAPTCHA_SECRET || process.env.RECAPTCHA_V3_SECRET;
   if (!secret) {
-    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA secret not configured; skipping verification'); } catch (_) {}
+    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA secret not configured; skipping verification'); } catch {}
     return { ok: true, skipped: true };
   }
   if (!token) {
-    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request - skipping verification'); } catch (_) {}
+    try { const { logger } = await import('./logger'); logger.warn('reCAPTCHA token missing from request - skipping verification'); } catch {}
     // Allow missing token to pass (helps local/dev and sites using v2 checkbox
     // where automatic token fetching isn't possible). This will be a no-op
     // when RECAPTCHA_SECRET is not configured as well.
@@ -150,7 +150,7 @@ export async function verifyRecaptcha(token?: string | null) {
     }
     return { ok: false, error: json['error-codes'] || 'recaptcha_failed' };
   } catch (e) {
-    try { const { logger } = await import('./logger'); logger.error('reCAPTCHA verification error', { error: String(e) }); } catch (_) {}
+    try { const { logger } = await import('./logger'); logger.error('reCAPTCHA verification error', { error: String(e) }); } catch {}
     return { ok: false, error: 'recaptcha_error' };
   }
 }

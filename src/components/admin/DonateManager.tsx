@@ -37,7 +37,7 @@ export function DonateManager(): React.ReactElement {
   const [upiList, setUpiList] = useState<UpiItem[]>([]);
   const [bankList, setBankList] = useState<BankItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [_saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<null | { type: 'upi' | 'bank'; id: string | number; name?: string }>(null);
@@ -62,7 +62,7 @@ export function DonateManager(): React.ReactElement {
 
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const res = await fetch(`/api/admin/donations?type=${type}&id=${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       const json = await res.json();
       if (json.success) {
@@ -82,7 +82,7 @@ export function DonateManager(): React.ReactElement {
     try {
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
       const [uRes, bRes] = await Promise.all([
         fetch('/api/admin/donations?type=upi', { headers }),
@@ -150,7 +150,7 @@ export function DonateManager(): React.ReactElement {
         const createPayload = { label: item.label, upi_id: item.upi_id, qr_image_url: item.qr_image_url, visible: typeof item.visible === 'boolean' ? item.visible : true, sort_order: item.sort_order || 0 };
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
-        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
         const resp = await fetch('/api/admin/donations?type=upi', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(createPayload) });
         const j = await resp.json();
         if (!j.success) {
@@ -190,7 +190,7 @@ export function DonateManager(): React.ReactElement {
 
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
-        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
         const resp = await fetch('/api/admin/donations?type=upi', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(createPayload) });
         const j = await resp.json();
         if (!j.success) {
@@ -204,7 +204,7 @@ export function DonateManager(): React.ReactElement {
         const payload = { label: u.label, upi_id: u.upi_id, visible: !!u.visible, sort_order: u.sort_order || 0 };
         const rawToken5 = localStorage.getItem('admin_token');
         let token5 = '';
-        if (rawToken5) try { token5 = JSON.parse(rawToken5).token || rawToken5 } catch (e) { token5 = rawToken5 }
+        if (rawToken5) try { token5 = JSON.parse(rawToken5).token || rawToken5 } catch { token5 = rawToken5 }
         const putResp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token5}` }, body: JSON.stringify(payload) });
         const putJ = await putResp.json();
         if (!putJ.success) {
@@ -266,7 +266,7 @@ export function DonateManager(): React.ReactElement {
       if (String(b.id).startsWith('new-')) {
         const rawToken = localStorage.getItem('admin_token');
         let token = '';
-        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+        if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
         const resp = await fetch('/api/admin/donations?type=bank', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
         const j = await resp.json();
         if (!j.success) {
@@ -278,7 +278,7 @@ export function DonateManager(): React.ReactElement {
       } else {
         const rawToken2 = localStorage.getItem('admin_token');
         let token2 = '';
-        if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+        if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch { token2 = rawToken2 }
         const resp = await fetch(`/api/admin/donations?type=bank&id=${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token2}` }, body: JSON.stringify(payload) });
         const j = await resp.json();
         if (!j.success) {
@@ -295,7 +295,7 @@ export function DonateManager(): React.ReactElement {
     }
   };
 
-  const handleSave = async () => {
+  const _handleSave = async () => {
     setSaving(true);
     try {
       // Save all UPI rows sequentially using saveSingleUpi so each entry is persisted and the manager state updated
@@ -323,12 +323,12 @@ export function DonateManager(): React.ReactElement {
         if (String(b.id).startsWith('new-')) {
           const rawToken = localStorage.getItem('admin_token');
           let token = '';
-          if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+          if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
           await fetch('/api/admin/donations?type=bank', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
         } else {
           const rawToken2 = localStorage.getItem('admin_token');
           let token2 = '';
-          if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+          if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch { token2 = rawToken2 }
           await fetch(`/api/admin/donations?type=bank&id=${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token2}` }, body: JSON.stringify(payload) });
         }
       }
@@ -348,7 +348,7 @@ export function DonateManager(): React.ReactElement {
     setBankList((s) => [{ id, account_name: '', account_number: '', bank_name: '', branch_name: '', ifsc_code: '', swift_code: '', upi_id: '', visible: true, sort_order: 0 }, ...s]);
   };
 
-  const removeBank = async (id: string | number) => {
+  const _removeBank = async (id: string | number) => {
     if (String(id).startsWith('new-')) {
       setBankList((s) => s.filter(b => b.id !== id));
       return;
@@ -391,7 +391,7 @@ export function DonateManager(): React.ReactElement {
 
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const resp = await fetch(`/api/admin/donations?type=bank&id=${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
       const j = await resp.json();
       if (!j.success) {
@@ -429,7 +429,7 @@ export function DonateManager(): React.ReactElement {
 
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const resp = await fetch(`/api/admin/donations?type=upi&id=${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
       const j = await resp.json();
       if (!j.success) {

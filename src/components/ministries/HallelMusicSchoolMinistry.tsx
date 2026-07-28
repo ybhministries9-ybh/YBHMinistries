@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { Music, Heart, Home, Church, Youtube } from 'lucide-react';
+import { Youtube } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { useTranslation } from 'react-i18next';
 

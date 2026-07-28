@@ -8,7 +8,7 @@ const FALLBACK_IMAGE_URL = 'https://n3elvywvxxnbjwip.public.blob.vercel-storage.
  * GET /api/about/hero-image
  * Fetch active about hero image for public display
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const heroImage = await getActiveAboutHeroImage();
     
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
           try {
             const pub = getPublicUrl(parsed.key, parsed.bucket || undefined);
             if (pub && !pub.startsWith('r2://')) return pub;
-          } catch (err) {
+          } catch {
             // ignore
           }
           return null;

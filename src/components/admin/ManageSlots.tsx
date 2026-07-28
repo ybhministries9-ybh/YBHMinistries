@@ -219,7 +219,7 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
         ) : null}
       </div>
       <div className="mb-4">
-        <label className="text-sm text-gray-300">Select month</label>
+        <span className="text-sm text-gray-300">Select month</span>
         <div className="mt-2 flex flex-wrap gap-2">
           {monthOptions.map((m) => {
             const selected = date === m.bookingDate;

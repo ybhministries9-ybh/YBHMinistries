@@ -13,7 +13,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     document.execCommand('copy');
     document.body.removeChild(tmp);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }

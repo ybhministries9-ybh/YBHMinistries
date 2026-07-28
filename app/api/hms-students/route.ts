@@ -55,10 +55,10 @@ export async function POST(request: Request) {
       const token = body?.recaptchaToken || body?.recaptcha_token;
       const rc = await verifyRecaptcha(token);
       if (!rc.ok && !rc.skipped) {
-        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for hms-students submission', { details: rc }); } catch (_) {}
+        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for hms-students submission', { details: rc }); } catch {}
       }
     } catch (e) {
-      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for hms-students', { error: String(e) }); } catch (_) {}
+      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for hms-students', { error: String(e) }); } catch {}
     }
     const fullName = sanitizeInput(body.fullName, 200);
     const dateOfBirthRaw = sanitizeInput(body.dateOfBirth, 20);
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       try {
         logger.warn('hms-students validation failed', { errors: parsed.error.format() });
-      } catch (e) {}
+      } catch {}
       return NextResponse.json({ success: false, error: 'validation_error', details: parsed.error.format() }, { status: 400 });
     }
     // reCAPTCHA removed: not enforced
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
       if (process.env.ENABLE_VERBOSE_LOGS === 'true') {
         logger.info('HMS student created', { id: (created as any)?.id || null });
       }
-    } catch (e) {
+    } catch {
       // ignore logging errors
     }
 
@@ -386,13 +386,13 @@ export async function POST(request: Request) {
           emailLogger.error('HMS student email send failed', { to: email, error: res?.error });
         }
       } catch (e) {
-        try { logger.error('Failed to send HMS student email', { error: (e as any)?.message || e }); } catch (_) {}
+        try { logger.error('Failed to send HMS student email', { error: (e as any)?.message || e }); } catch {}
       }
     }
 
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (err) {
-    try { logger.error('POST /api/hms-students error', { error: (err as any)?.message || err }); } catch (e) {}
+    try { logger.error('POST /api/hms-students error', { error: (err as any)?.message || err }); } catch {}
     return NextResponse.json({ success: false, error: 'Failed to save enrolment' }, { status: 500 });
   }
 }

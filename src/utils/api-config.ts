@@ -43,7 +43,7 @@ export async function apiCall<T>(
     try {
       const mod = await import('@/lib/logger');
       mod.logger.error('API call error', error);
-    } catch (e) {
+    } catch {
       // fallback to console if logger import fails in some environments
       if (process.env.NODE_ENV !== 'production') console.error('API call error:', error);
     }

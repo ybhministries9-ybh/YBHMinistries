@@ -13,7 +13,7 @@ export async function GET(req: Request, context: any) {
       const resolved = typeof p.then === 'function' ? await p : p;
       id = resolved?.id;
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   if (!id) {

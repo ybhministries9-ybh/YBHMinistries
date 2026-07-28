@@ -37,11 +37,11 @@ async function resolveShareImage(raw?: string | null) {
 
   try {
     return await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || undefined);
-  } catch (error) {
+  } catch {
     try {
       const fallback = getPublicUrl(parsed.key, parsed.bucket || undefined);
       if (fallback && !fallback.startsWith('r2://')) return fallback;
-    } catch (fallbackError) {
+    } catch {
       // Ignore fallback failures and use the default share image.
     }
   }

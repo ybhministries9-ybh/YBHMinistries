@@ -9,13 +9,13 @@ export function PrivacyPolicy() {
   
   useEffect(() => {
     window.scrollTo(0, 0);
-    try { hidePageLoader(); } catch (e) {}
+    try { hidePageLoader(); } catch {}
   }, []);
 
   const handleBack = () => {
     try {
       window.location.href = '/';
-    } catch (e) {
+    } catch {
       window.history.pushState({}, '', '/');
       window.dispatchEvent(new PopStateEvent('popstate'));
     }

@@ -9,7 +9,7 @@ function extractYouTubeId(url: string) {
     if (url.includes("youtu.be/")) return url.split("youtu.be/")[1]?.split("?")[0];
     if (url.includes("youtube.com/shorts/")) return url.split("shorts/")[1]?.split("?")[0];
     if (url.includes("youtube.com/embed/")) return url.split("embed/")[1]?.split("?")[0];
-  } catch (e) {
+  } catch {
     return null;
   }
   return null;

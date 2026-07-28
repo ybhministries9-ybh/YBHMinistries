@@ -337,7 +337,7 @@ export function DonatePage() {
                                         style={{ aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                         onClick={() => qrSrc && setFullscreenQr({ src: qrSrc, label: u.label || 'UPI QR', upiId: u.upi_id })}
                                         title={t('paymentMethods.qr.enlargeTitle') || 'Click to view full screen'}
-                                      >
+                                       role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => qrSrc && setFullscreenQr({ src: qrSrc, label: u.label || 'UPI QR', upiId: u.upi_id }))(); } }}>
                                         <img
                                           src={qrSrc}
                                           alt={u.label || 'UPI QR'}
@@ -453,7 +453,7 @@ export function DonatePage() {
           className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
           onClick={() => setFullscreenQr(null)}
-        >
+         role="presentation">
           {/* Close button */}
           <button
             onClick={() => setFullscreenQr(null)}
@@ -479,7 +479,7 @@ export function DonatePage() {
             className="bg-white rounded-lg p-4 md:p-8"
             style={{ maxWidth: 'min(85vw, 75vh, 500px)', width: '100%' }}
             onClick={(e) => e.stopPropagation()}
-          >
+           role="presentation">
             <img
               src={fullscreenQr.src}
               alt={fullscreenQr.label || 'UPI QR'}
@@ -499,7 +499,7 @@ export function DonatePage() {
                     try {
                       await navigator.clipboard.writeText(fullscreenQr.upiId!.toLowerCase());
                       toast.success('UPI ID copied');
-                    } catch (err) {
+                    } catch {
                       toast.error('Copy failed');
                     }
                   }}

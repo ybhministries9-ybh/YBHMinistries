@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Video as VideoIcon, Image as ImageIcon, GripVertical, X, Loader2 } from 'lucide-react';
+import { Trash2, Video as VideoIcon, Image as ImageIcon, GripVertical, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { MultipleImageUpload } from './MultipleImageUpload';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -43,7 +41,7 @@ function getAuthHeaders(contentType?: string) {
       try {
         const parsed = JSON.parse(raw);
         token = parsed?.token || raw;
-      } catch (e) {
+      } catch {
         token = raw;
       }
     }
@@ -93,7 +91,7 @@ function SortableImageCard({ image, onDelete, isSelected, onToggleSelect, isMobi
             (image as any).signedMobileThumbUrl || (image as any).signedMobileUrl || (image as any).mobile_image_url ||
             (image as any).signedThumbUrl || (image as any).signedUrl || image.image_url || ''
           }
-          alt="Hero image"
+          alt="Hero"
           className={isMobilePreview ? 'w-full h-full object-contain' : 'w-full h-full object-cover'}
         />
         
@@ -171,8 +169,8 @@ export function HomeContentManager() {
   });
   
   // Video Upload State
-  const [videoUploadType, setVideoUploadType] = useState<'file' | 'url'>('file');
-  const [thumbnailUploadType, setThumbnailUploadType] = useState<'file' | 'url'>('file');
+  const [videoUploadType, _setVideoUploadType] = useState<'file' | 'url'>('file');
+  const [thumbnailUploadType, _setThumbnailUploadType] = useState<'file' | 'url'>('file');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
@@ -353,7 +351,7 @@ export function HomeContentManager() {
             headers: getAuthHeaders('application/json'),
             body: JSON.stringify({ key: prevParsed.key, bucket: prevParsed.bucket }),
           });
-        } catch (e) {
+        } catch {
           // ignore delete errors
         }
       }
@@ -898,7 +896,7 @@ export function HomeContentManager() {
               const f = e.dataTransfer?.files?.[0];
               if (f) handleSelectFlashNewsFile(f);
             }}
-          >
+           role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => { if (!isViewer) document.getElementById('flashNewsVideoFile')?.click(); })(); } }}>
             <input
               id="flashNewsVideoFile"
               type="file"
@@ -1081,7 +1079,9 @@ export function HomeContentManager() {
                           controls
                           style={{ width: 'auto', height: '360px' }}
                           className="rounded-lg border border-[#3a3a3a] object-cover"
-                        />
+                        >
+                          <track kind="captions" label="No captions available" srcLang="en" />
+                        </video>
                         <button
                           onClick={handleDeleteVideo}
                           disabled={isViewer}
@@ -1171,7 +1171,7 @@ export function HomeContentManager() {
                     const f = e.dataTransfer?.files?.[0];
                     if (f) handleSelectHomeVideoFile(f);
                   }}
-                >
+                 role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => { if (!isViewer) document.getElementById('videoFile')?.click(); })(); } }}>
                   <input
                     id="videoFile"
                     type="file"
@@ -1241,7 +1241,7 @@ export function HomeContentManager() {
                     const f = e.dataTransfer?.files?.[0];
                     if (f && f.type.startsWith('image/')) setThumbnailFile(f);
                   }}
-                >
+                 role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (() => { if (!isViewer) document.getElementById('thumbnailFileOnly')?.click(); })(); } }}>
                   <input
                     id="thumbnailFileOnly"
                     type="file"

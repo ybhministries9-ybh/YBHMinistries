@@ -23,7 +23,7 @@ interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElemen
   priority?: boolean;
 }
 
-function _ImageWithFallback({
+function ImageWithFallbackBase({
   src,
   alt,
   // Use a local SVG placeholder by default (lightweight, scalable).
@@ -37,7 +37,7 @@ function _ImageWithFallback({
   fallbackBgClassName = undefined,
   fallbackIconSize = undefined,
   priority = false,
-  ...props
+  ..._props
 }: ImageWithFallbackProps) {
   // If caller requests a person fallback and no src is provided, avoid loading
   // the default image placeholder and render the person icon instead.
@@ -123,7 +123,7 @@ function _ImageWithFallback({
         // Fallback to raw value
         setImgSrc(s);
         setIsLoading(true);
-      } catch (e) {
+      } catch {
         setImgSrc(s);
         setIsLoading(true);
       }
@@ -232,6 +232,6 @@ function _ImageWithFallback({
 }
 
 // Memoize and export as the public `ImageWithFallback` named export
-export const ImageWithFallback = memo(_ImageWithFallback);
+export const ImageWithFallback = memo(ImageWithFallbackBase);
 // Also export the original function for tests or special cases
-export { _ImageWithFallback as UnmemoizedImageWithFallback };
+export { ImageWithFallbackBase as UnmemoizedImageWithFallback };

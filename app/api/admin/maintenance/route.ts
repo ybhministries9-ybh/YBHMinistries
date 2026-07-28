@@ -15,7 +15,7 @@ async function readFlagFromFile() {
   try {
     const raw = await fs.readFile(FILE_PATH, 'utf8')
     return JSON.parse(raw)
-  } catch (e) {
+  } catch {
     return { enabled: false, message: '' }
   }
 }
@@ -25,7 +25,7 @@ async function writeFlagToFile(data: { enabled: boolean; message?: string }) {
     await fs.mkdir(path.dirname(FILE_PATH), { recursive: true })
     await fs.writeFile(FILE_PATH, JSON.stringify({ ...data, updatedAt: new Date().toISOString() }, null, 2), 'utf8')
     return true
-  } catch (e) {
+  } catch {
     return false
   }
 }
@@ -39,7 +39,7 @@ export async function GET(_: NextRequest) {
       const enabled = row.bool_value === true || row.bool_value === 't' || row.bool_value === 'true'
       return NextResponse.json({ enabled, message: row.message || '', created_by: row.created_by, created_at: row.created_at, updated_by: row.updated_by, updated_at: row.updated_at })
     }
-  } catch (e) {
+  } catch {
     // ignore and fallback to file
   }
 
@@ -77,13 +77,13 @@ export async function POST(req: NextRequest) {
             updated_at = now();
       `
       return NextResponse.json({ success: true })
-    } catch (dbErr) {
+    } catch {
       // If DB fails (table missing or no DB), fall back to file
       const ok = await writeFlagToFile({ enabled: body.enabled, message: body.message || '' })
       if (!ok) return NextResponse.json({ error: 'failed to write flag' }, { status: 500 })
       return NextResponse.json({ success: true, fallback: true })
     }
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 })
   }
 }

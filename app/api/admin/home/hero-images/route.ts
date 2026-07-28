@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@/lib/vercelBlob';
-import { uploadBuffer, getPublicUrl, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl } from '@/lib/r2';
+import { uploadBuffer, parseKeyFromUrl, deleteObject, PRIVATE_BUCKET, getPresignedGetUrl } from '@/lib/r2';
 import { createHeroImage, updateHeroImage, deleteHeroImage, deleteHeroImages, reorderHeroImages, getActiveHeroImages } from '@/lib/db';
 import { sql } from '@vercel/postgres';
 import { verifySession, getActorName, resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 import { withApiGuard, streamUploadGuard, safeParseJson, ApiError } from '@/lib/apiGuard';
-import processHeroImageById, { processBufferToVariants } from '@/lib/imageProcessor';
+import { processBufferToVariants } from '@/lib/imageProcessor';
 
 /**
  * GET /api/admin/home/hero-images
  * Fetch all hero images (including inactive ones for admin)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // For admin, we want to fetch images for management. Include presigned URLs so the admin UI can preview private objects.
     const images = await getActiveHeroImages(); // TODO: Create getAllHeroImages() for admin if needed

@@ -23,7 +23,7 @@ function ImageCard({ image, index, title, onClick, eager = false }: Props) {
   const isPriority = eager && index < 4;
   
   return (
-    <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={onClick}>
+    <div className="rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (onClick)(); } }}>
       <ImageWithFallback
         src={image.thumbnail_url || image.medium_url || image.url}
         alt={`${title} ${index + 1}`}

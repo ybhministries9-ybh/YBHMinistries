@@ -31,7 +31,7 @@ export default function SharePopupNew({ open, url, onClose }: Props) {
       }
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    } catch (e) {
+    } catch {
       // ignore
     }
   };
@@ -39,7 +39,7 @@ export default function SharePopupNew({ open, url, onClose }: Props) {
   const openShareWindow = (targetUrl: string) => {
     try {
       window.open(targetUrl, '_blank', 'noopener,noreferrer');
-    } catch (e) {
+    } catch {
       // ignore
     }
   };
@@ -68,7 +68,7 @@ export default function SharePopupNew({ open, url, onClose }: Props) {
           try {
             await navigator.share({ text: shareText, url });
             return;
-          } catch (e) {
+          } catch {
             // ignore and fallback
           }
         }
@@ -87,8 +87,12 @@ export default function SharePopupNew({ open, url, onClose }: Props) {
   ];
 
   return (
-    <div className={styles.backdrop} role="dialog" aria-modal="true" onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={styles.backdrop}
+      role="presentation"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className={styles.modal} role="dialog" aria-modal="true">
         <div className={styles.header}>
           <div className={styles.title}>Share this event</div>
           <button onClick={onClose} className={styles.closeBtn} aria-label="Close">

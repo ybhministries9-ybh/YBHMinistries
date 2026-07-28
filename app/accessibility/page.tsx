@@ -1,4 +1,3 @@
-import { Metadata } from 'next';
 import { Accessibility } from '@/components/Accessibility';
 import MaintenancePage from '../maintenance/page';
 import { isMaintenanceEnabled } from '../lib/maintenance';

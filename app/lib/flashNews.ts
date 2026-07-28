@@ -19,7 +19,7 @@ async function readFromFile(): Promise<FlashNewsSetting> {
       videoUrl: typeof parsed?.videoUrl === 'string' ? parsed.videoUrl : null,
       updatedAt: typeof parsed?.updatedAt === 'string' ? parsed.updatedAt : null,
     };
-  } catch (e) {
+  } catch {
     return { enabled: false, videoUrl: null, updatedAt: null };
   }
 }
@@ -38,7 +38,7 @@ async function resolveVideoUrl(rawUrl: string | null): Promise<string | null> {
     try {
       const bucket = parsed.bucket || PRIVATE_BUCKET;
       return await getPresignedGetUrl(parsed.key, 3600, bucket || undefined);
-    } catch (e) {
+    } catch {
       // Fall back to the original value if presigning fails.
       return url;
     }
@@ -61,7 +61,7 @@ export async function getFlashNewsSetting(): Promise<FlashNewsSetting> {
       const enabled = toBool(row.bool_value) && Boolean(videoUrl);
       return { enabled, videoUrl, updatedAt: row.updated_at != null ? String(row.updated_at) : null };
     }
-  } catch (e) {
+  } catch {
     // ignore and fall back to file
   }
 

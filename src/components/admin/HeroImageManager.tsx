@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, X, Eye, EyeOff, Image as ImageIcon, AlertCircle, GripVertical, Plus } from 'lucide-react';
+import { X, Eye, EyeOff, Image as ImageIcon, AlertCircle, GripVertical, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -172,7 +172,7 @@ export function HeroImageManager() {
     }
 
     setUploading(true);
-    const { data, error } = await apiCall<{ image: HeroImage }>(
+    const { data: _data, error } = await apiCall<{ image: HeroImage }>(
       API_ENDPOINTS.heroImages.create,
       {
         method: 'POST',

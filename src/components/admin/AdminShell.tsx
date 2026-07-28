@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import '@/i18n/config';
-import { Home, ExternalLink, Clock, LogOut, Image, FileText, MessageCircle, Book, Newspaper, DollarSign, Users, Info, Star } from 'lucide-react';
+import { Home, ExternalLink, LogOut, Image, FileText, MessageCircle, Book, Newspaper, DollarSign, Users, Info, Star } from 'lucide-react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 import Link from 'next/link';
@@ -11,7 +11,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const handleLogout = () => {
-    try { localStorage.removeItem('admin_token'); } catch (e) {}
+    try { localStorage.removeItem('admin_token'); } catch {}
     router.push('/admin');
   };
 

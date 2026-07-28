@@ -22,7 +22,7 @@ interface VideoContent {
   description: string;
 }
 
-interface ImageContent {
+interface _ImageContent {
   id: string;
   url: string;
   alt: string;
@@ -215,7 +215,7 @@ export function HomeManager() {
       const response = await fetch(`/api/upload?folder=${folder}`, {
         method: 'POST',
         body: formData,
-        headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch (e) { return undefined; } })(),
+        headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch { return undefined; } })(),
       });
 
       if (!response.ok) {
@@ -230,7 +230,7 @@ export function HomeManager() {
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -314,7 +314,7 @@ export function HomeManager() {
           );
 
           // Add to hero images via API
-          const { data, error } = await apiCall<{ image: HeroImage }>(
+          const { data: _data, error } = await apiCall<{ image: HeroImage }>(
             API_ENDPOINTS.heroImages.create,
             {
               method: 'POST',
@@ -334,7 +334,7 @@ export function HomeManager() {
         } else {
           throw new Error('Upload failed');
         }
-      } catch (error) {
+      } catch {
         // Update progress to error
         setUploadProgress(prev => 
           prev.map((p, i) => i === index ? { ...p, status: 'error', progress: 0 } : p)
@@ -468,7 +468,7 @@ export function HomeManager() {
     // Upload all URLs
     const uploadPromises = validUrls.map(async (url, index) => {
       try {
-        const { data, error } = await apiCall<{ image: HeroImage }>(
+        const { data: _data, error } = await apiCall<{ image: HeroImage }>(
           API_ENDPOINTS.heroImages.create,
           {
             method: 'POST',
@@ -484,7 +484,7 @@ export function HomeManager() {
           throw new Error(error);
         }
         return { success: true, url };
-      } catch (error) {
+      } catch {
         return { success: false, url };
       }
     });
@@ -937,7 +937,7 @@ export function HomeManager() {
                         
                         {url && (
                           <div className="aspect-video bg-black rounded overflow-hidden border border-gray-700">
-                            <img src={url} alt={`Image preview ${index + 1}`} className="w-full h-full object-cover" />
+                            <img src={url} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
                           </div>
                         )}
                       </div>

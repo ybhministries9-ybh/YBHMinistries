@@ -329,7 +329,7 @@ function DatePicker({
       }
       const d = new Date(s);
       if (!isNaN(d.getTime())) return d;
-    } catch (e) {
+    } catch {
       // ignore
     }
     return undefined;
@@ -486,7 +486,7 @@ export function StoriesManager() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [isDeletingImageId, setIsDeletingImageId] = useState<string | null>(null);
+  const [isDeletingImageId, _setIsDeletingImageId] = useState<string | null>(null);
   // image delete UI: no immediate server-side deletion; deletion occurs on Save
   const [activeTab, setActiveTab] = useState<'text' | 'video'>('text');
   const [filterCategory, setFilterCategory] = useState<string>(ALL_CATEGORY);
@@ -524,7 +524,7 @@ export function StoriesManager() {
       setIsBold(Boolean((document as any).queryCommandState && (document as any).queryCommandState('bold')));
       setIsItalic(Boolean((document as any).queryCommandState && (document as any).queryCommandState('italic')));
       setIsUnderline(Boolean((document as any).queryCommandState && (document as any).queryCommandState('underline')));
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
   }, []);
 
   React.useEffect(() => {
@@ -562,7 +562,7 @@ export function StoriesManager() {
         try {
           const parsed = JSON.parse(raw);
           token = parsed?.token || raw;
-        } catch (e) {
+        } catch {
           token = raw;
         }
       }
@@ -1098,7 +1098,7 @@ export function StoriesManager() {
   };
 
   // Handlers for the unsaved-form modal actions
-  const handleUnsavedSaveDraft = () => {
+  const _handleUnsavedSaveDraft = () => {
     const current = stories.find(s => s.id === editingId);
     if (current) {
       try {
@@ -1155,7 +1155,7 @@ export function StoriesManager() {
     const currentId = editingId;
     // remove the temp draft (functional update)
     setStories(prev => prev.filter(s => s.id !== currentId));
-    try { if (currentId) localStorage.removeItem(`story_draft_${currentId}`); } catch (e) {}
+    try { if (currentId) localStorage.removeItem(`story_draft_${currentId}`); } catch {}
     setEditingId(null);
 
     // open new form (functional prepend)
@@ -1199,7 +1199,7 @@ export function StoriesManager() {
     setUnsavedDialog({ open: false, pendingType: null });
   };
 
-  const handleUnsavedCancel = () => {
+  const _handleUnsavedCancel = () => {
     setUnsavedDialog({ open: false, pendingType: null });
   };
 
@@ -1356,7 +1356,7 @@ export function StoriesManager() {
       }
       const dt = new Date(d);
       if (!isNaN(dt.getTime())) return format(dt, 'MMM dd, yyyy');
-    } catch (e) {
+    } catch {
       // ignore and fallback
     }
     return String(d).substring(0, 10);
@@ -1411,7 +1411,7 @@ export function StoriesManager() {
     Rejected: storiesForActiveTab.filter(s => s.status === 'Rejected').length,
   }), [storiesForActiveTab]);
 
-  const activeTabTitle = activeTab === 'text' ? 'Text Stories' : 'Video Stories';
+  const _activeTabTitle = activeTab === 'text' ? 'Text Stories' : 'Video Stories';
   const activeTabDescription = activeTab === 'text'
     ? 'Manage written testimonies and story submissions.'
     : 'Manage video testimonies and story submissions.';
@@ -1538,7 +1538,7 @@ export function StoriesManager() {
               className={story.id.startsWith('temp-') ? 'hidden' : ''}
             >
               {editingId === story.id && editModalOpen ? createPortal(
-              <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/70 overflow-y-auto py-8 px-4" onClick={(e) => { if (e.target === e.currentTarget) handleCancel(story.id); }}>
+              <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/70 overflow-y-auto py-8 px-4" onClick={(e) => { if (e.target === e.currentTarget) handleCancel(story.id); }} role="presentation">
                 <div className="bg-[#2e2e2e] rounded-lg border border-gray-700 w-full max-w-5xl mx-auto shadow-2xl my-4 max-h-[calc(100vh-4rem)] flex flex-col" style={{ backgroundColor: '#2e2e2e' }}>
                   <div className="flex items-center justify-between p-4 border-b border-gray-700 shrink-0">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -1819,7 +1819,7 @@ export function StoriesManager() {
                                     <button key={`${e}-${i}`} type="button" onClick={() => {
                                       if (!testimonyRef.current) return;
                                       testimonyRef.current.focus();
-                                      try { document.execCommand('insertText', false, e); } catch (err) {
+                                      try { document.execCommand('insertText', false, e); } catch {
                                         const sel = document.getSelection(); if (!sel || !sel.rangeCount) return; const range = sel.getRangeAt(0); range.deleteContents(); range.insertNode(document.createTextNode(e)); range.setStartAfter(range.endContainer as Node); sel.removeAllRanges(); sel.addRange(range);
                                       }
                                       const html = testimonyRef.current.innerHTML || '';
@@ -1905,7 +1905,7 @@ export function StoriesManager() {
                                     const wrapper = document.createElement('div');
                                     wrapper.appendChild(frag);
                                     return wrapper.innerHTML;
-                                  } catch (err) {
+                                  } catch {
                                     return rawHtml;
                                   }
                                 };
@@ -1942,7 +1942,7 @@ export function StoriesManager() {
                                   handleUpdate(story.id, 'text', htmlNow);
                                   setIsTestimonyEmpty(String(htmlNow.replace(/<[^>]*>/g, '')).trim().length === 0);
                                 }, 0);
-                              } catch (err) {
+                              } catch {
                                 // ignore paste errors
                               }
                             }}
@@ -2319,7 +2319,7 @@ export function StoriesManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-[#1a1a1a] rounded-lg border border-gray-600 p-6 w-full max-w-md mx-4 shadow-2xl">
             <h3 className="text-lg font-semibold text-white mb-4">Reject Story</h3>
-            <label className="block text-sm text-gray-300 mb-2">Message to the submitter (optional, max 100 characters)</label>
+            <label className="block text-sm text-gray-300 mb-2" htmlFor="message-to-the-submitter-optional-">Message to the submitter (optional, max 100 characters)</label>
             <textarea
               value={rejectMessage}
               onChange={(e) => setRejectMessage(e.target.value.slice(0, 100))}
@@ -2327,7 +2327,7 @@ export function StoriesManager() {
               rows={3}
               className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#FDB813] resize-none"
               placeholder="Enter message for the submitter..."
-            />
+             id="message-to-the-submitter-optional-" />
             <div className="text-xs text-gray-400 mt-1 text-right">{rejectMessage.length}/100</div>
             <div className="flex justify-end gap-3 mt-4">
               <button

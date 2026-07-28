@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, Plus, Trash2, Book, Video, Music, FileText, Youtube, Calendar, Upload, X, Eye, EyeOff, Edit2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, Plus, Trash2, Book, Video, Music, FileText, Calendar, Upload, X, Eye, EyeOff, Edit2, GripVertical} from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { fetchYouTubeTitle, fetchYouTubeMeta, extractYouTubeId } from '../../lib/youtube';
+import { fetchYouTubeMeta, extractYouTubeId } from '../../lib/youtube';
 import { logger } from '@/lib/logger';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -36,7 +36,7 @@ const formatAdminDate = (dateInput: any) => {
   if (isNaN(date.getTime())) return '';
   try {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
-  } catch (err) {
+  } catch {
     return '';
   }
 };
@@ -55,7 +55,7 @@ const toDateInputValue = (dateInput: any) => {
     // Try Date parse
     const dt = new Date(s);
     if (!isNaN(dt.getTime())) return dt.toISOString().split('T')[0];
-  } catch (err) {
+  } catch {
     // ignore
   }
   return '';
@@ -80,7 +80,7 @@ const getPreviewUrl = (val?: string | null) => {
       // Fallback to account endpoint if available
       const account = process.env.NEXT_PUBLIC_R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID || process.env.CF_ACCOUNT_ID;
       if (account) return `https://${account}.r2.cloudflarestorage.com/${bucket}/${encodeKey(key)}`;
-      try { logger.warn('[getPreviewUrl] falling back to returning key (no public base/account)', key); } catch (e) {}
+      try { logger.warn('[getPreviewUrl] falling back to returning key (no public base/account)', key); } catch {}
       return key;
     }
     // plain key like resources/books/24/..., prefer public base if available
@@ -89,7 +89,7 @@ const getPreviewUrl = (val?: string | null) => {
     const encodeKey2 = (k: string) => k.split('/').map(encodeURIComponent).join('/');
     if (base2 && publicBucket2) return `${base2}/${publicBucket2}/${encodeKey2(s)}`;
     return s;
-  } catch (err) {
+  } catch {
     return String(val);
   }
 };
@@ -139,7 +139,7 @@ interface WorshipVideo {
   displayOrder?: number | null;
 }
 
-interface Sermon {
+interface _Sermon {
   id: string;
   youtubeUrl: string;
   published?: boolean;
@@ -270,7 +270,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
       // include auth token for admin endpoints so server can set created_by/updated_by
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
       const response = await fetch('/api/admin/resources?type=books', { headers });
       if (!response.ok) throw new Error('Failed to fetch books');
@@ -431,7 +431,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
     try {
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -508,7 +508,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
           // Only delete from DB if it's not a new unsaved book
           const rawToken = localStorage.getItem('admin_token');
           let token = '';
-          if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+          if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
           const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
           const response = await fetch(`/api/admin/resources?type=books&id=${bookToDelete}`, {
             method: 'DELETE',
@@ -567,7 +567,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
       // include auth token so server can set created_by/updated_by
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -613,14 +613,14 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
           const formData = new FormData();
           formData.append('file', selectedFile);
           formData.append('folder', `resources/books/${saveId}`);
-          const uploadResp = await fetch('/api/upload', { method: 'POST', body: formData, headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch (e) { return undefined; } })() });
+          const uploadResp = await fetch('/api/upload', { method: 'POST', body: formData, headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch { return undefined; } })() });
           const uploadResult = await uploadResp.json();
           if (uploadResp.ok && uploadResult.url) {
             // update the book coverImage locally so validation and body use the uploaded URL
             handleUpdate(saveId, { coverImage: uploadResult.url });
             // clear selected file tracking
             // remove original ref entry (may be keyed by temp id)
-            try { selectedFilesRef.current.delete(id); } catch (e) {}
+            try { selectedFilesRef.current.delete(id); } catch {}
             // also reflect in local variable
             book.coverImage = uploadResult.url;
           } else {
@@ -640,7 +640,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
             const fd = new FormData();
             fd.append('file', entry.file);
             fd.append('folder', `resources/books/${saveId}`);
-            const r = await fetch('/api/upload', { method: 'POST', body: fd, headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch (e) { return undefined; } })() });
+            const r = await fetch('/api/upload', { method: 'POST', body: fd, headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch { return undefined; } })() });
             const resJson = await r.json();
             if (r.ok && resJson.url) {
               // Replace the first occurrence of the preview in book.additionalImages with the uploaded URL
@@ -697,7 +697,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
           const fd2 = new FormData();
           fd2.append('file', fileToUpload);
           fd2.append('folder', `resources/books/${saveId}`);
-          const up = await fetch('/api/upload', { method: 'POST', body: fd2, headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch (e) { return undefined; } })() });
+          const up = await fetch('/api/upload', { method: 'POST', body: fd2, headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch { return undefined; } })() });
           const j = await up.json();
           if (up.ok && j.url) return j.url;
           return null;
@@ -717,7 +717,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
             book.coverImage = uploaded;
           }
         }
-      } catch (e) {
+      } catch {
         // ignore, validation/upload earlier will catch
       }
 
@@ -810,7 +810,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
       {loading ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
           <Book size={48} className="mx-auto mb-4 text-gray-600" />
-          <p className="text-gray-400">No music books yet. Click "Add Music Book" to create one.</p>
+          <p className="text-gray-400">No music books yet. Click &quot;Add Music Book&quot; to create one.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -826,7 +826,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                     {isEditing ? (
                       <div>
                         <div className="flex items-start justify-between mb-1">
-                          <label className="text-sm text-white">Title <span className="text-red-400">*</span></label>
+                          <label className="text-sm text-white" htmlFor={`field-${book.id}-title`}>Title <span className="text-red-400">*</span></label>
                           <div className="text-xs text-gray-400 ml-2">{(book.title?.length || 0)}/{TITLE_MAX}</div>
                         </div>
                         <Input
@@ -906,7 +906,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                           <div className="flex items-start justify-between mb-1">
-                            <label className="text-sm text-white">Author <span className="text-red-400">*</span></label>
+                            <label className="text-sm text-white" htmlFor={`field-${book.id}-author`}>Author <span className="text-red-400">*</span></label>
                             <div className="text-xs text-gray-400 ml-2">{(book.author?.length || 0)}/{AUTHOR_MAX}</div>
                           </div>
                           <Input
@@ -927,7 +927,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                       </div>
                       <div>
                         <div className="flex items-start justify-between mb-1">
-                          <label className="text-sm text-white">Language <span className="text-red-400">*</span></label>
+                          <label className="text-sm text-white" htmlFor={`field-${book.id}-language`}>Language <span className="text-red-400">*</span></label>
                           <div className="text-xs text-gray-400 ml-2">{(book.language?.length || 0)}/{LANGUAGE_MAX}</div>
                         </div>
                         <Input
@@ -948,7 +948,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                       </div>
                       <div>
                         <div className="flex items-start justify-between mb-1">
-                          <label className="text-sm text-white">Price (₹) <span className="text-red-400">*</span></label>
+                          <label className="text-sm text-white" htmlFor={`field-${book.id}-price`}>Price (₹) <span className="text-red-400">*</span></label>
                           <div className="text-xs text-gray-400 ml-2">Min ₹{PRICE_MIN} — Max ₹{PRICE_MAX}</div>
                         </div>
                         <Input
@@ -972,7 +972,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                       </div>
                       <div>
                         <div className="flex items-start justify-between mb-1">
-                          <label className="text-sm text-white">Pages <span className="text-red-400">*</span></label>
+                          <label className="text-sm text-white" htmlFor={`field-${book.id}-pages`}>Pages <span className="text-red-400">*</span></label>
                           <div className="text-xs text-gray-400 ml-2">Min {PAGES_MIN} — Max {PAGES_MAX} pages</div>
                         </div>
                         <Input
@@ -994,14 +994,14 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                         )}
                       </div>
                       <div>
-                          <label className="text-sm text-white mb-1 block">Publish Date <span className="text-red-400">*</span></label>
+                          <label className="text-sm text-white mb-1 block" htmlFor={`publish-date-${book.id}`}>Publish Date <span className="text-red-400">*</span></label>
                           <DateInput
                             value={toDateInputValue(book.publishDate)}
                             onChange={(v) => handleUpdate(book.id, { publishDate: v })}
                             disabled={!isEditing}
                             allowFuture={false}
                             className="bg-[#2e2e2e] border-gray-600 text-white"
-                          />
+                           id={`publish-date-${book.id}`} />
                         
                         
                         {isEditing && formErrors[book.id]?.publishDate && (
@@ -1012,7 +1012,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
 
                     <div>
                       <div className="flex items-start justify-between mb-1">
-                        <label className="text-sm text-white">Description <span className="text-gray-400 text-xs">(optional)</span></label>
+                        <label className="text-sm text-white" htmlFor={`description-optional-${book.id}`}>Description <span className="text-gray-400 text-xs">(optional)</span></label>
                         <div className="text-xs text-gray-400 ml-2">{(book.description?.length || 0)}/{DESCRIPTION_MAX}</div>
                       </div>
                       <Textarea
@@ -1024,7 +1024,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                         rows={3}
                         disabled={!isEditing}
                         maxLength={DESCRIPTION_MAX}
-                      />
+                       id={`description-optional-${book.id}`} />
                       {isEditing && formErrors[book.id]?.description && (
                         <div id={`error-${book.id}-description`} role="alert" className="text-sm text-red-400 mt-1">{formErrors[book.id].description}</div>
                       )}
@@ -1033,7 +1033,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                     {/* Published control removed: new books default to published; use header Publish/Unpublish button to change state */}
 
                     <div>
-                      <label className="text-sm text-white mb-2 block">Cover Image <span className="text-red-400">*</span></label>
+                      <span className="text-sm text-white mb-2 block">Cover Image <span className="text-red-400">*</span></span>
                       {isEditing ? (
                         <>
                           <div className="space-y-3">
@@ -1044,7 +1044,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                                 try {
                                   if (file) selectedFilesRef.current.set(book.id, file);
                                   else selectedFilesRef.current.delete(book.id);
-                                } catch (e) {}
+                                } catch {}
                               }}
                               currentImage={book.coverImage}
                               imageType="gallery"
@@ -1074,7 +1074,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                     </div>
 
                     <div>
-                      <label className="text-sm text-white mb-2 block">Additional Images (Gallery)</label>
+                      <span className="text-sm text-white mb-2 block">Additional Images (Gallery)</span>
                       {isEditing && (
                         <div className="space-y-3 mb-3">
                           <Button
@@ -1179,7 +1179,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
                 try {
                   const entries = images.map(img => ({ file: img.file, preview: img.url })).filter(e => e.file) as { file: File; preview: string }[];
                   if (entries.length > 0) selectedAdditionalFilesRef.current.set(bookId, entries);
-                } catch (e) {}
+                } catch {}
                 toast.success(`${images.length} image(s) added successfully!`);
               }
               setShowAdditionalImagesUpload(null);
@@ -1196,7 +1196,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
 function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
   const { isViewer } = useAdminUser();
   const [videos, setVideos] = useState<WorshipVideo[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [_editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1220,7 +1220,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
       setLoading(true);
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
       const response = await fetch('/api/admin/resources?type=worship', { headers });
       if (!response.ok) throw new Error('Failed to fetch worship videos');
@@ -1249,7 +1249,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
             youtubeTitle: v.youtubeTitle || meta?.title || '',
             datePosted: v.datePosted || meta?.publishedAt || null
           };
-        } catch (e) {
+        } catch {
           return v;
         }
       });
@@ -1287,27 +1287,53 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
       else if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1]?.split('?')[0];
       else if (url.includes('youtube.com/shorts/')) videoId = url.split('shorts/')[1]?.split('?')[0];
       return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
-    } catch (err) {
+    } catch {
       return '';
     }
   };
 
+  // `useSortable` must be called unconditionally, so the draggable variant lives in its
+  // own component. Toggling reorder mode swaps component types rather than changing the
+  // number of hooks a single component calls.
+  function SortableVideoCardDraggable({ video }: { video: WorshipVideo }) {
+    const sortableResult = useSortable({ id: video.id });
+    return (
+      <VideoCardBody
+        video={video}
+        sortable
+        attributes={sortableResult.attributes}
+        listeners={sortableResult.listeners}
+        setNodeRef={sortableResult.setNodeRef}
+        transform={sortableResult.transform}
+        transition={sortableResult.transition}
+        isDragging={sortableResult.isDragging}
+      />
+    );
+  }
+
   function SortableVideoCard({ video, sortable }: { video: WorshipVideo; sortable?: boolean }) {
-    let attributes = {} as any;
-    let listeners = {} as any;
-    let setNodeRef: any = undefined;
-    let transform: any = undefined;
-    let transition: any = undefined;
-    let isDragging = false;
-    if (sortable) {
-      const sortableResult = useSortable({ id: video.id });
-      attributes = sortableResult.attributes;
-      listeners = sortableResult.listeners;
-      setNodeRef = sortableResult.setNodeRef;
-      transform = sortableResult.transform;
-      transition = sortableResult.transition;
-      isDragging = sortableResult.isDragging;
-    }
+    return sortable ? <SortableVideoCardDraggable video={video} /> : <VideoCardBody video={video} />;
+  }
+
+  function VideoCardBody({
+    video,
+    sortable = false,
+    attributes = {} as any,
+    listeners = {} as any,
+    setNodeRef = undefined,
+    transform = undefined,
+    transition = undefined,
+    isDragging = false,
+  }: {
+    video: WorshipVideo;
+    sortable?: boolean;
+    attributes?: any;
+    listeners?: any;
+    setNodeRef?: any;
+    transform?: any;
+    transition?: any;
+    isDragging?: boolean;
+  }) {
     const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
 
     const outerRefProps = sortable && setNodeRef ? { ref: setNodeRef } : {};
@@ -1392,7 +1418,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
     try {
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -1456,14 +1482,14 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
             metaTitle = meta.title || null;
             metaPublishedAt = meta.publishedAt || null;
           }
-        } catch (err) {
+        } catch {
           // ignore
         }
       }
 
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -1499,7 +1525,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
       try {
         const rawToken2 = localStorage.getItem('admin_token');
         let token2 = '';
-        if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+        if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch { token2 = rawToken2 }
         const headers2: Record<string,string> = { 'Content-Type': 'application/json' };
         if (token2) headers2['Authorization'] = `Bearer ${token2}`;
 
@@ -1546,7 +1572,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
         if (!videoToDelete.startsWith('new-')) {
               const rawToken = localStorage.getItem('admin_token');
               let token = '';
-              if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+              if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
               const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
               const response = await fetch(`/api/admin/resources?type=worship&id=${videoToDelete}`, {
                 method: 'DELETE',
@@ -1565,7 +1591,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
     setDeleteDialogOpen(false);
   };
 
-  const handleSave = async (id: string) => {
+  const _handleSave = async (id: string) => {
     const video = videos.find(v => v.id === id);
     if (!video) return;
 
@@ -1583,7 +1609,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
       const method = isNew ? 'POST' : 'PUT';
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -1600,7 +1626,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
             metaPublishedAt = meta.publishedAt || null;
           }
         }
-      } catch (err) {
+      } catch {
         // ignore metadata lookup failures
       }
 
@@ -1645,7 +1671,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
           try {
             const rawToken2 = localStorage.getItem('admin_token');
             let token2 = '';
-            if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+            if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch { token2 = rawToken2 }
             const headers2: Record<string,string> = { 'Content-Type': 'application/json' };
             if (token2) headers2['Authorization'] = `Bearer ${token2}`;
 
@@ -1709,7 +1735,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
                   const items = videos.filter(v => v.id && !String(v.id).startsWith('new-')).map((v, i) => ({ id: v.id, display_order: i }));
                   const rawToken = localStorage.getItem('admin_token');
                   let token = '';
-                  if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+                  if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
                   const headers: Record<string,string> = { 'Content-Type': 'application/json' };
                   if (token) headers['Authorization'] = `Bearer ${token}`;
                   const res = await fetch('/api/admin/resources/order', { method: 'POST', headers, body: JSON.stringify({ items }) });
@@ -1743,14 +1769,14 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
         <div className="bg-black rounded-lg border border-gray-700 p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
             <div className="md:col-span-2">
-              <label className="text-sm text-white mb-1 block">YouTube URL <span className="text-[#FDB813]">*</span></label>
+              <label className="text-sm text-white mb-1 block" htmlFor="youtube-url">YouTube URL <span className="text-[#FDB813]">*</span></label>
               <Input
                 value={newYoutubeUrl}
                 onChange={(e) => setNewYoutubeUrl(e.target.value)}
                 placeholder="https://youtu.be/..."
                 className="bg-[#2e2e2e] border-gray-600 text-white"
                 style={{ backgroundColor: '#2e2e2e' }}
-              />
+               id="youtube-url" />
               {formErrors['new']?.youtubeUrl && (
                 <div className="bg-black text-sm text-red-400 mt-1">{formErrors['new'].youtubeUrl}</div>
               )}
@@ -1783,7 +1809,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
       ) : videos.length === 0 ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
           <Music size={48} className="mx-auto mb-4 text-gray-600" />
-          <p className="text-gray-400">No worship videos yet. Click "Add Worship Video" to create one.</p>
+          <p className="text-gray-400">No worship videos yet. Click &quot;Add Worship Video&quot; to create one.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -1814,7 +1840,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
             </>
           ) : (
             <>
-              <p className="text-sm text-gray-400">Click "Enable Reorder" to reorder multiple cards and save in one request.</p>
+              <p className="text-sm text-gray-400">Click &quot;Enable Reorder&quot; to reorder multiple cards and save in one request.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {videos.map((video) => (
                   <SortableVideoCard key={video.id} video={video} sortable={false} />
@@ -1840,7 +1866,7 @@ function WorshipVideosManager({ formErrors, setFieldErrors, clearFieldErrors }: 
 function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
   const { isViewer } = useAdminUser();
   const [sermons, setSermons] = useState<WorshipVideo[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [_editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sermonToDelete, setSermonToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1869,7 +1895,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
       setLoading(true);
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
       const response = await fetch('/api/admin/resources?type=sermons', { headers });
       if (!response.ok) throw new Error('Failed to fetch sermons');
@@ -1892,7 +1918,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
           if (!vid) return v;
           const meta = await fetchYouTubeMeta(vid);
           return { ...v, youtubeTitle: v.youtubeTitle || meta?.title || '', datePosted: v.datePosted || meta?.publishedAt || null };
-        } catch (e) {
+        } catch {
           return v;
         }
       });
@@ -1924,20 +1950,50 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
       else if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1]?.split('?')[0];
       else if (url.includes('youtube.com/shorts/')) videoId = url.split('shorts/')[1]?.split('?')[0];
       return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
-    } catch (err) { return ''; }
+    } catch { return ''; }
   };
 
+  // See SortableVideoCard above: the hook lives in its own component so it is never
+  // called conditionally.
+  function SortableSermonCardDraggable({ sermon }: { sermon: WorshipVideo }) {
+    const r = useSortable({ id: sermon.id });
+    return (
+      <SermonCardBody
+        sermon={sermon}
+        sortable
+        attributes={r.attributes}
+        listeners={r.listeners}
+        setNodeRef={r.setNodeRef}
+        transform={r.transform}
+        transition={r.transition}
+        isDragging={r.isDragging}
+      />
+    );
+  }
+
   function SortableSermonCard({ sermon, sortable }: { sermon: WorshipVideo; sortable?: boolean }) {
-    let attributes: any = {};
-    let listeners: any = {};
-    let setNodeRef: any = undefined;
-    let transform: any = undefined;
-    let transition: any = undefined;
-    let isDragging = false;
-    if (sortable) {
-      const r = useSortable({ id: sermon.id });
-      attributes = r.attributes; listeners = r.listeners; setNodeRef = r.setNodeRef; transform = r.transform; transition = r.transition; isDragging = r.isDragging;
-    }
+    return sortable ? <SortableSermonCardDraggable sermon={sermon} /> : <SermonCardBody sermon={sermon} />;
+  }
+
+  function SermonCardBody({
+    sermon,
+    sortable = false,
+    attributes = {} as any,
+    listeners = {} as any,
+    setNodeRef = undefined,
+    transform = undefined,
+    transition = undefined,
+    isDragging = false,
+  }: {
+    sermon: WorshipVideo;
+    sortable?: boolean;
+    attributes?: any;
+    listeners?: any;
+    setNodeRef?: any;
+    transform?: any;
+    transition?: any;
+    isDragging?: boolean;
+  }) {
     const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
     const outerRefProps = sortable && setNodeRef ? { ref: setNodeRef } : {};
 
@@ -1992,7 +2048,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
     try {
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -2019,10 +2075,10 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
       const vid = extractYouTubeId(newYoutubeUrl || '');
       let metaTitle: string | null = null; let metaPublishedAt: string | null = null;
       if (vid) {
-        try { const meta = await fetchYouTubeMeta(vid); if (meta) { metaTitle = meta.title || null; metaPublishedAt = meta.publishedAt || null; } } catch (e) {}
+        try { const meta = await fetchYouTubeMeta(vid); if (meta) { metaTitle = meta.title || null; metaPublishedAt = meta.publishedAt || null; } } catch {}
       }
       const rawToken = localStorage.getItem('admin_token'); let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' }; if (token) headers['Authorization'] = `Bearer ${token}`;
       const body: any = { type: 'sermons', youtube_url: newYoutubeUrl, title: metaTitle, date_posted: metaPublishedAt, published: newPublished === true };
       const response = await fetch('/api/admin/resources?type=sermons', { method: 'POST', headers, body: JSON.stringify(body) });
@@ -2035,7 +2091,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
 
       try {
         const rawToken2 = localStorage.getItem('admin_token'); let token2 = '';
-        if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+        if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch { token2 = rawToken2 }
         const headers2: Record<string,string> = { 'Content-Type': 'application/json' }; if (token2) headers2['Authorization'] = `Bearer ${token2}`;
         const items = newList.filter(v => v.id && !String(v.id).startsWith('new-')).map((v, i) => ({ id: v.id, display_order: i }));
         if (items.length) {
@@ -2071,7 +2127,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
     setDeleteDialogOpen(false);
   };
 
-  const handleSave = async (id: string) => {
+  const _handleSave = async (id: string) => {
     const sermon = sermons.find(s => s.id === id);
     if (!sermon) return;
     try {
@@ -2081,11 +2137,11 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
 
       const isNew = id.startsWith('new-');
       const rawToken = localStorage.getItem('admin_token'); let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' }; if (token) headers['Authorization'] = `Bearer ${token}`;
 
       let metaTitle: string | null = null; let metaPublishedAt: string | null = null;
-      try { const vid = extractYouTubeId(sermon.youtubeUrl || ''); if (vid) { const meta = await fetchYouTubeMeta(vid); if (meta) { metaTitle = meta.title || null; metaPublishedAt = meta.publishedAt || null; } } } catch (err) {}
+      try { const vid = extractYouTubeId(sermon.youtubeUrl || ''); if (vid) { const meta = await fetchYouTubeMeta(vid); if (meta) { metaTitle = meta.title || null; metaPublishedAt = meta.publishedAt || null; } } } catch {}
 
       const body: any = { type: 'sermons', ...(isNew ? {} : { id }), youtube_url: sermon.youtubeUrl, title: metaTitle, date_posted: metaPublishedAt, published: sermon.published === true };
       const url = isNew ? `/api/admin/resources?type=sermons` : `/api/admin/resources?type=sermons&id=${id}`;
@@ -2096,7 +2152,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
         if (isNew) {
           const withoutNew = sermons.filter(v => v.id !== id); const reordered = [savedItem, ...withoutNew.map(v => ({ ...v }))].map((v, i) => ({ ...v, displayOrder: i })); setSermons(reordered);
           try {
-            const rawToken2 = localStorage.getItem('admin_token'); let token2 = ''; if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch (e) { token2 = rawToken2 }
+            const rawToken2 = localStorage.getItem('admin_token'); let token2 = ''; if (rawToken2) try { token2 = JSON.parse(rawToken2).token || rawToken2 } catch { token2 = rawToken2 }
             const headers2: Record<string,string> = { 'Content-Type': 'application/json' }; if (token2) headers2['Authorization'] = `Bearer ${token2}`;
             const items = reordered.filter(v => v.id && !String(v.id).startsWith('new-')).map((v, i) => ({ id: v.id, display_order: i }));
             if (items.length) {
@@ -2125,7 +2181,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
               <Button onClick={async () => {
                 try {
                   const items = sermons.filter(v => v.id && !String(v.id).startsWith('new-')).map((v, i) => ({ id: v.id, display_order: i }));
-                  const rawToken = localStorage.getItem('admin_token'); let token = ''; if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+                  const rawToken = localStorage.getItem('admin_token'); let token = ''; if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
                   const headers: Record<string,string> = { 'Content-Type': 'application/json' }; if (token) headers['Authorization'] = `Bearer ${token}`;
                   const res = await fetch('/api/admin/resources/order', { method: 'POST', headers, body: JSON.stringify({ items, type: 'sermons' }) });
                   if (!res.ok) throw new Error('Failed to save order'); toast.success('Order saved'); setOriginalSnapshot(null); setReorderMode(false);
@@ -2141,8 +2197,8 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
         <div className="bg-black rounded-lg border border-gray-700 p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
             <div className="md:col-span-2">
-              <label className="text-sm text-white mb-1 block">YouTube URL <span className="text-[#FDB813]">*</span></label>
-              <Input value={newYoutubeUrl} onChange={(e) => setNewYoutubeUrl(e.target.value)} placeholder="https://youtu.be/..." className="bg-[#2e2e2e] border-gray-600 text-white" style={{ backgroundColor: '#2e2e2e' }} />
+              <label className="text-sm text-white mb-1 block" htmlFor="youtube-url-2">YouTube URL <span className="text-[#FDB813]">*</span></label>
+              <Input value={newYoutubeUrl} onChange={(e) => setNewYoutubeUrl(e.target.value)} placeholder="https://youtu.be/..." className="bg-[#2e2e2e] border-gray-600 text-white" style={{ backgroundColor: '#2e2e2e' }}  id="youtube-url-2" />
               {formErrors['new']?.youtubeUrl && (<div className="text-sm text-red-400 mt-1">{formErrors['new'].youtubeUrl}</div>)}
             </div>
             <div className="flex items-center justify-end gap-3">
@@ -2156,7 +2212,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
       {loading ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700"><Video size={48} className="mx-auto mb-4 text-gray-600 animate-pulse" /><p className="text-gray-400">Loading sermons...</p></div>
       ) : sermons.length === 0 ? (
-        <div className="text-center py-12 bg-black rounded-lg border border-gray-700"><Video size={48} className="mx-auto mb-4 text-gray-600" /><p className="text-gray-400">No sermons yet. Click "Add Sermon" to create one.</p></div>
+        <div className="text-center py-12 bg-black rounded-lg border border-gray-700"><Video size={48} className="mx-auto mb-4 text-gray-600" /><p className="text-gray-400">No sermons yet. Click &quot;Add Sermon&quot; to create one.</p></div>
       ) : (
         <div className="space-y-3">
           {reorderMode ? (
@@ -2170,7 +2226,7 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
             </>
           ) : (
             <>
-              <p className="text-sm text-gray-400">Click "Enable Reorder" to reorder multiple cards and save in one request.</p>
+              <p className="text-sm text-gray-400">Click &quot;Enable Reorder&quot; to reorder multiple cards and save in one request.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">{sermons.map(s => (<SortableSermonCard key={s.id} sermon={s} sortable={false} />))}</div>
             </>
           )}
@@ -2183,6 +2239,8 @@ function SermonsManager({ formErrors, setFieldErrors, clearFieldErrors }: { form
 }
 
 // Bible Studies Manager Sub-Component
+// Retained for future use; not currently rendered.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: { formErrors: Record<string, Record<string, string>>; setFieldErrors: (id: string, errors: Record<string,string>) => void; clearFieldErrors: (id: string, fields?: string[]) => void }) {
   const [studies, setStudies] = useState<BibleStudy[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -2200,7 +2258,7 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
       setLoading(true);
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
       const response = await fetch('/api/admin/resources?type=bibleStudies', { headers });
       if (!response.ok) throw new Error('Failed to fetch Bible studies');
@@ -2241,7 +2299,7 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
     try {
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -2350,7 +2408,7 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
       const method = isNew ? 'POST' : 'PUT';
       const rawToken = localStorage.getItem('admin_token');
       let token = '';
-      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch (e) { token = rawToken }
+      if (rawToken) try { token = JSON.parse(rawToken).token || rawToken } catch { token = rawToken }
       const headers: Record<string,string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -2429,7 +2487,7 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
       ) : studies.length === 0 ? (
         <div className="text-center py-12 bg-black rounded-lg border border-gray-700">
           <FileText size={48} className="mx-auto mb-4 text-gray-600" />
-          <p className="text-gray-400">No Bible studies yet. Click "Add Bible Study" to create one.</p>
+          <p className="text-gray-400">No Bible studies yet. Click &quot;Add Bible Study&quot; to create one.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -2457,7 +2515,7 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
                     {isEditing ? (
                       <>
                         <div>
-                          <label className="text-sm text-white mb-1.5 block">Study Title</label>
+                          <label className="text-sm text-white mb-1.5 block" htmlFor={`field-${study.id}-title`}>Study Title</label>
                           <Input
                             id={`field-${study.id}-title`}
                             value={study.title}
@@ -2475,7 +2533,7 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-sm text-white mb-1.5 block">Author</label>
+                            <label className="text-sm text-white mb-1.5 block" htmlFor={`field-${study.id}-author`}>Author</label>
                             <Input
                               id={`field-${study.id}-author`}
                               value={study.author}
@@ -2491,7 +2549,7 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
                               )}
                           </div>
                           <div>
-                            <label className="text-sm text-white mb-1.5 block">Pages</label>
+                            <label className="text-sm text-white mb-1.5 block" htmlFor={`field-${study.id}-pages`}>Pages</label>
                             <Input
                               id={`field-${study.id}-pages`}
                               type="number"
@@ -2511,26 +2569,26 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-sm text-white mb-1.5 block">Date</label>
+                            <label className="text-sm text-white mb-1.5 block" htmlFor={`date-${study.id}`}>Date</label>
                             <Input
                               type="date"
                               value={study.date}
                               onChange={(e) => handleUpdate(study.id, { date: e.target.value })}
                               className="bg-black border-gray-600 text-white"
-                            />
+                             id={`date-${study.id}`} />
                           </div>
                           <div>
-                            <label className="text-sm text-white mb-1.5 block">File Type</label>
+                            <label className="text-sm text-white mb-1.5 block" htmlFor={`file-type-${study.id}`}>File Type</label>
                             <Input
                               value={study.fileType}
                               onChange={(e) => handleUpdate(study.id, { fileType: e.target.value })}
                               placeholder="e.g., PDF"
                               className="bg-black border-gray-600 text-white"
-                            />
+                             id={`file-type-${study.id}`} />
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm text-white mb-1.5 block">File URL or Upload</label>
+                          <span className="text-sm text-white mb-1.5 block">File URL or Upload</span>
                             <FileUpload
                               onUploadComplete={(url) => handleUpdate(study.id, { fileUrl: url })}
                               currentFile={study.fileUrl?.startsWith('data:') ? study.fileUrl : ''}
@@ -2544,14 +2602,14 @@ function BibleStudiesManager({ formErrors, setFieldErrors, clearFieldErrors }: {
                           )}
                         </div>
                         <div>
-                          <label className="text-sm text-white mb-1.5 block">Description</label>
+                          <label className="text-sm text-white mb-1.5 block" htmlFor={`description-${study.id}`}>Description</label>
                           <Textarea
                             value={study.description}
                             onChange={(e) => handleUpdate(study.id, { description: e.target.value })}
                             placeholder="Enter study description"
                             className="bg-black border-gray-600 text-white"
                             rows={2}
-                          />
+                           id={`description-${study.id}`} />
                         </div>
                       </>
                     ) : (

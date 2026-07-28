@@ -18,8 +18,8 @@ const PERFORMANCE_OPTIONS = ['schoolEvents', 'competitions', 'choir'];
 const VOLUNTEER_AREAS = ['volunteerOnlineTeacher', 'volunteerOfflineConferences', 'volunteerSummerKids', 'volunteerEvents'];
 
 // Shared constants to avoid recreating inline objects / regexes
-const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const PHONE_PATTERN = /^[0-9]{7,15}$/;
+const _EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const _PHONE_PATTERN = /^[0-9]{7,15}$/;
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 interface FormData {
@@ -70,7 +70,7 @@ interface FormData {
 }
 
 export function HMSStudentForm({
-  onClose,
+  onClose: _onClose,
   initialData,
   submitUrl,
   submitMethod,
@@ -114,7 +114,7 @@ export function HMSStudentForm({
       if ((watched as any).hearAboutUs !== 'Other') {
         setValue('otherHearAboutUs', '')
       }
-    } catch (e) {}
+    } catch {}
   }, [watched?.hearAboutUs, setValue]);
 
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -124,7 +124,7 @@ export function HMSStudentForm({
     try {
       const arr = (mergedDefaults.programApplyingFor as string[]) || [];
       return Array.isArray(arr) && arr.length > 0 ? arr[0] : '';
-    } catch (e) { return ''; }
+    } catch { return ''; }
   });
   const [instruments, setInstruments] = useState<string[]>(() => (mergedDefaults.instrumentSpecialization as string[]) || []);
   const [classTypes, setClassTypes] = useState<string[]>(() => (mergedDefaults.preferredClassType as string[]) || []);
@@ -138,7 +138,7 @@ export function HMSStudentForm({
   const successRef = useRef<HTMLDivElement | null>(null);
 
   // stable helper to toggle values in checkbox-backed string arrays
-  const toggleArray = useCallback((setter: (updater: (prev: string[]) => string[]) => void) => {
+  const _toggleArray = useCallback((setter: (updater: (prev: string[]) => string[]) => void) => {
     return (value: string, checked: boolean) => {
       setter((prev: string[]) => (checked ? [...prev, value] : prev.filter((p) => p !== value)));
     };
@@ -177,13 +177,13 @@ export function HMSStudentForm({
         if (typeof window !== 'undefined' && window.scrollTo) {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-      } catch (err) {
+      } catch {
         // ignore if scrolling is not available
       }
       // focus success panel for keyboard / screen reader users
       try {
         successRef.current?.focus();
-      } catch (err) {
+      } catch {
         // ignore
       }
     }
@@ -268,7 +268,7 @@ export function HMSStudentForm({
             }
           }
         }
-      } catch (e) {
+      } catch {
         // ignore parsing issues here; server will validate
       }
 
@@ -282,7 +282,7 @@ export function HMSStudentForm({
         (data as any).performanceOther = Array.isArray((data as any).performanceOther)
           ? (data as any).performanceOther.join(', ')
           : String((data as any).performanceOther ?? '').trim();
-      } catch (e) {
+      } catch {
         // ignore, server validation will catch any remaining issues
       }
 
@@ -302,7 +302,7 @@ export function HMSStudentForm({
           const cc = (data as any).countryCode || '';
           const pn = String((data as any).phoneNumber || '').replace(/\D/g, '');
           (data as any).phoneNumber = `${cc}${pn}`;
-        } catch (e) {
+        } catch {
           // ignore, server will validate
         }
 
@@ -311,7 +311,7 @@ export function HMSStudentForm({
           const { getRecaptchaToken } = await import('@/lib/recaptcha');
           const token = await getRecaptchaToken('hms_students');
           if (token) (data as any).recaptchaToken = token;
-        } catch (e) {}
+        } catch {}
 
         // Submit to server API (default behavior)
 
@@ -325,13 +325,12 @@ export function HMSStudentForm({
         let result: any = null;
         try {
           result = await resp.json();
-        } catch (parseErr) {
+        } catch {
           // If parsing fails, attempt to read text for diagnostics
-          let txt: string | null = null;
           try {
-            txt = await resp.text();
-          } catch (tErr) {
-            txt = null;
+            await resp.text();
+          } catch {
+            // ignore - body was already consumed or unreadable
           }
           // non-JSON response
           setFormAlert({ type: 'error', message: String(t('studentForm.messages.error')) });
@@ -350,7 +349,7 @@ export function HMSStudentForm({
                 const path = Array.isArray(issue.path) && issue.path.length ? issue.path.join('.') : String(issue.path || '');
                 const msg = String(issue.message || issue.toString || JSON.stringify(issue));
                 if (path) {
-                  try { setError(path as any, { type: 'server', message: msg }); } catch (e) { /* ignore */ }
+                  try { setError(path as any, { type: 'server', message: msg }); } catch { /* ignore */ }
                 } else {
                   setFormAlert(prev => prev?.message ? prev : { type: 'error', message: msg });
                 }
@@ -364,7 +363,7 @@ export function HMSStudentForm({
                 const path = Array.isArray(errObj.path) ? errObj.path.join('.') : String(errObj.path || '');
                 const msg = errObj.message || errObj.msg || JSON.stringify(errObj);
                 if (path) {
-                  try { setError(path as any, { type: 'server', message: msg }); } catch (e) { /* ignore */ }
+                  try { setError(path as any, { type: 'server', message: msg }); } catch { /* ignore */ }
                 } else {
                   setFormAlert(prev => prev?.message ? prev : { type: 'error', message: String(msg) });
                 }
@@ -381,7 +380,7 @@ export function HMSStudentForm({
                   const msg = obj['_errors'].join(', ');
                   const target = prefix || '';
                   if (target) {
-                    try { setError(target as any, { type: 'server', message: msg }); } catch (e) { /* ignore */ }
+                    try { setError(target as any, { type: 'server', message: msg }); } catch { /* ignore */ }
                   } else {
                     setFormAlert(prev => prev?.message ? prev : { type: 'error', message: msg });
                   }
@@ -412,7 +411,7 @@ export function HMSStudentForm({
                   const msg = obj['_errors'].join(', ');
                   const target = prefix || '';
                   if (target) {
-                    try { setError(target as any, { type: 'server', message: msg }); } catch (e) { /* ignore */ }
+                    try { setError(target as any, { type: 'server', message: msg }); } catch { /* ignore */ }
                   } else {
                     setFormAlert({ type: 'error', message: msg });
                   }
@@ -1042,7 +1041,7 @@ export function HMSStudentForm({
                 onInput={(e) => {
                   const cleaned = (e.currentTarget as HTMLInputElement).value.replace(/[^0-9]/g, '');
                   // clamp
-                  let num = cleaned === '' ? '' : String(Math.min(100, Math.max(0, parseInt(cleaned, 10))));
+                  const num = cleaned === '' ? '' : String(Math.min(100, Math.max(0, parseInt(cleaned, 10))));
                   setValue('yearsOfExperience', num as any, { shouldValidate: true, shouldDirty: true });
                 }}
               />

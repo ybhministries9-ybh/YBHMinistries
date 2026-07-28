@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
           try {
             const params = new URLSearchParams(text);
             token = params.get('token') || text || null;
-          } catch (e) {
+          } catch {
             token = text || null;
           }
         } else {
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
           const text = await request.text();
           try { const parsed = JSON.parse(text); token = parsed?.token || null; } catch { token = text || null; }
         }
-      } catch (err) {
+      } catch {
         // ignore parse errors
       }
     }

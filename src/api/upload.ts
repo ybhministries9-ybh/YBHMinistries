@@ -55,7 +55,7 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
     }
 
     // Parse the form data
-    const { fields, files } = await parseForm(req);
+    const { fields: _fields, files } = await parseForm(req);
     
     // Get the folder from query params (default to 'uploads')
     const folder = (req.query.folder as string) || 'uploads';

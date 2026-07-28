@@ -7,7 +7,7 @@ import { Calendar } from './calendar';
 import { Input } from './input';
 
 // Reusable Date input with popover calendar. Value format is YYYY-MM-DD string.
-export function DateInput({ value, onChange, className, disabled = false, allowFuture = true, isDateDisabled, yearStart, yearEnd }: { value?: string; onChange: (v: string) => void; className?: string; disabled?: boolean; allowFuture?: boolean; isDateDisabled?: (d: Date) => boolean; yearStart?: number; yearEnd?: number }) {
+export function DateInput({ id, value, onChange, className, disabled = false, allowFuture = true, isDateDisabled, yearStart, yearEnd }: { id?: string; value?: string; onChange: (v: string) => void; className?: string; disabled?: boolean; allowFuture?: boolean; isDateDisabled?: (d: Date) => boolean; yearStart?: number; yearEnd?: number }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState<string>(value || '');
 
@@ -24,7 +24,7 @@ export function DateInput({ value, onChange, className, disabled = false, allowF
       }
       const d = new Date(s);
       if (!isNaN(d.getTime())) return d;
-    } catch (e) {
+    } catch {
       // ignore
     }
     return undefined;
@@ -86,6 +86,7 @@ export function DateInput({ value, onChange, className, disabled = false, allowF
       <div className="flex flex-col gap-1">
         <div style={{ width: '100%' }} className="relative">
           <Input
+            id={id}
             value={text}
             onChange={(e: any) => handleInputChange(e.target.value)}
             onBlur={handleBlur}

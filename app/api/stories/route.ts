@@ -25,16 +25,16 @@ export async function GET() {
         if (!head) return { ...s };
         const url = await getPresignedGetUrl(parsed.key, 3600, parsed.bucket || undefined);
         return { ...s, thumbnail_url: url };
-      } catch (e) {
+      } catch {
         try {
           const pub = getPublicUrl(parsed.key, parsed.bucket || undefined);
           if (pub && !pub.startsWith('r2://')) return { ...s, thumbnail_url: pub };
-        } catch (err) {}
+        } catch {}
         return { ...s };
       }
     }));
     // Remove contact fields (email, phone) from public response to avoid exposing private data
-    const publicResponse = enhanced.map(({ email, phone, ...rest }: any) => rest);
+    const publicResponse = enhanced.map(({ email: _email, phone: _phone, ...rest }: any) => rest);
     return NextResponse.json({ success: true, data: publicResponse });
   } catch (err) {
     logger.error('GET /api/stories error', { error: String(err) });
@@ -62,10 +62,10 @@ export async function POST(request: Request) {
       const token = body?.recaptchaToken || body?.recaptcha_token;
       const rc = await verifyRecaptcha(token);
       if (!rc.ok && !rc.skipped) {
-        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for stories submission', { details: rc }); } catch (_) {}
+        try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification failed for stories submission', { details: rc }); } catch {}
       }
     } catch (e) {
-      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for stories', { error: String(e) }); } catch (_) {}
+      try { const { logger } = await import('@/lib/logger'); logger.warn('reCAPTCHA verification error for stories', { error: String(e) }); } catch {}
     }
     // Basic server-side validation & sanitization
     const name = sanitizeInput(body.name, 100);
@@ -230,7 +230,7 @@ export async function POST(request: Request) {
           logger.error('Stories confirmation email failed', { to: email, error: res?.error });
         }
       } catch (e) {
-        try { const { logger } = await import('@/lib/logger'); logger.error('Failed sending stories email', { error: (e as any)?.message || e }); } catch (_) {}
+        try { const { logger } = await import('@/lib/logger'); logger.error('Failed sending stories email', { error: (e as any)?.message || e }); } catch {}
       }
     }
 

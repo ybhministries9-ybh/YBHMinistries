@@ -11,7 +11,7 @@ export function RouteLoaderClient() {
   useEffect(() => {
     try {
       hidePageLoader();
-    } catch (e) {}
+    } catch {}
   }, [pathname]);
 
   useEffect(() => {
@@ -22,13 +22,13 @@ export function RouteLoaderClient() {
     const origReplace = history.replaceState;
 
     (history as any).pushState = function (...args: any[]) {
-      try { showPageLoader(); } catch (e) {}
+      try { showPageLoader(); } catch {}
       // Call original
       return origPush.apply(this, args);
     };
 
     (history as any).replaceState = function (...args: any[]) {
-      try { showPageLoader(); } catch (e) {}
+      try { showPageLoader(); } catch {}
       return origReplace.apply(this, args);
     };
 
@@ -47,11 +47,11 @@ export function RouteLoaderClient() {
         try {
           const url = new URL(href, window.location.href);
           if (url.origin !== window.location.origin) return;
-        } catch (err) {
+        } catch {
           // If URL parsing fails, skip
         }
         showPageLoader();
-      } catch (e) {}
+      } catch {}
     };
 
     document.addEventListener('click', clickHandler, true);

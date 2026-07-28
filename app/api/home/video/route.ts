@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveHomeVideo } from '@/lib/db';
-import { parseKeyFromUrl, getPresignedGetUrl, headObject, getPublicUrl } from '@/lib/r2';
+import { parseKeyFromUrl, getPresignedGetUrl, headObject} from '@/lib/r2';
 
 /**
  * GET /api/home/video
  * Fetch active home video
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const video = await getActiveHomeVideo();
     

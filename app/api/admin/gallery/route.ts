@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put, del } from '@/lib/vercelBlob';
+import { del } from '@/lib/vercelBlob';
 import { 
   getAllGalleryItems, 
   getGalleryItemsByCategory, 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
                 it.url = pres3;
               }
             }
-          } catch (e) {
+          } catch {
             // ignore presign errors for specific items
           }
         }
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         data: enhanced,
         count: enhanced.length,
       });
-    } catch (err) {
+    } catch {
       // If r2 utilities fail, fallback to returning raw items
       return NextResponse.json({ success: true, data: items, count: items.length });
     }
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
       const uploadedItems = [];
 
       // We'll upload originals + variants to R2 private bucket
-      const { uploadBuffer, PRIVATE_BUCKET } = await import('@/lib/r2');
+      const { uploadBuffer, PRIVATE_BUCKET: _PRIVATE_BUCKET } = await import('@/lib/r2');
       const { processBufferToVariants } = await import('@/lib/imageProcessor');
 
       const targetBucket = process.env.R2_PRIVATE_BUCKET || process.env.R2_BUCKET || 'ybh-pstore';
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
               }
               item.title = it.snippet.title || item.title;
               if (it.snippet.publishedAt) item.date = it.snippet.publishedAt.split('T')[0];
-            } catch (e) {
+            } catch {
               itemErrors.push({ index: idx, message: 'Failed to fetch YouTube metadata' });
             }
           }
@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-    } catch (err) {
+    } catch {
       // ignore overall metadata fetch errors, but record a generic error for video items
       for (let idx = 0; idx < body.items.length; idx++) {
         const item = body.items[idx];
