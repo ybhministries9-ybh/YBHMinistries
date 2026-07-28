@@ -45,6 +45,38 @@ function encodeKey(key: string) {
 }
 
 /**
+ * Validate an object key supplied by a client.
+ * Rejects empty keys, absolute paths, path traversal, control characters,
+ * and keys over 512 chars. Returns true when the key is safe to use.
+ */
+export function isValidObjectKey(key: unknown): key is string {
+  if (typeof key !== 'string') return false;
+  if (!key.length || key.length > 512) return false;
+  if (key.startsWith('/') || key.includes('..') || key.includes('\\')) return false;
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x1f\x7f]/.test(key)) return false;
+  return true;
+}
+
+/**
+ * Buckets this deployment knows about. Client-supplied bucket names must be
+ * one of these — never sign URLs for arbitrary buckets.
+ */
+export function isAllowedBucket(bucket: unknown): boolean {
+  if (typeof bucket !== 'string' || !bucket) return false;
+  const allowed = new Set(
+    [
+      BUCKET,
+      PRIVATE_BUCKET,
+      NEXT_PUBLIC_R2_PUBLIC_BUCKET,
+      process.env.CF_R2_BUCKET,
+      process.env.R2_BUCKET,
+    ].filter(Boolean) as string[]
+  );
+  return allowed.has(bucket);
+}
+
+/**
  * Compute a public URL for an object.
  * Priority: if `NEXT_PUBLIC_R2_PUBLIC_URL` is set, use it (optionally with `NEXT_PUBLIC_R2_PUBLIC_BUCKET`).
  * Otherwise fall back to account-based endpoint and provided/default bucket.

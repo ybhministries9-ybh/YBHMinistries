@@ -1,11 +1,22 @@
 import { NextRequest } from 'next/server';
 import { uploadBuffer, getPublicUrl, PRIVATE_BUCKET } from '@/lib/r2';
+import { resolveSessionAndActorFromAuthHeader, readOnlyResponse } from '@/lib/sessions';
 
 export async function POST(request: NextRequest) {
   try {
+    // Admin-only: this endpoint writes directly to R2 storage.
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '').catch(() => null);
+    if (!resolved) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    const denied = readOnlyResponse(resolved);
+    if (denied) return denied;
+
     const formData = await request.formData();
     const file = formData.get('file');
-    const folder = formData.get('folder') || 'uploads';
+    // Sanitize folder: allow only simple path segments (no traversal)
+    const rawFolder = String(formData.get('folder') || 'uploads');
+    const folder = /^[a-zA-Z0-9_\/-]{1,100}$/.test(rawFolder) && !rawFolder.includes('..') && !rawFolder.startsWith('/')
+      ? rawFolder.replace(/\/$/, '')
+      : 'uploads';
 
     if (!file || !(file instanceof File)) {
       return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400 });
@@ -52,7 +63,7 @@ export async function POST(request: NextRequest) {
       await uploadBuffer(key, buffer, file.type || 'application/octet-stream', bucketToUse as string);
     } catch (e: any) {
       console.error('Upload to R2 failed:', e?.message || e);
-      return new Response(JSON.stringify({ error: 'Failed to upload file to R2 storage', details: e?.message || String(e) }), { status: 500 });
+      return new Response(JSON.stringify({ error: 'Failed to upload file to R2 storage' }), { status: 500 });
     }
 
     // Return an `r2://` URL to be stored in DB, plus a publicUrl for immediate preview if needed.
@@ -77,6 +88,6 @@ export async function POST(request: NextRequest) {
     }), { status: 200 });
   } catch (error: any) {
     console.error('/api/upload error', error);
-    return new Response(JSON.stringify({ error: 'Failed to upload file', details: error?.message || 'Unknown error' }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'Failed to upload file' }), { status: 500 });
   }
 }

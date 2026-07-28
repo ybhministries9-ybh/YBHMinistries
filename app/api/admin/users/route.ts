@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     const result = await sql`
       INSERT INTO users (name, email, role, status, password_hash, must_reset_password, created_by, updated_by)
       VALUES (${data.name}, ${data.email}, ${role}, ${status}, ${passwordHash}, true, ${actor}, ${actor})
-      RETURNING *
+      RETURNING id, name, email, role, status, must_reset_password, created_at, updated_at
     `;
 
     return NextResponse.json({ success: true, data: result.rows[0] }, { status: 201 });
@@ -134,7 +134,7 @@ export async function PUT(request: NextRequest) {
         updated_by = ${actor},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
-      RETURNING *
+      RETURNING id, name, email, role, status, must_reset_password, created_at, updated_at
     `;
 
     if (!result.rows.length) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });

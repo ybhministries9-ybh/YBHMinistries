@@ -613,7 +613,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
           const formData = new FormData();
           formData.append('file', selectedFile);
           formData.append('folder', `resources/books/${saveId}`);
-          const uploadResp = await fetch('/api/upload', { method: 'POST', body: formData });
+          const uploadResp = await fetch('/api/upload', { method: 'POST', body: formData, headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch (e) { return undefined; } })() });
           const uploadResult = await uploadResp.json();
           if (uploadResp.ok && uploadResult.url) {
             // update the book coverImage locally so validation and body use the uploaded URL
@@ -640,7 +640,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
             const fd = new FormData();
             fd.append('file', entry.file);
             fd.append('folder', `resources/books/${saveId}`);
-            const r = await fetch('/api/upload', { method: 'POST', body: fd });
+            const r = await fetch('/api/upload', { method: 'POST', body: fd, headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch (e) { return undefined; } })() });
             const resJson = await r.json();
             if (r.ok && resJson.url) {
               // Replace the first occurrence of the preview in book.additionalImages with the uploaded URL
@@ -697,7 +697,7 @@ function MusicBooksManager({ formErrors, setFieldErrors, clearFieldErrors }: { f
           const fd2 = new FormData();
           fd2.append('file', fileToUpload);
           fd2.append('folder', `resources/books/${saveId}`);
-          const up = await fetch('/api/upload', { method: 'POST', body: fd2 });
+          const up = await fetch('/api/upload', { method: 'POST', body: fd2, headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch (e) { return undefined; } })() });
           const j = await up.json();
           if (up.ok && j.url) return j.url;
           return null;

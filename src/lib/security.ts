@@ -89,13 +89,14 @@ export async function rateLimit(key: string, limit = 10, windowMs = 60 * 60 * 10
         return { ok: false, remaining: 0, reset: now + (ttl && ttl > 0 ? ttl * 1000 : windowMs) };
       }
       return { ok: true, remaining: limit - count };
-    } catch (e) {
+    } catch (e: any) {
       // fall back to in-memory if Redis fails
+      const detail = e?.message || String(e);
       try {
         const { logger } = await import('./logger');
-        logger.warn('Upstash rateLimit error, falling back to in-memory', e);
+        logger.warn('Upstash rateLimit error, falling back to in-memory', { error: detail });
       } catch (_) {
-        console.warn('Upstash rateLimit error, falling back to in-memory', e);
+        console.warn('Upstash rateLimit error, falling back to in-memory', detail);
       }
     }
   }

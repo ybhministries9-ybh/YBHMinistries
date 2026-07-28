@@ -32,14 +32,7 @@ export async function POST(request: Request) {
       // Log and return a 400 if the incoming body is not valid JSON
       const { logger } = await import('../../../src/lib/logger');
       logger.error('Invalid JSON body in /api/get-in-touch', { error: parseErr?.message });
-      // Try to read raw text for debugging
-      let rawBody: string | null = null;
-      try {
-        rawBody = await request.text();
-      } catch (tErr) {
-        rawBody = null;
-      }
-      return NextResponse.json({ error: 'Invalid JSON body', details: parseErr.message, rawBody }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
     const { name, email, message, phone, hearAboutUs, otherHearAboutUs } = body || {};
 

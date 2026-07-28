@@ -215,6 +215,7 @@ export function HomeManager() {
       const response = await fetch(`/api/upload?folder=${folder}`, {
         method: 'POST',
         body: formData,
+        headers: (() => { try { const t = localStorage.getItem('admin_token'); return t ? { 'Authorization': `Bearer ${t}` } : undefined; } catch (e) { return undefined; } })(),
       });
 
       if (!response.ok) {

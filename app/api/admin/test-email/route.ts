@@ -4,8 +4,10 @@ import { NextResponse } from 'next/server';
 // and providing it in the header `x-admin-test-key` when calling.
 export async function POST(request: Request) {
   try {
-    const key = request.headers.get('x-admin-test-key') || '';
-    if (!process.env.TEST_EMAIL_KEY || String(process.env.TEST_EMAIL_KEY) !== key) {
+    // Require a valid admin session with write permissions.
+    const { resolveSessionAndActorFromAuthHeader, roleCanWrite } = await import('@/lib/sessions');
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved || !roleCanWrite(resolved.role)) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
 
@@ -30,6 +32,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: !!res?.success, result: res });
   } catch (err: any) {
     try { const { logger } = await import('@/lib/logger'); logger.error('POST /api/admin/test-email error', { error: String(err) }); } catch (_) {}
-    return NextResponse.json({ error: 'failed', details: String(err) }, { status: 500 });
+    return NextResponse.json({ error: 'failed' }, { status: 500 });
   }
 }

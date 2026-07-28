@@ -4,8 +4,10 @@ import { NextResponse } from 'next/server';
 // Protected by TEST_EMAIL_KEY header to avoid exposing data.
 export async function GET(request: Request) {
   try {
-    const key = request.headers.get('x-admin-test-key') || '';
-    if (!process.env.TEST_EMAIL_KEY || String(process.env.TEST_EMAIL_KEY) !== key) {
+    // Require a valid admin session — this endpoint returns PII (names, emails, phones).
+    const { resolveSessionAndActorFromAuthHeader } = await import('@/lib/sessions');
+    const resolved = await resolveSessionAndActorFromAuthHeader(request.headers.get('authorization') || '');
+    if (!resolved) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
 
@@ -16,6 +18,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: true, data: mapped });
   } catch (err: any) {
     try { const { logger } = await import('@/lib/logger'); logger.error('GET /api/admin/get-in-touch/recent error', { error: String(err) }); } catch (_) {}
-    return NextResponse.json({ error: 'failed', details: String(err) }, { status: 500 });
+    return NextResponse.json({ error: 'failed' }, { status: 500 });
   }
 }
