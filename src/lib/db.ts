@@ -535,34 +535,64 @@ export async function createGetInTouch(payload: {
 }
 
 /**
- * Persist a Worship24 booking submission
+ * Persist Worship24 booking rows in a single statement.
+ *
+ * Bookings can span multiple dates and several timeslots per date, and one row
+ * is stored per (booking_date, timeslot). Using one multi-row INSERT keeps the
+ * whole booking atomic — Postgres applies the statement all-or-nothing, so a
+ * unique-violation on any slot leaves no partial rows behind — and costs a
+ * single round trip instead of one per slot.
  */
-export async function createWorship24(payload: {
-  name: string;
-  email?: string | null;
-  phone: string;
-  location?: string | null;
-  message: string;
-  booking_date: string; // YYYY-MM-DD
-  timeslot: string;
-  facebook_link?: string | null;
-  user_agent?: string | null;
-  createdBy?: string | null;
-}) {
+export async function createWorship24Bulk(
+  rows: Array<{ booking_date: string; timeslot: string }>,
+  shared: {
+    name: string;
+    email?: string | null;
+    phone: string;
+    location?: string | null;
+    message: string;
+    facebook_link?: string | null;
+    user_agent?: string | null;
+    createdBy?: string | null;
+  }
+) {
+  if (rows.length === 0) return [];
   try {
-    const { rows } = await sql`
+    const createdBy = shared.createdBy ?? 'public';
+    const values: unknown[] = [];
+    const tuples = rows.map((row) => {
+      const start = values.length;
+      values.push(
+        shared.name,
+        shared.email || null,
+        shared.phone,
+        shared.location || null,
+        shared.message,
+        row.booking_date,
+        row.timeslot,
+        shared.facebook_link || null,
+        shared.user_agent || null,
+        createdBy
+      );
+      // $1..$10 for the first row, $11..$20 for the next, and so on
+      const params = Array.from({ length: 10 }, (_, i) => `$${start + i + 1}`);
+      return `(${params.join(', ')}, 'Submitted', $${start + 10})`;
+    });
+
+    const query = `
       INSERT INTO worship24 (
-        name, email, phone, location, message, booking_date, timeslot, facebook_link, user_agent, status, created_by, updated_by
-      ) VALUES (
-        ${payload.name}, ${payload.email || null}, ${payload.phone}, ${payload.location || null}, ${payload.message}, ${payload.booking_date}, ${payload.timeslot}, ${payload.facebook_link || null}, ${payload.user_agent || null}, 'Submitted', ${payload.createdBy ?? 'public'}, ${payload.createdBy ?? 'public'}
-      ) RETURNING *
+        name, email, phone, location, message, booking_date, timeslot,
+        facebook_link, user_agent, created_by, status, updated_by
+      ) VALUES ${tuples.join(', ')}
+      RETURNING *
     `;
-    return rows[0];
+    const { rows: inserted } = await sql.query(query, values);
+    return inserted;
   } catch (error) {
-    logger.error('Error creating worship24 record:', error);
+    logger.error('Error creating worship24 records:', error);
     // Preserve original DB error shape (e.g. Postgres unique-violation code 23505)
     if (error && typeof error === 'object') throw error;
-    throw new Error(`DB createWorship24 error: ${String(error)}`);
+    throw new Error(`DB createWorship24Bulk error: ${String(error)}`);
   }
 }
 
@@ -580,22 +610,6 @@ export async function getBookedTimeslotsForDate(booking_date: string): Promise<s
     return rows.map((r) => String((r as { timeslot?: unknown }).timeslot ?? ''));
   } catch (error) {
     logger.error('Error fetching booked timeslots for date:', error);
-    throw error;
-  }
-}
-
-export async function isTimeslotTaken(booking_date: string, timeslot: string): Promise<boolean> {
-  try {
-    const { rows } = await sql`
-      SELECT COUNT(*) as c FROM worship24
-      WHERE booking_date = ${booking_date}
-        AND timeslot = ${timeslot}
-        AND status IN ('Submitted', 'Accepted')
-    `;
-    const c = Number(rows[0]?.c || 0);
-    return c > 0;
-  } catch (error) {
-    logger.error('Error checking timeslot taken:', error);
     throw error;
   }
 }
@@ -682,21 +696,6 @@ export async function getWorship24ById(id: number) {
     return rows[0] || null;
   } catch (error) {
     logger.error('Error fetching worship24 by id:', error);
-    throw error;
-  }
-}
-
-export async function getWorship24ByDate(booking_date: string) {
-  try {
-    const { rows } = await sql`
-      SELECT id, name, email, phone, message, location, booking_date, timeslot, facebook_link, user_agent, status, created_at, updated_at
-      FROM worship24
-      WHERE booking_date = ${booking_date}
-      ORDER BY timeslot ASC
-    `;
-    return rows;
-  } catch (error) {
-    logger.error('Error fetching worship24 by date:', error);
     throw error;
   }
 }

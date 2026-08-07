@@ -1,49 +1,79 @@
 "use client";
 
-import { useRef, useState, memo, useMemo, useEffect } from 'react';
+import { useRef, useState, memo, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { COUNTRY_CODES } from '../lib/countryCodes';
 
 const LIMITS = { name: 100, email: 254, phone: 10, location: 200, message: 2000, facebook: 300 };
 
-function generateTimeslots(): string[] {
+// Maximum number of timeslots a single booking may reserve for one date.
+// The limit applies per date — selections on one date do not consume the
+// allowance of another date.
+const MAX_SLOTS_PER_DAY = 4;
+
+// How many upcoming booking dates (2nd Saturdays) are offered
+const MONTHS_OFFERED = 3;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Shared, immutable empty array so memos keyed on it stay referentially stable
+const NO_SLOTS: readonly string[] = Object.freeze([]);
+
+// Intl formatters are expensive to construct; build each one once
+const TIME_FORMAT = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+const LONG_DATE_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'long', day: '2-digit', year: 'numeric' });
+const MONTH_YEAR_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
+
+/** The 48 half-hour timeslots of a day, e.g. "12:00 AM to 12:30 AM" */
+const TIMESLOTS: string[] = (() => {
   const slots: string[] = [];
   for (let hour = 0; hour < 24; hour++) {
     for (let min = 0; min < 60; min += 30) {
-      const start = new Date(0,0,0,hour,min,0);
-      const end = new Date(0,0,0,hour, min + 30, 0);
-      const fmt = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase();
-      slots.push(`${fmt(start)} to ${fmt(end)}`);
+      const start = TIME_FORMAT.format(new Date(0, 0, 0, hour, min, 0)).toUpperCase();
+      const end = TIME_FORMAT.format(new Date(0, 0, 0, hour, min + 30, 0)).toUpperCase();
+      slots.push(`${start} to ${end}`);
     }
   }
   return slots;
+})();
+
+/** slot -> position in the day, used for O(1) validity checks and chronological ordering */
+const TIMESLOT_INDEX: ReadonlyMap<string, number> = new Map(TIMESLOTS.map((s, i) => [s, i]));
+
+const SLOT_GROUPS = [
+  { key: 'g1', label: '12 AM to 6 AM Slots', slots: TIMESLOTS.slice(0, 12) },
+  { key: 'g2', label: '6 AM to 12 PM Slots', slots: TIMESLOTS.slice(12, 24) },
+  { key: 'g3', label: '12 PM to 6 PM Slots', slots: TIMESLOTS.slice(24, 36) },
+  { key: 'g4', label: '6 PM to 12 AM Slots', slots: TIMESLOTS.slice(36, 48) },
+] as const;
+
+function toYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** The 2nd Saturday of the given month */
+function secondSaturdayOfMonth(year: number, monthIndex: number) {
+  const first = new Date(year, monthIndex, 1);
+  const firstSatDate = 1 + ((6 - first.getDay() + 7) % 7);
+  return new Date(year, monthIndex, firstSatDate + 7);
 }
 
 function isSecondSaturday(dateStr: string) {
   if (!dateStr) return false;
   const d = new Date(dateStr + 'T00:00:00');
-  // get day of week (6 === Saturday)
-  if (d.getDay() !== 6) return false;
-  // find first day of month
-  const first = new Date(d.getFullYear(), d.getMonth(), 1);
-  // day index of first saturday in month
-  const firstSatOffset = (6 - first.getDay() + 7) % 7;
-  const firstSatDate = 1 + firstSatOffset;
-  const secondSatDate = firstSatDate + 7;
-  return d.getDate() === secondSatDate;
+  if (Number.isNaN(d.getTime()) || d.getDay() !== 6) return false;
+  return d.getDate() === secondSaturdayOfMonth(d.getFullYear(), d.getMonth()).getDate();
 }
 
 function formatDatePretty(raw?: string) {
   if (!raw) return '';
-  try {
-    const [year, month, day] = raw.split('-').map(Number);
-    if (!year || !month || !day) return raw;
-    const d = new Date(year, month - 1, day);
-    if (Number.isNaN(d.getTime())) return raw;
-    return new Intl.DateTimeFormat('en-US', { month: 'long', day: '2-digit', year: 'numeric' }).format(d);
-  } catch {
-    return raw || '';
-  }
+  const [year, month, day] = raw.split('-').map(Number);
+  if (!year || !month || !day) return raw;
+  const d = new Date(year, month - 1, day);
+  return Number.isNaN(d.getTime()) ? raw : LONG_DATE_FORMAT.format(d);
 }
 
 function monthYearIsBeforeCurrent(dateStr: string) {
@@ -52,8 +82,46 @@ function monthYearIsBeforeCurrent(dateStr: string) {
   const now = new Date();
   // compare year and month only
   if (d.getFullYear() < now.getFullYear()) return true;
-  if (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth()) return true;
-  return false;
+  return d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth();
+}
+
+type Worship24Form = {
+  name: string;
+  email: string;
+  countryCode: string;
+  phone: string;
+  location: string;
+  message: string;
+  /** The date currently shown in the slot picker */
+  date: string;
+  /** Selected timeslots keyed by booking date (YYYY-MM-DD) */
+  slotsByDate: Record<string, string[]>;
+  facebook: string;
+  hp: string;
+};
+
+const EMPTY_FORM: Worship24Form = {
+  name: '',
+  email: '',
+  countryCode: '+91',
+  phone: '',
+  location: '',
+  message: '',
+  date: '',
+  slotsByDate: {},
+  facebook: '',
+  hp: '',
+};
+
+/**
+ * Flatten the selection map into an ordered list of dates, each with its slots
+ * already sorted chronologically. Dates with no slots are dropped.
+ */
+function buildSelections(slotsByDate: Record<string, string[]>) {
+  return Object.keys(slotsByDate)
+    .filter((d) => (slotsByDate[d] || []).length > 0)
+    .sort()
+    .map((date) => ({ date, timeslots: slotsByDate[date] }));
 }
 
 export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor?: string }) => {
@@ -67,7 +135,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   });
 
   // use shared country-code list from lib
-  const [form, setForm] = useState({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
+  const [form, setForm] = useState<Worship24Form>({ ...EMPTY_FORM });
   // selected country option index to avoid duplicate option values (e.g. +1)
   const [selectedCountryIndex, setSelectedCountryIndex] = useState<number>(() => {
     const idx = COUNTRY_CODES.findIndex(c => c.code === '+91');
@@ -75,60 +143,86 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   });
   
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [errors, setErrors] = useState<Record<string,string>>({});
-
-  const timeslots = useMemo(() => generateTimeslots(), []);
-
-  const groupedSlots = useMemo(() => {
-    return [
-      { key: 'g1', label: '12 AM to 6 AM Slots', slots: timeslots.slice(0, 12) },
-      { key: 'g2', label: '6 AM to 12 PM Slots', slots: timeslots.slice(12, 24) },
-      { key: 'g3', label: '12 PM to 6 PM Slots', slots: timeslots.slice(24, 36) },
-      { key: 'g4', label: '6 PM to 12 AM Slots', slots: timeslots.slice(36, 48) },
-    ];
-  }, [timeslots]);
 
   const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
-  const bookedSlotsSet = useMemo(() => new Set(bookedSlots), [bookedSlots]);
+  // Booked slots cached per date so switching between dates does not refetch
+  const [bookedByDate, setBookedByDate] = useState<Record<string, readonly string[]>>({});
+
+  const bookedSlotsSet = useMemo(
+    () => new Set(bookedByDate[form.date] ?? NO_SLOTS),
+    [bookedByDate, form.date]
+  );
   const availableSlotCountsByGroup = useMemo(() => {
     const map = new Map<string, number>();
-    for (const group of groupedSlots) {
-      let availableCount = 0;
-      for (const slot of group.slots) {
-        if (!bookedSlotsSet.has(slot)) availableCount++;
-      }
-      map.set(group.key, availableCount);
+    for (const group of SLOT_GROUPS) {
+      let available = 0;
+      for (const slot of group.slots) if (!bookedSlotsSet.has(slot)) available++;
+      map.set(group.key, available);
     }
     return map;
-  }, [groupedSlots, bookedSlotsSet]);
-  const validate = (data: typeof form) => {
-    const errs: Record<string,string> = {};
-    if (!data.name || data.name.trim().length < 2) errs.name = t('contactForm.validation.nameRequired');
-    if (data.name && data.name.length > LIMITS.name) errs.name = t('contactForm.validation.nameMax');
+  }, [bookedSlotsSet]);
 
-    if (data.email && data.email.length > 0) {
+  // Selections for the date currently shown in the picker
+  const selectedSlotSet = useMemo(
+    () => new Set(form.slotsByDate[form.date] ?? NO_SLOTS),
+    [form.slotsByDate, form.date]
+  );
+  const selectedSlotCount = selectedSlotSet.size;
+  const limitReached = selectedSlotCount >= MAX_SLOTS_PER_DAY;
+
+  // Ordered view of every date that has selections — drives the summary,
+  // the month badges and the submitted payload.
+  const selections = useMemo(() => buildSelections(form.slotsByDate), [form.slotsByDate]);
+  const totalSlots = useMemo(
+    () => selections.reduce((sum, s) => sum + s.timeslots.length, 0),
+    [selections]
+  );
+
+  const validate = useCallback((data: Worship24Form) => {
+    const errs: Record<string, string> = {};
+    if (!data.name || data.name.trim().length < 2) errs.name = t('contactForm.validation.nameRequired');
+    else if (data.name.length > LIMITS.name) errs.name = t('contactForm.validation.nameMax');
+
+    if (data.email) {
       if (data.email.length > LIMITS.email) errs.email = t('contactForm.validation.emailMax');
-      else {
-        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRe.test(data.email)) errs.email = t('contactForm.validation.emailInvalid');
-      }
+      else if (!EMAIL_RE.test(data.email)) errs.email = t('contactForm.validation.emailInvalid');
     }
 
     if (!data.phone || data.phone.trim().length === 0) errs.phone = t('contactForm.validation.phoneRequired');
-    else {
-      const digits = String(data.phone).replace(/\D/g, '');
-      if (digits.length !== LIMITS.phone) errs.phone = t('contactForm.validation.phoneExact', { count: LIMITS.phone }) || t('contactForm.validation.phoneMin');
+    else if (data.phone.replace(/\D/g, '').length !== LIMITS.phone) {
+      errs.phone = t('contactForm.validation.phoneExact', { count: LIMITS.phone }) || t('contactForm.validation.phoneMin');
     }
 
-    // Date validation
-    if (!data.date) errs.date = String(t('contactForm.validation.worship24_dateRequired'));
-    else if (monthYearIsBeforeCurrent(data.date)) errs.date = String(t('contactForm.validation.worship24_previousMonth'));
-    else if (!isSecondSaturday(data.date)) errs.date = String(t('contactForm.validation.worship24_secondSaturday'));
+    // Date — every date carrying selections must be a valid booking date.
+    // Before anything is selected, the active date is checked instead.
+    const dated = buildSelections(data.slotsByDate);
+    const datesToCheck = dated.length > 0 ? dated.map((s) => s.date) : (data.date ? [data.date] : []);
+    if (datesToCheck.length === 0) errs.date = String(t('contactForm.validation.worship24_dateRequired'));
+    else {
+      for (const d of datesToCheck) {
+        if (monthYearIsBeforeCurrent(d)) { errs.date = String(t('contactForm.validation.worship24_previousMonth')); break; }
+        if (!isSecondSaturday(d)) { errs.date = String(t('contactForm.validation.worship24_secondSaturday')); break; }
+      }
+    }
 
-    // Timeslot
-    if (!data.timeslot) errs.timeslot = String(t('contactForm.validation.worship24_timeslotRequired'));
-    else if (!timeslots.includes(data.timeslot)) errs.timeslot = String(t('contactForm.validation.worship24_timeslotInvalid'));
+    // Timeslots — at least one overall, and at most MAX_SLOTS_PER_DAY on any single date
+    if (dated.length === 0) {
+      errs.timeslot = String(t('contactForm.validation.worship24_timeslotRequired'));
+    } else {
+      for (const { timeslots } of dated) {
+        if (timeslots.some((s) => !TIMESLOT_INDEX.has(s))) {
+          errs.timeslot = String(t('contactForm.validation.worship24_timeslotInvalid'));
+          break;
+        }
+        if (timeslots.length > MAX_SLOTS_PER_DAY) {
+          errs.timeslot = String(t('contactForm.validation.worship24_timeslotMax', {
+            max: MAX_SLOTS_PER_DAY,
+            defaultValue: `You can select up to ${MAX_SLOTS_PER_DAY} slots per date`,
+          }));
+          break;
+        }
+      }
+    }
 
     // Facebook (mandatory)
     if (!data.facebook || data.facebook.trim().length === 0) errs.facebook = String(t('contactForm.validation.worship24_facebookRequired'));
@@ -140,48 +234,91 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
     // Message is optional for Worship24; no length validation applied
 
     return errs;
-  };
+  }, [t]);
 
-  const handleChange = (field: keyof typeof form) => (e: any) => {
+  // Errors are derived, not stored — one validation pass per form change
+  const errors = useMemo(() => validate(form), [validate, form]);
+  const isValid = useMemo(() => Object.keys(errors).length === 0, [errors]);
+
+  const handleChange = (field: keyof Worship24Form) => (e: { target: { value: string } }) => {
     let value = e.target.value;
     if (field === 'phone') {
-      value = String(value).replace(/\D/g, '').slice(0, LIMITS.phone);
+      value = value.replace(/\D/g, '').slice(0, LIMITS.phone);
     }
-    // if countryCode select changed, expect numeric index
+    // the countryCode select submits the option index, not the code itself
     if (field === 'countryCode') {
-      const idx = parseInt(String(value), 10);
-      if (!isNaN(idx) && COUNTRY_CODES[idx]) {
+      const idx = Number.parseInt(value, 10);
+      if (!Number.isNaN(idx) && COUNTRY_CODES[idx]) {
         setSelectedCountryIndex(idx);
         value = COUNTRY_CODES[idx].code;
       }
     }
     setForm((s) => ({ ...s, [field]: value }));
-    const next = { ...form, [field]: value };
-    setErrors(validate(next));
   };
 
-  const handleBlur = (field: keyof typeof form) => () => {
-    setTouched((s) => ({ ...s, [field]: true }));
-    setErrors(validate(form));
+  /**
+   * Toggle a slot for a given date, keeping each date's slots in chronological
+   * order. The per-date limit is independent of every other date.
+   */
+  const toggleSlotForDate = useCallback((date: string, slot: string) => {
+    if (!date || !TIMESLOT_INDEX.has(slot)) return;
+    setTouched((tch) => (tch.timeslot ? tch : { ...tch, timeslot: true }));
+    setForm((f) => {
+      const current = f.slotsByDate[date] ?? [];
+      const isSelected = current.includes(slot);
+      // at the limit for this date – ignore attempts to add more slots
+      if (!isSelected && current.length >= MAX_SLOTS_PER_DAY) return f;
+      const nextSlots = isSelected
+        ? current.filter((x) => x !== slot)
+        : [...current, slot].sort((a, b) => (TIMESLOT_INDEX.get(a) ?? 0) - (TIMESLOT_INDEX.get(b) ?? 0));
+      const slotsByDate = { ...f.slotsByDate };
+      if (nextSlots.length > 0) slotsByDate[date] = nextSlots;
+      else delete slotsByDate[date];
+      return { ...f, slotsByDate };
+    });
+  }, []);
+
+  /** Remove every selection for a date (used by the summary's "clear" action) */
+  const clearDate = useCallback((date: string) => {
+    setTouched((tch) => (tch.timeslot ? tch : { ...tch, timeslot: true }));
+    setForm((f) => {
+      if (!f.slotsByDate[date]) return f;
+      const slotsByDate = { ...f.slotsByDate };
+      delete slotsByDate[date];
+      return { ...f, slotsByDate };
+    });
+  }, []);
+
+  const handleBlur = (field: keyof Worship24Form) => () => {
+    setTouched((s) => (s[field] ? s : { ...s, [field]: true }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ name: true, email: true, phone: true, message: true, date: true, timeslot: true, facebook: true });
-    const next = validate(form);
-    setErrors(next);
-    if (Object.keys(next).length > 0) return;
+    if (!isValid || submitting) return;
     setSubmitting(true);
     try {
-      const combinedPhone = `${form.countryCode || ''}${String(form.phone || '').replace(/\D/g, '')}`;
       // attempt to get reCAPTCHA token for worship24
       let recaptchaToken: string | null = null;
       try {
         const { getRecaptchaToken } = await import('@/lib/recaptcha');
         recaptchaToken = await getRecaptchaToken('worship24');
       } catch { recaptchaToken = null; }
-      const payload = { ...form, phone: combinedPhone, recaptchaToken };
-        const res = await fetch('/api/worship24', {
+
+      const payload = {
+        name: form.name,
+        email: form.email,
+        phone: `${form.countryCode}${form.phone.replace(/\D/g, '')}`,
+        location: form.location,
+        message: form.message,
+        facebook: form.facebook,
+        hp: form.hp,
+        // one entry per date, each with its own (max 4) timeslots
+        selections,
+        recaptchaToken,
+      };
+      const res = await fetch('/api/worship24', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -191,8 +328,9 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
         setStatus({ submitted: false, message: data?.error || 'Failed' });
       } else {
         setStatus({ submitted: true });
-        if (formRef.current) formRef.current.reset();
-        setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
+        formRef.current?.reset();
+        setForm({ ...EMPTY_FORM });
+        setTouched({});
       }
     } catch {
       setStatus({ submitted: false, message: 'Server error' });
@@ -201,73 +339,65 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
     }
   };
 
-  const isValid = Object.keys(validate(form)).length === 0;
-
+  /** The next few bookable dates (2nd Saturday of each month) */
   const monthOptions = useMemo(() => {
-    const formatMonthYear = (d: Date) => new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(d);
-    const toYmd = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    };
-    const secondSaturdayOfMonth = (year: number, monthIndex: number) => {
-      const first = new Date(year, monthIndex, 1);
-      const firstSatOffset = (6 - first.getDay() + 7) % 7;
-      const firstSatDate = 1 + firstSatOffset;
-      const secondSatDate = firstSatDate + 7;
-      return new Date(year, monthIndex, secondSatDate);
-    };
-
     const now = new Date();
     const currentSecondSat = secondSaturdayOfMonth(now.getFullYear(), now.getMonth());
+    // once this month's date has passed, start from next month
     const startMonthIndex = now.getTime() >= currentSecondSat.getTime() ? now.getMonth() + 1 : now.getMonth();
 
-    const months: { label: string; bookingDate: string }[] = [];
-    for (let i = 0; i < 3; i++) {
+    return Array.from({ length: MONTHS_OFFERED }, (_, i) => {
       const m = new Date(now.getFullYear(), startMonthIndex + i, 1);
-      const secondSat = secondSaturdayOfMonth(m.getFullYear(), m.getMonth());
-      months.push({ label: formatMonthYear(m), bookingDate: toYmd(secondSat) });
-    }
-    return months;
+      return {
+        label: MONTH_YEAR_FORMAT.format(m),
+        bookingDate: toYmd(secondSaturdayOfMonth(m.getFullYear(), m.getMonth())),
+      };
+    });
   }, []);
 
+  // Default the picker to the first bookable date
   useEffect(() => {
-    if (form.date || monthOptions.length === 0) return;
-    const nextDate = monthOptions[0].bookingDate;
-    setForm((s) => ({ ...s, date: nextDate }));
-    setErrors(validate({ ...form, date: nextDate }));
-  }, [form.date, monthOptions]);
+    setForm((s) => (s.date || monthOptions.length === 0 ? s : { ...s, date: monthOptions[0].bookingDate }));
+  }, [monthOptions]);
 
-  // Fetch booked slots for selected date so they can be disabled in the UI
+  // Fetch booked slots for the active date so they can be disabled in the UI.
+  // Results are cached per date, so previously visited dates are not refetched.
   useEffect(() => {
-    let aborted = false;
+    const date = form.date;
+    if (!date) return;
     const controller = new AbortController();
-    async function load() {
-      if (!form.date) {
-        setBookedSlots([]);
-        return;
-      }
+
+    (async () => {
       try {
-        const res = await fetch(`/api/worship24?date=${encodeURIComponent(form.date)}`, { signal: controller.signal });
+        const res = await fetch(`/api/worship24?date=${encodeURIComponent(date)}`, { signal: controller.signal });
         const data = await res.json();
-        if (aborted) return;
-        if (data && data.success && Array.isArray(data.booked)) {
-          setBookedSlots(data.booked.map((s: unknown) => String(s)));
-          if (form.timeslot && data.booked.includes(form.timeslot)) {
-            // clear selection if it became taken
-            setForm(f => ({ ...f, timeslot: '' }));
-            setTouched(t => ({ ...t, timeslot: true }));
-          }
-        } else {
-          setBookedSlots([]);
+        if (controller.signal.aborted) return;
+
+        const booked: string[] = data?.success && Array.isArray(data.booked)
+          ? data.booked.map(String)
+          : [];
+        setBookedByDate((prev) => ({ ...prev, [date]: booked }));
+
+        // drop any selections for this date that were taken in the meantime
+        if (booked.length > 0) {
+          const bookedSet = new Set(booked);
+          setForm((f) => {
+            const current = f.slotsByDate[date];
+            if (!current) return f;
+            const kept = current.filter((s) => !bookedSet.has(s));
+            if (kept.length === current.length) return f;
+            const slotsByDate = { ...f.slotsByDate };
+            if (kept.length > 0) slotsByDate[date] = kept;
+            else delete slotsByDate[date];
+            return { ...f, slotsByDate };
+          });
         }
       } catch {
-        if (!aborted) setBookedSlots([]);
+        // network/abort failures leave the date uncached so it can be retried
       }
-    }
-    load();
-    return () => { aborted = true; controller.abort(); };
+    })();
+
+    return () => controller.abort();
   }, [form.date]);
 
   useEffect(() => {
@@ -309,10 +439,9 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
               <button
                 type="button"
                   onClick={() => {
-                  if (formRef.current) formRef.current.reset();
-                  setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' });
+                  formRef.current?.reset();
+                  setForm({ ...EMPTY_FORM });
                   setTouched({});
-                  setErrors({});
                   setStatus({ submitted: false, message: '' });
                   // focus first input after returning to the form
                   setTimeout(() => { try { nameInputRef.current?.focus(); } catch {} }, 50);
@@ -385,22 +514,28 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                 </label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {monthOptions.map((m) => {
-                    const selected = form.date === m.bookingDate;
+                    const active = form.date === m.bookingDate;
+                    const count = form.slotsByDate[m.bookingDate]?.length ?? 0;
                     return (
                       <button
                         key={m.bookingDate}
                         type="button"
                         onClick={() => {
-                          setForm((s) => ({ ...s, date: m.bookingDate, timeslot: '' }));
-                          setTouched((tch) => ({ ...tch, date: true }));
-                          setErrors(validate({ ...form, date: m.bookingDate, timeslot: '' }));
+                          // Switching dates keeps every existing selection
+                          setForm((s) => (s.date === m.bookingDate ? s : { ...s, date: m.bookingDate }));
+                          setTouched((tch) => (tch.date ? tch : { ...tch, date: true }));
                         }}
-                        className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
-                          selected ? 'bg-[#FDB813] text-black' : 'bg-[#333] text-white border border-gray-600 hover:bg-[#444]'
+                        className={`rounded px-4 py-2 text-sm font-medium transition-colors inline-flex items-center gap-2 ${
+                          active ? 'bg-[#FDB813] text-black' : `bg-[#333] text-white border hover:bg-[#444] ${count > 0 ? 'border-[#FDB813]' : 'border-gray-600'}`
                         }`}
                         title={`2nd Saturday: ${m.bookingDate}`}
                       >
                         {m.label}
+                        {count > 0 ? (
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${active ? 'bg-black/20 text-black' : 'bg-[#FDB813] text-black'}`}>
+                            {count}
+                          </span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -408,13 +543,37 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                 <div className="mt-2 text-sm text-gray-300">
                   {form.date ? `2nd Saturday: ${formatDatePretty(form.date)}` : ''}
                 </div>
+                <p className="mt-1 text-sm text-gray-400">
+                  {t('contactForm.worship24_multiDateHint', {
+                    max: MAX_SLOTS_PER_DAY,
+                    defaultValue: `You can book more than one date. Each date allows up to ${MAX_SLOTS_PER_DAY} slots, and switching dates keeps your earlier selections.`,
+                  })}
+                </p>
                 <p className="text-sm text-red-400">{touched.date && errors.date ? errors.date : ''}</p>
               </div>
 
               <div>
-                <label className="font-medium text-white">{t('contactForm.timeslot', { defaultValue: 'Timeslot' })} <span className="text-yellow-400">*</span></label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="font-medium text-white">
+                    {t('contactForm.timeslot', { defaultValue: 'Timeslot' })} <span className="text-yellow-400">*</span>
+                    {form.date ? <span className="ml-2 text-sm font-normal text-gray-300">{formatDatePretty(form.date)}</span> : null}
+                  </label>
+                  <p className="text-sm text-gray-400">
+                    {t('contactForm.worship24_slotsSelected', {
+                      selected: selectedSlotCount,
+                      max: MAX_SLOTS_PER_DAY,
+                      defaultValue: `${selectedSlotCount} of ${MAX_SLOTS_PER_DAY} slots selected`,
+                    })}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-400">
+                  {t('contactForm.worship24_slotsHint', {
+                    max: MAX_SLOTS_PER_DAY,
+                    defaultValue: `You can select up to ${MAX_SLOTS_PER_DAY} slots for this date.`,
+                  })}
+                </p>
                 <div className="space-y-3 mt-2">
-                  {groupedSlots.map((group) => (
+                  {SLOT_GROUPS.map((group) => (
                     <div key={group.key} className="bg-black/10 rounded-md border border-gray-700">
                       <button
                         type="button"
@@ -436,19 +595,21 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                         <div className="px-3 pb-3 mt-2">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             {group.slots.map((slot) => {
-                              const isSelected = form.timeslot === slot;
+                              const isSelected = selectedSlotSet.has(slot);
                               const isTaken = bookedSlotsSet.has(slot);
-                              const labelClass = `flex items-center px-3 py-2 rounded-md cursor-pointer border transition-colors ${isTaken ? 'bg-gray-800 text-gray-400 border-gray-600 opacity-60 cursor-not-allowed' : (isSelected ? 'bg-[#FDB813] text-black border-[#FDB813]' : 'bg-black border-gray-700 hover:border-[#FDB813] text-white')}`;
+                              const isBlockedByLimit = !isSelected && !isTaken && limitReached;
+                              const isDisabled = isTaken || isBlockedByLimit;
+                              const labelClass = `flex items-center px-3 py-2 rounded-md border transition-colors ${isDisabled ? 'bg-gray-800 text-gray-400 border-gray-600 opacity-60 cursor-not-allowed' : (isSelected ? 'bg-[#FDB813] text-black border-[#FDB813] cursor-pointer' : 'bg-black border-gray-700 hover:border-[#FDB813] text-white cursor-pointer')}`;
                               return (
-                                <label key={slot} className={labelClass} aria-disabled={isTaken}>
+                                <label key={slot} className={labelClass} aria-disabled={isDisabled}>
                                   <input
-                                    type="radio"
-                                    name="timeslot"
+                                    type="checkbox"
+                                    name="timeslots"
                                     value={slot}
                                     checked={isSelected}
-                                    disabled={isTaken}
-                                    onChange={() => { if (!isTaken) { setForm(f => ({ ...f, timeslot: slot })); setTouched(t => ({ ...t, timeslot: true })); setErrors(validate({ ...form, timeslot: slot })); } }}
-                                    className="form-radio accent-[#FDB813] mr-2"
+                                    disabled={isDisabled}
+                                    onChange={() => { if (!isDisabled) toggleSlotForDate(form.date, slot); }}
+                                    className="form-checkbox accent-[#FDB813] mr-2"
                                   />
                                   <span className="flex items-center gap-2 w-full min-w-0">
                                     <span className="flex-1 min-w-0 truncate">{slot}</span>
@@ -467,6 +628,54 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                     </div>
                   ))}
                 </div>
+                {selections.length > 0 ? (
+                  <div className="mt-4 rounded-md border border-gray-700 bg-black/20 p-3">
+                    <p className="mb-2 text-sm font-medium text-white">
+                      {t('contactForm.worship24_summaryTitle', {
+                        total: totalSlots,
+                        dates: selections.length,
+                        defaultValue: `Your selection — ${totalSlots} slot(s) across ${selections.length} date(s)`,
+                      })}
+                    </p>
+                    <div className="space-y-3">
+                      {selections.map(({ date, timeslots: slotsForDate }) => {
+                        const prettyDate = formatDatePretty(date);
+                        return (
+                          <div key={date}>
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <span className="text-sm text-gray-200">
+                                {prettyDate}{' '}
+                                <span className="text-gray-400">({slotsForDate.length}/{MAX_SLOTS_PER_DAY})</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => clearDate(date)}
+                                className="text-xs text-gray-400 underline hover:text-white cursor-pointer"
+                              >
+                                {t('contactForm.worship24_clearDate', { defaultValue: 'Clear' })}
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {slotsForDate.map((slot) => (
+                                <span key={slot} className="inline-flex items-center gap-2 rounded-full bg-[#FDB813] px-3 py-1 text-sm font-medium text-black">
+                                  {slot}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSlotForDate(date, slot)}
+                                    aria-label={`Remove ${slot} on ${prettyDate}`}
+                                    className="leading-none text-black/70 hover:text-black cursor-pointer"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
                 <p className="text-sm text-red-400">{touched.timeslot && errors.timeslot ? errors.timeslot : ''}</p>
               </div>
 
@@ -498,7 +707,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                   {submitting ? t('contactForm.sending', { defaultValue: 'Sending...' }) : t('contactForm.submitBooking', { defaultValue: 'Submit Booking' })}
                 </button>
 
-                <button type="button" onClick={() => { if (formRef.current) formRef.current.reset(); setForm({ name: '', email: '', countryCode: '+91', phone: '', location: '', message: '', date: '', timeslot: '', facebook: '', hp: '' }); }}
+                <button type="button" onClick={() => { formRef.current?.reset(); setForm({ ...EMPTY_FORM }); setTouched({}); }}
                   className="flex-1 py-2 px-4 text-sm bg-black cursor-pointer font-semibold text-white rounded-full border-2 border-[#FDB813] transition-colors duration-200 hover:bg-[#111]">
                   {t('contactForm.resetButton', { defaultValue: 'Reset Form' })}
                 </button>

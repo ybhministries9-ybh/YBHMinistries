@@ -93,12 +93,18 @@ export default {
       worship24_secondSaturday: 'Only the 2nd Saturday of the month is selectable',
       worship24_timeslotRequired: 'Please select a timeslot',
       worship24_timeslotInvalid: 'Invalid timeslot',
+      worship24_timeslotMax: 'You can select up to {{max}} slots per day',
       worship24_facebookRequired: 'Facebook link is required',
       worship24_facebookInvalid: 'Please enter a valid Facebook URL',
       worship24_facebookTooLong: 'Facebook link is too long'
     }
     ,
-    worship24_description: 'Book a slot for the {{name}} event (2nd Saturday of each month).'
+    worship24_description: 'Book a slot for the {{name}} event (2nd Saturday of each month).',
+    worship24_slotsSelected: '{{selected}} of {{max}} slots selected',
+    worship24_slotsHint: 'You can select up to {{max}} slots for this date.',
+    worship24_multiDateHint: 'You can book more than one date. Each date allows up to {{max}} slots, and switching dates keeps your earlier selections.',
+    worship24_summaryTitle: 'Your selection — {{total}} slot(s) across {{dates}} date(s)',
+    worship24_clearDate: 'Clear'
   },
   
   guinnessAttempt: {

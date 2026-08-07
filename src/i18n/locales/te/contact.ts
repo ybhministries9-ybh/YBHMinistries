@@ -68,6 +68,7 @@ export default {
       worship24_secondSaturday: 'మాసంలో 2వ శనివారమే ఎంచుకోబడుతుంది',
       worship24_timeslotRequired: 'దయచేసి టైమ్‌స్లాట్‌ని ఎంచుకోండి',
       worship24_timeslotInvalid: 'చెల్లని టైమ్‌స్లాట్',
+      worship24_timeslotMax: 'ఒక రోజుకు గరిష్టంగా {{max}} స్లాట్‌లను మాత్రమే ఎంచుకోగలరు',
       worship24_facebookRequired: 'Facebook లింక్ అవసరం',
       worship24_facebookInvalid: 'దయచేసి చెల్లుబాటు అయ్యే Facebook URLని ఇవ్వండి',
       worship24_facebookTooLong: 'Facebook లింక్ చాలా పొడవుగా ఉంది'
@@ -86,7 +87,12 @@ export default {
       website: 'YBH వెబ్‌సైట్',
       other: 'ఇతరం (దయచేసి వివరించండి)'
     },
-  worship24_description: 'ప్రతి నెల 2వ శనివారం జరుగే {{name}} ఈవెంట్ కోసం ఒక స్లాట్‌ను బుక్ చేయండి.'
+  worship24_description: 'ప్రతి నెల 2వ శనివారం జరుగే {{name}} ఈవెంట్ కోసం ఒక స్లాట్‌ను బుక్ చేయండి.',
+    worship24_slotsSelected: '{{max}}లో {{selected}} స్లాట్‌లు ఎంచుకోబడ్డాయి',
+    worship24_slotsHint: 'ఈ తేదీకి మీరు గరిష్టంగా {{max}} స్లాట్‌లను ఎంచుకోవచ్చు.',
+    worship24_multiDateHint: 'మీరు ఒకటి కంటే ఎక్కువ తేదీలను బుక్ చేయవచ్చు. ప్రతి తేదీకి గరిష్టంగా {{max}} స్లాట్‌లు, తేదీ మార్చినా మునుపటి ఎంపికలు అలాగే ఉంటాయి.',
+    worship24_summaryTitle: 'మీ ఎంపిక — {{dates}} తేదీలలో {{total}} స్లాట్‌లు',
+    worship24_clearDate: 'తొలగించు'
   },
   
   studentForm: {

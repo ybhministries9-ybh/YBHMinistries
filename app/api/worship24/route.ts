@@ -1,18 +1,61 @@
 import { NextResponse } from 'next/server';
-import { createWorship24, getBookedTimeslotsForDate, isTimeslotTaken } from '../../../src/lib/db';
+import { createWorship24Bulk, getBookedTimeslotsForDate } from '../../../src/lib/db';
 import validateEmail from '../../../src/lib/validateEmail';
 import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '../../../src/lib/security';
 
 export const runtime = 'nodejs';
 
+// Maximum number of timeslots a single booking may reserve for one date.
+// The limit applies per date — other dates keep their own full allowance.
+const MAX_SLOTS_PER_DAY = 4;
+// Upper bound on dates per submission, guarding against crafted payloads
+const MAX_DATES_PER_BOOKING = 12;
+
+const PHONE_RE = /^[0-9+()\-.\s]+$/;
+
+const DATE_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+type Selection = { date: string; timeslots: string[] };
+
 function isSecondSaturdayDate(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00');
-  if (isNaN(d.getTime())) return false;
-  if (d.getDay() !== 6) return false;
+  if (isNaN(d.getTime()) || d.getDay() !== 6) return false;
   const first = new Date(d.getFullYear(), d.getMonth(), 1);
-  const firstSatOffset = (6 - first.getDay() + 7) % 7;
-  const firstSatDate = 1 + firstSatOffset;
+  const firstSatDate = 1 + ((6 - first.getDay() + 7) % 7);
   return d.getDate() === firstSatDate + 7;
+}
+
+/**
+ * Normalise the request body into an ordered list of `{ date, timeslots }`.
+ * Accepted shapes, in order of preference:
+ *   1. selections: [{ date, timeslots: [...] }]   (multi-date)
+ *   2. date + timeslots: [...]                    (single date, multi-slot)
+ *   3. date + timeslot: '...'                     (legacy single slot)
+ */
+function parseSelections(body: any): Selection[] {
+  const raw: unknown[] = Array.isArray(body?.selections) && body.selections.length > 0
+    ? body.selections
+    : [{ date: body?.date, timeslots: body?.timeslots ?? body?.timeslot }];
+
+  const byDate = new Map<string, string[]>();
+  for (const item of raw) {
+    const entry = item as { date?: unknown; timeslots?: unknown; timeslot?: unknown };
+    const date = sanitizeInput(entry?.date, 20);
+    if (!date) continue;
+
+    const source = entry?.timeslots ?? entry?.timeslot;
+    const slots = Array.isArray(source) ? source : (source ? [source] : []);
+    const existing = byDate.get(date) ?? [];
+    for (const s of slots) {
+      const cleaned = sanitizeInput(s, 200);
+      if (cleaned && !existing.includes(cleaned)) existing.push(cleaned);
+    }
+    if (existing.length > 0) byDate.set(date, existing);
+  }
+
+  return [...byDate.entries()]
+    .map(([date, timeslots]) => ({ date, timeslots }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export async function POST(request: Request) {
@@ -46,35 +89,35 @@ export async function POST(request: Request) {
     const email = emailRaw ? sanitizeInput(emailRaw, 254) : undefined;
     const phone = sanitizeInput(body?.phone, 50);
     const location = sanitizeInput(body?.location, 200);
-    const message = sanitizeInput(body?.message, 4000);
-    const booking_date = sanitizeInput(body?.date, 20);
-    const timeslot = sanitizeInput(body?.timeslot, 200);
+    // message is optional in the form but NOT NULL in the table
+    const message = sanitizeInput(body?.message, 4000) ?? '';
     const facebook_link = sanitizeInput(body?.facebook, 300);
+
+    const selections = parseSelections(body);
 
     if (!name || name.length < 2) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     if (!phone || phone.length < 7) return NextResponse.json({ error: 'Phone is required' }, { status: 400 });
-    const phoneRe = /^[0-9+()\-\.\s]+$/;
-    if (!phoneRe.test(phone)) return NextResponse.json({ error: 'Phone contains invalid characters' }, { status: 400 });
+    if (!PHONE_RE.test(phone)) return NextResponse.json({ error: 'Phone contains invalid characters' }, { status: 400 });
     // Message is optional for Worship24; do not enforce a minimum length here.
-    if (!booking_date) return NextResponse.json({ error: 'Date is required' }, { status: 400 });
-    if (!isSecondSaturdayDate(booking_date)) return NextResponse.json({ error: 'Date must be the 2nd Saturday of the month' }, { status: 400 });
-
-    // ensure month/year not before current
-    const d = new Date(booking_date + 'T00:00:00');
-    const now = new Date();
-    if (d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth())) {
-      return NextResponse.json({ error: 'Previous months are not allowed' }, { status: 400 });
+    if (selections.length === 0) return NextResponse.json({ error: 'Date and timeslot are required' }, { status: 400 });
+    if (selections.length > MAX_DATES_PER_BOOKING) {
+      return NextResponse.json({ error: `You can book a maximum of ${MAX_DATES_PER_BOOKING} dates at a time` }, { status: 400 });
     }
 
-    // timeslot validation: basic presence
-    if (!timeslot) return NextResponse.json({ error: 'Timeslot is required' }, { status: 400 });
-
-    // ensure timeslot not already taken for this booking_date
-    try {
-      const taken = await isTimeslotTaken(booking_date, timeslot);
-      if (taken) return NextResponse.json({ error: 'Timeslot already taken' }, { status: 409 });
-    } catch {
-      return NextResponse.json({ error: 'DB error' }, { status: 500 });
+    const now = new Date();
+    for (const sel of selections) {
+      if (!isSecondSaturdayDate(sel.date)) {
+        return NextResponse.json({ error: 'Date must be the 2nd Saturday of the month' }, { status: 400 });
+      }
+      // ensure month/year not before current
+      const d = new Date(sel.date + 'T00:00:00');
+      if (d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth())) {
+        return NextResponse.json({ error: 'Previous months are not allowed' }, { status: 400 });
+      }
+      // the maximum applies per date; other dates are unaffected
+      if (sel.timeslots.length > MAX_SLOTS_PER_DAY) {
+        return NextResponse.json({ error: `You can select a maximum of ${MAX_SLOTS_PER_DAY} slots per date` }, { status: 400 });
+      }
     }
 
     // email optional but validate if present
@@ -85,23 +128,39 @@ export async function POST(request: Request) {
       emailVal = v.normalized || null;
     }
 
-    const userAgent = request.headers.get('user-agent') || null;
-
-    let saved;
+    // Pre-check availability for a friendly error naming the clashing slots.
+    // The unique index is still the source of truth against races below.
     try {
-      saved = await createWorship24({
-        name,
-        email: emailVal,
-        phone,
-        location,
-        message,
-        booking_date,
-        timeslot,
-        facebook_link: facebook_link || null,
-        user_agent: userAgent,
-      });
+      const bookedPerDate = await Promise.all(selections.map((sel) => getBookedTimeslotsForDate(sel.date)));
+      for (let i = 0; i < selections.length; i++) {
+        const booked = new Set(bookedPerDate[i]);
+        const conflicts = selections[i].timeslots.filter((s) => booked.has(s));
+        if (conflicts.length > 0) {
+          return NextResponse.json({ error: `Timeslot already taken on ${selections[i].date}: ${conflicts.join(', ')}` }, { status: 409 });
+        }
+      }
+    } catch {
+      return NextResponse.json({ error: 'DB error' }, { status: 500 });
+    }
+
+    // One row per timeslot across every selected date, written in a single
+    // atomic statement — no partial bookings are possible.
+    let savedRows: any[];
+    try {
+      savedRows = await createWorship24Bulk(
+        selections.flatMap((sel) => sel.timeslots.map((timeslot) => ({ booking_date: sel.date, timeslot }))),
+        {
+          name,
+          email: emailVal,
+          phone,
+          location,
+          message,
+          facebook_link: facebook_link || null,
+          user_agent: request.headers.get('user-agent') || null,
+        }
+      );
     } catch (dbErr: unknown) {
-      // If DB reported a unique-violation for timeslot, return conflict
+      // A unique-violation means someone took a slot between the check and the insert
       const code = dbErr && typeof dbErr === 'object' && 'code' in dbErr ? String((dbErr as { code?: unknown }).code) : '';
       const msg = dbErr && typeof dbErr === 'object' && 'message' in dbErr ? String((dbErr as { message?: unknown }).message) : '';
       if (code === '23505' || msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('unique')) {
@@ -118,20 +177,21 @@ export async function POST(request: Request) {
       const fields: Array<{ label: string; value: string }> = [];
       const push = (label: string, val?: any) => { if (val !== undefined && val !== null) fields.push({ label, value: String(val) }); };
       // Format booking date for human-friendly emails: MMM DD, YYYY
-      const bookingDateFormatted = (() => {
-        try {
-          const dt = new Date(String(booking_date) + 'T00:00:00');
-          if (isNaN(dt.getTime())) return String(booking_date || '');
-          return dt.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-        } catch { return String(booking_date || ''); }
-      })();
+      const formatDate = (value: string) => {
+        const dt = new Date(value + 'T00:00:00');
+        return isNaN(dt.getTime()) ? value : DATE_FORMAT.format(dt);
+      };
+
+      const totalSlots = savedRows.length;
 
       push('Full name', name);
       push('Email', emailVal || '');
       push('Phone', phone);
       push('Location', location || '');
-      push('Booking date', bookingDateFormatted);
-      push('Timeslot', timeslot);
+      // One line per booked date listing that date's timeslots
+      for (const sel of selections) {
+        push(`Booking date — ${formatDate(sel.date)}`, sel.timeslots.join(', '));
+      }
       push('Facebook', facebook_link || '');
       push('Message', message || '');
 
@@ -144,11 +204,11 @@ export async function POST(request: Request) {
       const html = `
           <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111;padding:9px;">
               <div style="text-align:center;background:#000;padding:20px;color:#fff;">
-                ${logoUrl ? `<img src="${logoUrl}" alt="YBH" width="110" style="display:block;margin:0 auto;"/>` : ''}
+                <img src="${logoUrl}" alt="YBH" width="110" style="display:block;margin:0 auto;"/>
               </div>
               <div style="margin-top:24px;">
                 <h2 style="margin:0 0 8px 0;font-size:15px;line-height:1.5;">Hi ${name || ''},</h2>
-                <p style="margin:0 0 12px 0;color:#333;font-size:15px;line-height:1.5;">Thank you for booking a slot for the <strong>24 Hours Worship</strong>. We've received your request and will review it shortly.</p>
+                <p style="margin:0 0 12px 0;color:#333;font-size:15px;line-height:1.5;">Thank you for booking ${totalSlots > 1 ? 'slots' : 'a slot'} for the <strong>24 Hours Worship</strong>. We've received your request and will review it shortly.</p>
 
                 ${htmlFields}
 
@@ -160,7 +220,8 @@ export async function POST(request: Request) {
       // Confirmation for submitter
       if (emailVal) {
         const subject = `YBH Ministries — 24 Hours Worship booking received`;
-        const plainLines = [`Hi ${name || ''},`, '', 'Thank you for booking a slot for the 24 Hours Worship. We’ve received your request and will review it shortly.', '', 'Booking details:', ''];
+        const slotWord = totalSlots > 1 ? 'slots' : 'a slot';
+        const plainLines = [`Hi ${name || ''},`, '', `Thank you for booking ${slotWord} for the 24 Hours Worship. We’ve received your request and will review it shortly.`, '', 'Booking details:', ''];
         for (const f of fields) plainLines.push(`${f.label}: ${f.value}`);
         plainLines.push('', 'Regards,', 'YBH Ministries');
         const plain = plainLines.join('\n');
@@ -178,7 +239,13 @@ export async function POST(request: Request) {
       try { const { logger } = await import('../../../src/lib/logger'); logger.error('worship24: email send failed', { error: String(err) }); } catch {}
     }
 
-    return NextResponse.json({ success: true, id: (saved as any).id });
+    return NextResponse.json({
+      success: true,
+      // `id` is the first created row, kept for backwards compatibility
+      id: savedRows[0]?.id,
+      ids: savedRows.map((r) => r?.id),
+      selections,
+    });
   } catch (_err: any) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
