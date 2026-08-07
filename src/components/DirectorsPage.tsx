@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, memo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Music, Globe, ChevronRight, Award, Mic, BookOpen, Heart, Users, Calendar, MapPin, Wind } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -115,13 +115,13 @@ export function DirectorsPage() {
   }, [activeTab, signedUrls]);
 
   // Preload next tab image on tab hover (prefer signed URL when available)
-  const handleTabHover = (tabKey: string) => {
+  const handleTabHover = useCallback((tabKey: string) => {
     const nextImage = signedUrls[tabKey as keyof typeof IMAGE_URLS] || IMAGE_URLS[tabKey as keyof typeof IMAGE_URLS];
     if (nextImage) {
       const img = new Image();
       img.src = nextImage;
     }
-  };
+  }, [signedUrls]);
 
   const _handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,11 +134,11 @@ export function DirectorsPage() {
     }
   };
 
-  const handleTabChange = (tabKey: string) => {
+  const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
     setImagePreloaded(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
   // Memoize tab buttons to prevent unnecessary re-renders
   const tabButtons = useMemo(() => (
@@ -162,7 +162,7 @@ export function DirectorsPage() {
         </button>
       );
     })
-  ), [activeTab, t]);
+  ), [activeTab, t, handleTabChange, handleTabHover]);
 
   return (
     <div className="min-h-screen bg-black text-white">

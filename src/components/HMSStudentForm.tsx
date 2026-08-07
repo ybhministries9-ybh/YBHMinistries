@@ -107,15 +107,17 @@ export function HMSStudentForm({
 
   // watch current values for live character counts
   const watched = watch();
+  // watched separately so the effect below tracks just this field
+  const hearAboutUs = watch('hearAboutUs');
 
   // Clear `otherHearAboutUs` whenever the selected option is not Other
   useEffect(() => {
     try {
-      if ((watched as any).hearAboutUs !== 'Other') {
+      if (hearAboutUs !== 'Other') {
         setValue('otherHearAboutUs', '')
       }
     } catch {}
-  }, [watched?.hearAboutUs, setValue]);
+  }, [hearAboutUs, setValue]);
 
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [formAlert, setFormAlert] = useState<{ type?: 'error' | 'info'; message?: string }>({});

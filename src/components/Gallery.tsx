@@ -37,11 +37,22 @@ const TAB_CONFIG = [
   { key: "kids-training" }
 ] as const;
 
+// Pure helper, kept at module scope so hooks can use it without a dependency
+function getVideoIdFromUrl(url: string): string {
+  if (!url) return "";
+  let videoId = "";
+  if (url.includes("youtube.com/watch?v=")) videoId = url.split("v=")[1]?.split("&")[0];
+  else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
+  else if (url.includes("youtube.com/shorts/")) videoId = url.split("shorts/")[1]?.split("?")[0];
+  else if (url.includes("youtube.com/live/")) videoId = url.split("live/")[1]?.split("?")[0];
+  return videoId;
+}
+
 function getYouTubeThumbnail(url: string): string {
   if (!url) return "";
-  
+
   let videoId = "";
-  
+
   // Handle different YouTube URL formats
   if (url.includes("youtube.com/watch?v=")) {
     videoId = url.split("v=")[1]?.split("&")[0];
@@ -251,7 +262,7 @@ export function Gallery() {
         }
       };
       fetchGalleryData();
-    }, []);
+    }, [initialTab, initialView, prefetchImages]);
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
@@ -297,16 +308,6 @@ export function Gallery() {
     }
     return getYouTubeThumbnail(url);
   }, [thumbnailErrors]);
-  const getVideoIdFromUrl = useCallback((url: string): string => {
-    if (!url) return "";
-    let videoId = "";
-    if (url.includes("youtube.com/watch?v=")) videoId = url.split("v=")[1]?.split("&")[0];
-    else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
-    else if (url.includes("youtube.com/shorts/")) videoId = url.split("shorts/")[1]?.split("?")[0];
-    else if (url.includes("youtube.com/live/")) videoId = url.split("live/")[1]?.split("?")[0];
-    return videoId;
-  }, []);
-
   const tabButtons = useMemo(() => TAB_CONFIG.map((tab) => {
     const isActive = activeTab === tab.key;
     return (

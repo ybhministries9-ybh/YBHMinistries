@@ -338,11 +338,6 @@ export function NewsPage() {
 
   const router = useRouter();
 
-  const handleContactClick = useCallback(() => {
-    // Navigate to Contact page and open the Get In Touch tab
-    router.push('/contact?tab=getintouch');
-  }, [router]);
-
   // Memoize all events sorted by date with translation applied
   const allEvents = useMemo(() => 
     events
@@ -576,7 +571,7 @@ export function NewsPage() {
         </div>
       </div>
     );
-  }, [selectedEvent, handleContactClick, resolvedImageUrl, resolvedVideoUrl, t, i18n.language]);
+  }, [selectedEvent, handleShare, copiedLink, router, resolvedImageUrl, resolvedVideoUrl, t]);
 
   // Resolve r2:// image references to presigned https URLs for the public event details
   useEffect(() => {

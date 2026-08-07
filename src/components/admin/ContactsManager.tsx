@@ -293,7 +293,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     setActiveSearchQuery(searchInputValue);
     setSearching(true);
     setTimeout(() => setSearching(false), 300);
-  }, [searchQuery]);
+  }, [searchInputValue]);
 
   const doHmsSearch = useCallback(() => {
     setPage(1);
@@ -569,17 +569,6 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
     }
   }, []);
 
-  const formatDateShort = useCallback((raw?: string | null) => {
-    if (!raw) return '-';
-    try {
-      // Extract date part only (YYYY-MM-DD format)
-      const dateStr = String(raw).split('T')[0];
-      return dateStr;
-    } catch {
-      return '-';
-    }
-  }, []);
-
   const sortedStudents = useMemo(() => {
     const arr = [...students];
     const dir = sortDir === 'asc' ? 1 : -1;
@@ -636,7 +625,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         </td>
       </tr>
     ));
-  }, [sortedStudents, formatDatePretty, formatDateShort]);
+  }, [sortedStudents, formatDatePretty]);
 
   const studentsRowsMobile = useMemo(() => {
     return sortedStudents.map((s: any) => (
@@ -659,7 +648,7 @@ export function ContactsManager({ forcedActiveTab }: { forcedActiveTab?: 'hms' |
         </div>
       </div>
     ));
-  }, [sortedStudents, formatDatePretty, formatDateShort]);
+  }, [sortedStudents, formatDatePretty]);
 
   const sortedContacts = useMemo(() => {
     const arr = [...contacts];

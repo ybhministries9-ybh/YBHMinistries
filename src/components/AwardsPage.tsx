@@ -6,6 +6,15 @@ import { useTranslation } from 'react-i18next';
 
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
 
+// Record images are static, so they live outside the component. The URL
+// resolver effect below depends only on these, not on the translated records.
+const RECORD_IMAGES: Record<string, string> = {
+  guinness: '/images/awards/guinness.jpg',
+  ingenious: '/images/awards/ingenious.jpg',
+  asia: '/images/awards/asia.jpg',
+  international: '/images/awards/star.jpg',
+};
+
 function ImageWithFallback(props) {
   const [didError, setDidError] = useState(false)
   const { src, alt, style, className, ...rest } = props
@@ -74,7 +83,7 @@ export function AwardsPage() {
     {
       id: "guinness",
       name: t('records.guinness.name'),
-      image: '/images/awards/guinness.jpg',
+      image: RECORD_IMAGES.guinness,
       award: t('records.guinness.award'),
       year: t('records.guinness.year'),
       participants: t('records.guinness.participants'),
@@ -86,7 +95,7 @@ export function AwardsPage() {
       id: "ingenious",
       name: t('records.ingenious.name'),
     //  image: `${R2_BASE}/awards/ingenious/ingenious.JPG?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
-      image: '/images/awards/ingenious.jpg',
+      image: RECORD_IMAGES.ingenious,
       award: t('records.ingenious.award'),
       year: t('records.ingenious.year'),
       participants: t('records.ingenious.participants'),
@@ -98,7 +107,7 @@ export function AwardsPage() {
       id: "asia",
       name: t('records.asia.name'),
      // image: `${R2_BASE}/awards/asia/asia.jpg?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
-      image: '/images/awards/asia.jpg',
+      image: RECORD_IMAGES.asia,
       award: t('records.asia.award'),
       year: t('records.asia.year'),
       participants: t('records.asia.participants'),
@@ -110,7 +119,7 @@ export function AwardsPage() {
       id: "international",
       name: t('records.international.name'),
       // image: `${R2_BASE}/awards/star/star.JPG?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80`,
-      image: '/images/awards/star.jpg',
+      image: RECORD_IMAGES.international,
       award: t('records.international.award'),
       year: t('records.international.year'),
       participants: t('records.international.participants'),
@@ -130,7 +139,8 @@ export function AwardsPage() {
 
     async function resolveAll() {
       const out: Record<string, string> = {};
-      await Promise.all(recordBooks.map(async (rec) => {
+      await Promise.all(Object.entries(RECORD_IMAGES).map(async ([id, image]) => {
+        const rec = { id, image };
         try {
           const v = rec.image;
           if (!v || typeof v !== 'string') { out[rec.id] = String(v); return; }

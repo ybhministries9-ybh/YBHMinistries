@@ -11,6 +11,9 @@ import { EventScrollBanner } from './EventScrollBanner';
 import { getUpcomingEvents, type Event as EventType } from '../utils/eventsData';
 
 const R2_BASE = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+
+// Default hero image when none are configured in the database
+const defaultHeroImage = `${R2_BASE}/home/hero/default.jpg`;
 const MINISTRY_IN_ACTION_PLAY_EVENT = 'ministryInActionPlay';
 
 // ImageWithFallback component for handling image loading errors
@@ -87,13 +90,15 @@ function VideoSection() {
       }
     );
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
+    // capture the node so cleanup unobserves the same element it observed
+    const section = sectionRef.current;
+    if (section) {
+      observer.observe(section);
     }
 
     return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current);
+      if (section) {
+        observer.unobserve(section);
       }
     };
   }, [isVideoVisible]);
@@ -261,7 +266,7 @@ function ImageCarousel({ images, interval = 3000, onOverlayClick }: { images: st
     }, interval);
 
     return () => clearInterval(timer);
-  }, [images.length, interval]);
+  }, [images.length, interval, isFullscreen]);
 
   // Fullscreen autoplay: advance fullscreenIndex while fullscreen is active
   useEffect(() => {
@@ -446,8 +451,6 @@ export function Home({ initialHeroImages }: HomeProps) {
   const [heroImages, setHeroImages] = useState<string[]>(initialHeroImages || []);
   const [isLoading, setIsLoading] = useState(!initialHeroImages || initialHeroImages.length === 0);
   
-  // Default image when no images are in database
-  const defaultHeroImage = `${R2_BASE}/home/hero/default.jpg`;
 
   // Fetch hero images and events from API (skip if initialHeroImages provided)
   useEffect(() => {

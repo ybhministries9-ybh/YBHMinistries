@@ -104,6 +104,13 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate: _onGenerate, g
     }
   };
 
+  // Only the fields the QR preview actually depends on, so the effect below
+  // does not re-run when unrelated parts of `local` change.
+  const upiId: string | undefined = local?.upi_id;
+  const upiLabel: string | undefined = local?.label;
+  const qrImageUrl: string | undefined = local?.qr_image_url;
+  const pendingQrFile = local?._pendingQrFile;
+
   // Auto-generate QR preview when UPI ID changes (debounced)
   // Only generate if there's no uploaded QR image (r2:// URL) or pending file
   useEffect(() => {
@@ -111,9 +118,8 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate: _onGenerate, g
     if (!editing) return;
 
     // Don't auto-generate if there's an uploaded QR image or a pending file to upload
-    const hasUploadedQr = local?.qr_image_url && typeof local.qr_image_url === 'string' && local.qr_image_url.startsWith('r2://');
-    const hasPendingFile = local?._pendingQrFile;
-    if (hasUploadedQr || hasPendingFile) return;
+    const hasUploadedQr = typeof qrImageUrl === 'string' && qrImageUrl.startsWith('r2://');
+    if (hasUploadedQr || pendingQrFile) return;
 
     // clear previous timer
     if (genTimer.current) {
@@ -121,7 +127,7 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate: _onGenerate, g
       genTimer.current = null;
     }
 
-    if (!local || !local.upi_id) {
+    if (!upiId) {
       // clear preview if upi_id removed (only clear data: URLs, not r2:// URLs)
       setLocal((l: any) => ({ ...l, qr_image_url: l?.qr_image_url && l.qr_image_url.startsWith('data:') ? null : l.qr_image_url }));
       return;
@@ -130,7 +136,7 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate: _onGenerate, g
     genTimer.current = window.setTimeout(async () => {
       try {
         const QR = await import('qrcode');
-        const upiString = `upi://pay?pa=${encodeURIComponent(local.upi_id)}&pn=${encodeURIComponent(local.label || 'YBH Ministries')}&cu=INR`;
+        const upiString = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiLabel || 'YBH Ministries')}&cu=INR`;
         const dataUrl: string = await QR.toDataURL(upiString, { type: 'image/png', margin: 1, scale: 6 });
         setLocal((l: any) => ({ ...l, qr_image_url: dataUrl }));
       } catch (err) {
@@ -144,7 +150,7 @@ export function DonateUpiRow({ u, onChange, onRemove, onGenerate: _onGenerate, g
         genTimer.current = null;
       }
     };
-  }, [local?.upi_id, local?.label, local?.qr_image_url, local?._pendingQrFile, editing]);
+  }, [upiId, upiLabel, qrImageUrl, pendingQrFile, editing]);
 
   // Handle QR image file upload
   const handleQrFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

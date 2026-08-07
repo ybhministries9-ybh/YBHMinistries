@@ -374,6 +374,10 @@ export function EventsManager() {
   const selectedVideoFilesRef = useRef<Map<string, File>>(new Map());
   // Local map of resolved preview URLs (handles blob:, https and presigned r2 URLs)
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  // Mirror of previewUrls for the resolver effect below, which needs the latest
+  // value without re-running (and re-resolving) every time a preview lands.
+  const previewUrlsRef = useRef<Record<string, string>>({});
+  previewUrlsRef.current = previewUrls;
   const [selectedVideoInfo, setSelectedVideoInfo] = useState<Record<string, { name: string; size: number }>>({});
 
   const formatBytes = (bytes: number) => {
@@ -448,13 +452,15 @@ export function EventsManager() {
     setSelectedVideoInfo(prev => ({ ...prev, [eventId]: { name: file.name, size: file.size } }));
   };
 
-  // Cleanup generated object URLs on unmount
+  // Cleanup generated object URLs on unmount.
+  // The Set is mutated in place, so holding the reference is enough.
   useEffect(() => {
+    const generatedUrls = generatedUrlsRef.current;
     return () => {
-      for (const u of generatedUrlsRef.current) {
+      for (const u of generatedUrls) {
         try { URL.revokeObjectURL(u); } catch {}
       }
-      generatedUrlsRef.current.clear();
+      generatedUrls.clear();
     };
   }, []);
 
@@ -509,12 +515,13 @@ export function EventsManager() {
       setPreviewUrls(prev => ({ ...prev, [ev.id]: ev.imageUrl }));
     }
 
+    const resolved = previewUrlsRef.current;
     for (const ev of events) {
       // Only resolve if not already present or changed
-      if (!ev.imageUrl && previewUrls[ev.id]) {
+      if (!ev.imageUrl && resolved[ev.id]) {
         // will be removed by resolveForEvent
         resolveForEvent(ev);
-      } else if (ev.imageUrl && previewUrls[ev.id] !== ev.imageUrl && !(ev.imageUrl.startsWith('r2://') && previewUrls[ev.id])) {
+      } else if (ev.imageUrl && resolved[ev.id] !== ev.imageUrl && !(ev.imageUrl.startsWith('r2://') && resolved[ev.id])) {
         // if ev.imageUrl is r2:// and we already have a presigned url, skip
         resolveForEvent(ev);
       }

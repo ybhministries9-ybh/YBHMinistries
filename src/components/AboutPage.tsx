@@ -47,9 +47,7 @@ export function AboutPage({ initialHeroImageUrl, initialHeroBlur }: Props) {
         
         if (result.success && result.data?.image_url) {
           // Only update if the server-provided URL differs to avoid visible swapping
-          if (result.data.image_url && result.data.image_url !== heroImageUrl) {
-            setHeroImageUrl(result.data.image_url);
-          }
+          setHeroImageUrl(prev => (prev === result.data.image_url ? prev : result.data.image_url));
         }
         } catch (error) {
         logger.error('Error fetching about hero image', error);

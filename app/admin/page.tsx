@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AdminLogin } from '@/components/admin/AdminLogin';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
@@ -63,12 +63,12 @@ export default function AdminPage() {
     setIsLoggedIn(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('admin_token');
     setIsLoggedIn(false);
     // After logout, show the admin login page
     router.push('/admin');
-  };
+  }, [router]);
 
   // Single auto-logout scheduler — schedules at mount and reschedules on 'session-extended'
   useEffect(() => {
@@ -113,7 +113,7 @@ export default function AdminPage() {
       window.removeEventListener('session-extended', onExtended as EventListener);
       window.removeEventListener('storage', onStorage);
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, handleLogout]);
 
   // Reset (extend) session on any user interaction (click) in the admin UI.
   // Throttle requests to avoid spamming the server.

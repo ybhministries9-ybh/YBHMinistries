@@ -279,7 +279,7 @@ export function GalleryManager() {
     type: 'warning'
   });
 
-  const fetchCategoryCounts = async () => {
+  const fetchCategoryCounts = useCallback(async () => {
     try {
       const counts: Record<string, number> = {};
       await Promise.all(
@@ -297,12 +297,12 @@ export function GalleryManager() {
     } catch (error) {
       console.error('Error fetching category counts:', error);
     }
-  };
+  }, []);
 
-  const fetchGalleryItems = async (category?: string) => {
+  // Takes the category explicitly so the callback stays stable across renders
+  const fetchGalleryItems = useCallback(async (category: string) => {
     try {
-      const cat = category || activeCategory;
-      const response = await fetch(`/api/admin/gallery?category=${cat}`, {
+      const response = await fetch(`/api/admin/gallery?category=${category}`, {
         headers: getAuthHeaders()
       });
       const result = await response.json();
@@ -316,17 +316,14 @@ export function GalleryManager() {
       console.error('Error fetching gallery items:', error);
       toast.error('Error fetching gallery items');
     }
-  };
-
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
-      setIsLoading(false);
-    };
-    loadData();
   }, []);
 
+  // Category counts are independent of the active category, so they load once.
+  useEffect(() => {
+    fetchCategoryCounts();
+  }, [fetchCategoryCounts]);
+
+  // Runs on mount and on every category change — this is the only items fetch.
   useEffect(() => {
     const loadCategoryData = async () => {
       setIsLoading(true);
@@ -335,7 +332,7 @@ export function GalleryManager() {
       setSelectedIds(new Set());
     };
     loadCategoryData();
-  }, [activeCategory]);
+  }, [activeCategory, fetchGalleryItems]);
 
   const handleUpload = async () => {
     if (uploadType === 'file' && mediaFiles.length === 0) {
@@ -409,11 +406,11 @@ export function GalleryManager() {
           setMediaFiles([]);
           const fileInput = document.getElementById('mediaFiles') as HTMLInputElement;
           if (fileInput) fileInput.value = '';
-          await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+          await Promise.all([fetchGalleryItems(activeCategory), fetchCategoryCounts()]);
         } else {
           toast.error(errorMessage || `Uploaded ${uploadedCount} of ${totalFiles} files before error`);
           if (uploadedCount > 0) {
-            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+            await Promise.all([fetchGalleryItems(activeCategory), fetchCategoryCounts()]);
           }
         }
       } else {
@@ -447,7 +444,7 @@ export function GalleryManager() {
             setVideoEntries([{ url: '' }]);
             setVideoErrors({});
           }
-          await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+          await Promise.all([fetchGalleryItems(activeCategory), fetchCategoryCounts()]);
         } else {
           if (result.errors && Array.isArray(result.errors) && result.errors.length > 0) {
             const map: Record<number,string> = {};
@@ -473,7 +470,7 @@ export function GalleryManager() {
       message: 'Are you sure you want to delete this item? This action cannot be undone.',
       type: 'danger',
       onConfirm: async () => {
-        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
           const response = await fetch(`/api/admin/gallery?id=${id}`, {
             method: 'DELETE',
@@ -484,7 +481,7 @@ export function GalleryManager() {
           if (result.success) {
             toast.success('Item deleted successfully');
             setSelectedIds(new Set());
-            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+            await Promise.all([fetchGalleryItems(activeCategory), fetchCategoryCounts()]);
           } else {
             toast.error(result.error || 'Failed to delete item');
           }
@@ -508,7 +505,7 @@ export function GalleryManager() {
       message: `Are you sure you want to delete ${selectedIds.size} item(s)? This action cannot be undone.`,
       type: 'danger',
       onConfirm: async () => {
-        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
           const ids = Array.from(selectedIds).join(',');
             const response = await fetch(`/api/admin/gallery?ids=${ids}`, {
@@ -520,7 +517,7 @@ export function GalleryManager() {
           if (result.success) {
             toast.success(result.message || 'Items deleted successfully');
             setSelectedIds(new Set());
-            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+            await Promise.all([fetchGalleryItems(activeCategory), fetchCategoryCounts()]);
           } else {
             toast.error(result.error || 'Failed to delete items');
           }
@@ -586,7 +583,7 @@ export function GalleryManager() {
       message: `Are you sure you want to delete ${selectedImageIds.length} image(s)? This action cannot be undone.`,
       type: 'danger',
       onConfirm: async () => {
-        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         setDeleteProgress({ isOpen: true, message: `Deleting ${selectedImageIds.length} image(s)...`, current: 0, total: selectedImageIds.length });
         try {
           const ids = [...selectedImageIds];
@@ -612,10 +609,12 @@ export function GalleryManager() {
 
           if (deletedCount > 0) {
             toast.success(`Deleted ${deletedCount} of ${ids.length} image(s) successfully`);
-            const newSelection = new Set(selectedIds);
-            succeeded.forEach(id => newSelection.delete(id));
-            setSelectedIds(newSelection);
-            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+            setSelectedIds(prev => {
+              const newSelection = new Set(prev);
+              succeeded.forEach(id => newSelection.delete(id));
+              return newSelection;
+            });
+            await Promise.all([fetchGalleryItems(activeCategory), fetchCategoryCounts()]);
           } else {
             toast.error('Failed to delete images');
           }
@@ -627,7 +626,7 @@ export function GalleryManager() {
         }
       }
     });
-  }, [selectedImageIds, confirmDialog]);
+  }, [selectedImageIds, activeCategory, fetchGalleryItems, fetchCategoryCounts]);
 
   const handleBulkDeleteVideos = useCallback(() => {
     if (selectedVideoIds.length === 0) {
@@ -641,7 +640,7 @@ export function GalleryManager() {
       message: `Are you sure you want to delete ${selectedVideoIds.length} video(s)? This action cannot be undone.`,
       type: 'danger',
       onConfirm: async () => {
-        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         setDeleteProgress({ isOpen: true, message: `Deleting ${selectedVideoIds.length} video(s)...`, current: 0, total: selectedVideoIds.length });
         
         try {
@@ -668,10 +667,12 @@ export function GalleryManager() {
 
           if (deletedCount > 0) {
             toast.success(`Deleted ${deletedCount} of ${ids.length} video(s) successfully`);
-            const newSelection = new Set(selectedIds);
-            succeeded.forEach(id => newSelection.delete(id));
-            setSelectedIds(newSelection);
-            await Promise.all([fetchGalleryItems(), fetchCategoryCounts()]);
+            setSelectedIds(prev => {
+              const newSelection = new Set(prev);
+              succeeded.forEach(id => newSelection.delete(id));
+              return newSelection;
+            });
+            await Promise.all([fetchGalleryItems(activeCategory), fetchCategoryCounts()]);
           } else {
             toast.error('Failed to delete videos');
           }
@@ -683,7 +684,7 @@ export function GalleryManager() {
         }
       }
     });
-  }, [selectedVideoIds, confirmDialog]);
+  }, [selectedVideoIds, activeCategory, fetchGalleryItems, fetchCategoryCounts]);
 
   if (isLoading) {
     return (

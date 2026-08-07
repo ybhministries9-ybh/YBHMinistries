@@ -125,7 +125,7 @@ export function MultipleImageUpload({
   const generatedUrlsRef = useRef<Set<string>>(new Set());
   // Only support file upload mode
 
-  const processFiles = async (files: FileList | File[]) => {
+  const processFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
@@ -214,7 +214,7 @@ export function MultipleImageUpload({
       }
     }
     setIsProcessing(false);
-  };
+  }, [maxSizeMB]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -239,7 +239,7 @@ export function MultipleImageUpload({
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       processFiles(e.dataTransfer.files);
     }
-  }, []);
+  }, [processFiles]);
 
   const removeImage = (id: string) => {
     // revoke object URL if we generated one for this image
@@ -253,14 +253,16 @@ export function MultipleImageUpload({
     setUploadedImages(prev => prev.filter(img => img.id !== id));
   };
 
-  // cleanup generated object URLs on unmount
+  // cleanup generated object URLs on unmount.
+  // The Set is mutated in place, so holding the reference is enough.
   useEffect(() => {
+    const generatedUrls = generatedUrlsRef.current;
     return () => {
       try {
-        for (const u of generatedUrlsRef.current) {
+        for (const u of generatedUrls) {
           try { URL.revokeObjectURL(u); } catch {}
         }
-        generatedUrlsRef.current.clear();
+        generatedUrls.clear();
       } catch {}
     };
   }, []);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from 'next/navigation';
 import { ChevronRight, Music, Users, Heart, Youtube } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -43,14 +43,21 @@ export function HMSPage({
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [_activeSection, setActiveSection] = useState("home");
-  const sectionRefs = {
-    home: useRef<HTMLDivElement | null>(null),
-    mission: useRef<HTMLDivElement | null>(null),
-    purpose: useRef<HTMLDivElement | null>(null),
-    approach: useRef<HTMLDivElement | null>(null),
-    vision: useRef<HTMLDivElement | null>(null),
-    join: useRef<HTMLDivElement | null>(null),
-  };
+  const homeRef = useRef<HTMLDivElement | null>(null);
+  const missionRef = useRef<HTMLDivElement | null>(null);
+  const purposeRef = useRef<HTMLDivElement | null>(null);
+  const approachRef = useRef<HTMLDivElement | null>(null);
+  const visionRef = useRef<HTMLDivElement | null>(null);
+  const joinRef = useRef<HTMLDivElement | null>(null);
+  // Memoised so the scroll effect below does not resubscribe on every render
+  const sectionRefs = useMemo(() => ({
+    home: homeRef,
+    mission: missionRef,
+    purpose: purposeRef,
+    approach: approachRef,
+    vision: visionRef,
+    join: joinRef,
+  }), []);
 
   const _toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -79,9 +86,9 @@ export function HMSPage({
       });
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [sectionRefs]);
 
   return (
     <div className="bg-black text-white min-h-screen font-sans">

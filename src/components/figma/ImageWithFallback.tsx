@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 // Use native <img> here to avoid `fill`-related next/image warnings when the
 // parent element does not have an explicit height. We generate a responsive
 // `srcSet` where possible for Vercel Blob URLs.
@@ -45,9 +45,14 @@ function ImageWithFallbackBase({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Cache resolved signed URLs to avoid repeated presign requests
-  const resolvedCacheRef = (globalThis as any).__ybh_image_presign_cache || { current: {} as Record<string,string> };
-  if (!(globalThis as any).__ybh_image_presign_cache) (globalThis as any).__ybh_image_presign_cache = resolvedCacheRef;
+  // Cache resolved signed URLs to avoid repeated presign requests.
+  // Shared across every instance via globalThis, memoised so the effect below
+  // sees a stable reference.
+  const resolvedCacheRef = useMemo<{ current: Record<string, string> }>(() => {
+    const g = globalThis as any;
+    if (!g.__ybh_image_presign_cache) g.__ybh_image_presign_cache = { current: {} as Record<string, string> };
+    return g.__ybh_image_presign_cache;
+  }, []);
 
   useEffect(() => {
     let canceled = false;
@@ -133,7 +138,7 @@ function ImageWithFallbackBase({
     resolve();
 
     return () => { canceled = true; };
-  }, [src, fallbackSrc, fallbackVariant]);
+  }, [src, fallbackSrc, fallbackVariant, resolvedCacheRef]);
 
   const handleError = () => {
     if (fallbackVariant === 'person') {

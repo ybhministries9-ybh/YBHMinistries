@@ -181,7 +181,7 @@ export default function ContactDetail({ id, forcedTypeProp }: { id: string, forc
     })();
 
     return () => { mounted = false; };
-  }, [id, forcedType, searchParams, forcedTypeProp]);
+  }, [id, forcedType, searchParams, forcedTypeProp, router]);
 
   const recordToInitial = (rec: any) => {
     if (!rec) return undefined;

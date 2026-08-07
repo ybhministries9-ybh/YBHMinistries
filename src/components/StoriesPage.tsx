@@ -544,14 +544,16 @@ const SubmitTestimonyForm = memo(() => {
   }, []);
 
   useEffect(() => {
+    // capture the node so cleanup detaches from the same element it attached to
+    const editor = testimonyRef.current;
     document.addEventListener('selectionchange', updateFormattingState);
     // also update on keyboard navigation inside editor
-    testimonyRef.current?.addEventListener('keyup', updateFormattingState);
-    testimonyRef.current?.addEventListener('mouseup', updateFormattingState);
+    editor?.addEventListener('keyup', updateFormattingState);
+    editor?.addEventListener('mouseup', updateFormattingState);
     return () => {
       document.removeEventListener('selectionchange', updateFormattingState);
-      testimonyRef.current?.removeEventListener('keyup', updateFormattingState);
-      testimonyRef.current?.removeEventListener('mouseup', updateFormattingState);
+      editor?.removeEventListener('keyup', updateFormattingState);
+      editor?.removeEventListener('mouseup', updateFormattingState);
     };
   }, [updateFormattingState]);
 

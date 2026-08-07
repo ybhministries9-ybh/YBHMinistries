@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Upload, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 
@@ -146,9 +146,14 @@ export function ImageUpload({
     compressedSize: number;
     ratio: number;
   } | null>(null);
-  // Track object URLs we create so we can revoke them later
-  const generatedUrlsRef = (globalThis as any).__ybh_generated_urls_ref || { current: new Set<string>() };
-  if (!(globalThis as any).__ybh_generated_urls_ref) (globalThis as any).__ybh_generated_urls_ref = generatedUrlsRef;
+  // Track object URLs we create so we can revoke them later.
+  // Shared across every instance via globalThis, memoised so the cleanup effect
+  // below sees a stable reference.
+  const generatedUrlsRef = useMemo<{ current: Set<string> }>(() => {
+    const g = globalThis as any;
+    if (!g.__ybh_generated_urls_ref) g.__ybh_generated_urls_ref = { current: new Set<string>() };
+    return g.__ybh_generated_urls_ref;
+  }, []);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -295,16 +300,18 @@ export function ImageUpload({
     // Fire async resolver but don't block sync cleanup
     resolvePreview();
 
-    // Cleanup on unmount: revoke any remaining object URLs
+    // Cleanup on unmount: revoke any remaining object URLs.
+    // The Set is mutated in place, so holding the reference is enough.
+    const generatedUrls = generatedUrlsRef.current;
     return () => {
       try {
-        for (const u of generatedUrlsRef.current) {
+        for (const u of generatedUrls) {
           try { URL.revokeObjectURL(u); } catch {}
         }
-        generatedUrlsRef.current.clear();
+        generatedUrls.clear();
       } catch {}
     };
-  }, [currentImage]);
+  }, [currentImage, generatedUrlsRef]);
 
   return (
     <div className="space-y-4">

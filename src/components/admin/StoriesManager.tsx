@@ -475,6 +475,10 @@ function DatePicker({
   );
 }
 
+// Image upload constraints
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2 MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
+
 export function StoriesManager() {
   const { isViewer } = useAdminUser();
   const [stories, setStories] = useState<Story[]>([]);
@@ -528,13 +532,15 @@ export function StoriesManager() {
   }, []);
 
   React.useEffect(() => {
+    // capture the node so cleanup detaches from the same element it attached to
+    const editor = testimonyRef.current;
     document.addEventListener('selectionchange', updateFormattingState);
-    testimonyRef.current?.addEventListener('keyup', updateFormattingState);
-    testimonyRef.current?.addEventListener('mouseup', updateFormattingState);
+    editor?.addEventListener('keyup', updateFormattingState);
+    editor?.addEventListener('mouseup', updateFormattingState);
     return () => {
       document.removeEventListener('selectionchange', updateFormattingState);
-      testimonyRef.current?.removeEventListener('keyup', updateFormattingState);
-      testimonyRef.current?.removeEventListener('mouseup', updateFormattingState);
+      editor?.removeEventListener('keyup', updateFormattingState);
+      editor?.removeEventListener('mouseup', updateFormattingState);
     };
   }, [updateFormattingState]);
 
@@ -574,7 +580,7 @@ export function StoriesManager() {
   }
 
   // Fetch stories from server
-  const fetchStories = async () => {
+  const fetchStories = React.useCallback(async () => {
     try {
       const resp = await fetch('/api/admin/stories', { headers: getAuthHeaders() });
       const j = await resp.json();
@@ -588,9 +594,11 @@ export function StoriesManager() {
       logDevError('Error fetching stories', err);
       toast.error('Failed to fetch stories');
     }
-  };
+    // getAuthHeaders, mapRowToClient and logDevError are module/scope-stable helpers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => { void fetchStories(); }, []);
+  useEffect(() => { void fetchStories(); }, [fetchStories]);
 
   // Helper to log errors in development only (keeps console tidy in production)
   const logDevError = (...args: any[]) => {
@@ -612,10 +620,6 @@ export function StoriesManager() {
     email: 254,
     phone: 10
   };
-
-  // Image upload constraints
-  const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2 MB
-  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
 
   // Map a server DB row to the UI Story shape, preserving any existing client-only fields
   const mapRowToClient = (row: any, existing?: Story): Story => {
@@ -800,6 +804,43 @@ export function StoriesManager() {
     return youtubeRegex.test(url);
   };
 
+  // Defined before handleImageFileChange below, which depends on it
+  const handleUpdate = useCallback((id: string, field: keyof Story, rawValue: any) => {
+    // sanitize value before updating state
+    let value = rawValue;
+    if (typeof value === 'string' && (field === 'name' || field === 'role' || field === 'location')) {
+      value = value.replace(/\d/g, '');
+    }
+
+    // When phoneCode or phoneNumber changes, keep phone (combined) in sync
+    setStories(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      const updated = { ...s, [field]: value };
+      if (field === 'phoneCode' || field === 'phoneNumber') {
+        const code = field === 'phoneCode' ? value : (s.phoneCode || '+91');
+        const num = field === 'phoneNumber' ? value : (s.phoneNumber || '');
+        updated.phone = `${code}${num}`;
+      }
+      return updated;
+    }));
+
+    // Clear validation error for this field when user starts typing
+    setValidationErrors(prev => {
+      if (!prev[id]) return prev;
+      const copy = { ...prev };
+      if (copy[id]) {
+        const fieldCopy = { ...copy[id] };
+        delete fieldCopy[field as keyof ValidationErrors];
+        if (Object.keys(fieldCopy).length === 0) {
+          delete copy[id];
+        } else {
+          copy[id] = fieldCopy;
+        }
+      }
+      return copy;
+    });
+  }, []);
+
   // Handle image file selection for a given story id (stable callback)
   const handleImageFileChange = useCallback((id: string, file?: File | null) => {
     const story = stories.find(s => s.id === id);
@@ -839,7 +880,7 @@ export function StoriesManager() {
       if (newErrors[id]) { delete newErrors[id].image; setValidationErrors(newErrors); }
     };
     reader.readAsDataURL(file);
-  }, [stories, validationErrors]);
+  }, [stories, validationErrors, handleUpdate]);
 
   // placeholder now — moved lower after handleUpdate to avoid premature reference
 
@@ -1231,42 +1272,6 @@ export function StoriesManager() {
     setEditingId(null);
     setEditModalOpen(false);
   };
-
-  const handleUpdate = useCallback((id: string, field: keyof Story, rawValue: any) => {
-    // sanitize value before updating state
-    let value = rawValue;
-    if (typeof value === 'string' && (field === 'name' || field === 'role' || field === 'location')) {
-      value = value.replace(/\d/g, '');
-    }
-
-    // When phoneCode or phoneNumber changes, keep phone (combined) in sync
-    setStories(prev => prev.map(s => {
-      if (s.id !== id) return s;
-      const updated = { ...s, [field]: value };
-      if (field === 'phoneCode' || field === 'phoneNumber') {
-        const code = field === 'phoneCode' ? value : (s.phoneCode || '+91');
-        const num = field === 'phoneNumber' ? value : (s.phoneNumber || '');
-        updated.phone = `${code}${num}`;
-      }
-      return updated;
-    }));
-
-    // Clear validation error for this field when user starts typing
-    setValidationErrors(prev => {
-      if (!prev[id]) return prev;
-      const copy = { ...prev };
-      if (copy[id]) {
-        const fieldCopy = { ...copy[id] };
-        delete fieldCopy[field as keyof ValidationErrors];
-        if (Object.keys(fieldCopy).length === 0) {
-          delete copy[id];
-        } else {
-          copy[id] = fieldCopy;
-        }
-      }
-      return copy;
-    });
-  }, []);
 
   const handleDeleteImage = useCallback((id: string) => {
     const story = stories.find(s => s.id === id);

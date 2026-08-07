@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Music, Users, Church, Copy, X, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import QRCode from 'qrcode';
@@ -15,6 +15,10 @@ export function DonatePage() {
   const [upiList, setUpiList] = useState<any[]>([]);
   const [bankList, setBankList] = useState<any[]>([]);
   const [qrDataMap, setQrDataMap] = useState<Record<string, string>>({});
+  // Mirror of qrDataMap for the generator effect below, which needs the latest
+  // value without re-running every time a QR code is added.
+  const qrDataMapRef = useRef<Record<string, string>>({});
+  qrDataMapRef.current = qrDataMap;
   const [fullscreenQr, setFullscreenQr] = useState<{ src: string; label: string; upiId?: string } | null>(null);
 
   useEffect(() => {
@@ -57,9 +61,10 @@ export function DonatePage() {
       try {
         // Only generate QR for entries that don't have an already-presigned HTTPS URL
         // (API now returns presigned URLs, so we only generate for entries with UPI ID and no qr_image_url)
-        const itemsToGenerate = upiList.filter((u) => 
-          u.upi_id && 
-          !qrDataMap[String(u.id)] &&
+        const alreadyGenerated = qrDataMapRef.current;
+        const itemsToGenerate = upiList.filter((u) =>
+          u.upi_id &&
+          !alreadyGenerated[String(u.id)] &&
           !(u.qr_image_url && typeof u.qr_image_url === 'string' && u.qr_image_url.startsWith('http'))
         );
         if (itemsToGenerate.length === 0) return;
