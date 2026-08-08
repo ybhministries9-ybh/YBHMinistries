@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { WORSHIP24_SLOT_GROUPS, buildMonthOptions, formatDatePretty } from '../../lib/worship24Slots';
 
 type Worship24Row = {
   id: number;
@@ -29,61 +30,6 @@ function isSlotsResponse(value: unknown): value is { success: true; data: unknow
   return true;
 }
 
-function generateTimeslots(): string[] {
-  const slots: string[] = [];
-  for (let hour = 0; hour < 24; hour++) {
-    for (let min = 0; min < 60; min += 30) {
-      const start = new Date(0, 0, 0, hour, min, 0);
-      const end = new Date(0, 0, 0, hour, min + 30, 0);
-      const fmt = (d: Date) =>
-        d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase();
-      slots.push(`${fmt(start)} to ${fmt(end)}`);
-    }
-  }
-  return slots;
-}
-
-function groupSlots(timeslots: string[]) {
-  return [
-    { key: 'g1', label: '12 AM to 6 AM Slots', slots: timeslots.slice(0, 12) },
-    { key: 'g2', label: '6 AM to 12 PM Slots', slots: timeslots.slice(12, 24) },
-    { key: 'g3', label: '12 PM to 6 PM Slots', slots: timeslots.slice(24, 36) },
-    { key: 'g4', label: '6 PM to 12 AM Slots', slots: timeslots.slice(36, 48) },
-  ];
-}
-
-function formatMonthYear(d: Date) {
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(d);
-}
-
-function formatDatePretty(raw?: string) {
-  if (!raw) return '';
-  try {
-    const [year, month, day] = raw.split('-').map(Number);
-    if (!year || !month || !day) return raw;
-    const d = new Date(year, month - 1, day);
-    if (Number.isNaN(d.getTime())) return raw;
-    return new Intl.DateTimeFormat('en-US', { month: 'long', day: '2-digit', year: 'numeric' }).format(d);
-  } catch {
-    return raw || '';
-  }
-}
-
-function toYmd(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function secondSaturdayOfMonth(year: number, monthIndex: number) {
-  const first = new Date(year, monthIndex, 1);
-  const firstSatOffset = (6 - first.getDay() + 7) % 7;
-  const firstSatDate = 1 + firstSatOffset;
-  const secondSatDate = firstSatDate + 7;
-  return new Date(year, monthIndex, secondSatDate);
-}
-
 function getAuthHeader() {
   try {
     const raw = localStorage.getItem('admin_token');
@@ -102,8 +48,7 @@ function getAuthHeader() {
 export default function ManageSlots({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const timeslots = useMemo(() => generateTimeslots(), []);
-  const groups = useMemo(() => groupSlots(timeslots), [timeslots]);
+  const groups = WORSHIP24_SLOT_GROUPS;
   const [date, setDate] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [bookings, setBookings] = useState<Record<string, Worship24Row> | null>(null);
@@ -121,25 +66,11 @@ export default function ManageSlots({ onClose }: { onClose?: () => void }) {
     return map;
   }, [groups, bookings]);
 
-  // This is an admin viewing tool, not the public booking form -- the
-  // current month's slots (and its 2nd Saturday booking date) should always
-  // be visible here, even after that date has passed, so admins can look
-  // back at what was booked. Unlike the public Worship24Section form, this
-  // list is never restricted to "not yet passed" months.
-  const monthOptions = useMemo(() => {
-    const now = new Date();
-
-    const months: { label: string; bookingDate: string }[] = [];
-    for (let i = 0; i < 3; i++) {
-      const m = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const secondSat = secondSaturdayOfMonth(m.getFullYear(), m.getMonth());
-      months.push({
-        label: formatMonthYear(m),
-        bookingDate: toYmd(secondSat),
-      });
-    }
-    return months;
-  }, []);
+  // This is an admin viewing tool, not the public booking form -- the current
+  // month's slots (and its 2nd Saturday booking date) should always be visible
+  // here, even after that date has passed, so admins can look back at what was
+  // booked. Hence `includePastCurrentMonth`.
+  const monthOptions = useMemo(() => buildMonthOptions(true), []);
 
   useEffect(() => {
     if (date || monthOptions.length === 0) return;

@@ -3,87 +3,22 @@
 import { useRef, useState, memo, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { COUNTRY_CODES } from '../lib/countryCodes';
+import {
+  MAX_SLOTS_PER_DAY,
+  TIMESLOT_INDEX,
+  WORSHIP24_SLOT_GROUPS,
+  buildMonthOptions,
+  formatDatePretty,
+  isBeforeCurrentMonth,
+  isSecondSaturday,
+} from '../lib/worship24Slots';
 
 const LIMITS = { name: 100, email: 254, phone: 10, location: 200, message: 2000, facebook: 300 };
-
-// Maximum number of timeslots a single booking may reserve for one date.
-// The limit applies per date — selections on one date do not consume the
-// allowance of another date.
-const MAX_SLOTS_PER_DAY = 4;
-
-// How many upcoming booking dates (2nd Saturdays) are offered
-const MONTHS_OFFERED = 3;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Shared, immutable empty array so memos keyed on it stay referentially stable
 const NO_SLOTS: readonly string[] = Object.freeze([]);
-
-// Intl formatters are expensive to construct; build each one once
-const TIME_FORMAT = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-const LONG_DATE_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'long', day: '2-digit', year: 'numeric' });
-const MONTH_YEAR_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
-
-/** The 48 half-hour timeslots of a day, e.g. "12:00 AM to 12:30 AM" */
-const TIMESLOTS: string[] = (() => {
-  const slots: string[] = [];
-  for (let hour = 0; hour < 24; hour++) {
-    for (let min = 0; min < 60; min += 30) {
-      const start = TIME_FORMAT.format(new Date(0, 0, 0, hour, min, 0)).toUpperCase();
-      const end = TIME_FORMAT.format(new Date(0, 0, 0, hour, min + 30, 0)).toUpperCase();
-      slots.push(`${start} to ${end}`);
-    }
-  }
-  return slots;
-})();
-
-/** slot -> position in the day, used for O(1) validity checks and chronological ordering */
-const TIMESLOT_INDEX: ReadonlyMap<string, number> = new Map(TIMESLOTS.map((s, i) => [s, i]));
-
-const SLOT_GROUPS = [
-  { key: 'g1', label: '12 AM to 6 AM Slots', slots: TIMESLOTS.slice(0, 12) },
-  { key: 'g2', label: '6 AM to 12 PM Slots', slots: TIMESLOTS.slice(12, 24) },
-  { key: 'g3', label: '12 PM to 6 PM Slots', slots: TIMESLOTS.slice(24, 36) },
-  { key: 'g4', label: '6 PM to 12 AM Slots', slots: TIMESLOTS.slice(36, 48) },
-] as const;
-
-function toYmd(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-/** The 2nd Saturday of the given month */
-function secondSaturdayOfMonth(year: number, monthIndex: number) {
-  const first = new Date(year, monthIndex, 1);
-  const firstSatDate = 1 + ((6 - first.getDay() + 7) % 7);
-  return new Date(year, monthIndex, firstSatDate + 7);
-}
-
-function isSecondSaturday(dateStr: string) {
-  if (!dateStr) return false;
-  const d = new Date(dateStr + 'T00:00:00');
-  if (Number.isNaN(d.getTime()) || d.getDay() !== 6) return false;
-  return d.getDate() === secondSaturdayOfMonth(d.getFullYear(), d.getMonth()).getDate();
-}
-
-function formatDatePretty(raw?: string) {
-  if (!raw) return '';
-  const [year, month, day] = raw.split('-').map(Number);
-  if (!year || !month || !day) return raw;
-  const d = new Date(year, month - 1, day);
-  return Number.isNaN(d.getTime()) ? raw : LONG_DATE_FORMAT.format(d);
-}
-
-function monthYearIsBeforeCurrent(dateStr: string) {
-  if (!dateStr) return true;
-  const d = new Date(dateStr + 'T00:00:00');
-  const now = new Date();
-  // compare year and month only
-  if (d.getFullYear() < now.getFullYear()) return true;
-  return d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth();
-}
 
 type Worship24Form = {
   name: string;
@@ -154,7 +89,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   );
   const availableSlotCountsByGroup = useMemo(() => {
     const map = new Map<string, number>();
-    for (const group of SLOT_GROUPS) {
+    for (const group of WORSHIP24_SLOT_GROUPS) {
       let available = 0;
       for (const slot of group.slots) if (!bookedSlotsSet.has(slot)) available++;
       map.set(group.key, available);
@@ -200,7 +135,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
     if (datesToCheck.length === 0) errs.date = String(t('contactForm.validation.worship24_dateRequired'));
     else {
       for (const d of datesToCheck) {
-        if (monthYearIsBeforeCurrent(d)) { errs.date = String(t('contactForm.validation.worship24_previousMonth')); break; }
+        if (isBeforeCurrentMonth(d)) { errs.date = String(t('contactForm.validation.worship24_previousMonth')); break; }
         if (!isSecondSaturday(d)) { errs.date = String(t('contactForm.validation.worship24_secondSaturday')); break; }
       }
     }
@@ -340,20 +275,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
   };
 
   /** The next few bookable dates (2nd Saturday of each month) */
-  const monthOptions = useMemo(() => {
-    const now = new Date();
-    const currentSecondSat = secondSaturdayOfMonth(now.getFullYear(), now.getMonth());
-    // once this month's date has passed, start from next month
-    const startMonthIndex = now.getTime() >= currentSecondSat.getTime() ? now.getMonth() + 1 : now.getMonth();
-
-    return Array.from({ length: MONTHS_OFFERED }, (_, i) => {
-      const m = new Date(now.getFullYear(), startMonthIndex + i, 1);
-      return {
-        label: MONTH_YEAR_FORMAT.format(m),
-        bookingDate: toYmd(secondSaturdayOfMonth(m.getFullYear(), m.getMonth())),
-      };
-    });
-  }, []);
+  const monthOptions = useMemo(() => buildMonthOptions(), []);
 
   // Default the picker to the first bookable date
   useEffect(() => {
@@ -573,7 +495,7 @@ export const Worship24Section = memo(({ accentColor = '#FDB813' }: { accentColor
                   })}
                 </p>
                 <div className="space-y-3 mt-2">
-                  {SLOT_GROUPS.map((group) => (
+                  {WORSHIP24_SLOT_GROUPS.map((group) => (
                     <div key={group.key} className="bg-black/10 rounded-md border border-gray-700">
                       <button
                         type="button"

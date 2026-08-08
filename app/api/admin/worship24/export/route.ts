@@ -6,7 +6,7 @@ import {
   formatISTDate,
   generateExportFilename,
 } from '@/lib/exportUtils';
-import { WORSHIP24_TIMESLOTS, getSecondSaturday, toYmd } from '@/lib/worship24Slots';
+import { WORSHIP24_TIMESLOTS, secondSaturdayOfMonth, toYmd } from '@/lib/worship24Slots';
 
 type Worship24Record = {
   id: number;
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     let exportData: Worship24ExportRow[];
 
     if (useFullSlotMode) {
-      const bookingDate = toYmd(getSecondSaturday(yearNum, monthNum - 1));
+      const bookingDate = toYmd(secondSaturdayOfMonth(yearNum, monthNum - 1));
 
       const values: any[] = [bookingDate];
       const conditions: string[] = ['booking_date = $1'];

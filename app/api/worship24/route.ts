@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { createWorship24Bulk, getBookedTimeslotsForDate } from '../../../src/lib/db';
 import validateEmail from '../../../src/lib/validateEmail';
 import { sanitizeInput, requireJson, checkBodySize, rateLimit, verifyRecaptcha, isHoneypotFilled } from '../../../src/lib/security';
+// Date and slot rules are shared with the booking form so client and server
+// cannot drift apart. See src/lib/worship24Slots.ts.
+import { MAX_SLOTS_PER_DAY, isBeforeCurrentMonth, isSecondSaturday } from '../../../src/lib/worship24Slots';
 
 export const runtime = 'nodejs';
 
-// Maximum number of timeslots a single booking may reserve for one date.
-// The limit applies per date — other dates keep their own full allowance.
-const MAX_SLOTS_PER_DAY = 4;
 // Upper bound on dates per submission, guarding against crafted payloads
 const MAX_DATES_PER_BOOKING = 12;
 
@@ -16,14 +16,6 @@ const PHONE_RE = /^[0-9+()\-.\s]+$/;
 const DATE_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 
 type Selection = { date: string; timeslots: string[] };
-
-function isSecondSaturdayDate(dateStr: string) {
-  const d = new Date(dateStr + 'T00:00:00');
-  if (isNaN(d.getTime()) || d.getDay() !== 6) return false;
-  const first = new Date(d.getFullYear(), d.getMonth(), 1);
-  const firstSatDate = 1 + ((6 - first.getDay() + 7) % 7);
-  return d.getDate() === firstSatDate + 7;
-}
 
 /**
  * Normalise the request body into an ordered list of `{ date, timeslots }`.
@@ -104,14 +96,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `You can book a maximum of ${MAX_DATES_PER_BOOKING} dates at a time` }, { status: 400 });
     }
 
-    const now = new Date();
     for (const sel of selections) {
-      if (!isSecondSaturdayDate(sel.date)) {
+      if (!isSecondSaturday(sel.date)) {
         return NextResponse.json({ error: 'Date must be the 2nd Saturday of the month' }, { status: 400 });
       }
-      // ensure month/year not before current
-      const d = new Date(sel.date + 'T00:00:00');
-      if (d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() < now.getMonth())) {
+      // Months earlier than the current one (in the event's timezone) are closed.
+      // The current month stays valid for the whole of its 2nd Saturday.
+      if (isBeforeCurrentMonth(sel.date)) {
         return NextResponse.json({ error: 'Previous months are not allowed' }, { status: 400 });
       }
       // the maximum applies per date; other dates are unaffected
